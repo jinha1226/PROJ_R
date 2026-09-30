@@ -1,0 +1,35 @@
+name: RAIDBOUND tests and build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check src.js
+          node --check server.mjs
+          node --check build.mjs
+      - name: Test combat mechanics and all bosses
+        run: npm test
+      - name: Build static game
+        run: npm run build
+      - name: Upload playable game
+        uses: actions/upload-artifact@v4
+        with:
+          name: raidbound-game
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
