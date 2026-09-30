@@ -36,4 +36,4 @@ JavaScript 구문 검사, 정적 빌드, 전투 로직 시뮬레이션으로 세
 
 푸시와 Pull Request, Actions 탭의 수동 실행에서 구문 검사, 세 보스 전투 시뮬레이션, 빌드를 수행합니다. `npm test`로 동일한 전투 검증을 로컬에서 실행할 수 있습니다.
 
-성공한 실행의 **Artifacts → raidbound-game**을 다운로드해 압축을 풀고, 해당 폴더에서 `python3 -m http.server 8000`을 실행한 다음 http://localhost:8000 에서 플레이할 수 있습니다. 이 워크플로는 검증과 파일 생성을 수행하며 웹사이트 배포는 수행하지 않습니다.
+성공한 실행의 **Artifacts → raidbound-game**을 다운로드해 압축을 풀고, 해당 폴더에서 `python3 -m http.server 8000`을 실행한 다음 http://localhost:8000 에서 플레이할 수 있습니다. 테스트 워크플로는 검증과 파일 생성을 수행합니다. 별도의 Pages 워크플로는 main 푸시 시 검증된 게임을 https://jinha1226.github.io/PROJ_R/ 에 자동 배포합니다.
