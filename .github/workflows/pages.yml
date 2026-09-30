@@ -29,6 +29,7 @@ jobs:
       - name: Verify game
         run: |
           node --check src.js
+          node --check battle-view.js
           npm test
       - name: Build static game
         run: npm run build

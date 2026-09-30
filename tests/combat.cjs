@@ -2,8 +2,8 @@ const fs=require('fs'),vm=require('vm');
 const seededMath=Object.create(Math);let seed=1226;seededMath.random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 const elements=new Map();const context=new Proxy({createRadialGradient:()=>({addColorStop(){}})}, {get:(o,k)=>o[k]||(()=>{})});
 function el(s){if(!elements.has(s))elements.set(s,{innerHTML:'',textContent:'',style:{},classList:{toggle(){}},getBoundingClientRect:()=>({width:700,height:505,left:0,top:0}),getContext:()=>context});return elements.get(s)}
-const sandbox={Math:seededMath,console,performance:{now:()=>0},document:{querySelector:s=>s==='.overlay'?null:el(s),querySelectorAll:()=>[]},window:{devicePixelRatio:1,addEventListener(){},scrollTo(){}},requestAnimationFrame(){}};
-vm.createContext(sandbox);vm.runInContext(fs.readFileSync('src.js','utf8'),sandbox);
+const sandbox={createBattleView:()=>({draw(){},center(){},inspect(){return{}},moveDirection(x,y){return{x,y}}}),Math:seededMath,console,performance:{now:()=>0},document:{querySelector:s=>s==='.overlay'?null:el(s),querySelectorAll:()=>[]},window:{devicePixelRatio:1,addEventListener(){},scrollTo(){}},requestAnimationFrame(){}};
+vm.createContext(sandbox);vm.runInContext(fs.readFileSync('src.js','utf8').replace(/^import .*;\n/,''),sandbox);
 vm.runInContext(`
 function assert(v,msg){if(!v)throw Error(msg)}
 assert(party.length===5,'five heroes');draw();

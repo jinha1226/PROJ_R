@@ -20,10 +20,20 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check src.js
+          node --check battle-view.js
           node --check server.mjs
           node --check build.mjs
       - name: Test combat mechanics and all bosses
         run: npm test
+      - name: Test 3D graphics and controls in Chrome
+        run: npm run test:browser
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raidbound-screenshots
+          path: test-artifacts/
+          if-no-files-found: ignore
       - name: Build static game
         run: npm run build
       - name: Upload playable game

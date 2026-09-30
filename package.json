@@ -8,6 +8,7 @@
     "start": "node server.mjs",
     "build": "node build.mjs",
     "preview": "node server.mjs",
-    "test": "node tests/combat.cjs"
+    "test": "node tests/combat.cjs",
+    "test:browser": "node tests/browser.mjs"
   }
 }
