@@ -49,3 +49,28 @@
 .shop-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .shop-list .price { color: #ffd060; font-weight: 700; margin-left: auto; }
 .sold { opacity: 0.45; }
+.node-panel.wide { width: min(980px, 100%); }
+.prep-body { display: flex; gap: 16px; flex-wrap: wrap; }
+.prep-left { flex: 2; min-width: 300px; } .prep-right { flex: 1; min-width: 200px; font-size: 13px; }
+.prep-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.prep-manage { margin-top: 12px; }
+.formation { display: flex; flex-direction: column; gap: 10px; }
+.fgrid-wrap { display: flex; flex-direction: column; gap: 4px; }
+.flabels { display: grid; grid-template-columns: repeat(3, 1fr); font-size: 11px; color: var(--muted); text-align: center; }
+.fgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.fcell { min-height: 54px; border: 1px dashed var(--line); border-radius: 6px; padding: 3px; background: #0002; }
+.fcell:hover { border-color: var(--accent); }
+.bench { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
+.bench h4 { width: 100%; margin: 0 0 4px; font-size: 13px; color: var(--muted); }
+.fchip { display: flex; flex-direction: column; background: var(--panel-2); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 5px; padding: 4px 8px; cursor: grab; font-size: 12px; min-width: 96px; }
+.fchip.sel { box-shadow: 0 0 0 2px var(--accent); } .fchip.hurt small { color: #ffb4a8; }
+.fhelp { font-size: 12px; margin: 0; }
+.foes, .adj-list { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 4px; }
+.adj-friend { color: #7ad08a; } .adj-rival { color: #ff9a4a; } .adj-feud { color: #c08af0; } .adj-comrade { color: #f0c040; }
+.name-input { font: inherit; font-size: 16px; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; }
+.hall { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hall small { display: block; }
+.talk { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.talk select { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px; }
+.result { padding: 10px; background: #0003; border-left: 3px solid var(--accent); border-radius: 4px; }
+.gold { color: #ffd060; }
