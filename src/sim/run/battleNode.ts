@@ -48,7 +48,7 @@ export function finishBattle(run: RunState, node: MapNode, deployed: string[], r
     roster = { ...roster, mercs: roster.mercs.map((m) => (deployed.includes(m.id) ? { ...m, injury: Math.max(m.injury, RETREAT_INJURY) } : m)) };
   }
   let next: RunState = { ...run, roster, gold, pending: undefined };
-  if (node.type === 'boss' && report.outcome === 'victory') next = { ...next, status: 'won' };
+  if (node.type === 'boss') next = { ...next, status: report.outcome === 'victory' ? 'won' : 'lost' }; // nothing lies beyond the boss
   next = { ...next, status: checkRunEnd(next) };
   return { run: next, aftermath: { ...aftermath, roster }, reward: { gold: gold - run.gold, items } };
 }

@@ -17,7 +17,10 @@ const options = (keys: string[], labels: Record<string, string>, selected: strin
   keys.map((k) => `<option value="${k}"${k === selected ? ' selected' : ''}>${labels[k] ?? k}</option>`).join('');
 
 export class SandboxScreen implements Screen {
-  constructor(private readonly last: SandboxChoice, private readonly onStart: (c: SandboxChoice) => void, private readonly onCompany?: (seed: number) => void) {}
+  constructor(
+    private readonly last: SandboxChoice, private readonly onStart: (c: SandboxChoice) => void,
+    private readonly onCompany?: (seed: number) => void, private readonly onTitle?: () => void,
+  ) {}
 
   mount(root: HTMLElement): void {
     const el = document.createElement('div');
@@ -31,6 +34,7 @@ export class SandboxScreen implements Screen {
         <label>${t('ui.seed')}<input data-testid="seed" type="number" value="${this.last.seed}" /></label>
         <button class="btn primary" data-testid="start-battle">${t('ui.start')}</button>
         <button class="btn" data-testid="company-mode">용병단 모드 (성장 체험)</button>
+        ${this.onTitle ? '<button class="btn" data-testid="to-title">타이틀로</button>' : ''}
         <div class="loading" hidden></div>
       </div>`;
     root.appendChild(el);
@@ -41,6 +45,7 @@ export class SandboxScreen implements Screen {
       loading.textContent = t('ui.loading');
       this.onStart({ ally: get('ally-preset'), enemy: get('enemy-preset'), seed: Number(get('seed')) || 1 });
     });
+    el.querySelector('[data-testid="to-title"]')?.addEventListener('click', () => this.onTitle?.());
     el.querySelector('[data-testid="company-mode"]')!.addEventListener('click', () => {
       const seed = Number(el.querySelector<HTMLInputElement>('[data-testid="seed"]')!.value) || 1;
       this.onCompany?.(seed);

@@ -8,7 +8,7 @@ const waitTick = (page: Page, n: number) =>
 test('sandbox battle runs to completion and renders', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./?seed=7');
+  await page.goto('./?screen=sandbox&seed=7');
   await page.selectOption('[data-testid="ally-preset"]', 'standard');
   await page.selectOption('[data-testid="enemy-preset"]', 'bandits');
   await page.click('[data-testid="start-battle"]');
@@ -23,7 +23,7 @@ test('sandbox battle runs to completion and renders', async ({ page }) => {
 });
 
 test('pause stops the simulation and inspect shows intent', async ({ page }) => {
-  await page.goto('./?seed=3');
+  await page.goto('./?screen=sandbox&seed=3');
   await page.click('[data-testid="start-battle"]');
   await waitTick(page, 30);
   await page.click('[data-testid="pause"]');
@@ -38,7 +38,7 @@ test('pause stops the simulation and inspect shows intent', async ({ page }) => 
 test('boss preset renders telegraphs without errors', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./?seed=5');
+  await page.goto('./?screen=sandbox&seed=5');
   await page.selectOption('[data-testid="ally-preset"]', 'standard');
   await page.selectOption('[data-testid="enemy-preset"]', 'boss');
   await page.click('[data-testid="start-battle"]');
@@ -48,7 +48,7 @@ test('boss preset renders telegraphs without errors', async ({ page }) => {
 });
 
 test('wheel zoom switches to manual camera and C returns to auto', async ({ page }) => {
-  await page.goto('./?seed=4');
+  await page.goto('./?screen=sandbox&seed=4');
   await page.click('[data-testid="start-battle"]');
   await waitTick(page, 20);
   const auto = page.locator('[data-testid="camera-auto"]');

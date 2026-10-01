@@ -7,7 +7,7 @@ const waitTick = (page: Page, n: number) =>
 test('bonds party shows relationship drama and the moments summary', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./?seed=2');
+  await page.goto('./?screen=sandbox&seed=2');
   await page.selectOption('[data-testid="ally-preset"]', 'bonds');
   await page.selectOption('[data-testid="enemy-preset"]', 'ambush');
   await page.click('[data-testid="start-battle"]');

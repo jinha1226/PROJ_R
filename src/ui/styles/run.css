@@ -74,3 +74,5 @@
 .talk select { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px; }
 .result { padding: 10px; background: #0003; border-left: 3px solid var(--accent); border-radius: 4px; }
 .gold { color: #ffd060; }
+.node-screen > .run-hud { position: absolute; top: 0; left: 0; right: 0; }
+.node-screen.prep { padding-top: 64px; }

@@ -62,6 +62,8 @@ describe('battle nodes', () => {
     expect(checkRunEnd(dead.run)).toBe('lost');
     const boss = finishBattle(r, node(r, 'boss', 12), ids, report(r));
     expect(boss.run.status).toBe('won');
+    const bossLost = finishBattle(r, node(r, 'boss', 12), ids, report(r, { outcome: 'retreat' }));
+    expect(bossLost.run.status).toBe('lost');
   });
   it('does not mutate the run', () => {
     const r = withParty();

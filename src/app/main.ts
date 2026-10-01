@@ -4,18 +4,33 @@ import '../ui/styles/hud.css';
 import { setupFromPresets } from '../sim/battle/setup';
 import { BattleScreen } from '../ui/screens/battleScreen';
 import { SandboxScreen, type SandboxChoice } from '../ui/screens/sandboxScreen';
+import { TitleScreen } from '../ui/run/titleScreen';
+import { HallScreen } from '../ui/run/endScreens';
 import { getAssets } from './assetCache';
+import { CompanyFlow } from './companyFlow';
 import { showFatal } from './fatal';
 import { Router } from './router';
-import { CompanyFlow } from './companyFlow';
+import { RunFlow } from './runFlow';
+import { loadHall, loadRun } from './save';
 
 const root = document.getElementById('app')!;
 const router = new Router(root);
 const params = new URLSearchParams(location.search);
-let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: Number(params.get('seed')) || 1 };
+const urlSeed = Number(params.get('seed')) || 0;
+let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: urlSeed || 1 };
+
+function title(): void {
+  router.go(new TitleScreen({
+    hasSave: () => loadRun() !== null,
+    newRun: (seed) => new RunFlow(router, root, title).start(seed),
+    continueRun: () => { const r = loadRun(); if (r) new RunFlow(router, root, title).resume(r); },
+    hall: () => router.go(new HallScreen(loadHall(), title)),
+    sandbox,
+  }, urlSeed || Math.floor(Math.random() * 99999) + 1));
+}
 
 function sandbox(): void {
-  router.go(new SandboxScreen(choice, (c) => { choice = c; void battle(); }, (seed) => new CompanyFlow(router, root, sandbox, seed).hub()));
+  router.go(new SandboxScreen(choice, (c) => { choice = c; void battle(); }, (seed) => new CompanyFlow(router, root, sandbox, seed).hub(), title));
 }
 
 async function battle(): Promise<void> {
@@ -31,4 +46,5 @@ async function battle(): Promise<void> {
   }
 }
 
-sandbox();
+if (params.get('screen') === 'sandbox') sandbox();
+else title();

@@ -15,7 +15,7 @@ async function battleOnce(page: Page): Promise<void> {
 test('company mode: battle, aftermath, level up, character sheet, equipment', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('./?seed=5');
+  await page.goto('./?screen=sandbox&seed=5');
   await page.click('[data-testid="company-mode"]');
   await expect(page.locator('.merc-card')).toHaveCount(5);
   await page.selectOption('[data-testid="enemy-select"]', 'tutorial');

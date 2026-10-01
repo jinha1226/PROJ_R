@@ -32,7 +32,7 @@ export class PrepScreen implements Screen {
     for (const e of this.api.enemies) counts.set(e.enemyId, (counts.get(e.enemyId) ?? 0) + 1);
     const foes = [...counts].map(([id, n]) => `<li>${t(`enemy.${id}`)} × ${n}</li>`).join('');
     this.el.className = 'screen node-screen prep';
-    this.el.innerHTML = `${runHud(run).replace(/<div class="hud-buttons">[\s\S]*?<\/div><\/header>/, '</header>')}
+    this.el.innerHTML = `${runHud(run, '', false)}
       <div class="panel node-panel wide"><h2>${this.api.title}</h2>
         <div class="prep-body"><div class="prep-left"></div>
           <div class="prep-right"><h4>적</h4><ul class="foes">${foes}</ul><h4>관계 효과</h4><div class="adj"></div></div></div>
