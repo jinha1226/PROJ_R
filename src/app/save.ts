@@ -31,8 +31,12 @@ const defaultKV = (): KV | null => {
 
 const isRun = (x: unknown): x is RunState => {
   const r = x as Partial<RunState> | null;
-  return !!r && r.version === 1 && typeof r.seed === 'number' && typeof r.gold === 'number' && !!r.roster
-    && Array.isArray(r.roster.mercs) && !!r.map && typeof r.map.nodes === 'object' && Array.isArray(r.visited) && typeof r.status === 'string';
+  if (!r || r.version !== 1 || typeof r.seed !== 'number' || typeof r.gold !== 'number' || typeof r.status !== 'string') return false;
+  const ro = r.roster;
+  if (!ro || !Array.isArray(ro.mercs) || !Array.isArray(ro.relations) || !Array.isArray(ro.inventory) || !Array.isArray(ro.memorial)) return false;
+  if (!r.map || typeof r.map.nodes !== 'object' || !r.map.nodes || !Array.isArray(r.visited)) return false;
+  if (!r.formation || typeof r.formation !== 'object') return false;
+  return r.at === null || (typeof r.at === 'string' && !!r.map.nodes[r.at]);
 };
 
 export function saveRun(run: RunState, kv: KV | null = defaultKV()): boolean {
@@ -67,7 +71,7 @@ export function loadHall(kv: KV | null = defaultKV()): HallEntry[] {
   try {
     const raw = kv?.getItem(HALL_KEY);
     const data: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(data) ? (data as HallEntry[]) : [];
+    return Array.isArray(data) ? (data as unknown[]).filter((e): e is HallEntry => !!e && typeof e === 'object' && typeof (e as HallEntry).companyName === 'string') : [];
   } catch {
     return [];
   }

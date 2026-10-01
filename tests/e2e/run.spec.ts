@@ -42,3 +42,18 @@ test('a run: step 1 battle, step 2 recruit and naming, save and continue', async
   expect(gold).toBeTruthy();
   expect(errors).toEqual([]);
 });
+
+test('reloading mid-battle settles it as a retreat instead of a free retry', async ({ page }) => {
+  await page.goto('./');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.fill('[data-testid="run-seed"]', '43');
+  await page.click('[data-testid="new-run"]');
+  await page.click('[data-testid="node-n1_0"]');
+  await page.click('[data-testid="start-node-battle"]');
+  await page.waitForFunction(() => ((window as unknown as { __PROJR__?: Hook }).__PROJR__?.tick() ?? 0) > 5, null, { timeout: 60_000 });
+  await page.reload();
+  await page.click('[data-testid="continue-run"]');
+  await expect(page.locator('[data-testid="gold"]')).toHaveText('42 G');
+  await expect(page.locator('.map-node.here')).toHaveCount(1);
+});

@@ -33,6 +33,7 @@ export function sell(run: RunState, inventoryIndex: number): RunState {
 }
 
 export function healOne(run: RunState, mercId: string): RunState {
+  if (!run.roster.mercs.some((m) => m.id === mercId && m.injury > 0)) throw new Error('nobody to heal');
   if (run.gold < HEAL_COST) throw new Error('not enough gold');
   return { ...run, gold: run.gold - HEAL_COST, roster: { ...run.roster, mercs: run.roster.mercs.map((m) => (m.id === mercId ? { ...m, injury: 0 } : m)) } };
 }

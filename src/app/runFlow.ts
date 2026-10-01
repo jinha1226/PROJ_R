@@ -4,8 +4,9 @@ import { autoFormation } from '../sim/roster/formation';
 import { applyOfferToRoster, levelOffers, settleEmptyLevelUps } from '../sim/roster/offers';
 import { setTactic } from '../sim/roster/tactics';
 import { battleSetupForNode, finishBattle } from '../sim/run/battleNode';
-import { pickEvent, resolveEvent } from '../sim/run/events';
-import { encounterCandidates, nameProtagonist, recruit } from '../sim/run/recruit';
+import { pickEvent } from '../sim/run/events';
+import { abandonBattle, beginBattle, chooseEvent, recruitAndClose, resumeTarget } from '../sim/run/savePoints';
+import { encounterCandidates, nameProtagonist, type recruit } from '../sim/run/recruit';
 import { restHeal, restTalk } from '../sim/run/rest';
 import { buy, healOne, sell, shopStock } from '../sim/run/shop';
 import { currentNode, enterNode, newRun } from '../sim/run/state';
@@ -40,9 +41,10 @@ export class RunFlow {
 
   resume(run: RunState): void {
     this.run = run;
-    const node = currentNode(run);
-    if (run.status !== 'active') this.end();
-    else if (run.pending && node) this.open(node);
+    const target = resumeTarget(run);
+    if (target === 'abandonedBattle') this.set(abandonBattle(run));
+    if (this.run.status !== 'active') this.end();
+    else if (target === 'node') this.open(currentNode(run)!);
     else this.map();
   }
 
@@ -87,7 +89,7 @@ export class RunFlow {
       this.set({ ...this.run, pending: { ...p, event: view } });
       return this.router.go(new EventScreen({
         view, done: () => this.complete(),
-        choose: (id) => { const r = resolveEvent(this.run, view, id); this.set({ ...r.run, pending: { nodeId: node.id } }); return r; },
+        choose: (id) => { const r = chooseEvent(this.run, view, id); this.set(r.run); return r; },
       }));
     }
     if (node.type === 'rest') {
@@ -108,7 +110,7 @@ export class RunFlow {
   }
 
   private async recruit(c: Parameters<typeof recruit>[1]): Promise<void> {
-    this.set(recruit(this.run, c));
+    this.set(recruitAndClose(this.run, c));
     if (!this.run.namedProtagonist) this.set(nameProtagonist(this.run, await askName(this.root)));
     this.complete();
   }
@@ -125,7 +127,7 @@ export class RunFlow {
     this.router.go(new PrepScreen({
       ...this.rosterApi(), run: () => this.run, enemies: preview.enemies.map((e) => ({ enemyId: e.defId })),
       title: `${BATTLE_TITLES[node.type]} — ${node.step}단계`,
-      start: (formation) => { this.set({ ...this.run, formation }); void this.fight(node); },
+      start: (formation) => { this.set(beginBattle(this.run, formation)); void this.fight(node); },
     }, this.formation()));
   }
 

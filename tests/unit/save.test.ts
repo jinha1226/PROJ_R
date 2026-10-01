@@ -41,3 +41,21 @@ describe('save', () => {
     expect(h[0]!.companyName).toBe('단25');
   });
 });
+
+describe('save validation depth', () => {
+  it('rejects saves missing formation or pointing at a missing node', () => {
+    const kv = memKV();
+    const r = newRun(2, 'x');
+    const { formation: _f, ...noFormation } = r;
+    void _f;
+    kv.setItem('projr.run.v1', JSON.stringify(noFormation));
+    expect(loadRun(kv)).toBeNull();
+    kv.setItem('projr.run.v1', JSON.stringify({ ...r, at: 'n99_9' }));
+    expect(loadRun(kv)).toBeNull();
+  });
+  it('ignores malformed hall entries', () => {
+    const kv = memKV();
+    kv.setItem('projr.hall.v1', JSON.stringify([null, 3, entry(1)]));
+    expect(loadHall(kv)).toHaveLength(1);
+  });
+});

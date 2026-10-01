@@ -48,6 +48,8 @@ export interface PendingNode {
   candidates?: Candidate[];
   shop?: ShopStock;
   event?: EventView;
+  /** a battle was started from this node; resuming settles it as a retreat */
+  inBattle?: boolean;
 }
 
 export interface RunState {

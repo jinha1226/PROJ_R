@@ -11,7 +11,7 @@ import { CompanyFlow } from './companyFlow';
 import { showFatal } from './fatal';
 import { Router } from './router';
 import { RunFlow } from './runFlow';
-import { loadHall, loadRun } from './save';
+import { clearRun, loadHall, loadRun } from './save';
 
 const root = document.getElementById('app')!;
 const router = new Router(root);
@@ -23,7 +23,17 @@ function title(): void {
   router.go(new TitleScreen({
     hasSave: () => loadRun() !== null,
     newRun: (seed) => new RunFlow(router, root, title).start(seed),
-    continueRun: () => { const r = loadRun(); if (r) new RunFlow(router, root, title).resume(r); },
+    continueRun: () => {
+      const r = loadRun();
+      if (!r) return title();
+      try {
+        new RunFlow(router, root, title).resume(r);
+      } catch (e) {
+        console.error('broken save discarded', e);
+        clearRun();
+        title();
+      }
+    },
     hall: () => router.go(new HallScreen(loadHall(), title)),
     sandbox,
   }, urlSeed || Math.floor(Math.random() * 99999) + 1));

@@ -52,8 +52,11 @@ export interface ShopApi {
   leave(): void;
 }
 
+const CLICK_LOCK_MS = 350;
+
 export class ShopScreen implements Screen {
   private el = document.createElement('div');
+  private lastAction = -Infinity;
 
   constructor(private readonly api: ShopApi) {}
 
@@ -62,6 +65,10 @@ export class ShopScreen implements Screen {
     this.el.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
       if (!b || b.disabled) return;
+      // the list re-renders and shifts after each action: ignore the second half of a double-click
+      const now = performance.now();
+      if (now - this.lastAction < CLICK_LOCK_MS) return;
+      this.lastAction = now;
       if (b.dataset.buy) this.api.buy(Number(b.dataset.buy));
       else if (b.dataset.sell) this.api.sell(Number(b.dataset.sell));
       else if (b.dataset.heal) this.api.heal(b.dataset.heal);
