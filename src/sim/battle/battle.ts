@@ -1,6 +1,13 @@
 import { createState } from './setup';
 import { makeSnapshot } from './snapshot';
 import { checkOutcome } from './rules';
+import { advanceActions, tickCooldowns } from './actions';
+import { decide } from './ai/decide';
+import { updateEngagement } from './engagement';
+import { moveUnits } from './movement';
+import { updateProjectiles } from './projectiles';
+import { tickTags } from './tags';
+import { updateTelegraphs } from './telegraphs';
 import type { BattleCommand, BattleEvent, BattleSetup, BattleState, Outcome, Snapshot, StepResult } from './types';
 
 export class Battle {
@@ -24,6 +31,14 @@ export class Battle {
     const s = this.state;
     if (s.outcome) return { snapshot: this.last, events: [] };
     s.events = [];
+    tickTags(s);
+    tickCooldowns(s);
+    decide(s);
+    advanceActions(s);
+    updateTelegraphs(s);
+    updateProjectiles(s);
+    moveUnits(s);
+    updateEngagement(s);
     checkOutcome(s);
     s.tick++;
     this.last = makeSnapshot(s);
