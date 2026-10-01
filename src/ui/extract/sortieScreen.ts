@@ -1,11 +1,12 @@
 import type { Screen } from '../../app/router';
 import { Input } from '../../app/input/input';
 import { cameraTurn } from '../../app/input/sortieInput';
-import type { Loadout } from '../../sim/extract/loadout';
+import type { Stack } from '../../sim/extract/inventory';
+import type { SortieEnd } from '../../sim/extract/companyTypes';
+import type { Member } from '../../sim/world/party';
 import type { Region } from '../../sim/extract/regionTypes';
-import type { Mercenary } from '../../sim/roster/types';
-import { idleInput, type HeroInput } from '../../sim/world/worldSim';
-import { heroUnit } from '../../sim/world/worldState';
+import { idleInput, WorldSim, type HeroInput } from '../../sim/world/worldSim';
+import { partyUnits } from '../../sim/world/party';
 import type { AssetLibrary } from '../../view/actors/assets';
 import type { EnvLibrary } from '../../view/explore/envAssets';
 import { guardFrame } from '../screens/loopGuard';
@@ -17,12 +18,13 @@ import '../styles/extract.css';
 
 export interface SortieApi {
   region: Region;
-  hero: Mercenary;
-  loadout: Loadout;
+  members: Member[];
+  pack: Stack[];
+  pouch: Stack | null;
   seed: number;
   lib: AssetLibrary;
   env: EnvLibrary;
-  end(outcome: 'extracted' | 'downed', loadout: Loadout, xp: number): void;
+  end(end: SortieEnd): void;
   abandon(): void;
   fatal(e: unknown): void;
 }
@@ -38,7 +40,6 @@ export class SortieScreen implements Screen {
   private detach: (() => void) | null = null;
   private raf = 0;
   private gone = false;
-  private auto = false;
   private paused = false;
   private ended = false;
   private mouseAttack = false;
@@ -55,13 +56,13 @@ export class SortieScreen implements Screen {
     const stage = this.el.querySelector<HTMLElement>('.sortie-stage')!;
     const mobile = isTouchDevice();
     try {
-      this.rt = new WorldRuntime(stage, this.api.region, this.api.hero, this.api.loadout, this.api.seed, this.api.lib, this.api.env, mobile);
+      this.rt = new WorldRuntime(stage, WorldSim.party(this.api.region, this.api.members, this.api.pack, this.api.pouch, this.api.seed), this.api.lib, this.api.env, mobile);
     } catch (e) {
       return this.api.fatal(e);
     }
     this.el.appendChild(this.hud.el);
     if (mobile) {
-      this.touch = new TouchControls(this.input, () => this.rt!.sim.w.hero.loadout.quick.length);
+      this.touch = new TouchControls(this.input);
       this.el.appendChild(this.touch.el);
     }
     this.detach = this.input.attach(window);
@@ -84,15 +85,14 @@ export class SortieScreen implements Screen {
     const s = this.input.poll();
     if (s.menu && !this.panel) this.openPanel();
     else if ((s.menu || s.cancel) && this.panel) this.closePanel();
-    if (s.toggleManual) this.auto = !this.auto;
     const turn = cameraTurn(s);
     if (turn) rt.cam.rotateStep(turn);
     const looting = !!this.panel;
     // one-shot presses wait for the next sim tick (a frame may run zero ticks)
     const p = this.latched;
     if (!looting) {
-      // order keys are remapped in the party HUD task; for now the old skill keys carry the orders
-      p.focus ||= s.skill1 || s.attack; p.retreat ||= s.skill2; p.regroup ||= s.ult; p.interact ||= s.pick;
+      p.focus ||= s.focus || this.hud.takeOrder('focus'); p.retreat ||= s.retreat || this.hud.takeOrder('retreat'); p.regroup ||= s.regroup || this.hud.takeOrder('regroup');
+      p.interact ||= s.pick || this.hud.takeOrder('pick');
       if (s.quick !== null) p.quick = s.quick;
     }
     const move = looting ? { x: 0, y: 0 } : rt.worldMove(s.move.x, s.move.y);
@@ -103,7 +103,7 @@ export class SortieScreen implements Screen {
     }, this.paused);
     const w = rt.sim.w;
     const near = rt.sim.nearby();
-    this.hud.update(w, near, this.auto, dt);
+    this.hud.update(w, near, dt);
     this.touch?.setPickVisible(!!near);
     for (; this.cursor < w.events.length; this.cursor++) {
       const ev = w.events[this.cursor]!;
@@ -113,7 +113,8 @@ export class SortieScreen implements Screen {
     if (w.outcome && !this.ended) {
       this.ended = true;
       const out = w.outcome;
-      setTimeout(() => this.api.end(out === 'failed' ? 'downed' : out, w.hero.loadout, w.xp), 900);
+      const end = rt.sim.end();
+      setTimeout(() => this.api.end(end), out === 'extracted' ? 900 : 1600);
     }
   }
 
@@ -136,8 +137,13 @@ export class SortieScreen implements Screen {
   private debugHook(): void {
     (window as unknown as { __PROJR_WORLD__: unknown }).__PROJR_WORLD__ = {
       tick: () => this.rt?.sim.w.b.tick ?? 0,
-      teleport: (x: number, y: number) => { if (this.rt) heroUnit(this.rt.sim.w).pos = { x, y }; },
-      finish: (o: 'extracted' | 'downed' | 'failed') => { if (this.rt) this.rt.sim.w.outcome = o === 'extracted' ? o : 'failed'; },
+      teleport: (x: number, y: number) => {
+        if (!this.rt) return;
+        // the whole party moves together (only those inside an extraction point get out)
+        partyUnits(this.rt.sim.w).forEach((u, i) => { u.pos = { x: x - (i ? 0.9 : 0) * Math.cos(i * 2.1), y: y + (i ? 0.9 : 0) * Math.sin(i * 2.1) }; });
+        this.rt.sim.w.party.trail = [];
+      },
+      finish: (o: 'extracted' | 'failed') => { if (this.rt) this.rt.sim.w.outcome = o === 'extracted' ? o : 'failed'; },
       /** debug/e2e: run the sim forward synchronously (slow software renderers in CI) */
       advance: (ticks: number) => { for (let i = 0; i < ticks && this.rt && !this.rt.sim.w.outcome; i++) this.rt.sim.step(idleInput()); },
       state: () => this.rt?.sim.w,

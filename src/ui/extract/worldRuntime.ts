@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import { DT } from '../../sim/battle/constants';
 import type { Snapshot, UnitSetup } from '../../sim/battle/types';
-import type { Loadout } from '../../sim/extract/loadout';
-import type { Region } from '../../sim/extract/regionTypes';
-import type { Mercenary } from '../../sim/roster/types';
 import { phaseOf } from '../../sim/world/clock';
-import { WorldSim, type HeroInput } from '../../sim/world/worldSim';
+import type { WorldSim, HeroInput } from '../../sim/world/worldSim';
+import { partyUnits } from '../../sim/world/party';
 import type { Actor } from '../../view/actors/actor';
 import { actorFromSetup } from '../../view/actors/actorFactory';
 import type { AssetLibrary } from '../../view/actors/assets';
@@ -51,10 +49,11 @@ export class WorldRuntime {
   private prev: Snapshot;
   private curr: Snapshot;
   private acc = 0;
-  private heroLook = '';
+  private readonly looks = new Map<string, string>();
 
-  constructor(private readonly container: HTMLElement, region: Region, hero: Mercenary, loadout: Loadout, seed: number, private readonly lib: AssetLibrary, env: EnvLibrary, mobile: boolean) {
-    this.sim = new WorldSim(region, hero, loadout, seed);
+  constructor(private readonly container: HTMLElement, sim: WorldSim, private readonly lib: AssetLibrary, env: EnvLibrary, mobile: boolean) {
+    this.sim = sim;
+    const region = sim.w.region;
     this.h = createScene(container);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     this.light = new WorldLighting(this.h.scene, !mobile);
@@ -132,6 +131,10 @@ export class WorldRuntime {
       this.overlay.update(u, p.x, p.y, cw, ch);
     }
     const hero = this.pos.get(w.heroId) ?? { x: 0, z: 0 };
+    // the camera frames the party, weighted toward the leader
+    const members = partyUnits(w).map((u) => this.pos.get(u.id)).filter((p): p is { x: number; z: number; facing: number } => !!p);
+    const mid = members.length ? { x: members.reduce((a, p) => a + p.x, 0) / members.length, z: members.reduce((a, p) => a + p.z, 0) / members.length } : hero;
+    const focus = { x: hero.x * 0.6 + mid.x * 0.4, z: hero.z * 0.6 + mid.z * 0.4 };
     const phase = phaseOf(w.b.tick);
     for (const id of w.doorsOpen) { const d = this.doors.get(id); if (d?.parent) d.parent.remove(d); }
     this.markers.update(dt, w.containers, w.closed, w.piles);
@@ -140,24 +143,29 @@ export class WorldRuntime {
     this.tel.sync(this.curr.telegraphs);
     this.proj.sync(this.prev, this.curr, alpha);
     this.fx.update(dt);
-    this.cam.follow(hero.x, hero.z, dt);
+    this.cam.follow(focus.x, focus.z, dt);
     this.h.renderer.render(this.h.scene, this.h.camera);
   }
 
-  /** Rebuilds the hero's model when worn gear changes its look. */
+  /** Rebuilds a member's model when worn gear changes their look (field equip). */
   private syncHeroLook(): void {
-    const s = this.sim.w.b.units.find((u) => u.id === this.sim.w.heroId)!.setup;
-    const look = JSON.stringify([s.gear, s.gearTiers]);
-    if (look === this.heroLook) return;
-    this.heroLook = look;
-    const old = this.actors.get(s.id);
-    if (!old) return;
-    this.h.scene.remove(old.root);
-    old.dispose();
-    const a = actorFromSetup(s, this.lib);
-    this.h.scene.add(a.root);
-    this.actors.set(s.id, a);
-    this.pool.replace(s.id, a, `hero-${look}`);
+    for (const id of this.sim.w.party.order) {
+      const u = this.sim.w.b.units.find((x) => x.id === id);
+      if (!u?.alive) continue;
+      const look = JSON.stringify([u.setup.gear, u.setup.gearTiers]);
+      const known = this.looks.get(id);
+      this.looks.set(id, look);
+      if (known === undefined || known === look) continue;
+      const old = this.actors.get(id);
+      if (!old) continue;
+      this.h.scene.remove(old.root);
+      old.dispose();
+      const a = actorFromSetup(u.setup, this.lib);
+      a.root.userData.unitId = id;
+      this.h.scene.add(a.root);
+      this.actors.set(id, a);
+      this.pool.replace(id, a, `member-${id}-${look}`);
+    }
   }
 
   /** Screen-relative stick → world direction on the ground plane. */

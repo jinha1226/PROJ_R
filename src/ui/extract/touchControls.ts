@@ -3,15 +3,13 @@ import { TouchState, type TouchButton } from '../../app/input/touch';
 
 const STICK_RADIUS = 60;
 const BUTTONS: { b: TouchButton; label: string; cls: string }[] = [
-  { b: 'attack', label: '공격', cls: 'tb-attack' },
-  { b: 'skill1', label: '기술1', cls: 'tb-s1' },
-  { b: 'skill2', label: '기술2', cls: 'tb-s2' },
-  { b: 'ult', label: '궁극', cls: 'tb-ult' },
-  { b: 'pick', label: '줍기', cls: 'tb-pick' },
+  { b: 'focus', label: '집중', cls: 'tb-attack' },
+  { b: 'retreat', label: '후퇴', cls: 'tb-s1' },
+  { b: 'regroup', label: '재집결', cls: 'tb-s2' },
+  { b: 'pick', label: '조사', cls: 'tb-pick' },
 ];
 const MENU: { b: TouchButton; label: string; cls: string }[] = [
-  { b: 'menu', label: '가방·메뉴', cls: 'tb-menu' },
-  { b: 'auto', label: '자동', cls: 'tb-auto' },
+  { b: 'menu', label: '짐·메뉴', cls: 'tb-menu' },
 ];
 
 /** Pointer capture can throw for a pointer that already ended; the press itself still counts. */
@@ -32,7 +30,7 @@ export class TouchControls {
   private readonly knob = document.createElement('div');
   private readonly base = document.createElement('div');
 
-  constructor(private readonly input: Input, quickCount: () => number) {
+  constructor(private readonly input: Input) {
     this.ts = new TouchState(() => window.innerWidth, STICK_RADIUS);
     this.el.className = 'touch-controls';
     this.base.className = 'tc-stick';
@@ -45,25 +43,15 @@ export class TouchControls {
     const buttons = document.createElement('div');
     buttons.className = 'tc-buttons';
     for (const { b, label, cls } of BUTTONS) buttons.appendChild(this.button(b, label, cls));
-    const quick = document.createElement('div');
-    quick.className = 'tc-quick';
-    for (let i = 0; i < 4; i++) {
-      const q = this.button(`quick${i}` as TouchButton, String(i + 1), 'tb-quick');
-      q.dataset.slot = String(i);
-      quick.appendChild(q);
-    }
     const menu = document.createElement('div');
     menu.className = 'tc-menu';
     for (const { b, label, cls } of MENU) menu.appendChild(this.button(b, label, cls));
-    this.el.append(pad, this.base, buttons, quick, menu);
+    this.el.append(pad, this.base, buttons, menu);
     const move = (e: PointerEvent) => { this.ts.move(e.pointerId, e.clientX, e.clientY); this.sync(); };
     const up = (e: PointerEvent) => { this.ts.up(e.pointerId); this.sync(); };
     this.el.addEventListener('pointermove', move);
     this.el.addEventListener('pointerup', up);
     this.el.addEventListener('pointercancel', up);
-    const refreshQuick = () => quick.querySelectorAll<HTMLElement>('.tb-quick').forEach((q) => { q.hidden = Number(q.dataset.slot) >= quickCount(); });
-    refreshQuick();
-    this.el.addEventListener('pointerdown', refreshQuick);
   }
 
   private button(b: TouchButton, label: string, cls: string): HTMLElement {

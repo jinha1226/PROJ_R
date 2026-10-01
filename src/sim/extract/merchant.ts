@@ -1,6 +1,5 @@
 import { STARTER_KIT, X_ITEMS, xitem } from '../../data/extract';
 import { mergeAll, putInto } from './inventory';
-import type { XProfile } from './profileTypes';
 
 export const STASH_SLOTS = 40;
 export const BUY_MULT = 2;
@@ -16,7 +15,9 @@ const STARTER = new Set([...Object.values(STARTER_KIT.weapon), STARTER_KIT.chest
 export const sellPrice = (id: string): number => (STARTER.has(id) ? 0 : xitem(id).value);
 
 /** Sells n (default all) of a stash stack at its value. */
-export function sell(p: XProfile, stashIndex: number, n?: number): XProfile {
+type Purse = { gold: number; stash: { id: string; n: number }[] };
+
+export function sell<T extends Purse>(p: T, stashIndex: number, n?: number): T {
   const s = p.stash[stashIndex];
   if (!s) throw new Error(`nothing at stash[${stashIndex}]`);
   const k = Math.min(s.n, n ?? s.n);
@@ -25,7 +26,7 @@ export function sell(p: XProfile, stashIndex: number, n?: number): XProfile {
 }
 
 /** Buys one into the stash at twice the value. */
-export function buy(p: XProfile, itemId: string): XProfile {
+export function buy<T extends Purse>(p: T, itemId: string): T {
   if (!MERCHANT_STOCK.includes(itemId)) throw new Error(`${itemId} is not for sale`);
   const cost = xitem(itemId).value * BUY_MULT;
   if (p.gold < cost) throw new Error('not enough gold');

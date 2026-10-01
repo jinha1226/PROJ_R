@@ -10,5 +10,6 @@ export const PROMPT: Record<string, string> = { search: '뒤지기', loot: '줍�
 export const ALERT: Record<string, string> = {
   spotted: '발각됐다!', lost: '추격을 따돌렸다', dusk: '해가 기운다 — 순찰이 늘었다', closing: '탈출 지점 하나가 곧 닫힌다!', closed: '탈출 지점이 닫혔다',
   night: '밤이 왔다 — 시야가 좁아지고 강한 적이 나타난다', storm: '마력 폭풍 — 사냥꾼들이 쫓아온다!', interrupted: '방해받았다', door: '보물방 문이 열렸다',
-  equip_failed: '장착할 수 없다',
+  equip_failed: '장착할 수 없다', combat: '교전 시작!', calm: '전투가 끝났다 — 다시 모인다', leader: '리더가 쓰러져 지휘가 넘어갔다',
+  member_died: '동료가 쓰러져 숨을 거뒀다…', focus: '집중 공격!', retreat: '후퇴!', regroup: '재집결!',
 };

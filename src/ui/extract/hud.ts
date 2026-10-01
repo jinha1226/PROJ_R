@@ -1,53 +1,68 @@
-import { carriedValue, carryLimit, quickSlots, totalWeight } from '../../sim/extract/loadout';
+import { bagSlots, carriedValue, carryLimit, totalWeight } from '../../sim/extract/loadout';
 import { phaseOf, SEC } from '../../sim/world/clock';
 import type { Nearby } from '../../sim/world/interact';
 import type { WorldState } from '../../sim/world/types';
 import { heroUnit } from '../../sim/world/worldState';
-import { itemCell } from './itemCell';
+import { partyUnits } from '../../sim/world/party';
 import { ALERT, CHANNEL_NAME, PHASE_NAME, POI_NAME, PROMPT } from './names';
 
 const MAP_W = 180;
 const MAP_H = 135;
 const FOG_CELL = 6;
 
-/** Sortie HUD: health, carried value, clock, minimap, quick slots, channel bar, prompt and alerts. */
+export type Order = 'focus' | 'retreat' | 'regroup' | 'pick';
+const ORDERS: { k: Order; label: string; key: string }[] = [
+  { k: 'focus', label: '집중 공격', key: 'F' }, { k: 'retreat', label: '후퇴', key: 'R' }, { k: 'regroup', label: '재집결', key: 'G' },
+];
+const esc = (v: unknown): string => String(v).replace(/[&"<>]/g, (c) => `&#${c.charCodeAt(0)};`);
+
+/** Sortie HUD: party status, carried value, clock, minimap, orders, channel bar, prompt and alerts. */
 export class Hud {
   readonly el = document.createElement('div');
   private readonly map: HTMLCanvasElement;
   private readonly seen = new Set<number>();
   private lastEvent = 0;
   private alertTimer = 0;
-  private quickKey = '';
+  private partyKey = '';
+  private readonly clicked = new Set<Order>();
 
   constructor() {
     this.el.className = 'xhud';
     this.el.innerHTML = `<div class="xhud-top">
-        <div class="xhud-hp"><div class="xhud-hpbar"><div></div></div><span></span></div>
         <div class="xhud-value" data-testid="carried-value"></div>
         <div class="xhud-clock" data-testid="clock"></div>
-        <div class="xhud-auto" hidden>자동 전투</div>
+        <div class="xhud-mode" hidden>전투 중</div>
       </div>
+      <div class="xhud-party" data-testid="party-status"></div>
       <canvas class="xhud-map" width="${MAP_W}" height="${MAP_H}"></canvas>
       <div class="xhud-channel" hidden><span></span><div><div></div></div></div>
       <div class="xhud-prompt" data-testid="prompt" hidden></div>
       <div class="xhud-alert" hidden></div>
-      <div class="xhud-quick"></div>
-      <div class="xhud-help muted">WASD 이동 · J 공격 · K/L 기술 · ; 궁극기 · 1~4 물약 · E 줍기 · Tab 자동 · Esc 일시정지</div>`;
+      <div class="xhud-orders">${ORDERS.map((o) => `<button class="btn" data-order="${o.k}" data-testid="order-${o.k}"><b>${o.key}</b> ${o.label}</button>`).join('')}
+        <button class="btn primary" data-order="pick" data-testid="order-pick" hidden><b>E</b> <span></span></button></div>
+      <div class="xhud-help muted">WASD 리더 이동 · F 집중 · R 후퇴 · G 재집결 · E 조사 · Esc 짐/일시정지 · Z X 카메라</div>`;
     this.map = this.el.querySelector('canvas')!;
+    this.el.querySelector('.xhud-orders')!.addEventListener('click', (e) => {
+      const k = (e.target as HTMLElement).closest<HTMLElement>('[data-order]')?.dataset.order as Order | undefined;
+      if (k) this.clicked.add(k);
+    });
   }
 
-  update(w: WorldState, nearby: Nearby, auto: boolean, dt: number): void {
-    const h = heroUnit(w);
+  /** An order clicked on screen since the last frame (consumed once). */
+  takeOrder(k: Order): boolean {
+    return this.clicked.delete(k);
+  }
+
+  update(w: WorldState, nearby: Nearby, dt: number): void {
     const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
-    q('.xhud-hpbar > div').style.width = `${Math.max(0, (h.hp / h.maxHp) * 100)}%`;
-    q('.xhud-hp span').textContent = `${Math.max(0, Math.ceil(h.hp))} / ${h.maxHp}`;
     const l = w.hero.loadout;
-    q('.xhud-value').innerHTML = `들고 있는 가치 <b>${carriedValue(l)}G</b> <small>무게 ${totalWeight(l)} / ${carryLimit(l)}</small>`;
+    q('.xhud-value').innerHTML = `들고 있는 가치 <b>${carriedValue(l)}G</b> <small>짐 ${l.bag.length}/${bagSlots(l)}칸 · 무게 ${totalWeight(l)} / ${carryLimit(l)}</small>`;
     const sec = Math.floor(w.b.tick / SEC);
     const phase = phaseOf(w.b.tick);
     q('.xhud-clock').innerHTML = `<b>${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}</b> ${PHASE_NAME[phase]}`;
     q('.xhud-clock').className = `xhud-clock ph-${phase}`;
-    q('.xhud-auto').hidden = !auto;
+    q('.xhud-mode').hidden = w.party.mode !== 'combat';
+    this.party(w);
     const dr = w.hero.drink;
     const ch = w.hero.channel ?? (dr ? { kind: 'drink', ticks: dr.ticks, total: dr.total } : undefined);
     q('.xhud-channel').hidden = !ch;
@@ -55,15 +70,30 @@ export class Hud {
       q('.xhud-channel span').textContent = CHANNEL_NAME[ch.kind] ?? '';
       q('.xhud-channel div div').style.width = `${(ch.ticks / ch.total) * 100}%`;
     }
-    q('.xhud-prompt').hidden = !nearby || !!ch;
+    const prompt = !!nearby && !w.hero.channel;
+    q('.xhud-prompt').hidden = !prompt;
     if (nearby) q('.xhud-prompt').innerHTML = `<b>E</b> / Ⓑ ${PROMPT[nearby.kind]}`;
-    const quickKey = JSON.stringify(l.quick) + quickSlots(l);
-    if (quickKey !== this.quickKey) {
-      this.quickKey = quickKey;
-      q('.xhud-quick').innerHTML = Array.from({ length: quickSlots(l) }, (_, i) => `<div class="xq"><small>${i + 1}</small>${itemCell(l.quick[i], { small: true })}</div>`).join('');
-    }
+    const pick = q('[data-order="pick"]');
+    pick.hidden = !prompt;
+    if (nearby) q('[data-order="pick"] span').textContent = PROMPT[nearby.kind] ?? '';
     this.alerts(w, dt);
     this.drawMap(w);
+  }
+
+  private party(w: WorldState): void {
+    const rows = w.party.order.map((id) => {
+      const u = w.b.units.find((x) => x.id === id);
+      const m = w.party.mercs[id]!;
+      const dead = !u?.alive;
+      const hp = dead || !u ? 0 : u.downed ? 0 : u.hp / u.maxHp;
+      return { id, name: m.name, color: m.color, dead, down: !!u?.downed, hp, lead: id === w.heroId };
+    });
+    const key = JSON.stringify(rows.map((r) => [r.id, r.dead, r.down, Math.round(r.hp * 40), r.lead]));
+    if (key === this.partyKey) return;
+    this.partyKey = key;
+    this.el.querySelector('.xhud-party')!.innerHTML = rows.map((r) => `<div class="xp-row ${r.dead ? 'dead' : r.down ? 'down' : ''}" style="--c:${r.color}">
+      <span class="xp-dot"></span><b>${esc(r.name)}${r.lead ? ' <i>리더</i>' : ''}</b><div class="xp-hp"><div style="width:${Math.round(r.hp * 100)}%"></div></div>
+      <small>${r.dead ? '전사' : r.down ? '쓰러짐' : ''}</small></div>`).join('');
   }
 
   private alerts(w: WorldState, dt: number): void {
@@ -114,6 +144,11 @@ export class Hud {
       g.strokeStyle = w.closed.includes(e.id) ? '#d04a3a' : '#5fe08a';
       g.lineWidth = 2;
       g.strokeRect(x - 4, y - 4, 8, 8);
+    }
+    for (const u of partyUnits(w)) {
+      const [px, py] = at(u.pos.x, u.pos.y);
+      g.fillStyle = u.downed ? '#d04a3a' : '#9fd0ff';
+      g.fillRect(px - 1.5, py - 1.5, 3, 3);
     }
     const [hx, hy] = at(h.x, h.y);
     g.fillStyle = '#fff';
