@@ -1,6 +1,7 @@
 import type { Vec2 } from '../../core/vec2';
 import { createRng } from '../../core/rng';
-import { enemyFromDef, makeUnitState } from '../battle/setup';
+import { makeUnitState } from '../battle/setup';
+import { worldEnemy } from './soloScale';
 import type { WorldState } from './types';
 import { emitW, heroUnit } from './worldState';
 import { alertGroup } from './perception';
@@ -10,7 +11,7 @@ export const DUSK_SEC = 240;
 export const WARN_SEC = 390;
 export const NIGHT_SEC = 480;
 export const STORM_SEC = 600;
-const HUNTER_EVERY = 60;
+const HUNTER_EVERY = 40;
 const UNIT_CAP = 120;
 
 export type Phase = 'day' | 'dusk' | 'night' | 'storm';
@@ -28,7 +29,7 @@ function spawnGroup(w: WorldState, id: string, members: string[], at: Vec2, stag
   members.forEach((enemyId, k) => {
     const uid = `${id}_${k}`;
     const pos = { x: at.x + (k % 2) * 1.4 - 0.7, y: at.y + Math.floor(k / 2) * 1.4 };
-    const setup = { ...enemyFromDef(enemyId, 2, 0, stage, w.b.units.length), id: uid, spawn: pos, controlled: true };
+    const setup = { ...worldEnemy(enemyId, stage, w.b.units.length, opts.hunter), id: uid, spawn: pos, controlled: true };
     const u = makeUnitState(setup, pos, w.b.units.length, false);
     u.dormant = true;
     w.b.units.push(u);
@@ -71,13 +72,13 @@ export function updateClock(w: WorldState): void {
   }
   if (sec === NIGHT_SEC) {
     emitW(w, 'night');
-    const p = far.length ? rng.pick(far) : undefined;
-    if (p) spawnGroup(w, 'night0', ['skeleton_warrior', 'skeleton_mage', 'skeleton_warrior'], { x: p.center.x + p.radius + 2, y: p.center.y }, stage + 2);
+    rng.shuffle([...far]).slice(0, 2).forEach((p, k) =>
+      spawnGroup(w, `night${k}`, ['skeleton_warrior', 'skeleton_mage', 'skeleton_warrior'], { x: p.center.x + p.radius + 2, y: p.center.y }, stage + 2));
   }
   if (sec >= STORM_SEC && (sec - STORM_SEC) % HUNTER_EVERY === 0) {
     if (sec === STORM_SEC) emitW(w, 'storm');
     const k = (sec - STORM_SEC) / HUNTER_EVERY;
-    spawnGroup(w, `hunt${k}`, ['bandit_cutthroat', 'skeleton_warrior'], edgeNear(w, hero), stage + 2 + k, { hunter: true });
+    spawnGroup(w, `hunt${k}`, ['bandit_cutthroat', 'bandit_archer', 'skeleton_warrior', 'bandit_cutthroat'], edgeNear(w, hero), stage + 2 + k, { hunter: true });
   }
 }
 

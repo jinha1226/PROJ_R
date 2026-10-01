@@ -22,11 +22,14 @@ const edgePoint = (rng: Rng, side: Side, b: Bounds): Vec2 => {
   return { x: rng.int(b.minX + 12, b.maxX - 12), y: side === 'n' ? b.minY + inset : b.maxY - inset };
 };
 
-function placePois(rng: Rng, n: number, avoid: Vec2[], blockers: Obstacle[], b: Bounds): Vec2[] | null {
+/** the start is a safe pocket: no guards can see it */
+const START_CLEAR = 26;
+
+function placePois(rng: Rng, n: number, start: Vec2, avoid: Vec2[], blockers: Obstacle[], b: Bounds): Vec2[] | null {
   const out: Vec2[] = [];
   for (let k = 0; k < 800 && out.length < n; k++) {
     const p = { x: rng.int(b.minX + 12, b.maxX - 12), y: rng.int(b.minY + 12, b.maxY - 12) };
-    if (out.some((q) => d(p, q) < POI_SPACING) || avoid.some((q) => d(p, q) < 14) || blockers.some((o) => near(p, o, 10))) continue;
+    if (out.some((q) => d(p, q) < POI_SPACING) || d(p, start) < START_CLEAR || avoid.some((q) => d(p, q) < 14) || blockers.some((o) => near(p, o, 10))) continue;
     out.push(p);
   }
   return out.length === n ? out : null;
@@ -74,7 +77,7 @@ function attempt(seed: number, tier: number): Omit<Region, 'seed'> | null {
   if (extracts.length < 2 || blockers.some((o) => near(start, o, 4))) return null;
   extracts[rng.int(0, extracts.length - 1)]!.closesAt = NIGHT_CLOSE_SEC;
 
-  const spots = placePois(rng, rng.int(8, 10), [start, ...extracts.map((e) => e.pos)], blockers, b);
+  const spots = placePois(rng, rng.int(8, 10), start, extracts.map((e) => e.pos), blockers, b);
   if (!spots) return null;
   const builds = assignKinds(rng, spots, start).map(({ kind, c }, i) => buildPoi(rng, kind, `p${i}`, c, start, tier));
   const obstacles = [...blockers, ...builds.flatMap((x) => x.obstacles)];

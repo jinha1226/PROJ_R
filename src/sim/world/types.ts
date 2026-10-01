@@ -23,6 +23,8 @@ export interface HeroState {
   hiddenUntil: number;
   /** hp seen last tick, to notice damage (cancels channels) */
   lastHp: number;
+  /** last tick the hero took or dealt damage (breath recovery waits for calm) */
+  lastCombat: number;
 }
 
 /** The whole sortie: the battle state of every unit plus the region-level rules around it. */

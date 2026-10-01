@@ -16,7 +16,7 @@ import type { Mercenary } from '../roster/types';
 import type { GearSlot } from '../../data/extract';
 import { updateActivation } from './activation';
 import { phaseOf, updateClock } from './clock';
-import { onHeroDamage, updateChannel, updateHazards } from './extraction';
+import { onHeroDamage, updateChannel, updateHazards, updateRegen } from './extraction';
 import { alertOnHit, applyHeroInput, type HeroInput } from './heroControl';
 import { dropBody, interact, lootDrop, lootTake, nearby, startEquip, toPouch, toQuick, unequip, type Nearby } from './interact';
 import { updatePatrol, walkTo } from './patrol';
@@ -61,6 +61,7 @@ export class WorldSim {
     this.bodies();
     updateHazards(w);
     onHeroDamage(w);
+    updateRegen(w);
     updateChannel(w);
     updateClock(w);
     const h = heroUnit(w);

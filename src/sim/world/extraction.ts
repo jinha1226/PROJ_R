@@ -20,6 +20,7 @@ export function onHeroDamage(w: WorldState): void {
   const h = heroUnit(w);
   const hurt = h.hp < w.hero.lastHp - 1e-9;
   w.hero.lastHp = h.hp;
+  if (hurt) w.hero.lastCombat = w.b.tick;
   const ch = w.hero.channel;
   if (!hurt || !ch) return;
   if (ch.kind === 'extract') ch.ticks = 0;
@@ -52,6 +53,18 @@ export function updateChannel(w: WorldState): void {
     w.xp += EXTRACT_XP;
     emitW(w, 'extracted', { via: c.kind });
   }
+}
+
+const CALM_TICKS = 6 * 20;
+const BREATH_PER_SEC = 0.005;
+
+/** Out of combat for a while, the hero slowly catches their breath (potions are for fights). */
+export function updateRegen(w: WorldState): void {
+  const h = heroUnit(w);
+  if (w.b.events.some((e) => e.type === 'damage' && e.src === w.heroId)) w.hero.lastCombat = w.b.tick;
+  if (!h.alive || h.downed || h.hp >= h.maxHp || w.b.tick - w.hero.lastCombat < CALM_TICKS) return;
+  h.hp = Math.min(h.maxHp, h.hp + (h.maxHp * BREATH_PER_SEC) / 20);
+  w.hero.lastHp = h.hp;
 }
 
 /** Poison mist hurts the hero unless an antidote is active. */

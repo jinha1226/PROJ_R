@@ -137,6 +137,19 @@ describe('world sim: extraction, clock, hazards, death', () => {
     expect(heroUnit(safe.w).hp).toBe(hp1);
   });
 
+  it('out of combat for 6 s the hero slowly catches their breath', () => {
+    const sim = new WorldSim(testRegion([]), hero(), kit(), 1);
+    const h = heroUnit(sim.w);
+    h.hp = h.maxHp * 0.5;
+    run(sim, 1);
+    const hurt = h.hp;
+    run(sim, SEC * 5);
+    expect(h.hp).toBe(hurt);
+    run(sim, SEC * 10);
+    expect(h.hp).toBeGreaterThan(hurt);
+    expect(h.hp).toBeLessThan(hurt + h.maxHp * 0.06);
+  });
+
   it('going down ends the sortie once', () => {
     const sim = new WorldSim(testRegion([]), hero(), emptyLoadout(), 1);
     heroUnit(sim.w).hp = 1;

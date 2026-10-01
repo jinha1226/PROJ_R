@@ -11,13 +11,14 @@ const at = (c: Vec2, a: number, r: number): Vec2 => ({ x: Math.round((c.x + Math
 export const POI_RADIUS: Record<PoiKind, number> = { ruins: 7, camp: 8, nest: 7, temple: 7, vault: 5, swamp: 9, boss: 9 };
 const RISK: Record<PoiKind, 1 | 2 | 3> = { ruins: 1, camp: 2, nest: 2, temple: 3, vault: 2, swamp: 2, boss: 3 };
 const GUARDS: Record<PoiKind, string[]> = {
+  // sized for a lone hero
   ruins: ['bandit_cutthroat', 'bandit_archer'],
-  camp: ['bandit_cutthroat', 'bandit_cutthroat', 'bandit_archer', 'bandit_hexer'],
-  nest: ['skeleton_minion', 'skeleton_minion', 'skeleton_minion', 'skeleton_warrior'],
-  temple: ['skeleton_warrior', 'skeleton_mage', 'skeleton_minion', 'skeleton_minion'],
-  vault: ['skeleton_warrior', 'skeleton_warrior'],
+  camp: ['bandit_cutthroat', 'bandit_archer', 'bandit_hexer'],
+  nest: ['skeleton_minion', 'skeleton_minion', 'skeleton_warrior'],
+  temple: ['skeleton_warrior', 'skeleton_mage', 'skeleton_minion'],
+  vault: ['skeleton_warrior', 'skeleton_minion'],
   swamp: ['skeleton_minion', 'skeleton_minion'],
-  boss: ['bandit_chief', 'bandit_cutthroat', 'bandit_cutthroat', 'bandit_archer'],
+  boss: ['bandit_chief', 'bandit_cutthroat', 'bandit_archer'],
 };
 const STAGE_BONUS: Record<PoiKind, number> = { ruins: 0, camp: 1, nest: 1, temple: 2, vault: 1, swamp: 1, boss: 2 };
 const LOOT: Record<PoiKind, ContainerKind[]> = {

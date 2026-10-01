@@ -1,4 +1,5 @@
-import { createState, enemyFromDef } from '../battle/setup';
+import { createState } from '../battle/setup';
+import { worldEnemy } from './soloScale';
 import type { UnitState } from '../battle/types';
 import { heroSetup } from '../extract/heroSetup';
 import type { Loadout } from '../extract/loadout';
@@ -20,7 +21,7 @@ export const heroUnit = (w: WorldState): UnitState => unit(w, w.heroId);
 export function createWorld(region: Region, hero: Mercenary, loadout: Loadout, seed: number): WorldState {
   const h = { ...heroSetup(hero, loadout), id: HERO_ID, spawn: { ...region.start }, facing: 0 };
   const enemies = region.spawns.map((s, i) => ({
-    ...enemyFromDef(s.enemyId, 2, 0, s.stage, i), id: s.id, spawn: { ...s.pos }, facing: Math.PI * ((i * 0.37) % 2), controlled: true,
+    ...worldEnemy(s.enemyId, s.stage, i), id: s.id, spawn: { ...s.pos }, facing: Math.PI * ((i * 0.37) % 2), controlled: true,
   }));
   const b = createState({ seed, allies: [h], enemies, obstacles: region.obstacles, bounds: region.bounds, mode: 'world' });
   for (const u of b.units) if (u.team === 'enemy') u.dormant = true;
@@ -35,7 +36,7 @@ export function createWorld(region: Region, hero: Mercenary, loadout: Loadout, s
     groupOf: Object.fromEntries(region.spawns.map((s) => [s.id, s.group])),
     routes: Object.fromEntries(region.spawns.filter((s) => s.patrol).map((s) => [s.id, s.patrol!])),
     containers: {}, piles: [], doorsOpen: [], closed: [], events: [], outcome: null, xp: 0, nextSpawn: 0,
-    hero: { merc: hero, loadout, poisonImmuneUntil: 0, hiddenUntil: 0, lastHp: h.stats.maxHp },
+    hero: { merc: hero, loadout, poisonImmuneUntil: 0, hiddenUntil: 0, lastHp: h.stats.maxHp, lastCombat: -1e9 },
   };
 }
 
