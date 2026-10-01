@@ -158,7 +158,8 @@ test('Esc twice (or B twice) leaves the exploration from anywhere', async ({ pag
   await page.click('[data-testid="skip-visitors"]');
   await setOut(page);
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
+  // armed: 귀환 lights up (CI's software renderer can be slower than one frame per 200 ms)
+  await expect(page.locator('[data-testid="leave-explore"]')).toHaveClass(/primary/, { timeout: 10_000 });
   await page.keyboard.press('Escape');
   await expect(page.locator('[data-testid="week-report"]')).toBeVisible({ timeout: 5_000 });
 });
