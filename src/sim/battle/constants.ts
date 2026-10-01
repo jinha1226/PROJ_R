@@ -18,5 +18,5 @@ export const MOMENTUM_MAX = 100;
 export const DODGE_CAP = 0.5;
 export const CRIT_MULT = 1.5;
 /** Enemy maxHp/atk scale: base × (1 + STAGE_SCALE × (stage - 1)). */
-export const STAGE_SCALE = 0.08;
+export const STAGE_SCALE = 0.06;
 export const secToTicks = (s: number): number => Math.max(1, Math.round(s * TICK_RATE));

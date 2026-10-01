@@ -22,6 +22,9 @@ export interface UnitSetup {
   traits: TraitId[];
   level: number;
   slot: { col: 0 | 1 | 2; row: 0 | 1 | 2 | 3 };
+  /** explicit start position/facing (room battles); overrides the slot */
+  spawn?: Vec2;
+  facing?: number;
   color: string;
   model: ModelId;
   gear: GearVisual;

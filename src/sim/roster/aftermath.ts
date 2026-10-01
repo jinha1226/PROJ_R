@@ -77,7 +77,7 @@ export function resolveBattle(roster: Roster, deployed: string[], report: Battle
       continue;
     }
     if (count(ev, 'downed', 'dst', m.id) > 0) r.downedSurvived++;
-    let xp = (20 + 5 * kills.length + (won ? 15 : 0)) * stageMult * (won ? 1 : 0.5);
+    let xp = (30 + 6 * kills.length + (won ? 20 : 0)) * stageMult * (won ? 1 : 0.5);
     if (isMentored(m, inBattle, roster.relations)) xp *= 1.25;
     out.xp[m.id] = Math.round(xp);
     const before = rankOf(m.level);

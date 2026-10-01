@@ -80,7 +80,7 @@ export function setupFromPresets(seed: number, allyKey: string, enemyKey: string
 export function makeUnitState(setup: UnitSetup, pos: Vec2, index: number, summoned: boolean): UnitState {
   return {
     id: setup.id, setup, team: setup.team, line: lineOf(setup.slot.col), pos: { ...pos },
-    facing: setup.team === 'ally' ? 0 : Math.PI, vel: v(0, 0),
+    facing: setup.facing ?? (setup.team === 'ally' ? 0 : Math.PI), vel: v(0, 0),
     hp: setup.stats.maxHp, maxHp: setup.stats.maxHp, shield: 0, momentum: 0,
     alive: true, downed: false, lifeline: 0, action: null, cooldowns: {}, tags: [], emotions: [], intent: null,
     decisionIn: (index % DECISION_INTERVAL) + (setup.traits.includes('cautious') ? CAUTIOUS_DELAY : 0), forced: null, engagedWith: null, threat: {},
@@ -104,7 +104,7 @@ export function createState(setup: BattleSetup): BattleState {
   return {
     tick: 0,
     rng: createRng(setup.seed),
-    units: all.map((u, i) => makeUnitState(u, slotToPos(u.team, u.slot.col, u.slot.row), i, false)),
+    units: all.map((u, i) => makeUnitState(u, u.spawn ?? slotToPos(u.team, u.slot.col, u.slot.row), i, false)),
     telegraphs: [],
     projectiles: [],
     obstacles: (setup.obstacles ?? []).map((o) => ({ ...o, pos: { ...o.pos } })),

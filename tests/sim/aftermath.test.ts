@@ -15,13 +15,13 @@ const report = (r: Roster, over: Partial<BattleReport> = {}): BattleReport => ({
 const ids = (r: Roster) => r.mercs.map((m) => m.id);
 
 describe('battle aftermath', () => {
-  it('awards xp: 20 + 5/kill + 15 victory, halved on defeat or retreat', () => {
+  it('awards xp: 30 + 6/kill + 20 victory, halved on defeat or retreat', () => {
     const r = base();
     const win = resolveBattle(r, ids(r), report(r, { events: [ev({ type: 'died', src: 'm1', dst: 'e0' })] }));
-    expect(win.xp.m1).toBe(40);
-    expect(win.xp.m2).toBe(35);
+    expect(win.xp.m1).toBe(56);
+    expect(win.xp.m2).toBe(50);
     const lose = resolveBattle(r, ids(r), report(r, { outcome: 'retreat' }));
-    expect(lose.xp.m2).toBe(10);
+    expect(lose.xp.m2).toBe(15);
   });
   it('injures those left downed and heals injuries over time', () => {
     let r = base();
