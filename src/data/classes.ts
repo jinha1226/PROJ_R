@@ -12,7 +12,18 @@ const growthOf = (b: Stats): Partial<Stats> => ({
   def: Math.round(b.def * 0.05),
 });
 
-const def = (c: Omit<ClassDef, 'growth'>): ClassDef => ({ ...c, growth: growthOf(c.base) });
+const POOLS: Record<ClassId, string[]> = {
+  novice: [],
+  warrior: ['shield_wall', 'cleaving_blow', 'rally'],
+  berserker: ['leap_slam', 'rending_strike', 'frenzy'],
+  rogue: ['smoke_bomb', 'poison_blade', 'fan_of_knives'],
+  crossbow: ['explosive_bolt', 'pinning_shot', 'rain_of_bolts'],
+  mage: ['frost_lance', 'chain_spark', 'meteor'],
+  priest: ['holy_shield', 'mass_heal', 'blessed_strike'],
+};
+
+/** pool = starting actives + learnable class actives (5 total for combat classes). */
+const def = (c: Omit<ClassDef, 'growth' | 'pool'>): ClassDef => ({ ...c, growth: growthOf(c.base), pool: c.id === 'novice' ? [] : [...c.actives, ...POOLS[c.id]] });
 
 export const CLASSES: Record<ClassId, ClassDef> = {
   novice: def({

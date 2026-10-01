@@ -1,5 +1,6 @@
 import type { ClassId, TacticId, TagId } from '../../data/types';
 import { KO_PERSONALITY } from './koPersonality';
+import { KO_GROWTH } from './koGrowth';
 
 export const KO = {
   class: {
@@ -8,6 +9,7 @@ export const KO = {
   } satisfies Record<ClassId, string>,
   skill: {
     ...KO_PERSONALITY.comboSkill,
+    ...KO_GROWTH.poolSkill,
     novice_slash: '베기', novice_lunge: '찌르며 돌진', novice_desperate: '필사의 일격',
     warrior_strike: '내려치기', shield_bash: '방패 강타', taunt_shout: '도발의 함성', bulwark: '방벽',
     cleave: '가르기', charge: '돌격', whirlwind: '회오리 베기', bloodrage: '피의 광란',
@@ -46,6 +48,18 @@ export const KO = {
   rule: KO_PERSONALITY.rule,
   combo: KO_PERSONALITY.combo,
   moment: KO_PERSONALITY.moment,
+  passive: KO_GROWTH.passive,
+  passiveDesc: KO_GROWTH.passiveDesc,
+  item: KO_GROWTH.item,
+  unique: KO_GROWTH.unique,
+  tier: KO_GROWTH.tier,
+  slot: KO_GROWTH.slot,
+  scar: KO_GROWTH.scar,
+  scarDesc: KO_GROWTH.scarDesc,
+  title: KO_GROWTH.title,
+  titleDesc: KO_GROWTH.titleDesc,
+  rank: KO_GROWTH.rank,
+  chronicle: KO_GROWTH.chronicle,
   reason: {
     ...KO_PERSONALITY.reason,
     attack: '공격 중', skill: '기술 사용', approach: '목표에게 접근 중', kite: '거리를 벌리는 중',

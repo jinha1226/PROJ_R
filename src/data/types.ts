@@ -137,6 +137,8 @@ export interface ClassDef {
   ultimate: string;
   model: ModelId;
   gear: GearVisual;
+  /** learnable class actives (includes starting actives) */
+  pool: string[];
 }
 
 export interface BossPhase {
@@ -193,4 +195,50 @@ export interface ComboDef {
   partnerSkill: string;
   /** seconds */
   cooldown: number;
+}
+
+export type UniqueId = 'markReset' | 'knockdownBleed' | 'friendGuard' | 'lifesteal' | 'firstStrike' | 'lastStand' | 'thorns' | 'wetLightning';
+export type ScarId = 'limp' | 'oneEye' | 'hardened';
+export type TitleId = 'guardian' | 'undying' | 'giantSlayer' | 'hundredCuts' | 'shadow' | 'healingHand';
+export type ItemSlot = 'weapon' | 'armor' | 'trinket';
+export type WeaponType = 'sword_shield' | 'axe2h' | 'daggers' | 'crossbow' | 'staff' | 'wand';
+
+export interface ItemDef {
+  id: string;
+  slot: ItemSlot;
+  /** 0 worn · 1 common · 2 elite · 3 master · 4 legendary */
+  tier: 0 | 1 | 2 | 3 | 4;
+  weaponType?: WeaponType;
+  /** additive */
+  stats: Partial<Stats>;
+  visual?: { weapon?: string; offhand?: string; helmet?: boolean; cape?: boolean };
+  unique?: UniqueId;
+}
+
+export interface PassiveDef {
+  id: string;
+  statMult?: Partial<Stats>;
+  momentumMult?: number;
+}
+
+export interface ScarDef {
+  id: ScarId;
+  statMult: Partial<Stats>;
+  startEmotion?: EmotionId;
+}
+
+/** Lifetime deeds of a mercenary (drives titles). */
+export interface MercRecord {
+  battles: number;
+  kills: number;
+  rescues: number;
+  downedSurvived: number;
+  bossKills: number;
+  dodges: number;
+  healing: number;
+}
+
+export interface TitleDef {
+  id: TitleId;
+  check(r: MercRecord): boolean;
 }
