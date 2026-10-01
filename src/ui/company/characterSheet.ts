@@ -2,6 +2,7 @@ import { CLASSES } from '../../data/classes';
 import { relationKinds } from '../../sim/personality/relations';
 import { mercStats } from '../../sim/roster/toSetup';
 import { rankOf, type Mercenary, type Roster } from '../../sim/roster/types';
+import { tacticSlots } from '../../sim/roster/tactics';
 import { t } from '../i18n/ko';
 import { renderEquip } from './equipPanel';
 import { chronicleText, displayName, growthGrade } from './text';
@@ -27,12 +28,20 @@ function statsTab(m: Mercenary): string {
     <div class="sheet-row muted">${m.backstory}</div>`;
 }
 
-function skillsTab(m: Mercenary): string {
+function tacticSelects(m: Mercenary, r: Roster): string {
+  return Array.from({ length: tacticSlots(m.level) }, (_, slot) => {
+    const cur = m.tactics[slot];
+    const opts = r.tacticsOwned.map((tc) => `<option value="${tc}" ${tc === cur ? 'selected' : ''}>${t(`tactic.${tc}`)}</option>`).join('');
+    return `<select data-act="tactic" data-slot="${slot}" data-testid="tactic-${slot}">${cur ? '' : '<option value="" selected>—</option>'}${opts}</select>`;
+  }).join(' ');
+}
+
+function skillsTab(m: Mercenary, r: Roster): string {
   const lv = (id: string) => m.skillLevels[id] ?? 1;
   const row = (id: string, kind: string) => `<li><span class="kind">${kind}</span> ${t(`skill.${id}`)} <em>Lv${lv(id)}</em></li>`;
   const passives = m.passives.map((p) => `<li><span class="kind">패시브</span> ${t(`passive.${p}`)} <em>${t(`passiveDesc.${p}`)}</em></li>`).join('');
   return `<ul class="skill-list">${row(CLASSES[m.classId].basic, '기본')}${m.actives.map((a) => row(a, '액티브')).join('')}${row(m.ultimate, '궁극기')}${passives}</ul>
-    <div class="sheet-row"><b>전술</b> ${m.tactics.map((x) => t(`tactic.${x}`)).join(', ')}</div>`;
+    <div class="sheet-row"><b>전술</b> ${tacticSelects(m, r)}</div>`;
 }
 
 function relationsTab(m: Mercenary, r: Roster): string {
@@ -46,7 +55,7 @@ function relationsTab(m: Mercenary, r: Roster): string {
 }
 
 export function renderSheet(m: Mercenary, r: Roster, tab: SheetTab): string {
-  const body = tab === 'stats' ? statsTab(m) : tab === 'skills' ? skillsTab(m) : tab === 'gear' ? renderEquip(m, r)
+  const body = tab === 'stats' ? statsTab(m) : tab === 'skills' ? skillsTab(m, r) : tab === 'gear' ? renderEquip(m, r)
     : tab === 'relations' ? relationsTab(m, r) : `<ol class="chronicle">${m.chronicle.map((e) => `<li><span>${e.battle ? `#${e.battle}` : '—'}</span>${chronicleText(e, r)}</li>`).join('')}</ol>`;
   return `<div class="sheet" data-testid="sheet" data-merc="${m.id}">
     <div class="sheet-head" style="border-color:${m.color}"><div class="sheet-name">${displayName(m)}</div>

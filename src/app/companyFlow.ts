@@ -1,6 +1,7 @@
 import { reportFromBattle, resolveBattle } from '../sim/roster/aftermath';
 import { companyBattleSetup, deployable, stageFor } from '../sim/roster/companyBattle';
 import { equip, unequip } from '../sim/roster/equipment';
+import { setTactic } from '../sim/roster/tactics';
 import { newRoster } from '../sim/roster/generate';
 import { applyOfferToRoster, levelOffers, settleEmptyLevelUps } from '../sim/roster/offers';
 import type { Roster } from '../sim/roster/types';
@@ -38,6 +39,7 @@ export class CompanyFlow {
       fight: () => void this.fight(),
       equip: (m, item) => { this.roster = equip(this.roster, m, item); },
       unequip: (m, slot) => { this.roster = unequip(this.roster, m, slot); },
+      setTactic: (m, slot, tac) => { this.roster = setTactic(this.roster, m, slot, tac); },
       nextLevelUp: (host) => this.levelUp(host),
       newCompany: () => {
         this.seed += 1;

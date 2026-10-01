@@ -1,14 +1,15 @@
 import {
   Angry, ArrowDownToLine, BicepsFlexed, Crown, Droplet, Droplets, Ellipsis, Flag, Flame, Footprints, Frown,
   HandHeart, HeartCrack, Laugh, Link, Medal, Megaphone, Rabbit, Shield, ShieldHalf, ShieldPlus, Skull, Snail,
-  Sparkles, Star, Sword, Target, Undo2, Wind, Handshake, Bandage, type IconNode,
+  Sparkles, Star, Sword, Target, Undo2, Wind, Handshake, Bandage, Swords, Users, ScrollText, Tent, Store, type IconNode,
 } from 'lucide';
 import type { EmotionId, RelationTriggerKind, TagId } from '../../data/types';
 import type { IntentKind } from '../../sim/battle/types';
 import type { MomentKind } from '../../sim/roster/relationships';
+import type { NodeType } from '../../sim/run/types';
 import { t } from '../../ui/i18n/ko';
 
-export type IconKey = 'status:injured' | TagId | `intent:${IntentKind}` | `emotion:${EmotionId}` | `relation:${RelationTriggerKind}` | `moment:${MomentKind}`;
+export type IconKey = 'status:injured' | `node:${NodeType}` | TagId | `intent:${IntentKind}` | `emotion:${EmotionId}` | `relation:${RelationTriggerKind}` | `moment:${MomentKind}`;
 
 interface IconDef {
   icon: IconNode;
@@ -20,6 +21,13 @@ const def = (icon: IconNode, color: string, label: string): IconDef => ({ icon, 
 
 export const ICONS: Record<IconKey, IconDef> = {
   'status:injured': def(Bandage, '#d8c8b0', '부상'),
+  'node:battle': def(Swords, '#c8a070', '전투'),
+  'node:elite': def(Skull, '#e06040', '정예'),
+  'node:encounter': def(Users, '#6ac46a', '만남'),
+  'node:event': def(ScrollText, '#b08ae0', '사건'),
+  'node:rest': def(Tent, '#4ab0d0', '휴식'),
+  'node:shop': def(Store, '#e0c04a', '상점'),
+  'node:boss': def(Crown, '#ff5030', '보스'),
   marked: def(Target, '#e8962e', t('tag.marked')),
   knockdown: def(ArrowDownToLine, '#9c8a74', t('tag.knockdown')),
   wet: def(Droplets, '#3d8fe6', t('tag.wet')),
