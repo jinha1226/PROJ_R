@@ -35,4 +35,4 @@ export function buy(p: XProfile, itemId: string): XProfile {
 }
 
 /** Banks stacks into the stash; may overflow past the slot limit (then sorties are blocked until sorted). */
-export const bank = (p: XProfile, stacks: { id: string; n: number }[]): XProfile => ({ ...p, stash: mergeAll(p.stash, stacks) });
+export const bank = <T extends { stash: { id: string; n: number }[] }>(p: T, stacks: { id: string; n: number }[]): T => ({ ...p, stash: mergeAll(p.stash, stacks) });
