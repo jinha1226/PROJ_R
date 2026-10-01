@@ -56,7 +56,7 @@ export function moveUnits(s: BattleState): void {
     } else if (u.action || isActionBlocked(u)) {
       step = separation(u, s, 1);
     } else {
-      const speed = effectiveStats(u, s).moveSpeed;
+      const speed = effectiveStats(u, s).moveSpeed * (u.speedScale ?? 1);
       step = clampLen(add(u.vel, separation(u, s, speed)), speed);
       if (len(u.vel) > 0.05) u.facing = angleOf(u.vel);
     }

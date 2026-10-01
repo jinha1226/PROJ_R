@@ -11,7 +11,7 @@ const WALK = 0.6;
 const REPATH_TICKS = 10;
 
 /** Walks u toward dest along the nav grid (re-planned every half second). Returns true on arrival. */
-export function walkTo(w: WorldState, u: UnitState, st: AiState, dest: Vec2, speedScale: number): boolean {
+export function walkTo(w: WorldState, u: UnitState, st: Pick<AiState, 'path' | 'repathIn'>, dest: Vec2, speedScale: number): boolean {
   if (Math.hypot(dest.x - u.pos.x, dest.y - u.pos.y) < 0.6) {
     u.vel = { x: 0, y: 0 };
     st.path = undefined;

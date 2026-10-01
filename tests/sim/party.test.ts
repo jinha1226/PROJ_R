@@ -3,17 +3,9 @@ import { createPartyWorld, partyUnits, updateLeader, refreshParty } from '../../
 import { heroUnit } from '../../src/sim/world/worldState';
 import { updateActivation } from '../../src/sim/world/activation';
 import { updatePerception } from '../../src/sim/world/perception';
-import { generateRecruit } from '../../src/sim/roster/generate';
-import { createRng } from '../../src/core/rng';
-import { emptyLoadout, addItem } from '../../src/sim/extract/loadout';
+import { addItem } from '../../src/sim/extract/loadout';
 import { NavGrid } from '../../src/sim/world/nav';
-import { testRegion, spawn } from './support/worldKit';
-
-export const crew = (n: number) => {
-  const rng = createRng(3);
-  const used = new Set<string>();
-  return Array.from({ length: n }, (_, i) => ({ merc: generateRecruit(rng, { level: 3, usedNames: used, id: `m${i}`, classId: (['warrior', 'mage', 'priest', 'crossbow', 'berserker'] as const)[i % 5] }), gear: { ...emptyLoadout(), equipped: {} } }));
-};
+import { testRegion, spawn, crew } from './support/worldKit';
 
 describe('party world', () => {
   it('spawns up to five members on free ground around the start; the first is the leader', () => {

@@ -1,4 +1,5 @@
-import { createProtagonist } from '../../../src/sim/roster/generate';
+import { createProtagonist, generateRecruit } from '../../../src/sim/roster/generate';
+import { createRng } from '../../../src/core/rng';
 import { emptyLoadout, type Loadout } from '../../../src/sim/extract/loadout';
 import type { Region, Spawn } from '../../../src/sim/extract/region';
 import type { Obstacle } from '../../../src/sim/battle/types';
@@ -17,3 +18,10 @@ export const spawn = (id: string, x: number, y: number, group = 'g1', enemyId = 
 
 export const hero = () => createProtagonist(5);
 export const kit = (): Loadout => ({ ...emptyLoadout(), equipped: { weapon: 'x_sword_shield_1', chest: 'x_chest_1' } });
+
+/** A ready party: warrior, mage, priest, crossbow, berserker (level 3, no gear). */
+export const crew = (n: number) => {
+  const rng = createRng(3);
+  const used = new Set<string>();
+  return Array.from({ length: n }, (_, i) => ({ merc: generateRecruit(rng, { level: 3, usedNames: used, id: `m${i}`, classId: (['warrior', 'mage', 'priest', 'crossbow', 'berserker'] as const)[i % 5] }), gear: { ...emptyLoadout(), equipped: {} } }));
+};

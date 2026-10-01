@@ -23,7 +23,9 @@ import { updatePatrol, walkTo } from './patrol';
 import { updatePerception } from './perception';
 import type { WorldState } from './types';
 import { createWorld, emitW, heroUnit } from './worldState';
-import { partyUnits, updateLeader } from './party';
+import { createPartyWorld, partyUnits, updateLeader, type Member } from './party';
+import { updateFollow } from './follow';
+import type { Stack } from '../extract/inventory';
 
 export { idleInput, type HeroInput } from './heroControl';
 
@@ -33,8 +35,13 @@ const XP_PER_KILL = (stage: number) => 6 * stage + 4;
 export class WorldSim {
   readonly w: WorldState;
 
-  constructor(region: Region, hero: Mercenary, loadout: Loadout, seed: number) {
-    this.w = createWorld(region, hero, loadout, seed);
+  constructor(region: Region | WorldState, hero?: Mercenary, loadout?: Loadout, seed = 0) {
+    this.w = 'b' in region ? region : createWorld(region, hero!, loadout!, seed);
+  }
+
+  /** A sortie with a party (leader first). */
+  static party(region: Region, members: Member[], pack: Stack[], pouch: Stack | null, seed: number): WorldSim {
+    return new WorldSim(createPartyWorld(region, members, pack, pouch, seed));
   }
 
   step(input: HeroInput): void {
@@ -50,6 +57,7 @@ export class WorldSim {
     updateActivation(w);
     updatePerception(w, phaseOf(b.tick) !== 'day' && phaseOf(b.tick) !== 'dusk');
     updatePatrol(w);
+    updateFollow(w);
     decide(b);
     this.chaseAroundWalls();
     advanceActions(b);

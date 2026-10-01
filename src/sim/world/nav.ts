@@ -183,7 +183,8 @@ export class NavGrid {
     };
   }
 
-  private nearestWalkable(p: Vec2, maxR: number): Vec2 | null {
+  /** Nearest point the fine grid calls walkable, within maxR (null if none). */
+  nearestWalkable(p: Vec2, maxR: number): Vec2 | null {
     const step = this.fine.cell / 2;
     for (let r = step; r <= maxR; r += step)
       for (let a = 0; a < 16; a++) {

@@ -154,6 +154,8 @@ export interface UnitState {
   summoned: boolean;
   /** asleep far from the action: skipped by AI, movement, engagement and targeting */
   dormant: boolean;
+  /** temporary speed factor set by the region sim (followers catching up); absent = 1 */
+  speedScale?: number;
   stats: { kills: number; damageDealt: number; healingDone: number; dodges: number };
 }
 

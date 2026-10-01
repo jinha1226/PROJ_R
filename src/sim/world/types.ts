@@ -42,6 +42,8 @@ export interface PartyState {
   /** leader footprints, newest last (followers queue along it in narrow places) */
   trail: Vec2[];
   dead: string[];
+  /** per-follower route state */
+  follow: Record<string, { path?: Vec2[]; repathIn: number; crumb?: Vec2 }>;
 }
 
 /** The whole sortie: the battle state of every unit plus the region-level rules around it. */
