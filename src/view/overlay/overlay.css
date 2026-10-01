@@ -10,8 +10,9 @@
 .uo-mom { width: 54px; height: 3px; background: #1118; border-radius: 2px; overflow: hidden; }
 .uo-mom > div { height: 100%; background: #f0c040; }
 .uo-mom.full > div { background: #ffe680; box-shadow: 0 0 6px #ffe680; }
-.uo-tags { display: flex; gap: 2px; min-height: 14px; }
-.uo-tag { font-size: 10px; font-weight: 800; color: #1b1a1f; border-radius: 3px; padding: 0 3px; line-height: 14px; box-shadow: 0 1px 2px #000a; }
+.uo-tags { display: flex; gap: 2px; min-height: 16px; }
+.icon-badge { display: inline-grid; place-items: center; border-radius: 50%; color: #fff; box-shadow: 0 1px 2px #000c, 0 0 0 1px #0006; flex: none; }
+.icon-badge svg { display: block; }
 .uo.boss .uo-bar { width: 110px; height: 8px; }
 .dmg-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .dmg { position: absolute; transform: translate(-50%, -50%); font-weight: 800; font-size: 15px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; animation: dmg-rise 0.8s ease-out forwards; white-space: nowrap; }

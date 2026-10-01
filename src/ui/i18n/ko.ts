@@ -30,6 +30,14 @@ export const KO = {
     marked: '표식', knockdown: '넘어짐', wet: '젖음', stun: '기절', burn: '화상',
     bleed: '출혈', slow: '둔화', shield: '보호막', taunted: '도발됨',
   } satisfies Record<TagId, string>,
+  intent: {
+    attack: '공격', skill: '기술', approach: '접근', kite: '거리 벌림', dodge: '회피', rescue: '구출',
+    guard: '호위', retreat: '후퇴', idle: '대기', protect: '엄호', flee: '도망',
+  } as Record<string, string>,
+  emotion: { rage: '분노', fear: '공포', elation: '고양', revenge: '복수', resolve: '결의', courage: '용기' } as Record<string, string>,
+  trigger: {
+    protect: '엄호', rivalry: '경쟁심', revenge: '복수', courage: '용기', combo: '전우 연계', feud: '반목', mentor: '스승의 보호',
+  } as Record<string, string>,
   reason: {
     attack: '공격 중', skill: '기술 사용', approach: '목표에게 접근 중', kite: '거리를 벌리는 중',
     dodge: '위험 범위를 피하는 중', rescue: '쓰러진 동료를 구하러 가는 중', guard: '후열을 지키는 중',

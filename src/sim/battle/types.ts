@@ -61,7 +61,8 @@ export interface ActionState {
   telegraphId?: number;
 }
 
-export type IntentKind = 'attack' | 'skill' | 'approach' | 'kite' | 'dodge' | 'rescue' | 'guard' | 'retreat' | 'idle';
+export type IntentKind =
+  | 'attack' | 'skill' | 'approach' | 'kite' | 'dodge' | 'rescue' | 'guard' | 'retreat' | 'idle' | 'protect' | 'flee';
 
 export interface Intent {
   kind: IntentKind;

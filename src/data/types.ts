@@ -50,6 +50,13 @@ export type AnimKey =
   | 'taunt'
   | 'leapChop';
 
+export type TraitId =
+  | 'reckless' | 'cautious' | 'protective' | 'coward' | 'competitive' | 'vengeful'
+  | 'hotheaded' | 'calm' | 'glory' | 'loner' | 'chatty' | 'altruist';
+export type EmotionId = 'rage' | 'fear' | 'elation' | 'revenge' | 'resolve' | 'courage';
+export type RelationKind = 'friend' | 'comrade' | 'rival' | 'feud' | 'mentor';
+export type RelationTriggerKind = 'protect' | 'rivalry' | 'revenge' | 'courage' | 'combo' | 'feud' | 'mentor';
+
 export interface Stats {
   maxHp: number;
   atk: number;
