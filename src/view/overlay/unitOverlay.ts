@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import type { TagId } from '../../data/types';
+import type { EmotionId, TagId } from '../../data/types';
 import type { UnitSnap, UnitSetup } from '../../sim/battle/types';
-import { iconBadge } from './icons';
+import { iconBadge, type IconKey } from './icons';
 import { intentLabel } from './intentLabel';
 import './overlay.css';
 
@@ -68,11 +68,24 @@ export class UnitOverlay {
       r.intentKey = ikey;
       r.intent.innerHTML = label ? `${iconBadge(label.icon, 15)}<span>${label.text}</span>` : '';
     }
-    const key = u.tags.join(',');
+    const key = `${u.emotions.join(',')}|${u.tags.join(',')}`;
     if (key !== r.tagKey) {
       r.tagKey = key;
-      r.tags.innerHTML = [...new Set(u.tags)].map((tg) => iconBadge(tg as TagId, 16)).join('');
+      const emotions = [...new Set(u.emotions)].map((em) => iconBadge(`emotion:${em as EmotionId}`, 17, 'emotion'));
+      const tags = [...new Set(u.tags)].map((tg) => iconBadge(tg as TagId, 16));
+      r.tags.innerHTML = [...emotions, ...tags].join('');
     }
+  }
+
+  /** Large icon that pops above the unit for ~2s. */
+  pop(id: string, icon: IconKey): void {
+    const r = this.rows.get(id);
+    if (!r) return;
+    const el = document.createElement('div');
+    el.className = 'uo-pop';
+    el.innerHTML = iconBadge(icon, 26);
+    r.el.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
   }
 
   setIntentsVisible(on: boolean): void {

@@ -21,6 +21,7 @@ describe('review fixes (view)', () => {
       actors: new Map([['a0', fake]]), fx: { slash() {}, burst() {}, glow() {} } as never,
       numbers: { show() {} } as never, posOf: () => ({ x: 0, z: 0, facing: 0 }), toScreen: () => ({ left: 0, top: 0 }),
       teamOf: () => 'ally', shake() {}, onSummon() {}, onBerserk() {}, log() {},
+      tether() {}, bark() {}, popIcon() {}, slowmo() {}, punch() {},
     });
     router.handle({ tick: 1, type: 'damage', src: 'e0', dst: 'a0', amount: 5, skillId: 'stab' });
     expect(played).not.toContain('hit');

@@ -18,6 +18,8 @@ export class BattlePlayer {
   speed: Speed = 1;
   readonly maxStepsPerFrame = 8;
   private acc = 0;
+  private slowLeft = 0;
+  private slowScale = 1;
   private prev: Snapshot;
   private curr: Snapshot;
 
@@ -26,7 +28,10 @@ export class BattlePlayer {
   }
 
   update(dtSec: number): Frame {
-    this.acc += Math.min(dtSec, MAX_FRAME_DT) * this.speed;
+    const dt = Math.min(dtSec, MAX_FRAME_DT);
+    const scale = this.slowLeft > 0 ? this.slowScale : 1;
+    this.slowLeft = this.slowLeft - dt < 1e-6 ? 0 : this.slowLeft - dt;
+    this.acc += dt * this.speed * scale;
     // commands (retreat) must take effect even while paused
     if (this.speed === 0 && this.battle.state.pending.length && !this.battle.outcome) this.acc = DT;
     let steps = 0;
@@ -40,6 +45,17 @@ export class BattlePlayer {
     }
     if (steps >= this.maxStepsPerFrame || this.battle.outcome) this.acc = Math.min(this.acc, DT * 0.999);
     return { prev: this.prev, curr: this.curr, alpha: Math.max(0, Math.min(0.999, this.acc / DT)) };
+  }
+
+  /** Real-time seconds of slowed playback (scale < 1), for highlight moments. */
+  slowmo(realSec: number, scale: number): void {
+    this.slowLeft = Math.max(this.slowLeft, realSec);
+    this.slowScale = scale;
+  }
+
+  /** 1 normally, < 1 during slow motion (for scaling animations). */
+  get timeScale(): number {
+    return this.slowLeft > 0 ? this.slowScale : 1;
   }
 
   retreat(): void {

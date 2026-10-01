@@ -10,6 +10,8 @@ import { ShieldFx } from '../../view/fx/shieldFx';
 import { TelegraphFx } from '../../view/fx/telegraphFx';
 import { TransientFx } from '../../view/fx/transientFx';
 import { TargetLineFx } from '../../view/fx/targetLineFx';
+import { TetherFx } from '../../view/fx/tetherFx';
+import { BarkLayer } from '../../view/overlay/barks';
 import { DamageNumbers } from '../../view/overlay/damageNumbers';
 import { UnitOverlay } from '../../view/overlay/unitOverlay';
 import { BattlePlayer, type Frame } from '../../view/playback/battlePlayer';
@@ -43,6 +45,8 @@ export class BattleRuntime {
   private readonly fx: TransientFx;
   private readonly shields: ShieldFx;
   private readonly targetLine: TargetLineFx;
+  private readonly tethers: TetherFx;
+  private readonly barks: BarkLayer;
   selected: string | null = null;
   private readonly router: EventRouter;
   private frame: Frame;
@@ -60,6 +64,8 @@ export class BattleRuntime {
       return u ? unitName(u.setup) : '';
     });
     this.targetLine = new TargetLineFx(this.h.scene);
+    this.tethers = new TetherFx(this.h.scene, (id) => this.pos.get(id));
+    this.barks = new BarkLayer(container);
     this.numbers = new DamageNumbers(container);
     this.tel = new TelegraphFx(this.h.scene);
     this.proj = new ProjectileFx(this.h.scene);
@@ -78,6 +84,11 @@ export class BattleRuntime {
       },
       onBerserk: (m) => hooks.onBerserk(m),
       log: (e) => hooks.log(e),
+      tether: (a, b, kind) => this.tethers.add(a, b, kind),
+      bark: (id, key) => this.barks.say(id, key),
+      popIcon: (id, icon) => this.overlay.pop(id, icon),
+      slowmo: () => this.player.slowmo(0.6, 0.3),
+      punch: () => this.cam.punchIn(0.22),
     });
     this.player = new BattlePlayer(this.battle, (r) => {
       for (const e of r.events) {
@@ -122,7 +133,7 @@ export class BattleRuntime {
       a.root.rotation.y = Math.PI / 2 - p.facing;
       const speed = b ? Math.hypot(u.x - b.x, u.y - b.y) / DT : 0;
       a.setLocomotion(this.player.speed === 0 ? 0 : speed);
-      a.update(dt * this.player.speed);
+      a.update(dt * this.player.speed * this.player.timeScale);
       this.overlay.update(u, p.x, p.y, w, hgt);
       this.shields.set(u.id, u.alive && u.shield > 0, p.x, p.y, a.spec.scale ?? 1);
       if (u.alive && !u.downed) living.push({ x: p.x, y: p.y });
@@ -134,6 +145,11 @@ export class BattleRuntime {
     this.tel.sync(curr.telegraphs);
     this.proj.sync(prev, curr, alpha);
     this.fx.update(dt);
+    this.tethers.update(dt);
+    this.barks.update(dt, (id) => {
+      const p = this.pos.get(id);
+      return p ? this.overlay.screenPos(p.x, 2.0, p.z, w, hgt) : undefined;
+    });
     this.cam.frame(living, dt);
     this.h.renderer.render(this.h.scene, this.h.camera);
   }
@@ -160,6 +176,8 @@ export class BattleRuntime {
     this.fx.dispose();
     this.shields.dispose();
     this.targetLine.dispose();
+    this.tethers.dispose();
+    this.barks.dispose();
     this.overlay.dispose();
     this.numbers.dispose();
     this.h.dispose();

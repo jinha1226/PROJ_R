@@ -2,7 +2,7 @@ import type { BattleEvent } from '../../sim/battle/types';
 import { KO, t } from '../i18n/ko';
 
 const MAX_LINES = 50;
-const HIGHLIGHT = new Set(['combo', 'rescued', 'downed', 'died', 'phase', 'berserk']);
+const HIGHLIGHT = new Set(['combo', 'rescued', 'downed', 'died', 'phase', 'berserk', 'relation_trigger', 'pair_combo', 'emotion', 'resolve']);
 
 /** Collapsible Korean battle log with a "highlights only" filter. */
 export class BattleLog {
@@ -36,6 +36,25 @@ export class BattleLog {
       case 'combo': return `연계! ${s}의 ${skill} — ${d}의 ${t(`tag.${e.tag}`)} 반응`;
       case 'phase': return `${s}이(가) 분노한다!`;
       case 'berserk': return `시간 초과 — 양측 광폭화 (피해 ×${e.data?.mult})`;
+      case 'relation_trigger': return this.relationLine(e, s, d);
+      case 'pair_combo': return `전우 연계! ${s} & ${d} — 「${t(`combo.${e.skillId}`)}」`;
+      case 'emotion': {
+        const id = String(e.data?.id);
+        return ['rage', 'fear', 'revenge', 'courage', 'elation'].includes(id) ? `${d}: ${t(`emotion.${id}`)}` : null;
+      }
+      case 'resolve': return `${d}이(가) 결의로 버텨낸다!`;
+      default: return null;
+    }
+  }
+
+  private relationLine(e: BattleEvent, s: string, d: string): string | null {
+    switch (e.data?.kind) {
+      case 'protect': return `${s}이(가) 위험한 ${d}을(를) 엄호하러 달려간다`;
+      case 'mentor': return `스승 ${s}이(가) 제자 ${d}을(를) 지킨다`;
+      case 'rivalry': return e.data?.kill ? `${s}: "${d}에게 질 수 없지!"` : `${s}이(가) 쓰러진 라이벌 ${d}을(를) 보고 분노한다`;
+      case 'revenge': return `${s}이(가) ${d}의 복수를 다짐한다`;
+      case 'courage': return `${s}이(가) ${d} 곁에서 용기를 낸다`;
+      case 'feud': return `${s}와(과) ${d}이(가) 서로 날을 세운다`;
       default: return null;
     }
   }

@@ -3,6 +3,7 @@ import type { BattleEvent } from '../../sim/battle/types';
 import type { Actor } from '../actors/actor';
 import type { TransientFx } from '../fx/transientFx';
 import type { DamageNumbers, NumberKind } from '../overlay/damageNumbers';
+import type { IconKey } from '../overlay/icons';
 
 export interface RouterDeps {
   actors: Map<string, Actor>;
@@ -17,6 +18,11 @@ export interface RouterDeps {
   onSummon(id: string): void;
   onBerserk(mult: number): void;
   log(e: BattleEvent): void;
+  tether(srcId: string, dstId: string, kind: string): void;
+  bark(unitId: string, key: string): void;
+  popIcon(unitId: string, icon: IconKey): void;
+  slowmo(): void;
+  punch(): void;
 }
 
 const MELEE_MAX_RANGE = 2.6;
@@ -84,6 +90,7 @@ export class EventRouter {
         break;
       case 'rescued':
         dst?.setDowned(false);
+        if (e.dst) d.bark(e.dst, 'rescued');
         if (dst) {
           const p = e.dst ? d.posOf(e.dst) : undefined;
           if (p) d.fx.burst(p.x, p.z, '#8cd8ff', 1.0, 0.6);
@@ -101,9 +108,46 @@ export class EventRouter {
       case 'summon':
         if (e.dst) d.onSummon(e.dst);
         break;
+      case 'relation_trigger':
+        this.relation(e);
+        break;
+      case 'pair_combo':
+        if (e.src && e.dst) {
+          d.tether(e.src, e.dst, 'combo');
+          d.popIcon(e.src, 'relation:combo');
+          d.popIcon(e.dst, 'relation:combo');
+          d.bark(e.src, 'combo');
+        }
+        d.slowmo();
+        d.punch();
+        break;
+      case 'emotion': {
+        const id = String(e.data?.id ?? '');
+        if (e.dst && EMOTION_POPS.has(id)) {
+          d.popIcon(e.dst, `emotion:${id}` as IconKey);
+          if (id === 'rage' || id === 'fear') d.bark(e.dst, id);
+        }
+        break;
+      }
+      case 'resolve':
+        if (e.dst) d.popIcon(e.dst, 'emotion:resolve');
+        break;
+      case 'bark':
+        if (e.src && typeof e.data?.key === 'string') d.bark(e.src, e.data.key);
+        break;
       default:
         break;
     }
     d.log(e);
   }
+
+  private relation(e: BattleEvent): void {
+    const kind = String(e.data?.kind ?? '');
+    if (!e.src || !e.dst || !kind) return;
+    this.d.tether(e.src, e.dst, kind);
+    this.d.popIcon(e.src, `relation:${kind}` as IconKey);
+    this.d.bark(e.src, kind === 'rivalry' && e.data?.kill ? 'rivalKill' : kind);
+  }
 }
+
+const EMOTION_POPS = new Set(['rage', 'fear', 'revenge', 'courage', 'elation']);
