@@ -2,3 +2,4 @@
 import './emotions';
 import './traitBehaviors';
 import './relationBehaviors';
+import './pairCombos';

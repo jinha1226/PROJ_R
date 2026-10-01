@@ -180,6 +180,8 @@ export interface BattleState {
   relations: Map<string, Relation>;
   /** "src|dst|kind" → tick when that relation trigger may fire again */
   triggerReady: Map<string, number>;
+  /** pairKey → tick when that comrade pair may combo again */
+  pairCooldowns: Map<string, number>;
 }
 
 export interface UnitSnap {

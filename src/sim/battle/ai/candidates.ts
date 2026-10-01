@@ -6,7 +6,7 @@ import { ARENA, UNIT_RADIUS } from '../constants';
 import { telegraphThreatFor } from '../telegraphs';
 import type { BattleState, Telegraph, UnitState } from '../types';
 
-export type CandidateKind = 'skill' | 'approach' | 'kite' | 'dodge' | 'rescue' | 'guard' | 'protect' | 'flee' | 'idle';
+export type CandidateKind = 'skill' | 'approach' | 'kite' | 'dodge' | 'rescue' | 'guard' | 'protect' | 'flee' | 'pairCombo' | 'idle';
 
 export interface Candidate {
   kind: CandidateKind;
@@ -27,6 +27,9 @@ export const candidateGenerators: CandidateGenerator[] = [];
 export function registerCandidateGenerator(g: CandidateGenerator): void {
   candidateGenerators.push(g);
 }
+
+/** Custom executors for candidate kinds the core decide() does not know (e.g. pairCombo). */
+export const candidateExecutors: Partial<Record<CandidateKind, (s: BattleState, u: UnitState, c: Candidate) => void>> = {};
 const IN_RANGE_SLACK = 0.2;
 
 export const clampToArena = (p: Vec2): Vec2 => ({

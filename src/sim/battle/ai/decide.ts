@@ -6,7 +6,7 @@ import { steerToward } from '../movement';
 import { effectiveStats } from '../stats';
 import { isActionBlocked } from '../tags';
 import type { BattleState, Intent, IntentKind, UnitState } from '../types';
-import { generateCandidates, type Candidate } from './candidates';
+import { candidateExecutors, generateCandidates, type Candidate } from './candidates';
 import { considerations, makeCtx, type Ctx } from './considerations';
 import { tacticConsiderations } from './tactics';
 
@@ -33,11 +33,13 @@ function score(c: Candidate, ctx: Ctx): Scored {
 }
 
 function defaultReason(c: Candidate): string {
+  if (c.kind === 'pairCombo') return 'comboPair';
   if (c.kind === 'skill') return c.inRange ? (c.skill!.kind === 'basic' ? 'attack' : 'skill') : 'approach';
   return c.kind;
 }
 
 function intentKind(c: Candidate): IntentKind {
+  if (c.kind === 'pairCombo') return 'skill';
   if (c.kind === 'skill') return c.inRange ? (c.skill!.kind === 'basic' ? 'attack' : 'skill') : 'approach';
   return c.kind;
 }
@@ -45,7 +47,10 @@ function intentKind(c: Candidate): IntentKind {
 function execute(s: BattleState, u: UnitState, c: Candidate): void {
   if (c.kind !== 'rescue' || c.target?.id !== u.rescueTarget) u.rescueProgress = 0;
   u.rescueTarget = null;
-  if (c.kind === 'skill' && c.inRange) {
+  const custom = candidateExecutors[c.kind];
+  if (custom) {
+    custom(s, u, c);
+  } else if (c.kind === 'skill' && c.inRange) {
     startAction(s, u, c.skillId!, c.target?.id, c.target ? { ...c.target.pos } : undefined);
   } else if (c.kind === 'skill' && c.target) {
     steerToward(u, c.target.pos, s, c.skill!.range * 0.9);

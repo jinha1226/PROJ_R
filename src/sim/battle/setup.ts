@@ -115,5 +115,6 @@ export function createState(setup: BattleSetup): BattleState {
     berserkMult: 1,
     relations: buildRelations(setup),
     triggerReady: new Map(),
+    pairCooldowns: new Map(),
   };
 }
