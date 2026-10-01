@@ -52,10 +52,12 @@ describe('exploration maps', () => {
       }
     });
   }
-  it('enemy count follows min(6, 1 + stars + ceil(week/3))', () => {
-    const e = generateExploration(3, 7, card(2), ['m0']);
+  it('enemy count follows the expedition size: party (+1 for ★2/★3), within 2..6', () => {
+    const e = generateExploration(3, 7, card(2), ['m0', 'm1', 'm2']);
     const battle = Object.values(e.rooms).find((r) => r.type === 'battle')!;
-    expect(battle.enemies).toHaveLength(Math.min(6, 1 + 2 + Math.ceil(7 / 3)));
+    expect(battle.enemies).toHaveLength(4);
+    const solo = generateExploration(3, 7, card(1), ['m0']);
+    expect(Object.values(solo.rooms).find((r) => r.type === 'battle')!.enemies).toHaveLength(2);
   });
   it('moving only through doors, recording where we came in', () => {
     const e = generateExploration(4, 3, card(1), ['m0']);

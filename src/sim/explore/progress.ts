@@ -9,7 +9,8 @@ import type { Dir, Exploration, Room } from './types';
 const MAX_PARTY = 5;
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-export const stageOf = (e: Exploration, room?: Room): number => e.week + (e.stars - 1) + (room?.type === 'elite' ? 1 : 0);
+/** Elite packs already carry a leader, so their stage is one lower. */
+export const stageOf = (e: Exploration, room?: Room): number => Math.max(1, e.week + (e.stars - 1) - (room?.type === 'elite' ? 1 : 0));
 
 export function chooseExplore(run: RunState, cardIndex: number, party: string[]): RunState {
   const card = run.regionCards?.[cardIndex];

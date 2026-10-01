@@ -1,8 +1,7 @@
 import { add, dist, fromAngle, norm, scale, sub, type Vec2 } from '../../core/vec2';
-import { ENEMIES } from '../../data/enemies';
 import { TAGS } from '../../data/tags';
 import type { Effect, SkillDef } from '../../data/types';
-import { DT, STAGE_SCALE } from './constants';
+import { DT } from './constants';
 import { areaOrigin, inArea } from './areas';
 import { dealDamage, heal } from './damage';
 import { emit } from './events';
@@ -31,8 +30,8 @@ function forcedToward(from: Vec2, to: Vec2, distance: number, fallbackAngle: num
 }
 
 function summon(s: BattleState, caster: UnitState, enemyId: string, count: number): void {
-  const base = ENEMIES[caster.setup.defId]?.base.maxHp ?? caster.maxHp;
-  const stage = Math.max(1, Math.round(1 + (caster.maxHp / base - 1) / STAGE_SCALE));
+  // enemy setups carry their stage in `level`
+  const stage = Math.max(1, caster.setup.level);
   for (let i = 0; i < count; i++) {
     const setup = enemyFromDef(enemyId, 2, 0, stage, 0);
     setup.id = `s${s.nextId++}`;

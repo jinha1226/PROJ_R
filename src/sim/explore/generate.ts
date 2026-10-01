@@ -76,10 +76,14 @@ function props(rng: Rng, card: RegionCard, room: Room): Prop[] {
   return out;
 }
 
-function enemies(rng: Rng, card: RegionCard, week: number, elite: boolean): Room['enemies'] {
-  const n = Math.min(6, 1 + card.stars + Math.ceil(week / 3));
+/** Enemy count scales with the expedition: ★1 = party size, ★2/★3 = +1 (★3 is harder through stage), 2..6. */
+export const enemyCount = (partySize: number, stars: number): number => Math.max(2, Math.min(6, partySize + (stars > 1 ? 1 : 0)));
+
+function enemies(rng: Rng, card: RegionCard, partySize: number, elite: boolean): Room['enemies'] {
+  const n = enemyCount(partySize, card.stars);
   const t = THEME_ENEMIES[card.theme];
-  const ids = elite ? [...t.elite, ...Array.from({ length: Math.max(0, n - t.elite.length + 1) }, () => rng.pick(t.pool))] : Array.from({ length: n }, () => rng.pick(t.pool));
+  // elites count double: the pack is one smaller than a normal room
+  const ids = elite ? [...t.elite, ...Array.from({ length: Math.max(0, n - t.elite.length - 1) }, () => rng.pick(t.pool))].slice(0, Math.max(2, n - 1)) : Array.from({ length: n }, () => rng.pick(t.pool));
   return ids.map((enemyId, i) => {
     const a = (Math.PI * 2 * i) / ids.length + rng.next() * 0.4;
     const rad = ids.length === 1 ? 0 : 1.6 + (i % 2) * 1.1;
@@ -107,7 +111,7 @@ export function generateExploration(seed: number, week: number, card: RegionCard
     specials.forEach((type, i) => { if (rest[i] && rest.length - i > 1) rest[i]!.type = type; });
     for (const r of rooms.values()) {
       r.props = r.type === 'start' ? [] : props(rng, card, r);
-      if (r.type === 'battle' || r.type === 'elite') r.enemies = enemies(rng, card, week, r.type === 'elite');
+      if (r.type === 'battle' || r.type === 'elite') r.enemies = enemies(rng, card, party.length, r.type === 'elite');
     }
     return {
       seed, theme: card.theme, stars: card.stars, reward: card.reward, week, rooms: Object.fromEntries(rooms), at: start.id,

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { slotToPos, lineOf, setupFromPresets, createState } from '../../src/sim/battle/setup';
 import { Battle, runHeadless } from '../../src/sim/battle/battle';
 import { makeSnapshot } from '../../src/sim/battle/snapshot';
+import { stageMult } from '../../src/sim/battle/constants';
 
 describe('battle setup', () => {
   it('maps formation slots symmetrically', () => {
@@ -19,7 +20,7 @@ describe('battle setup', () => {
     expect(s1.units[0]!.setup.isLeader).toBe(true);
     expect(s1.units[1]!.setup.isLeader).toBeFalsy();
     const war = s3.units.find((u) => u.setup.defId === 'skeleton_warrior')!;
-    expect(war.maxHp).toBe(Math.round(120 * (1 + 0.06 * 2)));
+    expect(war.maxHp).toBe(Math.round(120 * stageMult(3)));
     expect(war.hp).toBe(war.maxHp);
   });
   it('empty enemy side ends immediately with victory', () => {

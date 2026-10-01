@@ -4,7 +4,7 @@ import { CLASSES } from '../../data/classes';
 import { ENEMIES } from '../../data/enemies';
 import { ALLY_PRESETS, ALLY_RELATIONS, ENEMY_PRESETS, type AllyPresetMember } from '../../data/presets';
 import type { Relation, Stats } from '../../data/types';
-import { DECISION_INTERVAL, STAGE_SCALE } from './constants';
+import { DECISION_INTERVAL, stageMult } from './constants';
 import type { BattleSetup, BattleState, Line, Obstacle, Team, UnitSetup, UnitState } from './types';
 
 type Col = 0 | 1 | 2;
@@ -40,7 +40,7 @@ export function allyFromClass(m: AllyPresetMember, index: number, level = m.leve
 export function enemyFromDef(enemyId: string, col: Col, row: Row, stage: number, index: number): UnitSetup {
   const d = ENEMIES[enemyId];
   if (!d) throw new Error(`unknown enemy: ${enemyId}`);
-  const k = 1 + STAGE_SCALE * (stage - 1);
+  const k = stageMult(stage);
   return {
     id: `e${index}`, name: enemyId, team: 'enemy', role: d.role, defId: d.id,
     stats: { ...d.base, maxHp: Math.round(d.base.maxHp * k), atk: Math.round(d.base.atk * k) },

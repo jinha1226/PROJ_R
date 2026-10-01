@@ -85,7 +85,7 @@ export const ENEMY_PRESETS: Record<string, { stage: number; members: EnemyPreset
   ambush: {
     stage: 4,
     members: [
-      e('bandit_chief', 2, 1), e('bandit_cutthroat', 2, 0), e('bandit_cutthroat', 2, 2), e('bandit_cutthroat', 2, 3),
+      e('bandit_chief', 2, 1), e('bandit_cutthroat', 2, 0), e('bandit_cutthroat', 2, 2),
       e('bandit_archer', 0, 1), e('bandit_archer', 0, 2), e('bandit_hexer', 1, 0),
     ],
   },

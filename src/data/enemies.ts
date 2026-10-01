@@ -22,7 +22,7 @@ const list: EnemyDef[] = [
     gear: { weapon: 'Wand', helmet: true, cape: false }, tint: '#6a4a6a',
   },
   {
-    id: 'bandit_chief', role: 'striker', base: stats(320, 18, 15, 0.9, 1.5, 3.2, 0.05, 0.1),
+    id: 'bandit_chief', role: 'striker', base: stats(160, 11, 12, 0.9, 1.5, 3.2, 0.05, 0.1),
     basic: 'cleave', actives: ['ground_slam', 'charge'], model: 'Barbarian',
     gear: { weapon: '2H_Axe', helmet: true, cape: false }, tint: '#a05a3a', scale: 1.15, elite: true,
   },
@@ -47,7 +47,7 @@ const list: EnemyDef[] = [
     gear: { weapon: 'Staff', helmet: true, cape: false },
   },
   {
-    id: 'ashen_knight', role: 'vanguard', base: stats(1600, 24, 25, 0.8, 2.2, 2.8, 0, 0.05),
+    id: 'ashen_knight', role: 'vanguard', base: stats(500, 10, 25, 0.8, 2.2, 2.8, 0, 0.05),
     basic: 'heavy_cleave', actives: ['crushing_slam', 'ashen_charge', 'raise_dead'], model: 'Skeleton_Warrior',
     gear: { weapon: 'Axe', offhand: 'Shield_Large', helmet: true, cape: true }, scale: 1.8, boss: true,
     phases: [{ hpBelow: 0.5, statMult: { atkSpeed: 1.25, moveSpeed: 1.15 }, areaMult: 1.3 }],

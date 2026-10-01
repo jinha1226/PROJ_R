@@ -17,6 +17,9 @@ export const MAX_TICKS = 300 * TICK_RATE;
 export const MOMENTUM_MAX = 100;
 export const DODGE_CAP = 0.5;
 export const CRIT_MULT = 1.5;
-/** Enemy maxHp/atk scale: base × (1 + STAGE_SCALE × (stage - 1)). */
-export const STAGE_SCALE = 0.06;
+/** Enemy maxHp/atk scale: base × stageMult(stage). */
+export const STAGE_SCALE = 0.12;
+/** quadratic term so late weeks keep up with gear, passives, and a full party */
+export const STAGE_CURVE = 0.022;
+export const stageMult = (stage: number): number => 1 + STAGE_SCALE * (stage - 1) + STAGE_CURVE * (stage - 1) ** 2;
 export const secToTicks = (s: number): number => Math.max(1, Math.round(s * TICK_RATE));

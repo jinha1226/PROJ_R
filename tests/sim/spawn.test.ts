@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createState, setupFromPresets } from '../../src/sim/battle/setup';
-import { STAGE_SCALE } from '../../src/sim/battle/constants';
+import { STAGE_CURVE, STAGE_SCALE, stageMult } from '../../src/sim/battle/constants';
 
 describe('spawn positions', () => {
   it('uses explicit spawn/facing when given', () => {
@@ -11,7 +11,9 @@ describe('spawn positions', () => {
     expect(s.units[0]!.facing).toBeCloseTo(Math.PI / 2);
     expect(s.units[1]!.pos).toEqual({ x: -5, y: 1.5 });
   });
-  it('enemy stage scaling is 6% per stage', () => {
-    expect(STAGE_SCALE).toBe(0.06);
+  it('enemy stage scaling follows the balance curve', () => {
+    expect(stageMult(1)).toBe(1);
+    expect(stageMult(3)).toBeCloseTo(1 + STAGE_SCALE * 2 + STAGE_CURVE * 4);
+    expect(stageMult(12)).toBeGreaterThan(stageMult(11));
   });
 });
