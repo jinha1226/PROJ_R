@@ -98,6 +98,12 @@ export class UnitOverlay {
     return { left: ((this.v.x + 1) / 2) * w, top: ((1 - this.v.y) / 2) * h };
   }
 
+  /** Drops a unit's tag (units leaving the view in the region). */
+  remove(id: string): void {
+    this.rows.get(id)?.el.remove();
+    this.rows.delete(id);
+  }
+
   dispose(): void {
     this.el.remove();
     this.rows.clear();

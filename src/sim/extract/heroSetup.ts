@@ -25,6 +25,9 @@ export function heroSetup(hero: Mercenary, l: Loadout): UnitSetup {
       helmet: !!head?.visual?.helmet,
       cape: !!chest?.visual?.cape || base.gear.cape,
     },
-    gearTiers: { weapon: weapon?.tier, armor: chest?.tier ?? head?.tier },
+    gearTiers: {
+      weapon: weapon?.tier, armor: chest?.tier ?? head?.tier,
+      hands: l.equipped.hands ? xitem(l.equipped.hands).tier : undefined, feet: l.equipped.feet ? xitem(l.equipped.feet).tier : undefined,
+    },
   };
 }

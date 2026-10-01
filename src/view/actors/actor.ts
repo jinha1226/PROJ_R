@@ -13,7 +13,7 @@ export interface ActorSpec {
   tint?: string;
   scale?: number;
   team: 'ally' | 'enemy';
-  gearTiers?: { weapon?: number; armor?: number };
+  gearTiers?: { weapon?: number; armor?: number; hands?: number; feet?: number };
   rank?: 'rookie' | 'skilled' | 'veteran' | 'hero';
 }
 

@@ -19,4 +19,13 @@ describe('gear look', () => {
     expect(gearLook({ model: 'Mage', gear: { weapon: 'Staff', helmet: false, cape: true }, rank: 'hero' }).aura).toBe(true);
     expect(gearLook({ model: 'Mage', gear: { weapon: 'Staff', helmet: false, cape: true }, rank: 'veteran' }).aura).toBe(false);
   });
+  it('good gloves and boots tint the arms and legs; plain ones do not', () => {
+    const gear = { weapon: '1H_Sword', helmet: false, cape: false };
+    const good = gearLook({ model: 'Knight', gear, gearTiers: { hands: 3, feet: 2 } });
+    expect(good.tints.Knight_ArmLeft).toBe(TIER_LOOK[3]);
+    expect(good.tints.Knight_LegRight).toBe(TIER_LOOK[2]);
+    const plain = gearLook({ model: 'Knight', gear, gearTiers: { hands: 1, feet: 0 } });
+    expect(plain.tints.Knight_ArmLeft).toBeUndefined();
+    expect(plain.tints.Knight_LegLeft).toBeUndefined();
+  });
 });

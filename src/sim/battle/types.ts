@@ -43,7 +43,7 @@ export interface UnitSetup {
   scars?: ScarId[];
   title?: TitleId;
   rank?: 'rookie' | 'skilled' | 'veteran' | 'hero';
-  gearTiers?: { weapon?: number; armor?: number };
+  gearTiers?: { weapon?: number; armor?: number; hands?: number; feet?: number };
   injured?: boolean;
   /** Extension point for later plans (traits, relationships, ...). */
   extra?: Record<string, unknown>;

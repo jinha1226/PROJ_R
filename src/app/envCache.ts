@@ -11,3 +11,16 @@ export function getEnv(theme: Theme): Promise<EnvLibrary> {
   }
   return p;
 }
+
+/** Every env model an extraction region can use. */
+export const WORLD_REFS = [
+  'forest/tree', 'forest/treeB', 'forest/trees', 'forest/treesB', 'forest/rock', 'forest/rockB', 'forest/bush',
+  'dungeon/pillar', 'dungeon/crates', 'dungeon/barrel', 'dungeon/torch', 'dungeon/chest', 'dungeon/rubble', 'dungeon/wall',
+  'graveyard/grave', 'graveyard/graveB', 'graveyard/deadtree', 'graveyard/deadtreeB', 'graveyard/crypt', 'graveyard/arch', 'graveyard/lantern',
+];
+let world: Promise<EnvLibrary> | null = null;
+
+export function getWorldEnv(): Promise<EnvLibrary> {
+  world ??= EnvLibrary.loadRefs(import.meta.env.BASE_URL, WORLD_REFS).catch((e: unknown) => { world = null; throw e; });
+  return world;
+}

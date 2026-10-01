@@ -9,9 +9,14 @@ export class EnvLibrary {
   private readonly boxes = new Map<string, THREE.Box3>();
 
   static async load(baseUrl: string, theme: Theme): Promise<EnvLibrary> {
-    const lib = new EnvLibrary();
     const kit = THEME_KITS[theme];
-    const refs = new Set([...kit.boundary.keys, kit.chest, ...(kit.floorTile ? [kit.floorTile.key] : []), ...Object.values(kit.props).flat(), 'graveyard/arch', 'graveyard/lantern', 'dungeon/torch']);
+    return EnvLibrary.loadRefs(baseUrl, [...kit.boundary.keys, kit.chest, ...(kit.floorTile ? [kit.floorTile.key] : []), ...Object.values(kit.props).flat(), 'graveyard/arch', 'graveyard/lantern', 'dungeon/torch']);
+  }
+
+  /** Loads an explicit set of env models (the extraction region mixes all themes). */
+  static async loadRefs(baseUrl: string, list: string[]): Promise<EnvLibrary> {
+    const lib = new EnvLibrary();
+    const refs = new Set(list);
     const loader = new GLTFLoader();
     await Promise.all([...refs].map(async (ref) => {
       try {
@@ -24,6 +29,13 @@ export class EnvLibrary {
       }
     }));
     return lib;
+  }
+
+  /** The loaded model and its bounding box (for instancing). */
+  source(ref: string): { scene: THREE.Group; box: THREE.Box3 } | undefined {
+    const scene = this.scenes.get(ref);
+    const box = this.boxes.get(ref);
+    return scene && box ? { scene, box } : undefined;
   }
 
   has(ref: string): boolean {

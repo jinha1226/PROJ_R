@@ -22,7 +22,7 @@ export const TIER_LOOK: Record<number, TierLook> = {
 export interface GearLookInput {
   model: ModelId;
   gear: GearVisual;
-  gearTiers?: { weapon?: number; armor?: number };
+  gearTiers?: { weapon?: number; armor?: number; hands?: number; feet?: number };
   rank?: 'rookie' | 'skilled' | 'veteran' | 'hero';
 }
 
@@ -38,6 +38,13 @@ export function gearLook(input: GearLookInput): { tints: Record<string, TierLook
   const offhand = input.gear.offhand ? m.offhands[input.gear.offhand] : undefined;
   if (wt !== undefined) for (const n of [weapon, offhand]) if (n && !isProp(n)) tints[n] = TIER_LOOK[wt]!;
   if (at !== undefined) for (const n of [...(input.gear.helmet ? m.helmet : []), ...(input.gear.cape ? m.cape : [])]) tints[n] = TIER_LOOK[at]!;
+  // gloves and boots: good pieces (tier ≥ 2) tint the arms / legs
+  const limb = (tier: number | undefined, parts: string[]) => {
+    if (tier === undefined || tier < 2) return;
+    for (const n of m.always) if (parts.some((p) => n.endsWith(p))) tints[n] = TIER_LOOK[tier]!;
+  };
+  limb(input.gearTiers?.hands, ['_ArmLeft', '_ArmRight']);
+  limb(input.gearTiers?.feet, ['_LegLeft', '_LegRight']);
   return { tints, propTint: wt !== undefined ? TIER_LOOK[wt] : undefined, aura: input.rank === 'hero' };
 }
 
