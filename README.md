@@ -1,47 +1,25 @@
-# RAIDBOUND — 잿빛 성채
+# PROJ_R
 
-혼자서 5인 파티를 지휘하는 한국어 브라우저 3D 전술 RPG 프로토타입입니다. Three.js 3쿼터뷰에서 선택한 영웅을 따라가는 카메라로 플레이합니다.
+이름 없는 초보 모험가 한 명으로 시작해 동료를 영입하고, 최고의 용병단으로 성장하는
+로그라이크 오토배틀 RPG입니다. (개발 중 — 1차 마일스톤: 수직 슬라이스)
 
-## 실행
+- 플레이: https://jinha1226.github.io/PROJ_R/
+- 설계서: [docs/superpowers/specs](docs/superpowers/specs/2026-10-01-mercenary-roguelike-design.md)
+- 구현 계획: [docs/superpowers/plans](docs/superpowers/plans/)
 
-Node.js 18 이상에서 외부 패키지 설치 없이 실행됩니다.
+## 개발
+
+Node.js 22 이상.
 
 ```sh
-npm run dev
+npm ci
+npm run dev        # 개발 서버
+npm test           # 단위·시뮬레이션 테스트 (Vitest)
+npm run lint       # ESLint + 파일 길이(300줄) 검사
+npm run typecheck  # TypeScript 검사
+npm run build      # dist/ 정적 빌드
+npm run e2e        # Playwright 브라우저 테스트 (빌드 후)
+npm run assets     # KayKit 원본에서 public/assets 재생성
 ```
 
-http://localhost:5173 에 접속하세요. `PORT` 환경변수로 포트를 변경할 수 있습니다. `npm run build`는 정적 배포 파일을 `dist/`에 생성합니다.
-
-## 전투
-
-탱커 1명, 힐러 1명, 딜러 3명을 운영합니다. 자동 공격·회복·어그로 유지와 직접 지휘를 결합했습니다. 9개 클래스에서 역할별 편성을 변경할 수 있습니다. 전사/기사는 체력과 공격력, 사제/치유사는 단일·지속 회복, 딜러는 폭발 화력·차단 주기·쫄 처리·생존력에서 차이가 있습니다.
-
-- 1–5 또는 3D 모델/파티 카드 클릭: 영웅 선택 및 추적 시점 전환
-- 방향키: 선택한 영웅 이동. 빈 전장을 클릭하면 이동 명령
-- 우클릭 드래그: 카메라 회전. 휠: 확대/축소. C: 기본 시점 복귀
-- 전체 보기: 파티 전경 보기. 다른 영웅을 선택하면 추적 시점으로 복귀
-- 확대: 전장 전체 화면
-- Space: 전술 일시정지/재개. 멈춘 동안에도 명령 가능
-- A: 전체 회피
-- Q: 보스 시전 차단
-- W: 디버프 해제와 파티 회복
-- E: 8초간 피해 감소
-- R: 8초간 집중 공격, 소환된 적 우선 처리
-
-3명의 보스는 체력 65%, 30%에서 페이즈가 전환됩니다. 수호자는 기본 레이드 기믹, 여왕은 독과 위험 범위의 동시 대응, 감시자는 시전과 중앙 균열의 동시 대응이 핵심입니다. 4분 후 광폭화합니다. 전멸 후 다시 도전할 수 있습니다.
-
-## 검증
-
-JavaScript 구문 검사, 정적 빌드, 전투 로직 시뮬레이션으로 세 보스의 공략 가능성과 일시정지·차단·해제·보호를 확인했습니다. Chrome 브라우저 자동 검증에서 실제 Three.js 렌더링, 리깅된 5인 모델 로딩, 캐릭터 시점 전환, Raycaster 모델 선택, 방향키 이동, 일시정지, 전체 보기와 모바일 레이아웃을 확인합니다. `npm run test:browser`에는 Node.js 22와 Chrome이 필요하며, `CHROME_BIN`으로 브라우저 경로를 지정할 수 있습니다.
-
-현재 범위는 전투 중심 프로토타입이며 저장, 장비 성장, 온라인 플레이는 포함하지 않습니다. Google Fonts를 사용할 수 없을 때 시스템 글꼴로 표시됩니다.
-
-## GitHub Actions
-
-푸시와 Pull Request, Actions 탭의 수동 실행에서 구문 검사, 세 보스 전투 시뮬레이션, 빌드를 수행합니다. `npm test`로 동일한 전투 검증을 로컬에서 실행할 수 있습니다.
-
-성공한 실행의 **Artifacts → raidbound-game**을 다운로드해 압축을 풀고, 해당 폴더에서 `python3 -m http.server 8000`을 실행한 다음 http://localhost:8000 에서 플레이할 수 있습니다. 테스트 워크플로는 검증과 파일 생성을 수행합니다. 별도의 Pages 워크플로는 main 푸시 시 검증된 게임을 https://jinha1226.github.io/PROJ_R/ 에 자동 배포합니다.
-
-## 3D 그래픽
-
-Three.js와 애니메이션 캐릭터 모델은 프로젝트에 포함되어 런타임 CDN에 의존하지 않습니다. WebGL 2를 지원하는 브라우저가 필요합니다. 실시간 그림자, 금속 반사, 석재 재질, 클래스별 장비, 걷기·공격·시전 애니메이션, 회피 위험 범위와 보호막을 렌더링합니다. 모델 라이선스와 생성 아트 프롬프트는 [assets/ART.md](assets/ART.md)에 기록되어 있습니다.
+`main`에 푸시하면 GitHub Actions가 검사를 모두 통과한 빌드를 GitHub Pages에 배포합니다.
