@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-type W = { tick(): number; teleport(x: number, y: number): void; finish(o: string): void; state(): { region: { containers: { id: string; kind: string; pos: { x: number; y: number } }[]; extracts: { id: string; pos: { x: number; y: number } }[] }; hero: { loadout: { bag: { id: string }[] } } } };
+type W = { tick(): number; teleport(x: number, y: number): void; finish(o: string): void; advance(n: number): void; state(): { region: { containers: { id: string; kind: string; pos: { x: number; y: number } }[]; extracts: { id: string; pos: { x: number; y: number } }[] }; hero: { loadout: { bag: { id: string }[] } } } };
 const world = (page: Page) => page.evaluate(() => !!(window as unknown as { __PROJR_WORLD__?: W }).__PROJR_WORLD__);
 const waitWorld = async (page: Page) => {
   await page.waitForFunction(() => ((window as unknown as { __PROJR_WORLD__?: W }).__PROJR_WORLD__?.tick() ?? 0) > 10, null, { timeout: 60_000 });
@@ -40,7 +40,7 @@ test('a sortie: search a chest, take the loot, extract, and find it in the stash
   expect(carried.length).toBeGreaterThan(0);
   // walk into an extraction point and hold for 8 s
   const ex = await page.evaluate(() => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.state().region.extracts.find(() => true)!);
-  await page.evaluate((p) => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.teleport(p.x, p.y), ex.pos);
+  await page.evaluate((p) => { const w = (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__; w.teleport(p.x, p.y); w.advance(20 * 9); }, ex.pos);
   await expect(page.locator('[data-testid="sortie-result"]')).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: 'test-artifacts/extract-result.png' });
   await page.click('[data-testid="to-base"]');

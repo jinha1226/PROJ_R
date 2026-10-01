@@ -138,6 +138,8 @@ export class SortieScreen implements Screen {
       tick: () => this.rt?.sim.w.b.tick ?? 0,
       teleport: (x: number, y: number) => { if (this.rt) heroUnit(this.rt.sim.w).pos = { x, y }; },
       finish: (o: 'extracted' | 'downed') => { if (this.rt) this.rt.sim.w.outcome = o; },
+      /** debug/e2e: run the sim forward synchronously (slow software renderers in CI) */
+      advance: (ticks: number) => { for (let i = 0; i < ticks && this.rt && !this.rt.sim.w.outcome; i++) this.rt.sim.step({ ...idleInput(), auto: this.auto }); },
       state: () => this.rt?.sim.w,
     };
   }
