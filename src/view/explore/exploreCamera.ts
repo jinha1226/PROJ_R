@@ -17,6 +17,15 @@ export class IsoCamera {
     this.targetYaw += (dir * Math.PI) / 2;
   }
 
+  /** View height in metres of ground (smaller = closer). */
+  setHeight(h: number): void {
+    this.height = h;
+  }
+
+  get viewHeight(): number {
+    return this.height;
+  }
+
   get yawAngle(): number {
     return this.yaw;
   }

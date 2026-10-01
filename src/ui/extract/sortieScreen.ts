@@ -12,6 +12,7 @@ import type { EnvLibrary } from '../../view/explore/envAssets';
 import { guardFrame } from '../screens/loopGuard';
 import { BagPanel } from './bagPanel';
 import { Hud } from './hud';
+import { DEFAULT_VIEW, watchLayout } from './orientation';
 import { isTouchDevice, TouchControls } from './touchControls';
 import { WorldRuntime } from './worldRuntime';
 import '../styles/extract.css';
@@ -38,6 +39,7 @@ export class SortieScreen implements Screen {
   private touch: TouchControls | null = null;
   private panel: BagPanel | null = null;
   private detach: (() => void) | null = null;
+  private unwatch: (() => void) | null = null;
   private raf = 0;
   private gone = false;
   private paused = false;
@@ -52,7 +54,7 @@ export class SortieScreen implements Screen {
   mount(root: HTMLElement): void {
     this.el.className = 'screen sortie';
     this.el.dataset.testid = 'sortie';
-    this.el.innerHTML = '<div class="sortie-stage"></div><div class="sortie-portrait">가로로 돌려 주세요</div>';
+    this.el.innerHTML = '<div class="sortie-stage"></div>';
     root.appendChild(this.el);
     const stage = this.el.querySelector<HTMLElement>('.sortie-stage')!;
     const mobile = isTouchDevice();
@@ -66,6 +68,12 @@ export class SortieScreen implements Screen {
       this.touch = new TouchControls(this.input);
       this.el.appendChild(this.touch.el);
     }
+    // turning the phone swaps the layout and the camera's view, nothing else (the sortie keeps running)
+    this.unwatch = watchLayout((l) => {
+      this.el.classList.toggle('portrait', l === 'portrait');
+      this.el.classList.toggle('landscape', l === 'landscape');
+      this.rt?.cam.setHeight(DEFAULT_VIEW[l]);
+    });
     this.detach = this.input.attach(window);
     stage.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && e.button === 0) this.mouseAttack = true; });
     window.addEventListener('pointerup', this.onPointerUp);
@@ -156,6 +164,7 @@ export class SortieScreen implements Screen {
     clearTimeout(this.endTimer);
     cancelAnimationFrame(this.raf);
     this.detach?.();
+    this.unwatch?.();
     window.removeEventListener('pointerup', this.onPointerUp);
     this.touch?.dispose();
     this.rt?.dispose();

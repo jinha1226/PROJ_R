@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 type W = { tick(): number; teleport(x: number, y: number): void; finish(o: string): void; advance(n: number): void; state(): unknown };
-type St = { region: { containers: { id: string; kind: string; pos: { x: number; y: number } }[]; extracts: { id: string; pos: { x: number; y: number } }[]; spawns: { pos: { x: number; y: number } }[] }; hero: { loadout: { bag: { id: string }[] } } };
+type St = { region: { containers: { id: string; kind: string; pos: { x: number; y: number } }[]; extracts: { id: string; pos: { x: number; y: number } }[]; spawns: { pos: { x: number; y: number } }[] }; hero: { loadout: { bag: { id: string }[] } }; b: { tick: number }; party: { order: string[] } };
 const waitWorld = (page: Page) => page.waitForFunction(() => ((window as unknown as { __PROJR_WORLD__?: W }).__PROJR_WORLD__?.tick() ?? 0) > 10, null, { timeout: 60_000 });
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('projr.extract.v2')!) as { mercs: { id: string }[]; party: string[]; stash: { id: string }[]; tavern: { fee: number }[]; gold: number });
 
@@ -94,5 +94,30 @@ test('touch devices get the stick and the order buttons', async ({ browser }) =>
   await page.screenshot({ path: 'test-artifacts/extract-touch.png' });
   await page.locator('[data-testid="touch-menu"]').dispatchEvent('pointerdown', { pointerId: 7, bubbles: true });
   await expect(page.locator('[data-testid="pause-panel"]')).toBeVisible({ timeout: 5_000 });
+  await ctx.close();
+});
+
+test('a phone held upright gets the portrait layout; turning it keeps the same sortie', async ({ browser }) => {
+  const ctx = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await fresh(page);
+  await page.click('[data-testid="start-sortie"]');
+  await waitWorld(page);
+  await expect(page.locator('.sortie.portrait')).toBeVisible();
+  await expect(page.locator('.sortie-portrait')).toHaveCount(0);
+  for (const b of ['focus', 'retreat', 'regroup', 'menu']) {
+    const box = (await page.locator(`[data-testid="touch-${b}"]`).boundingBox())!;
+    expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(56);
+  }
+  await page.screenshot({ path: 'test-artifacts/extract-portrait.png' });
+  const before = await page.evaluate(() => { const s = (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.state() as St & { mark?: number }; s.mark = 7; return s.b.tick; });
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.locator('.sortie.landscape')).toBeVisible();
+  await page.evaluate(() => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.advance(5));
+  const after = await page.evaluate(() => { const s = (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.state() as St & { mark?: number }; return { tick: s.b.tick, mark: s.mark, party: s.party.order.length }; });
+  expect(after.mark).toBe(7);
+  expect(after.tick).toBeGreaterThan(before);
+  expect(after.party).toBe(3);
+  await page.screenshot({ path: 'test-artifacts/extract-landscape.png' });
   await ctx.close();
 });
