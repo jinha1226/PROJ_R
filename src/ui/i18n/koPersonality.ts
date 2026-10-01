@@ -27,6 +27,13 @@ export const KO_PERSONALITY = {
     feud: '{a}와(과) {b}은(는) 가까이 있으면 공격력이 떨어지고 서로 잘 돕지 않는다.',
     mentor: '스승 {a}은(는) 제자 {b}을(를) 지킨다.',
   } as Record<RelationKind, string>,
+  moment: {
+    rescue: '{a}이(가) 쓰러진 {b}을(를) 일으켜 세웠다', protect: '{a}이(가) 위험한 {b}을(를) 감쌌다',
+    rivalry: '{a}와(과) {b}의 경쟁이 불타올랐다', revenge: '{a}이(가) {b}의 복수에 나섰다',
+    courage: '{a}이(가) {b} 곁에서 용기를 냈다', combo: '{a}와(과) {b}의 전우 연계!',
+    newFriend: '{a}와(과) {b}이(가) 친구가 되었다', newComrade: '{a}와(과) {b}이(가) 전우가 되었다',
+    newRival: '{a}와(과) {b}이(가) 라이벌이 되었다', newFeud: '{a}와(과) {b}의 사이가 틀어졌다', death: '{a}이(가) 전사했다',
+  } as Record<string, string>,
   combo: {
     shield_chant: '방패 뒤 영창', mark_snipe: '표식 저격', hammer_anvil: '망치와 모루', holy_bulwark: '성스러운 방벽',
     purging_storm: '정화의 폭풍', blood_hunt: '피의 사냥', fire_arrows: '불화살 비', zealot_charge: '광신의 돌격', joint_strike: '합동 공격',

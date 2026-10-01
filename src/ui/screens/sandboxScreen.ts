@@ -8,9 +8,9 @@ export interface SandboxChoice {
   seed: number;
 }
 
-const ALLY_LABEL: Record<string, string> = { solo: '혼자인 견습 모험가', standard: '기본 5인 파티', elemental: '원소 연계 파티' };
+const ALLY_LABEL: Record<string, string> = { solo: '혼자인 견습 모험가', standard: '기본 5인 파티', elemental: '원소 연계 파티', bonds: '관계 시연 파티' };
 const ENEMY_LABEL: Record<string, string> = {
-  tutorial: '해골 졸개 무리', bandits: '산적단', skeletons: '해골 부대', boss: '보스: 잿빛 기사', empty: '(빈 전장)',
+  tutorial: '해골 졸개 무리', bandits: '산적단', skeletons: '해골 부대', ambush: '산적 매복', boss: '보스: 잿빛 기사', empty: '(빈 전장)',
 };
 
 const options = (keys: string[], labels: Record<string, string>, selected: string): string =>

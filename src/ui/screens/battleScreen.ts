@@ -1,5 +1,7 @@
 import type { Screen } from '../../app/router';
-import type { BattleSetup, Outcome } from '../../sim/battle/types';
+import type { BattleEvent, BattleSetup, Outcome } from '../../sim/battle/types';
+import { describeRelations } from '../hud/relationText';
+import { buildStory } from '../hud/story';
 import type { AssetLibrary } from '../../view/actors/assets';
 import { BattleLog } from '../hud/battleLog';
 import { Controls } from '../hud/controls';
@@ -25,6 +27,7 @@ export class BattleScreen implements Screen {
   private rt: BattleRuntime | null = null;
   private raf = 0;
   private parts: { dispose(): void }[] = [];
+  private readonly events: BattleEvent[] = [];
 
   constructor(private readonly setup: BattleSetup, private readonly lib: AssetLibrary, private readonly act: BattleScreenActions) {}
 
@@ -38,7 +41,10 @@ export class BattleScreen implements Screen {
     let log: BattleLog | null = null;
     try {
       this.rt = new BattleRuntime(stage, this.setup, this.lib, {
-        log: (e) => log?.add(e),
+        log: (e) => {
+          this.events.push(e);
+          log?.add(e);
+        },
         onEnd: (o) => this.onEnd(el, o),
         onBerserk: () => el.classList.add('berserk'),
       });
@@ -53,7 +59,10 @@ export class BattleScreen implements Screen {
       return u ? unitName(u.setup) : '';
     };
     log = new BattleLog(el, nameById);
-    const inspect = new InspectPanel(el, () => units.filter((u) => !u.summoned).map((u) => u.setup), unitName);
+    const inspect = new InspectPanel(el, () => units.filter((u) => !u.summoned).map((u) => u.setup), unitName, (id) => {
+      const u = units.find((x) => x.id === id);
+      return u ? describeRelations(rt.battle.state, u, (x) => unitName(x.setup)) : [];
+    });
     const controls = new Controls(el, {
       getSpeed: () => rt.player.speed,
       setSpeed: (s) => { rt.player.speed = s; },
@@ -90,7 +99,12 @@ export class BattleScreen implements Screen {
   private onEnd(el: HTMLElement, outcome: Outcome): void {
     const rt = this.rt;
     if (!rt) return;
-    setTimeout(() => showResult(el, outcome, rt.battle.state.units, (u) => unitName(u.setup), this.act), 900);
+    const nameById = (id: string) => {
+      const u = rt.battle.state.units.find((x) => x.id === id);
+      return u ? unitName(u.setup) : id;
+    };
+    const story = buildStory(this.setup, this.events, nameById);
+    setTimeout(() => showResult(el, outcome, rt.battle.state.units, (u) => unitName(u.setup), this.act, story), 900);
   }
 
   unmount(): void {

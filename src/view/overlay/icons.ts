@@ -1,13 +1,14 @@
 import {
   Angry, ArrowDownToLine, BicepsFlexed, Crown, Droplet, Droplets, Ellipsis, Flag, Flame, Footprints, Frown,
   HandHeart, HeartCrack, Laugh, Link, Medal, Megaphone, Rabbit, Shield, ShieldHalf, ShieldPlus, Skull, Snail,
-  Sparkles, Star, Sword, Target, Undo2, Wind, type IconNode,
+  Sparkles, Star, Sword, Target, Undo2, Wind, Handshake, type IconNode,
 } from 'lucide';
 import type { EmotionId, RelationTriggerKind, TagId } from '../../data/types';
 import type { IntentKind } from '../../sim/battle/types';
+import type { MomentKind } from '../../sim/roster/relationships';
 import { t } from '../../ui/i18n/ko';
 
-export type IconKey = TagId | `intent:${IntentKind}` | `emotion:${EmotionId}` | `relation:${RelationTriggerKind}`;
+export type IconKey = TagId | `intent:${IntentKind}` | `emotion:${EmotionId}` | `relation:${RelationTriggerKind}` | `moment:${MomentKind}`;
 
 interface IconDef {
   icon: IconNode;
@@ -51,6 +52,17 @@ export const ICONS: Record<IconKey, IconDef> = {
   'relation:combo': def(Link, '#fff0b0', t('trigger.combo')),
   'relation:feud': def(HeartCrack, '#b070e0', t('trigger.feud')),
   'relation:mentor': def(Crown, '#f0c040', t('trigger.mentor')),
+  'moment:rescue': def(HandHeart, '#8cd8ff', t('intent.rescue')),
+  'moment:protect': def(ShieldPlus, '#6ac8ff', t('trigger.protect')),
+  'moment:rivalry': def(Flame, '#ff8a2a', t('trigger.rivalry')),
+  'moment:revenge': def(Skull, '#e02a2a', t('trigger.revenge')),
+  'moment:courage': def(Medal, '#f0d060', t('trigger.courage')),
+  'moment:combo': def(Link, '#e8d070', t('trigger.combo')),
+  'moment:newFriend': def(Handshake, '#7ad08a', t('relation.friend')),
+  'moment:newComrade': def(Link, '#f0c040', t('relation.comrade')),
+  'moment:newRival': def(Flame, '#ff8a2a', t('relation.rival')),
+  'moment:newFeud': def(HeartCrack, '#b070e0', t('relation.feud')),
+  'moment:death': def(Skull, '#8a8a8a', '전사'),
 };
 
 const esc = (v: unknown): string => String(v).replace(/[&"<>]/g, (c) => `&#${c.charCodeAt(0)};`);

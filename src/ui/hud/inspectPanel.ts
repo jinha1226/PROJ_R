@@ -10,7 +10,12 @@ export class InspectPanel {
   readonly panel = document.createElement('div');
   private selected: string | null = null;
 
-  constructor(parent: HTMLElement, private readonly units: () => UnitSetup[], private readonly nameOf: (u: UnitSetup) => string) {
+  constructor(
+    parent: HTMLElement,
+    private readonly units: () => UnitSetup[],
+    private readonly nameOf: (u: UnitSetup) => string,
+    private readonly relationsOf: (id: string) => { kind: string; text: string }[] = () => [],
+  ) {
     this.chips.className = 'hud-chips';
     this.panel.className = 'hud-inspect';
     this.panel.dataset.testid = 'inspect';
@@ -52,6 +57,9 @@ export class InspectPanel {
     const tags = [...new Set(s.tags)].map((tg) => t(`tag.${tg as TagId}`)).join(', ') || '없음';
     const tactics = u.tactics.map((x) => t(`tactic.${x}`)).join(', ') || '없음';
     const what = intent?.skillId ? ` · ${t(`skill.${intent.skillId}`)}` : '';
+    const traits = u.traits.map((tr) => `<span class="trait-chip" title="${t(`traitDesc.${tr}`)}">${t(`trait.${tr}`)}</span>`).join('') || '없음';
+    const emotions = [...new Set(s.emotions)].map((em) => t(`emotion.${em}`)).join(', ');
+    const rels = this.relationsOf(u.id).map((r) => `<li><b>${t(`relation.${r.kind}`)}</b> ${r.text}</li>`).join('');
     this.panel.innerHTML = `
       <div class="insp-name" style="color:${u.team === 'ally' ? u.color : '#ffb4a8'}">${this.nameOf(u)}</div>
       <div class="insp-sub">${roleName(u)}</div>
@@ -59,8 +67,11 @@ export class InspectPanel {
       <div class="insp-row"><b>기세</b> ${Math.floor(s.momentum)} / 100</div>
       <div class="insp-row"><b>상태</b> ${tags}</div>
       <div class="insp-row"><b>전술</b> ${tactics}</div>
+      <div class="insp-row"><b>특성</b> ${traits}</div>
+      ${emotions ? `<div class="insp-row"><b>감정</b> ${emotions}</div>` : ''}
       <div class="insp-intent">${s.alive && !s.downed && intent ? `${t(`reason.${intent.reason}`)}${what}` : '—'}</div>
-      <div class="insp-reasons">${reasons}</div>`;
+      <div class="insp-reasons">${reasons}</div>
+      ${rels ? `<ul class="insp-rels">${rels}</ul>` : ''}`;
   }
 
   dispose(): void {

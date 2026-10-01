@@ -34,3 +34,6 @@
   .hud-inspect { top: auto; bottom: 60px; width: calc(100% - 24px); }
   .hud-log { max-height: 22vh; bottom: 56px; }
 }
+.trait-chip { display: inline-block; font-size: 11px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin: 1px 2px 1px 0; cursor: help; }
+.insp-rels { margin: 8px 0 0; padding: 0 0 0 2px; list-style: none; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.insp-rels b { color: var(--accent); margin-right: 3px; }

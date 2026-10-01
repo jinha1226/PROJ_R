@@ -27,3 +27,10 @@
 .result-panel tr.enemy td { color: var(--muted); }
 .result-actions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.result-panel h3 { margin: 16px 0 6px; font-size: 14px; color: var(--accent); }
+.result-panel ul.moments, .result-panel ul.bonds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.result-panel ul.moments li { display: flex; align-items: center; gap: 8px; }
+.result-panel ul.bonds .delta { display: inline-block; width: 36px; font-weight: 800; }
+.result-panel ul.bonds .delta.up { color: #7ad08a; }
+.result-panel ul.bonds .delta.down { color: #e07a6a; }
+.result-panel ul.bonds em { color: var(--accent); font-style: normal; font-weight: 700; }

@@ -45,6 +45,7 @@ export const KO = {
   relation: KO_PERSONALITY.relation,
   rule: KO_PERSONALITY.rule,
   combo: KO_PERSONALITY.combo,
+  moment: KO_PERSONALITY.moment,
   reason: {
     ...KO_PERSONALITY.reason,
     attack: '공격 중', skill: '기술 사용', approach: '목표에게 접근 중', kite: '거리를 벌리는 중',
@@ -56,7 +57,7 @@ export const KO = {
   ui: {
     title: 'PROJ_R', sandbox: '전투 샌드박스', start: '전투 시작', seed: '시드', allies: '아군', enemies: '적',
     loading: '불러오는 중…', victory: '승리', defeat: '패배', retreatResult: '후퇴', retry: '다시 하기',
-    backToSandbox: '샌드박스로', cameraAuto: '자동 카메라', intentToggle: '행동 표시', pause: '일시정지', resume: '재개', retreat: '후퇴', log: '전투 기록',
+    backToSandbox: '샌드박스로', moments: '이번 전투의 순간들', bondChanges: '관계 변화', traits: '특성', relations: '관계', emotions: '감정', cameraAuto: '자동 카메라', intentToggle: '행동 표시', pause: '일시정지', resume: '재개', retreat: '후퇴', log: '전투 기록',
     logFilter: '연계·구출만', kills: '처치', damage: '피해', healing: '치유', dodges: '회피',
     fatalWebgl: '이 브라우저에서는 WebGL을 사용할 수 없어 게임을 표시할 수 없습니다.',
     fatalAssets: '게임 데이터를 불러오지 못했습니다. 새로고침해 주세요.',
