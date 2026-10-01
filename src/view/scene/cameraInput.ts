@@ -40,6 +40,8 @@ export function attachCameraInput(el: HTMLElement, cam: BattleCamera, onClick: (
     else if (k === 'q') cam.zoomBy(1 / KEY_ZOOM);
     else if (k === 'e') cam.zoomBy(KEY_ZOOM);
     else if (k === 'c') cam.resetAuto();
+    else if (k === 'z') cam.rotateStep(-1);
+    else if (k === 'x') cam.rotateStep(1);
   };
   const noMenu = (e: Event) => e.preventDefault();
 

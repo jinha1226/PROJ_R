@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const ELEVATION = (55 * Math.PI) / 180;
+const ELEVATION = (40 * Math.PI) / 180;
 const DISTANCE = 60;
 const MARGIN = 3;
 const AUTO_MIN_H = 10;
@@ -18,6 +18,8 @@ const RATE = 3;
 export class BattleCamera {
   readonly center = new THREE.Vector3(0, 0, 0);
   mode: 'auto' | 'manual' = 'auto';
+  yaw = Math.PI / 4;
+  private targetYaw = Math.PI / 4;
   private height = 14;
   private shakeLeft = 0;
   private punch = 0;
@@ -48,10 +50,18 @@ export class BattleCamera {
     this.apply(0);
   }
 
-  /** Drag in screen pixels: the ground follows the pointer. */
+  /** Rotate the view by 90° steps (isometric corners). */
+  rotateStep(dir: 1 | -1): void {
+    this.targetYaw += (dir * Math.PI) / 2;
+  }
+
+  /** Drag in screen pixels: the ground follows the pointer (respecting the current yaw). */
   panScreen(dxPx: number, dyPx: number, _viewW: number, viewH: number): void {
     const worldPerPx = this.height / Math.max(1, viewH);
-    this.panBy(-dxPx * worldPerPx, (-dyPx * worldPerPx) / Math.sin(ELEVATION));
+    const sx = -dxPx * worldPerPx;
+    const sy = (-dyPx * worldPerPx) / Math.sin(ELEVATION);
+    const c = Math.cos(this.yaw), s = Math.sin(this.yaw);
+    this.panBy(sx * c + sy * s, -sx * s + sy * c);
   }
 
   resetAuto(): void {
@@ -66,18 +76,21 @@ export class BattleCamera {
         minZ = Math.min(minZ, p.y); maxZ = Math.max(maxZ, p.y);
       }
       const aspect = (this.cam.userData.aspect as number | undefined) ?? 16 / 9;
-      const needW = (maxX - minX + MARGIN * 2) / aspect;
-      const needD = (maxZ - minZ) * Math.sin(ELEVATION) + MARGIN * 2;
+      const needW = (Math.hypot(maxX - minX, maxZ - minZ) + MARGIN * 2) / aspect;
+      const span = Math.max(maxX - minX, maxZ - minZ);
+      const needD = span * Math.sin(ELEVATION) + MARGIN * 2;
       const target = Math.min(AUTO_MAX_H, Math.max(AUTO_MIN_H, needW, needD));
       const k = Math.min(1, dt * RATE);
       this.height += (target - this.height) * k;
       this.center.x += ((minX + maxX) / 2 - this.center.x) * k;
-      this.center.z += ((minZ + maxZ) / 2 + 0.6 - this.center.z) * k;
+      this.center.z += ((minZ + maxZ) / 2 - this.center.z) * k;
     }
     this.apply(dt);
   }
 
   private apply(dt: number): void {
+    this.yaw += (this.targetYaw - this.yaw) * Math.min(1, dt * 8);
+    if (Math.abs(this.targetYaw - this.yaw) < 1e-4) this.yaw = this.targetYaw;
     const aspect = (this.cam.userData.aspect as number | undefined) ?? 16 / 9;
     this.punch = Math.max(0, this.punch - dt * 0.8);
     const h = (this.height * (1 - this.punch)) / 2;
@@ -93,7 +106,8 @@ export class BattleCamera {
       jz = (Math.random() - 0.5) * 0.35;
     }
     const c = this.center;
-    this.cam.position.set(c.x + jx, Math.sin(ELEVATION) * DISTANCE, c.z + jz + Math.cos(ELEVATION) * DISTANCE);
+    const flat = Math.cos(ELEVATION) * DISTANCE;
+    this.cam.position.set(c.x + jx + Math.sin(this.yaw) * flat, Math.sin(ELEVATION) * DISTANCE, c.z + jz + Math.cos(this.yaw) * flat);
     this.cam.lookAt(c.x + jx, 0, c.z + jz);
   }
 }

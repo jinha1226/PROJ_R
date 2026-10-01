@@ -21,7 +21,19 @@ import { BattleCamera } from '../../view/scene/camera';
 import { createScene, type SceneHandle } from '../../view/scene/renderer';
 import { addLighting } from '../../view/scene/lighting';
 import { buildArena } from '../../view/scene/arena';
+import { buildRoom } from '../../view/explore/roomMesh';
+import { THEME_KITS } from '../../view/explore/themeKit';
+import type { EnvLibrary } from '../../view/explore/envAssets';
+import type { Room } from '../../sim/explore/types';
+import type { Theme } from '../../sim/run/types';
 import { t } from '../i18n/ko';
+
+/** Fight inside an exploration room instead of the open sandbox field. */
+export interface RoomArena {
+  theme: Theme;
+  room: Room;
+  env: EnvLibrary;
+}
 
 export interface RuntimeHooks {
   log(e: BattleEvent): void;
@@ -53,11 +65,18 @@ export class BattleRuntime {
   private readonly pos = new Map<string, { x: number; z: number; facing: number }>();
   private readonly raycaster = new THREE.Raycaster();
 
-  constructor(private readonly container: HTMLElement, setup: BattleSetup, private readonly lib: AssetLibrary, private readonly hooks: RuntimeHooks) {
+  constructor(
+    private readonly container: HTMLElement, setup: BattleSetup, private readonly lib: AssetLibrary, private readonly hooks: RuntimeHooks,
+    arena?: RoomArena,
+  ) {
     this.battle = new Battle(setup);
     this.h = createScene(container);
     addLighting(this.h.scene);
-    buildArena(this.h.scene, this.battle.state.obstacles, setup.seed);
+    if (arena) {
+      this.h.scene.add(buildRoom(arena.room, arena.theme, arena.env));
+      this.h.scene.background = new THREE.Color(THEME_KITS[arena.theme].sky);
+      this.h.scene.fog = null;
+    } else buildArena(this.h.scene, this.battle.state.obstacles, setup.seed);
     this.cam = new BattleCamera(this.h.camera);
     this.overlay = new UnitOverlay(container, this.h.camera, unitName, (id) => {
       const u = this.battle.state.units.find((x) => x.id === id);

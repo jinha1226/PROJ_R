@@ -7,7 +7,7 @@ import { BattleLog } from '../hud/battleLog';
 import { Controls } from '../hud/controls';
 import { InspectPanel } from '../hud/inspectPanel';
 import { showResult } from '../hud/resultOverlay';
-import { BattleRuntime, unitName } from './battleRuntime';
+import { BattleRuntime, unitName, type RoomArena } from './battleRuntime';
 import { guardFrame } from './loopGuard';
 import { attachCameraInput } from '../../view/scene/cameraInput';
 
@@ -32,7 +32,10 @@ export class BattleScreen implements Screen {
   private parts: { dispose(): void }[] = [];
   private readonly events: BattleEvent[] = [];
 
-  constructor(private readonly setup: BattleSetup, private readonly lib: AssetLibrary, private readonly act: BattleScreenActions) {}
+  constructor(
+    private readonly setup: BattleSetup, private readonly lib: AssetLibrary, private readonly act: BattleScreenActions,
+    private readonly arena?: RoomArena,
+  ) {}
 
   mount(root: HTMLElement): void {
     const el = document.createElement('div');
@@ -50,7 +53,7 @@ export class BattleScreen implements Screen {
         },
         onEnd: (o) => this.onEnd(el, o),
         onBerserk: () => el.classList.add('berserk'),
-      });
+      }, this.arena);
     } catch (err) {
       this.act.fatal(err);
       return;

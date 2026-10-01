@@ -47,3 +47,25 @@ describe('battle camera', () => {
     expect(bc.center.x).toBeLessThan(x);
   });
 });
+
+describe('isometric rotation', () => {
+  it('defaults to a 45° yaw and four 90° steps come back around', () => {
+    const { bc } = make();
+    expect(bc.yaw).toBeCloseTo(Math.PI / 4);
+    for (let i = 0; i < 4; i++) bc.rotateStep(1);
+    for (let i = 0; i < 60; i++) bc.frame([], 0.1);
+    expect(((bc.yaw - Math.PI / 4) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2)).toBeCloseTo(0, 2);
+  });
+  it('screen-drag panning follows the rotated view', () => {
+    const a = make();
+    a.bc.panScreen(100, 0, 1280, 720);
+    const b = make();
+    b.bc.rotateStep(1);
+    for (let i = 0; i < 60; i++) b.bc.frame([], 0.1);
+    const bx = b.bc.center.x, bz = b.bc.center.z;
+    b.bc.panScreen(100, 0, 1280, 720);
+    const moveA = { x: a.bc.center.x, z: a.bc.center.z };
+    const moveB = { x: b.bc.center.x - bx, z: b.bc.center.z - bz };
+    expect(moveA.x * moveB.x + moveA.z * moveB.z).toBeCloseTo(0, 1);
+  });
+});
