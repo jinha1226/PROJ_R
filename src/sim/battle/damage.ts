@@ -1,6 +1,6 @@
 import { CRIT_MULT, LIFELINE_PCT, MOMENTUM_MAX } from './constants';
 import { emit } from './events';
-import { damageMultiplier, effectiveStats, lethalGuards, momentumModifiers } from './stats';
+import { damageMultiplier, effectiveStats, healModifiers, lethalGuards, lifelineModifiers, momentumModifiers } from './stats';
 import type { BattleState, UnitState } from './types';
 
 export interface HitOpts {
@@ -37,7 +37,7 @@ export function killUnit(s: BattleState, u: UnitState, by: UnitState | null): vo
 export function downUnit(s: BattleState, u: UnitState, by: UnitState | null): void {
   u.downed = true;
   u.hp = 0;
-  u.lifeline = u.maxHp * LIFELINE_PCT;
+  u.lifeline = u.maxHp * LIFELINE_PCT * lifelineModifiers.reduce((m, f) => m * f(u, s), 1);
   u.action = null;
   u.forced = null;
   u.vel = { x: 0, y: 0 };
@@ -88,7 +88,8 @@ export function dealDamage(s: BattleState, src: UnitState, dst: UnitState, opts:
 
 export function heal(s: BattleState, src: UnitState, dst: UnitState, amount: number, skillId: string): number {
   if (!dst.alive || dst.downed) return 0;
-  const healed = Math.min(Math.round(amount), dst.maxHp - dst.hp);
+  const boosted = amount * healModifiers.reduce((m, f) => m * f(src, dst, s), 1);
+  const healed = Math.min(Math.round(boosted), dst.maxHp - dst.hp);
   if (healed <= 0) return 0;
   dst.hp += healed;
   src.stats.healingDone += healed;

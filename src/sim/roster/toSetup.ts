@@ -19,6 +19,7 @@ export function mercStats(m: Mercenary): Stats {
   for (const it of items(m)) for (const [k, v] of Object.entries(it.stats) as [keyof Stats, number][]) s[k] += v;
   const mults = [...m.passives.map((p) => PASSIVES[p]?.statMult ?? {}), ...m.scars.map((sc) => SCARS[sc].statMult)];
   for (const mult of mults) for (const [k, v] of Object.entries(mult) as [keyof Stats, number][]) s[k] *= v;
+  if (m.title === 'shadow') s.dodge += 0.05;
   if (m.injury > 0) for (const k of INJURED_STATS) s[k] *= INJURY_MULT;
   s.maxHp = Math.round(s.maxHp);
   return s;

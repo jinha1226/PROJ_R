@@ -7,6 +7,7 @@ import { emit } from './events';
 import { effectiveStats } from './stats';
 import { isActionBlocked } from './tags';
 import { createTelegraph } from './telegraphs';
+import { skillCooldownMult } from './skillLevel';
 import type { ActionState, BattleState, UnitState } from './types';
 
 export function isReady(u: UnitState, skillId: string): boolean {
@@ -71,7 +72,7 @@ export function advanceActions(s: BattleState): void {
         continue;
       }
       fireSkill(s, u, skill, target, a.targetPos);
-      if (skill.cooldown > 0) u.cooldowns[skill.id] = Math.round(skill.cooldown * TICK_RATE);
+      if (skill.cooldown > 0) u.cooldowns[skill.id] = Math.round(skill.cooldown * TICK_RATE * skillCooldownMult(u.setup, skill.id));
       if (skill.kind === 'ultimate') u.momentum = 0;
       emit(s, { type: 'action_fire', src: u.id, dst: a.targetId, skillId: skill.id });
       enterPhase(s, u, a, skill, 'active');

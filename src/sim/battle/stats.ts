@@ -31,6 +31,20 @@ export type LethalGuard = (u: UnitState, s: BattleState) => boolean;
 export const statModifiers: StatModifier[] = [tagMove, bossPhase];
 export const momentumModifiers: MomentumModifier[] = [];
 export const lethalGuards: LethalGuard[] = [];
+/** Multiplicative healing multiplier (healer, receiver). */
+export type HealModifier = (src: UnitState, dst: UnitState, s: BattleState) => number;
+export const healModifiers: HealModifier[] = [];
+/** Multiplicative multiplier on the lifeline a unit gets when downed. */
+export type LifelineModifier = (u: UnitState, s: BattleState) => number;
+export const lifelineModifiers: LifelineModifier[] = [];
+
+export function registerHealModifier(m: HealModifier): void {
+  healModifiers.push(m);
+}
+
+export function registerLifelineModifier(m: LifelineModifier): void {
+  lifelineModifiers.push(m);
+}
 
 export function registerMomentumModifier(m: MomentumModifier): void {
   momentumModifiers.push(m);

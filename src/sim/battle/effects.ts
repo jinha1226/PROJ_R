@@ -10,6 +10,7 @@ import { spawnProjectile } from './projectiles';
 import { enemyFromDef, makeUnitState } from './setup';
 import { effectiveStats } from './stats';
 import { addTag, hasTag, removeTag } from './tags';
+import { skillPowerMult } from './skillLevel';
 import type { BattleState, UnitState } from './types';
 
 const FORCED_TICKS = 4;
@@ -46,10 +47,10 @@ function summon(s: BattleState, caster: UnitState, enemyId: string, count: numbe
 export function applyEffect(s: BattleState, caster: UnitState, dst: UnitState, ef: Effect, skill: SkillDef): void {
   switch (ef.type) {
     case 'damage':
-      dealDamage(s, caster, dst, { mult: ef.mult, canDodge: !skill.area && !skill.telegraph, canCrit: true, skillId: skill.id });
+      dealDamage(s, caster, dst, { mult: ef.mult * skillPowerMult(caster.setup, skill.id), canDodge: !skill.area && !skill.telegraph, canCrit: true, skillId: skill.id });
       break;
     case 'heal':
-      heal(s, caster, dst, ef.mult * effectiveStats(caster, s).atk, skill.id);
+      heal(s, caster, dst, ef.mult * skillPowerMult(caster.setup, skill.id) * effectiveStats(caster, s).atk, skill.id);
       break;
     case 'addTag':
       addTag(s, dst, ef.tag, ef.duration, ef.value ?? 0, caster.id);

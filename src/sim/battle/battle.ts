@@ -1,4 +1,5 @@
 import '../personality';
+import '../progression';
 import { createState } from './setup';
 import { makeSnapshot } from './snapshot';
 import { checkOutcome, processCommands, updateRules } from './rules';
