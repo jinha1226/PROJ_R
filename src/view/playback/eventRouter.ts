@@ -1,4 +1,4 @@
-import { getSkill } from '../../data/skills';
+import { SKILLS, getSkill } from '../../data/skills';
 import type { BattleEvent } from '../../sim/battle/types';
 import type { Actor } from '../actors/actor';
 import type { TransientFx } from '../fx/transientFx';
@@ -45,10 +45,11 @@ export class EventRouter {
     const dst = e.dst ? d.actors.get(e.dst) : undefined;
     switch (e.type) {
       case 'action_start':
-        if (src && e.skillId) src.play(getSkill(e.skillId).anim, { once: true });
+        if (src && e.skillId && SKILLS[e.skillId]) src.play(getSkill(e.skillId).anim, { once: true });
         break;
       case 'damage': {
-        if (e.skillId && e.skillId !== 'burn' && e.skillId !== 'bleed') {
+        // only real skills have range/projectile info (dots, thorns, lifesteal do not)
+        if (e.skillId && SKILLS[e.skillId]) {
           const skill = getSkill(e.skillId);
           const p = e.dst ? d.posOf(e.dst) : undefined;
           const sp = e.src ? d.posOf(e.src) : undefined;

@@ -88,12 +88,13 @@ export function resolveBattle(roster: Roster, deployed: string[], report: Battle
     if (u?.downed) {
       m = { ...m, injury: 2 + rng.int(0, 1) };
       out.injuries.push(m.id);
-      const free = (Object.keys(SCARS) as ScarId[]).filter((s) => !m.scars.includes(s));
-      if (u.minLifelineFrac <= SCAR_LIFELINE && free.length && rng.chance(SCAR_CHANCE)) {
-        const scar = rng.pick(free);
-        m = note({ ...m, scars: [...m.scars, scar] }, battle, 'scar', { scar });
-        out.scars.push({ id: m.id, scar });
-      }
+    }
+    // spec 4.5: lifeline cut to ≤25% and survived (whether still down or rescued)
+    const free = (Object.keys(SCARS) as ScarId[]).filter((s) => !m.scars.includes(s));
+    if (u && u.minLifelineFrac <= SCAR_LIFELINE && free.length && rng.chance(SCAR_CHANCE)) {
+      const scar = rng.pick(free);
+      m = note({ ...m, scars: [...m.scars, scar] }, battle, 'scar', { scar });
+      out.scars.push({ id: m.id, scar });
     }
     if (!m.title) {
       const title = TITLE_ORDER.find((t) => TITLES[t].check(m.record));
@@ -126,7 +127,8 @@ export function resolveBattle(roster: Roster, deployed: string[], report: Battle
       const otherId = r.a === dead ? r.b : r.a;
       const other = updated.get(otherId) ?? roster.mercs.find((x) => x.id === otherId);
       if (!other?.alive || r.affinity < 40) continue;
-      const grieving = other.traits.includes('vengeful') ? other : { ...other, tempTraits: [...other.tempTraits, { trait: 'vengeful' as const, battles: LOSS_BATTLES }] };
+      const already = other.traits.includes('vengeful') || other.tempTraits.some((x) => x.trait === 'vengeful');
+      const grieving = already ? other : { ...other, tempTraits: [...other.tempTraits, { trait: 'vengeful' as const, battles: LOSS_BATTLES }] };
       updated.set(otherId, note(grieving, battle, 'friendDied', { who: dead }));
     }
   }

@@ -3,7 +3,7 @@ import type { AnimKey, GearVisual, ModelId } from '../../data/types';
 import { ANIM_CLIPS, LOOPING, type AnimSet } from './animMap';
 import type { AssetLibrary } from './assets';
 import { MODELS, propsFor, visibleMeshes } from './modelManifest';
-import { gearLook, type TierLook } from './gearLook';
+import { applyTierGlow, gearLook, restoreGlow, type TierLook } from './gearLook';
 
 export interface ActorSpec {
   id: string;
@@ -78,7 +78,7 @@ export class Actor {
         mat.color.lerp(new THREE.Color(look.color), look.amount);
         mat.metalness = look.metalness;
         mat.roughness = Math.min(mat.roughness, 1 - look.metalness * 0.6);
-        if (look.emissive > 0) { mat.emissive.set(look.color); mat.userData.baseEmissive = look.emissive; mat.emissiveIntensity = look.emissive; }
+        applyTierGlow(mat, look);
       }
       mesh.material = mat;
       this.materials.push(mat);
@@ -174,7 +174,7 @@ export class Actor {
       this.flashLeft = Math.max(0, this.flashLeft - dt);
       const k = this.flashLeft / this.flashTotal;
       for (const m of this.materials) m.emissiveIntensity = Math.max(k * 1.2, (m.userData.baseEmissive as number | undefined) ?? 0);
-      if (this.flashLeft === 0) for (const m of this.materials) if (m.userData.baseEmissive) m.emissive.set('#ffd060');
+      if (this.flashLeft === 0) for (const m of this.materials) restoreGlow(m);
     }
     if (this.aura) {
       this.auraT += dt;

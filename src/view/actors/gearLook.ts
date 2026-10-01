@@ -1,3 +1,4 @@
+import type { MeshStandardMaterial } from 'three';
 import type { GearVisual, ModelId } from '../../data/types';
 import { MODELS } from './modelManifest';
 
@@ -38,4 +39,20 @@ export function gearLook(input: GearLookInput): { tints: Record<string, TierLook
   if (wt !== undefined) for (const n of [weapon, offhand]) if (n && !isProp(n)) tints[n] = TIER_LOOK[wt]!;
   if (at !== undefined) for (const n of [...(input.gear.helmet ? m.helmet : []), ...(input.gear.cape ? m.cape : [])]) tints[n] = TIER_LOOK[at]!;
   return { tints, propTint: wt !== undefined ? TIER_LOOK[wt] : undefined, aura: input.rank === 'hero' };
+}
+
+/** Applies a tier's glow and remembers it so hit flashes can restore the right color. */
+export function applyTierGlow(mat: MeshStandardMaterial, look: TierLook): void {
+  if (look.emissive <= 0) return;
+  mat.emissive.set(look.color);
+  mat.emissiveIntensity = look.emissive;
+  mat.userData.baseEmissive = look.emissive;
+  mat.userData.baseEmissiveColor = look.color;
+}
+
+export function restoreGlow(mat: MeshStandardMaterial): void {
+  if (typeof mat.userData.baseEmissiveColor === 'string') {
+    mat.emissive.set(mat.userData.baseEmissiveColor);
+    mat.emissiveIntensity = mat.userData.baseEmissive as number;
+  }
 }

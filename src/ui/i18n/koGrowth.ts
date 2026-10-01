@@ -4,6 +4,7 @@ export const KO_GROWTH = {
     frenzy: '광분', smoke_bomb: '연막탄', poison_blade: '독 묻은 칼날', fan_of_knives: '칼날 부채', explosive_bolt: '폭발 볼트',
     pinning_shot: '고정 사격', rain_of_bolts: '볼트 비', frost_lance: '서리 창', chain_spark: '연쇄 불꽃', meteor: '유성',
     holy_shield: '신성한 방패', mass_heal: '광역 치유', blessed_strike: '축복의 일격',
+    thorns: '가시 반사', lifesteal: '흡혈',
   } as Record<string, string>,
   passive: {
     toughness: '강인함', sharpEdge: '날 선 칼끝', ironSkin: '강철 피부', quickHands: '빠른 손', fleetFoot: '날랜 발', momentumSurge: '기세 폭발',
