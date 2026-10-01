@@ -44,6 +44,7 @@ export class SortieScreen implements Screen {
   private ended = false;
   private mouseAttack = false;
   private cursor = 0;
+  private endTimer: ReturnType<typeof setTimeout> | undefined;
   private latched: Pick<HeroInput, 'focus' | 'retreat' | 'regroup' | 'interact' | 'quick'> = { focus: false, retreat: false, regroup: false, interact: false, quick: null };
 
   constructor(private readonly api: SortieApi) {}
@@ -83,7 +84,7 @@ export class SortieScreen implements Screen {
   private frame(dt: number): void {
     const rt = this.rt!;
     const s = this.input.poll();
-    if (s.menu && !this.panel) this.openPanel();
+    if (s.menu && !this.panel && !rt.sim.w.outcome) this.openPanel();
     else if ((s.menu || s.cancel) && this.panel) this.closePanel();
     const turn = cameraTurn(s);
     if (turn) rt.cam.rotateStep(turn);
@@ -107,14 +108,14 @@ export class SortieScreen implements Screen {
     this.touch?.setPickVisible(!!near);
     for (; this.cursor < w.events.length; this.cursor++) {
       const ev = w.events[this.cursor]!;
-      if (ev.type === 'loot' && !this.panel) this.openPanel(String(ev.data?.id));
+      if (ev.type === 'loot' && !this.panel && !w.outcome) this.openPanel(String(ev.data?.id));
     }
     if (this.panel && !this.paused) this.panel.render();
     if (w.outcome && !this.ended) {
       this.ended = true;
       const out = w.outcome;
       const end = rt.sim.end();
-      setTimeout(() => this.api.end(end), out === 'extracted' ? 900 : 1600);
+      this.endTimer = setTimeout(() => this.api.end(end), out === 'extracted' ? 900 : 1600);
     }
   }
 
@@ -152,6 +153,7 @@ export class SortieScreen implements Screen {
 
   unmount(): void {
     this.gone = true;
+    clearTimeout(this.endTimer);
     cancelAnimationFrame(this.raf);
     this.detach?.();
     window.removeEventListener('pointerup', this.onPointerUp);

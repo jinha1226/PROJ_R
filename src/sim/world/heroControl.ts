@@ -70,5 +70,5 @@ export function applyHeroInput(w: WorldState, input: HeroInput): void {
 
 /** Hitting an unaware enemy alerts its whole group. */
 export function alertOnHit(w: WorldState): void {
-  for (const e of w.b.events) if (e.type === 'damage' && e.src === w.heroId && e.dst) alertGroup(w, w.groupOf[e.dst] ?? '');
+  for (const e of w.b.events) if (e.type === 'damage' && e.src && w.party.order.includes(e.src) && e.dst) alertGroup(w, w.groupOf[e.dst] ?? '');
 }

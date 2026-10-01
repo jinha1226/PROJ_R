@@ -50,7 +50,7 @@ export function createPartyWorld(region: Region, members: Member[], pack: Stack[
     groupOf: Object.fromEntries(region.spawns.map((s) => [s.id, s.group])),
     routes: Object.fromEntries(region.spawns.filter((s) => s.patrol).map((s) => [s.id, s.patrol!])),
     containers: {}, piles: [], doorsOpen: [], closed: [], events: [], outcome: null, xp: 0, nextSpawn: 0,
-    party: { order: members.map((m) => m.merc.id), mercs: Object.fromEntries(members.map((m) => [m.merc.id, m.merc])), gear, mode: 'explore', calmTicks: 0, trail: [], dead: [], follow: {}, leaderSteered: false },
+    party: { order: members.map((m) => m.merc.id), mercs: Object.fromEntries(members.map((m) => [m.merc.id, m.merc])), gear, mode: 'explore', calmTicks: 0, trail: [], dead: [], follow: {}, leaderSteered: false, focusAt: -1e9 },
     hero: { merc: leader, loadout: packLoadout, poisonImmuneUntil: 0, hiddenUntil: 0, lastHp: allies[0]!.stats.maxHp, lastCombat: -1e9, memberHp: {} },
   };
 }
@@ -68,6 +68,7 @@ export function updateLeader(w: WorldState): void {
   if (!next || next.id === w.heroId) return;
   w.heroId = next.id;
   w.hero.merc = w.party.mercs[next.id]!;
+  for (const u of partyUnits(w)) if (!!u.setup.isLeader !== (u.id === next.id)) u.setup = { ...u.setup, isLeader: u.id === next.id };
   w.hero.lastHp = next.hp;
   emitW(w, 'leader', { id: next.id });
 }

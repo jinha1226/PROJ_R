@@ -30,6 +30,8 @@ export class ExtractFlow {
 
   start(seed: number): void {
     this.c = loadCompany() ?? newCompany(seed);
+    // a company saved with nobody left (closed on the result screen) still ends here
+    if (isGameOver(this.c)) return this.gameOver();
     this.save();
     this.showHub();
   }

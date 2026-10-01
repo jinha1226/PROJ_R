@@ -49,7 +49,7 @@ describe('extraction company', () => {
     const ids = r.company.mercs.map((m) => m.id);
     expect(ids).toEqual([a, b]);
     expect(r.company.mercs[0]!.level).toBeGreaterThan(1);
-    expect(r.company.mercs[1]!.injury).toBe(2);
+    expect(r.company.mercs[1]!.injury).toBe(3);
     expect(r.died).toEqual([d]);
     expect(r.company.fallen.map((f) => f.name)).toEqual([c.mercs[2]!.name]);
     expect(r.company.stash).toEqual([{ id: 'x_crown', n: 1 }]);

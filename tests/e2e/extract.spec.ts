@@ -64,7 +64,13 @@ test('a wiped party is lost for good; the company fights on until nobody is left
   await page.click('[data-testid="start-sortie"]');
   await waitWorld(page);
   await page.evaluate(() => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.finish('failed'));
-  await page.click('[data-testid="to-base"]', { timeout: 10_000 });
+  // once the sortie is over, the pause menu (and its abandon) no longer opens
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-testid="pause-panel"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="sortie-result"]')).toBeVisible({ timeout: 10_000 });
+  // reloading on the result screen still ends in game over
+  await page.reload();
+  await page.click('[data-testid="to-extract"]');
   await expect(page.locator('[data-testid="game-over"]')).toBeVisible();
   await page.click('[data-testid="new-company"]');
   await expect(page.locator('.xmerc')).toHaveCount(3);

@@ -25,9 +25,10 @@ const threats = (w: WorldState): UnitState[] => w.b.units.filter((u) => u.team =
 export function updatePartyMode(w: WorldState): void {
   const party = partyUnits(w);
   const foes = threats(w);
-  const focus = w.b.focusTargetId ? w.b.units.find((u) => u.id === w.b.focusTargetId && u.alive && !u.downed) : undefined;
+  const near = (f: UnitState) => party.some((p) => !p.downed && d(f.pos, p.pos) <= COMBAT_RANGE);
+  const focus = w.b.focusTargetId ? w.b.units.find((u) => u.id === w.b.focusTargetId && u.alive && !u.downed && !u.dormant && d(u.pos, heroUnit(w).pos) <= FOCUS_RANGE * 2) : undefined;
   if (w.b.focusTargetId && !focus) w.b.focusTargetId = undefined;
-  const hot = !!focus || party.some((p) => p.downed && !p.rescueUsed) || foes.some((f) => party.some((p) => !p.downed && d(f.pos, p.pos) <= COMBAT_RANGE));
+  const hot = (!!focus && (w.ai[focus.id]?.mode === 'alert' || near(focus) || w.b.tick - w.party.focusAt < CALM_TICKS)) || party.some((p) => p.downed && !p.rescueUsed) || foes.some((f) => party.some((p) => !p.downed && d(f.pos, p.pos) <= COMBAT_RANGE));
   if (hot) {
     w.party.calmTicks = 0;
     if (w.party.mode === 'explore') {
@@ -46,8 +47,10 @@ export function updatePartyMode(w: WorldState): void {
     // a member far from the leader breaks off and catches up, and only rejoins the fight once close again
     const st = (w.party.follow[u.id] ??= { repathIn: 0 });
     const gap = d(u.pos, lead.pos);
-    if (u.id !== lead.id) st.leashed = gap > COMBAT_LEASH || (!!st.leashed && gap > REJOIN);
-    const ai = w.party.mode === 'combat' && !commanded && !st.leashed && !(u.id === w.heroId && w.party.leaderSteered);
+    st.leashed = u.id !== lead.id && (gap > COMBAT_LEASH || (!!st.leashed && gap > REJOIN));
+    // the leader stays the player's while they steer, and while they hold an extraction point
+    const held = u.id === w.heroId && (w.party.leaderSteered || w.hero.channel?.kind === 'extract');
+    const ai = w.party.mode === 'combat' && !commanded && !st.leashed && !held;
     setAware(u, ai);
     if (ai) u.speedScale = undefined;
   }
@@ -67,6 +70,7 @@ export function applyCommand(w: WorldState, input: { focus?: boolean; retreat?: 
     const pick = inReach.filter((f) => off(f) <= FOCUS_CONE).sort(byDist)[0] ?? inReach.sort(byDist)[0];
     if (pick) {
       w.b.focusTargetId = pick.id;
+      w.party.focusAt = w.b.tick;
       emitW(w, 'focus', { id: pick.id });
     }
   }

@@ -94,7 +94,8 @@ export function settleCompany(c: XCompany, end: SortieEnd): { company: XCompany;
     const e = byId.get(m.id);
     if (!e) return { ...m, injury: Math.max(0, m.injury - 1) };
     const grown = addXp(m, e.xp);
-    return e.state === 'carried' ? { ...grown, injury: 2 } : grown;
+    // carried out: badly hurt for the next two sorties (3 → 2 → 1); otherwise a step of recovery like everyone
+    return e.state === 'carried' ? { ...grown, injury: 3 } : { ...grown, injury: Math.max(0, grown.injury - 1) };
   });
   const gear = Object.fromEntries(mercs.map((m) => [m.id, byId.get(m.id)?.gear ?? c.gear[m.id]!]));
   const ok = end.outcome === 'extracted';

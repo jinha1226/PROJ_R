@@ -50,6 +50,8 @@ export interface PartyState {
   lost?: Record<string, Loadout>;
   /** how the party got out: an extraction point id, or 'recall' */
   exitVia?: string;
+  /** tick of the last focus order (an ambush counts as a fight for a moment even before anyone notices) */
+  focusAt: number;
   /** the player is steering the leader this tick (the leader leaves the AI while the stick is held) */
   leaderSteered: boolean;
 }
