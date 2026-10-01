@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-type W = { tick(): number; teleport(x: number, y: number): void; finish(o: string): void; advance(n: number): void; state(): unknown };
+type W = { tick(): number; teleport(x: number, y: number): void; finish(o: string): void; advance(n: number): void; state(): unknown; zoom(): number };
 type St = { region: { containers: { id: string; kind: string; pos: { x: number; y: number } }[]; extracts: { id: string; pos: { x: number; y: number } }[]; spawns: { pos: { x: number; y: number } }[] }; hero: { loadout: { bag: { id: string }[] } }; b: { tick: number }; party: { order: string[] } };
 const waitWorld = (page: Page) => page.waitForFunction(() => ((window as unknown as { __PROJR_WORLD__?: W }).__PROJR_WORLD__?.tick() ?? 0) > 10, null, { timeout: 60_000 });
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('projr.extract.v2')!) as { mercs: { id: string }[]; party: string[]; stash: { id: string }[]; tavern: { fee: number }[]; gold: number });
@@ -120,4 +120,14 @@ test('a phone held upright gets the portrait layout; turning it keeps the same s
   expect(after.party).toBe(3);
   await page.screenshot({ path: 'test-artifacts/extract-landscape.png' });
   await ctx.close();
+});
+
+test('the + button brings the camera closer', async ({ page }) => {
+  await fresh(page);
+  await page.click('[data-testid="start-sortie"]');
+  await waitWorld(page);
+  const zoom = () => page.evaluate(() => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.zoom());
+  const before = await zoom();
+  await page.click('[data-testid="zoom-in"]');
+  await expect.poll(zoom).toBeLessThan(before);
 });

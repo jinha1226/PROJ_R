@@ -12,7 +12,8 @@ import type { EnvLibrary } from '../../view/explore/envAssets';
 import { guardFrame } from '../screens/loopGuard';
 import { BagPanel } from './bagPanel';
 import { Hud } from './hud';
-import { DEFAULT_VIEW, watchLayout } from './orientation';
+import { watchLayout } from './orientation';
+import { ZoomControl } from './zoomControl';
 import { isTouchDevice, TouchControls } from './touchControls';
 import { WorldRuntime } from './worldRuntime';
 import '../styles/extract.css';
@@ -40,6 +41,7 @@ export class SortieScreen implements Screen {
   private panel: BagPanel | null = null;
   private detach: (() => void) | null = null;
   private unwatch: (() => void) | null = null;
+  private zoom: ZoomControl | null = null;
   private raf = 0;
   private gone = false;
   private paused = false;
@@ -64,6 +66,8 @@ export class SortieScreen implements Screen {
       return this.api.fatal(e);
     }
     this.el.appendChild(this.hud.el);
+    this.zoom = new ZoomControl(this.rt.cam, stage);
+    this.el.appendChild(this.zoom.el);
     if (mobile) {
       this.touch = new TouchControls(this.input);
       this.el.appendChild(this.touch.el);
@@ -72,7 +76,7 @@ export class SortieScreen implements Screen {
     this.unwatch = watchLayout((l) => {
       this.el.classList.toggle('portrait', l === 'portrait');
       this.el.classList.toggle('landscape', l === 'landscape');
-      this.rt?.cam.setHeight(DEFAULT_VIEW[l]);
+      this.zoom?.setLayout(l);
     });
     this.detach = this.input.attach(window);
     stage.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && e.button === 0) this.mouseAttack = true; });
@@ -156,6 +160,7 @@ export class SortieScreen implements Screen {
       /** debug/e2e: run the sim forward synchronously (slow software renderers in CI) */
       advance: (ticks: number) => { for (let i = 0; i < ticks && this.rt && !this.rt.sim.w.outcome; i++) this.rt.sim.step(idleInput()); },
       state: () => this.rt?.sim.w,
+      zoom: () => this.rt?.cam.viewHeight ?? 0,
     };
   }
 
@@ -165,6 +170,7 @@ export class SortieScreen implements Screen {
     cancelAnimationFrame(this.raf);
     this.detach?.();
     this.unwatch?.();
+    this.zoom?.dispose();
     window.removeEventListener('pointerup', this.onPointerUp);
     this.touch?.dispose();
     this.rt?.dispose();
