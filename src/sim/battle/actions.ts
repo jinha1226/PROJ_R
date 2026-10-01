@@ -2,10 +2,11 @@ import { angleOf, sub, type Vec2 } from '../../core/vec2';
 import { getSkill } from '../../data/skills';
 import type { SkillDef } from '../../data/types';
 import { MOMENTUM_MAX, TICK_RATE, secToTicks } from './constants';
-import { dealDamage } from './damage';
+import { fireSkill } from './effects';
 import { emit } from './events';
 import { effectiveStats } from './stats';
 import { isActionBlocked } from './tags';
+import { createTelegraph } from './telegraphs';
 import type { ActionState, BattleState, UnitState } from './types';
 
 export function isReady(u: UnitState, skillId: string): boolean {
@@ -30,16 +31,10 @@ export function startAction(s: BattleState, u: UnitState, skillId: string, targe
   u.action = { skillId, targetId, targetPos, phase: 'windup', ticksLeft: ticks, totalTicks: ticks };
   u.vel = { x: 0, y: 0 };
   const target = findUnit(s, targetId);
+  if (skill.telegraph) u.action.telegraphId = createTelegraph(s, u, skill, target, targetPos);
   const aim = target?.pos ?? targetPos;
   if (aim && (aim.x !== u.pos.x || aim.y !== u.pos.y)) u.facing = angleOf(sub(aim, u.pos));
   emit(s, { type: 'action_start', src: u.id, dst: targetId, skillId });
-}
-
-/** Minimal firing; replaced by effects.fireSkill in Task 7. */
-function fire(s: BattleState, u: UnitState, skill: SkillDef, target: UnitState | undefined): void {
-  if (!target) return;
-  for (const ef of skill.effects)
-    if (ef.type === 'damage') dealDamage(s, u, target, { mult: ef.mult, canDodge: true, canCrit: true, skillId: skill.id });
 }
 
 function targetInvalid(u: UnitState, skill: SkillDef, target: UnitState | undefined): boolean {
@@ -75,7 +70,7 @@ export function advanceActions(s: BattleState): void {
         emit(s, { type: 'action_cancel', src: u.id, skillId: a.skillId });
         continue;
       }
-      fire(s, u, skill, target);
+      fireSkill(s, u, skill, target, a.targetPos);
       if (skill.cooldown > 0) u.cooldowns[skill.id] = Math.round(skill.cooldown * TICK_RATE);
       if (skill.kind === 'ultimate') u.momentum = 0;
       emit(s, { type: 'action_fire', src: u.id, dst: a.targetId, skillId: skill.id });
