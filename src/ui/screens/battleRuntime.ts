@@ -33,7 +33,7 @@ export class BattleRuntime {
   readonly battle: Battle;
   readonly player: BattlePlayer;
   private readonly h: SceneHandle;
-  private readonly cam: BattleCamera;
+  readonly cam: BattleCamera;
   private readonly actors = new Map<string, Actor>();
   private readonly overlay: UnitOverlay;
   private readonly numbers: DamageNumbers;

@@ -5,6 +5,8 @@ export interface ControlsDeps {
   getSpeed(): Speed;
   setSpeed(s: Speed): void;
   retreat(): void;
+  cameraAuto(): void;
+  isCameraManual(): boolean;
 }
 
 /** Pause / speed / retreat buttons plus Space and 1/2/3 hotkeys. */
@@ -26,11 +28,13 @@ export class Controls {
       <button class="btn" data-testid="speed-1">1x</button>
       <button class="btn" data-testid="speed-2">2x</button>
       <button class="btn" data-testid="speed-4">4x</button>
+      <button class="btn" data-testid="camera-auto" title="C">${t('ui.cameraAuto')}</button>
       <button class="btn danger" data-testid="retreat">${t('ui.retreat')}</button>`;
     parent.appendChild(this.el);
     this.btn('pause').addEventListener('click', () => this.togglePause());
     for (const s of [1, 2, 4] as const) this.btn(`speed-${s}`).addEventListener('click', () => this.speed(s));
     this.btn('retreat').addEventListener('click', () => d.retreat());
+    this.btn('camera-auto').addEventListener('click', () => { d.cameraAuto(); this.render(); });
     window.addEventListener('keydown', this.onKey);
     this.render();
   }
@@ -54,6 +58,11 @@ export class Controls {
     const sp = this.d.getSpeed();
     this.btn('pause').textContent = sp === 0 ? `▶ ${t('ui.resume')}` : `❚❚ ${t('ui.pause')}`;
     for (const s of [1, 2, 4]) this.btn(`speed-${s}`).classList.toggle('active', sp === s);
+  }
+
+  /** Called every frame: highlights the auto-camera button while the camera is manual. */
+  tick(): void {
+    this.btn('camera-auto').classList.toggle('active', this.d.isCameraManual());
   }
 
   dispose(): void {

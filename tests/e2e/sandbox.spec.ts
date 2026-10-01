@@ -46,3 +46,16 @@ test('boss preset renders telegraphs without errors', async ({ page }) => {
   await page.screenshot({ path: 'test-artifacts/battle-boss.png' });
   expect(errors).toEqual([]);
 });
+
+test('wheel zoom switches to manual camera and C returns to auto', async ({ page }) => {
+  await page.goto('./?seed=4');
+  await page.click('[data-testid="start-battle"]');
+  await waitTick(page, 20);
+  const auto = page.locator('[data-testid="camera-auto"]');
+  await expect(auto).not.toHaveClass(/active/);
+  await page.mouse.move(640, 360);
+  await page.mouse.wheel(0, -600);
+  await expect(auto).toHaveClass(/active/);
+  await page.keyboard.press('c');
+  await expect(auto).not.toHaveClass(/active/);
+});

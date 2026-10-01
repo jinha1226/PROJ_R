@@ -7,6 +7,7 @@ import { InspectPanel } from '../hud/inspectPanel';
 import { showResult } from '../hud/resultOverlay';
 import { BattleRuntime, unitName } from './battleRuntime';
 import { guardFrame } from './loopGuard';
+import { attachCameraInput } from '../../view/scene/cameraInput';
 
 export interface BattleScreenActions {
   retry(): void;
@@ -57,12 +58,14 @@ export class BattleScreen implements Screen {
       getSpeed: () => rt.player.speed,
       setSpeed: (s) => { rt.player.speed = s; },
       retreat: () => rt.player.retreat(),
+      cameraAuto: () => rt.cam.resetAuto(),
+      isCameraManual: () => rt.cam.mode === 'manual',
     });
-    this.parts = [log, inspect, controls];
-    stage.addEventListener('click', (e) => {
-      const id = rt.pick(e.clientX, e.clientY);
+    const detachCamera = attachCameraInput(stage, rt.cam, (x, y) => {
+      const id = rt.pick(x, y);
       if (id) inspect.select(id);
     });
+    this.parts = [log, inspect, controls, { dispose: detachCamera }];
     (window as unknown as { __PROJR__: DebugHook }).__PROJR__ = {
       tick: () => rt.battle.state.tick,
       outcome: () => rt.battle.outcome,
@@ -75,6 +78,7 @@ export class BattleScreen implements Screen {
       const ok = guardFrame(() => {
         rt.update(dt);
         inspect.update((id) => rt.snap(id));
+        controls.tick();
       }, (e) => this.act.fatal(e));
       if (ok) this.raf = requestAnimationFrame(loop);
     };
