@@ -1,0 +1,22 @@
+.unit-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.uo { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 2px; transition: opacity 0.4s; }
+.uo.dead { opacity: 0; }
+.uo.downed { opacity: 0.55; }
+.uo-name { font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px #000, 0 0 3px #000; white-space: nowrap; }
+.uo-bar { width: 54px; height: 6px; background: #1118; border: 1px solid #0008; border-radius: 2px; position: relative; overflow: hidden; }
+.uo-hp { position: absolute; inset: 0 auto 0 0; background: #5fd06a; }
+.uo.enemy .uo-hp { background: #e0503c; }
+.uo-shield { position: absolute; inset: 0 auto 0 0; background: #e8f4ffcc; }
+.uo-mom { width: 54px; height: 3px; background: #1118; border-radius: 2px; overflow: hidden; }
+.uo-mom > div { height: 100%; background: #f0c040; }
+.uo-mom.full > div { background: #ffe680; box-shadow: 0 0 6px #ffe680; }
+.uo-tags { display: flex; gap: 1px; font-size: 11px; min-height: 13px; filter: drop-shadow(0 1px 1px #000); }
+.uo.boss .uo-bar { width: 110px; height: 8px; }
+.dmg-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.dmg { position: absolute; transform: translate(-50%, -50%); font-weight: 800; font-size: 15px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; animation: dmg-rise 0.8s ease-out forwards; white-space: nowrap; }
+.dmg.crit { font-size: 21px; color: #ffd04a; }
+.dmg.heal { color: #7cff8a; }
+.dmg.miss { color: #c8c8c8; font-size: 13px; }
+.dmg.combo { color: #ffe23a; font-size: 18px; }
+.dmg.ally-hurt { color: #ff8a7a; }
+@keyframes dmg-rise { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -42px; } }
