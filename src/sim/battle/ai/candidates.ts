@@ -6,7 +6,7 @@ import { ARENA, UNIT_RADIUS } from '../constants';
 import { telegraphThreatFor } from '../telegraphs';
 import type { BattleState, Telegraph, UnitState } from '../types';
 
-export type CandidateKind = 'skill' | 'approach' | 'kite' | 'dodge' | 'rescue' | 'guard' | 'idle';
+export type CandidateKind = 'skill' | 'approach' | 'kite' | 'dodge' | 'rescue' | 'guard' | 'protect' | 'flee' | 'idle';
 
 export interface Candidate {
   kind: CandidateKind;
@@ -18,6 +18,13 @@ export interface Candidate {
 }
 
 const DODGE_WINDOW = 15;
+
+/** Extra candidate sources (relationships, pair combos) registered by personality modules. */
+export type CandidateGenerator = (u: UnitState, s: BattleState) => Candidate[];
+export const candidateGenerators: CandidateGenerator[] = [];
+export function registerCandidateGenerator(g: CandidateGenerator): void {
+  candidateGenerators.push(g);
+}
 const IN_RANGE_SLACK = 0.2;
 
 export const clampToArena = (p: Vec2): Vec2 => ({
@@ -92,6 +99,9 @@ export function generateCandidates(u: UnitState, s: BattleState): Candidate[] {
       const victim = s.units.find((a) => a.id === f.intent?.targetId && a.team === u.team && a.line === 'back' && a !== u);
       if (victim) out.push({ kind: 'guard', target: f, dest: add(victim.pos, scale(sub(f.pos, victim.pos), 0.35)) });
     }
+  if (u.emotions.some((e) => e.id === 'fear'))
+    out.push({ kind: 'flee', dest: clampToArena(v(u.pos.x + (u.team === 'ally' ? -4 : 4), u.pos.y)) });
+  for (const g of candidateGenerators) out.push(...g(u, s));
   out.push({ kind: 'idle', dest: v(u.pos.x, u.pos.y) });
   return out;
 }

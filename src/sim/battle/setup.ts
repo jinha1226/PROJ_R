@@ -8,6 +8,7 @@ import { DECISION_INTERVAL, STAGE_SCALE } from './constants';
 import type { BattleSetup, BattleState, Line, Obstacle, Team, UnitSetup, UnitState } from './types';
 
 type Col = 0 | 1 | 2;
+const CAUTIOUS_DELAY = 10;
 type Row = 0 | 1 | 2 | 3;
 
 export function slotToPos(team: Team, col: number, row: number): Vec2 {
@@ -82,7 +83,7 @@ export function makeUnitState(setup: UnitSetup, pos: Vec2, index: number, summon
     facing: setup.team === 'ally' ? 0 : Math.PI, vel: v(0, 0),
     hp: setup.stats.maxHp, maxHp: setup.stats.maxHp, shield: 0, momentum: 0,
     alive: true, downed: false, lifeline: 0, action: null, cooldowns: {}, tags: [], emotions: [], intent: null,
-    decisionIn: index % DECISION_INTERVAL, forced: null, engagedWith: null, threat: {},
+    decisionIn: (index % DECISION_INTERVAL) + (setup.traits.includes('cautious') ? CAUTIOUS_DELAY : 0), forced: null, engagedWith: null, threat: {},
     rescueUsed: false, rescueProgress: 0, rescueTarget: null, phaseIndex: 0, summoned,
     stats: { kills: 0, damageDealt: 0, healingDone: 0, dodges: 0 },
   };
