@@ -22,6 +22,8 @@ export interface UnitSetup {
   traits: TraitId[];
   level: number;
   slot: { col: 0 | 1 | 2; row: 0 | 1 | 2 | 3 };
+  /** steered by player input: the AI never decides for this unit */
+  controlled?: boolean;
   /** explicit start position/facing (room battles); overrides the slot */
   spawn?: Vec2;
   facing?: number;
@@ -50,7 +52,16 @@ export interface UnitSetup {
 export interface Obstacle {
   pos: Vec2;
   radius: number;
-  kind: 'rock' | 'pillar';
+  /** box: axis-aligned rectangle with half extents `half` (walls, buildings) */
+  kind: 'rock' | 'pillar' | 'box';
+  half?: Vec2;
+}
+
+export interface Bounds {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
 }
 
 export interface BattleSetup {
@@ -59,6 +70,10 @@ export interface BattleSetup {
   enemies: UnitSetup[];
   obstacles?: Obstacle[];
   relations?: Relation[];
+  /** play area (default: the 24×14 arena) */
+  bounds?: Bounds;
+  /** 'world': no berserk, no tick limit, no team-wipe outcome — the region sim decides the end */
+  mode?: 'arena' | 'world';
 }
 
 export interface TagInstance {
@@ -137,6 +152,8 @@ export interface UnitState {
   rescueTarget: string | null;
   phaseIndex: number;
   summoned: boolean;
+  /** asleep far from the action: skipped by AI, movement, engagement and targeting */
+  dormant: boolean;
   stats: { kills: number; damageDealt: number; healingDone: number; dodges: number };
 }
 
@@ -198,6 +215,8 @@ export interface BattleState {
   triggerReady: Map<string, number>;
   /** pairKey → tick when that comrade pair may combo again */
   pairCooldowns: Map<string, number>;
+  bounds: Bounds;
+  mode: 'arena' | 'world';
 }
 
 export interface UnitSnap {

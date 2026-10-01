@@ -92,7 +92,7 @@ export function decideUnit(s: BattleState, u: UnitState): void {
 
 export function decide(s: BattleState): void {
   for (const u of [...s.units]) {
-    if (!u.alive || u.downed) continue;
+    if (!u.alive || u.downed || u.dormant || u.setup.controlled) continue;
     u.decisionIn--;
     if (u.action || u.forced || isActionBlocked(u) || u.decisionIn > 0) continue;
     u.decisionIn = DECISION_INTERVAL;

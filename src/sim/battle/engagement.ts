@@ -11,7 +11,7 @@ const canAct = (u: UnitState): boolean => u.alive && !u.downed && !isActionBlock
 export function updateEngagement(s: BattleState): void {
   const byId = new Map(s.units.map((u) => [u.id, u]));
   for (const u of s.units) {
-    if (!u.alive || u.downed) {
+    if (!u.alive || u.downed || u.dormant) {
       u.engagedWith = null;
       continue;
     }

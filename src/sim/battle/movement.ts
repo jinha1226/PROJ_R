@@ -1,5 +1,6 @@
 import { add, clampLen, dist, len, norm, scale, sub, v, angleOf, type Vec2 } from '../../core/vec2';
-import { ARENA, DT, SEPARATION_RADIUS, UNIT_RADIUS } from './constants';
+import { DT, SEPARATION_RADIUS, UNIT_RADIUS } from './constants';
+import { clampToBounds, pushOutOfObstacle } from './geometry';
 import { effectiveStats } from './stats';
 import { isActionBlocked } from './tags';
 import type { BattleState, UnitState } from './types';
@@ -22,14 +23,14 @@ export function steerAway(u: UnitState, from: Vec2, s: BattleState): void {
 /** Living units within r of center, sorted by id for determinism. */
 export function unitsInRadius(s: BattleState, center: Vec2, r: number, pred?: (u: UnitState) => boolean): UnitState[] {
   return s.units
-    .filter((u) => u.alive && dist(u.pos, center) <= r && (!pred || pred(u)))
+    .filter((u) => u.alive && !u.dormant && dist(u.pos, center) <= r && (!pred || pred(u)))
     .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 function separation(u: UnitState, s: BattleState, speed: number): Vec2 {
   let push = v(0, 0);
   for (const o of s.units) {
-    if (o === u || !o.alive) continue;
+    if (o === u || !o.alive || o.dormant) continue;
     const d = dist(u.pos, o.pos);
     if (d >= SEPARATION_RADIUS) continue;
     const dir = d === 0 ? (u.id < o.id ? v(-1, 0) : v(1, 0)) : norm(sub(u.pos, o.pos));
@@ -39,25 +40,12 @@ function separation(u: UnitState, s: BattleState, speed: number): Vec2 {
 }
 
 function resolveObstacles(u: UnitState, s: BattleState): void {
-  for (const o of s.obstacles) {
-    const min = o.radius + UNIT_RADIUS;
-    const d = dist(u.pos, o.pos);
-    if (d >= min) continue;
-    const dir = d === 0 ? v(1, 0) : norm(sub(u.pos, o.pos));
-    u.pos = add(o.pos, scale(dir, min));
-  }
-}
-
-function clampArena(u: UnitState): void {
-  u.pos = {
-    x: Math.min(ARENA.maxX - UNIT_RADIUS, Math.max(ARENA.minX + UNIT_RADIUS, u.pos.x)),
-    y: Math.min(ARENA.maxY - UNIT_RADIUS, Math.max(ARENA.minY + UNIT_RADIUS, u.pos.y)),
-  };
+  for (const o of s.obstacles) u.pos = pushOutOfObstacle(u.pos, UNIT_RADIUS, o);
 }
 
 export function moveUnits(s: BattleState): void {
   for (const u of s.units) {
-    if (!u.alive || u.downed) continue;
+    if (!u.alive || u.downed || u.dormant) continue;
     let step: Vec2;
     if (u.forced) {
       step = u.forced.vel;
@@ -72,6 +60,6 @@ export function moveUnits(s: BattleState): void {
     }
     u.pos = add(u.pos, scale(step, DT));
     resolveObstacles(u, s);
-    clampArena(u);
+    u.pos = clampToBounds(s.bounds, u.pos, UNIT_RADIUS);
   }
 }

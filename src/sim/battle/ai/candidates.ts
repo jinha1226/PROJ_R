@@ -2,7 +2,8 @@ import { add, dist, norm, perp, scale, sub, v, type Vec2 } from '../../../core/v
 import { getSkill } from '../../../data/skills';
 import type { SkillDef } from '../../../data/types';
 import { isReady } from '../actions';
-import { ARENA, UNIT_RADIUS } from '../constants';
+import { UNIT_RADIUS } from '../constants';
+import { clampToBounds, segmentBlocked } from '../geometry';
 import { telegraphThreatFor } from '../telegraphs';
 import type { BattleState, Telegraph, UnitState } from '../types';
 
@@ -32,14 +33,12 @@ export function registerCandidateGenerator(g: CandidateGenerator): void {
 export const candidateExecutors: Partial<Record<CandidateKind, (s: BattleState, u: UnitState, c: Candidate) => void>> = {};
 const IN_RANGE_SLACK = 0.2;
 
-export const clampToArena = (p: Vec2): Vec2 => ({
-  x: Math.min(ARENA.maxX - 0.6, Math.max(ARENA.minX + 0.6, p.x)),
-  y: Math.min(ARENA.maxY - 0.6, Math.max(ARENA.minY + 0.6, p.y)),
-});
+/** Keeps an AI destination inside the play area (the arena, or the region in world mode). */
+export const clampToArena = (p: Vec2, s: BattleState): Vec2 => clampToBounds(s.bounds, p, 0.6);
 
-export const foesOf = (u: UnitState, s: BattleState): UnitState[] => s.units.filter((o) => o.alive && o.team !== u.team);
+export const foesOf = (u: UnitState, s: BattleState): UnitState[] => s.units.filter((o) => o.alive && !o.dormant && o.team !== u.team);
 export const friendsOf = (u: UnitState, s: BattleState): UnitState[] =>
-  s.units.filter((o) => o.alive && !o.downed && o.team === u.team);
+  s.units.filter((o) => o.alive && !o.dormant && !o.downed && o.team === u.team);
 
 export function nearest(u: UnitState, list: UnitState[]): UnitState | undefined {
   let best: UnitState | undefined;
@@ -56,26 +55,26 @@ function enemyTargets(u: UnitState, s: BattleState): UnitState[] {
   return foesOf(u, s);
 }
 
-function dodgeDest(u: UnitState, t: Telegraph): Vec2 {
+function dodgeDest(u: UnitState, t: Telegraph, s: BattleState): Vec2 {
   const a = t.area;
   const margin = 0.8 + UNIT_RADIUS;
   if (a.shape === 'circle' || a.shape === 'cone') {
     const away = sub(u.pos, t.origin);
     const dir = away.x === 0 && away.y === 0 ? perp(t.dir) : norm(away);
-    return clampToArena(add(t.origin, scale(dir, a.radius * t.areaMult + margin)));
+    return clampToArena(add(t.origin, scale(dir, a.radius * t.areaMult + margin)), s);
   }
   const n = norm(t.dir);
   const rel = sub(u.pos, t.origin);
   const side = rel.x * n.y - rel.y * n.x >= 0 ? -1 : 1;
-  return clampToArena(add(u.pos, scale(perp(n), side * ((a.width * t.areaMult) / 2 + margin))));
+  return clampToArena(add(u.pos, scale(perp(n), side * ((a.width * t.areaMult) / 2 + margin))), s);
 }
 
 function kiteDest(u: UnitState, s: BattleState, threat: UnitState): Vec2 {
   if (u.setup.tactics.includes('useCover') && s.obstacles.length) {
     const o = s.obstacles.reduce((b, c) => (dist(c.pos, u.pos) < dist(b.pos, u.pos) ? c : b));
-    return clampToArena(add(o.pos, scale(norm(sub(o.pos, threat.pos)), o.radius + 0.8)));
+    return clampToArena(add(o.pos, scale(norm(sub(o.pos, threat.pos)), o.radius + 0.8)), s);
   }
-  return clampToArena(add(u.pos, scale(norm(sub(u.pos, threat.pos)), 3)));
+  return clampToArena(add(u.pos, scale(norm(sub(u.pos, threat.pos)), 3)), s);
 }
 
 export function generateCandidates(u: UnitState, s: BattleState): Candidate[] {
@@ -86,7 +85,8 @@ export function generateCandidates(u: UnitState, s: BattleState): Candidate[] {
     const skill = getSkill(id);
     const targets = skill.target === 'enemy' ? enemyTargets(u, s) : skill.target === 'ally' ? friendsOf(u, s) : [u];
     for (const target of targets) {
-      const inRange = skill.target === 'self' || dist(u.pos, target.pos) <= skill.range + IN_RANGE_SLACK;
+      // walls (boxes) block ranged lines; rocks and pillars do not (arena battles unchanged)
+      const inRange = skill.target === 'self' || (dist(u.pos, target.pos) <= skill.range + IN_RANGE_SLACK && (target === u || !segmentBlocked(s, u.pos, target.pos)));
       out.push({ kind: 'skill', skillId: id, skill, target, inRange });
     }
   }
@@ -95,7 +95,7 @@ export function generateCandidates(u: UnitState, s: BattleState): Candidate[] {
   if (close && u.setup.stats.range >= 4 && dist(u.pos, close.pos) <= u.setup.stats.range * 0.4)
     out.push({ kind: 'kite', target: close, dest: kiteDest(u, s, close) });
   const danger = telegraphThreatFor(u, s);
-  if (danger && danger.ticksLeft <= DODGE_WINDOW) out.push({ kind: 'dodge', dest: dodgeDest(u, danger.tel) });
+  if (danger && danger.ticksLeft <= DODGE_WINDOW) out.push({ kind: 'dodge', dest: dodgeDest(u, danger.tel, s) });
   if (u.team === 'ally')
     for (const d of s.units)
       if (d.team === u.team && d.alive && d.downed && !d.rescueUsed) out.push({ kind: 'rescue', target: d });
@@ -105,7 +105,7 @@ export function generateCandidates(u: UnitState, s: BattleState): Candidate[] {
       if (victim) out.push({ kind: 'guard', target: f, dest: add(victim.pos, scale(sub(f.pos, victim.pos), 0.35)) });
     }
   if (u.emotions.some((e) => e.id === 'fear'))
-    out.push({ kind: 'flee', dest: clampToArena(v(u.pos.x + (u.team === 'ally' ? -4 : 4), u.pos.y)) });
+    out.push({ kind: 'flee', dest: clampToArena(v(u.pos.x + (u.team === 'ally' ? -4 : 4), u.pos.y), s) });
   for (const g of candidateGenerators) out.push(...g(u, s));
   out.push({ kind: 'idle', dest: v(u.pos.x, u.pos.y) });
   return out;

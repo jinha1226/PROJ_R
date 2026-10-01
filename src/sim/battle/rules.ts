@@ -13,7 +13,7 @@ export function processCommands(s: BattleState): void {
 }
 
 export function updateRules(s: BattleState): void {
-  if (s.tick >= BERSERK_TICK) {
+  if (s.mode === 'arena' && s.tick >= BERSERK_TICK) {
     const mult = 1.5 + 0.25 * Math.floor((s.tick - BERSERK_TICK) / BERSERK_STEP_TICKS);
     if (mult !== s.berserkMult) {
       s.berserkMult = mult;
@@ -29,7 +29,7 @@ export function updateRules(s: BattleState): void {
 }
 
 export function checkOutcome(s: BattleState): void {
-  if (s.outcome) return;
+  if (s.outcome || s.mode === 'world') return;
   const enemiesLeft = s.units.some((u) => u.team === 'enemy' && u.alive);
   const alliesStanding = s.units.some((u) => u.team === 'ally' && u.alive && !u.downed);
   if (!enemiesLeft) end(s, 'victory');
