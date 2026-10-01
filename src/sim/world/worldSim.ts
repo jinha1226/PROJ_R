@@ -25,6 +25,8 @@ import type { WorldState } from './types';
 import { createWorld, emitW, heroUnit } from './worldState';
 import { createPartyWorld, partyUnits, updateLeader, type Member } from './party';
 import { applyCommand, steerParty, updatePartyMode } from './partyCombat';
+import { memberDied, sortieEnd } from './partyLoss';
+import type { SortieEnd } from '../extract/companyTypes';
 import type { Stack } from '../extract/inventory';
 
 export { idleInput, type HeroInput } from './heroControl';
@@ -97,6 +99,11 @@ export class WorldSim {
 
   private bodies(): void {
     const w = this.w;
+    // fallen members are found by state, not by event (a death can happen between steps)
+    for (const id of w.party.order) {
+      const u = w.b.units.find((x) => x.id === id);
+      if (u && !u.alive && !w.party.dead.includes(id)) memberDied(w, id, u.pos);
+    }
     for (const e of w.b.events) {
       if (e.type !== 'died' || !e.dst) continue;
       const u = w.b.units.find((x) => x.id === e.dst);
@@ -104,6 +111,11 @@ export class WorldSim {
       dropBody(w, u.setup.defId, u.id, u.setup.level, u.pos);
       w.xp += XP_PER_KILL(u.setup.level);
     }
+  }
+
+  /** The sortie's result for the company (call once the outcome is set). */
+  end(): SortieEnd {
+    return sortieEnd(this.w);
   }
 
   /** The clock alone (tests and fast-forward previews). */

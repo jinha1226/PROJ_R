@@ -78,9 +78,10 @@ describe('world sim: extraction, clock, hazards, death', () => {
     const sim = new WorldSim(testRegion([], { start: { x: 50, y: 0 } }), hero(), kit(), 1);
     run(sim, SEC * 4);
     expect(sim.w.hero.channel?.kind).toBe('extract');
+    const held = sim.w.hero.channel!.ticks;
     heroUnit(sim.w).hp -= 10;
     run(sim, 1);
-    expect(sim.w.hero.channel!.ticks).toBeLessThanOrEqual(1);
+    expect(sim.w.hero.channel!.ticks).toBeLessThanOrEqual(held - 38); // a hit sets the hold back 2 s
     run(sim, SEC * 8 + 2);
     expect(sim.w.outcome).toBe('extracted');
     expect(sim.w.xp).toBeGreaterThan(0); // getting out alive is worth experience too

@@ -25,8 +25,10 @@ export interface HeroState {
   hiddenUntil: number;
   /** hp seen last tick, to notice damage (cancels channels) */
   lastHp: number;
-  /** last tick the hero took or dealt damage (breath recovery waits for calm) */
+  /** last tick anyone in the party took or dealt damage (breath recovery waits for calm) */
   lastCombat: number;
+  /** each member's hp last tick (a hit on anyone sets the extraction gauge back) */
+  memberHp: Record<string, number>;
 }
 
 /** The party on a sortie: order (leader first), who they are, what they wear, and how they move. */
@@ -44,6 +46,10 @@ export interface PartyState {
   dead: string[];
   /** per-follower route state */
   follow: Record<string, { path?: Vec2[]; repathIn: number; crumb?: Vec2 }>;
+  /** gear the fallen wore (kept for the record; it lies on their bodies) */
+  lost?: Record<string, Loadout>;
+  /** how the party got out: an extraction point id, or 'recall' */
+  exitVia?: string;
   /** the player is steering the leader this tick (the leader leaves the AI while the stick is held) */
   leaderSteered: boolean;
 }
