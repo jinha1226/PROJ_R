@@ -38,7 +38,7 @@ export function nearest(u: UnitState, list: UnitState[]): UnitState | undefined 
 function enemyTargets(u: UnitState, s: BattleState): UnitState[] {
   const taunt = u.tags.find((t) => t.tag === 'taunted');
   if (taunt) {
-    const src = s.units.find((o) => o.id === taunt.srcId && o.alive);
+    const src = s.units.find((o) => o.id === taunt.srcId && o.alive && !o.downed);
     if (src) return [src];
   }
   return foesOf(u, s);

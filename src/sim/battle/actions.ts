@@ -54,7 +54,7 @@ export function advanceActions(s: BattleState): void {
     const a = u.action;
     if (!a) continue;
     if (!u.alive || u.downed || isActionBlocked(u)) {
-      if (a.telegraphId !== undefined) s.telegraphs = s.telegraphs.filter((t) => t.id !== a.telegraphId);
+      if (a.telegraphId !== undefined && a.phase === 'windup') s.telegraphs = s.telegraphs.filter((t) => t.id !== a.telegraphId);
       u.action = null;
       emit(s, { type: 'action_cancel', src: u.id, skillId: a.skillId });
       continue;

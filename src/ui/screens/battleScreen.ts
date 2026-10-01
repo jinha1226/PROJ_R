@@ -6,6 +6,7 @@ import { Controls } from '../hud/controls';
 import { InspectPanel } from '../hud/inspectPanel';
 import { showResult } from '../hud/resultOverlay';
 import { BattleRuntime, unitName } from './battleRuntime';
+import { guardFrame } from './loopGuard';
 
 export interface BattleScreenActions {
   retry(): void;
@@ -71,9 +72,11 @@ export class BattleScreen implements Screen {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      rt.update(dt);
-      inspect.update((id) => rt.snap(id));
-      this.raf = requestAnimationFrame(loop);
+      const ok = guardFrame(() => {
+        rt.update(dt);
+        inspect.update((id) => rt.snap(id));
+      }, (e) => this.act.fatal(e));
+      if (ok) this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
   }

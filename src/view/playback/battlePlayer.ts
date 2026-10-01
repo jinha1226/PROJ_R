@@ -27,6 +27,8 @@ export class BattlePlayer {
 
   update(dtSec: number): Frame {
     this.acc += Math.min(dtSec, MAX_FRAME_DT) * this.speed;
+    // commands (retreat) must take effect even while paused
+    if (this.speed === 0 && this.battle.state.pending.length && !this.battle.outcome) this.acc = DT;
     let steps = 0;
     while (this.acc >= DT - 1e-9 && steps < this.maxStepsPerFrame && !this.battle.outcome) {
       const r = this.battle.step();

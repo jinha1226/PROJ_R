@@ -48,7 +48,7 @@ export class EventRouter {
           const sp = e.src ? d.posOf(e.src) : undefined;
           if (p && sp && skill.range <= MELEE_MAX_RANGE && !skill.projectile) d.fx.slash(p.x, p.z, sp.facing);
         }
-        if (dst && !dst.isBusy) dst.play('hit', { once: true, fade: 0.05 });
+        if (dst && !dst.isBusy && !dst.isDown) dst.play('hit', { once: true, fade: 0.05 });
         dst?.flash(0xffffff, 120);
         const kind: NumberKind = e.crit ? 'crit' : d.teamOf(e.dst ?? '') === 'ally' ? 'ally-hurt' : 'dmg';
         this.number(e.dst, `${e.amount}${e.crit ? '!' : ''}`, kind);
@@ -56,7 +56,7 @@ export class EventRouter {
       }
       case 'miss':
         this.dodgeFlip = !this.dodgeFlip;
-        dst?.play(this.dodgeFlip ? 'dodgeL' : 'dodgeR', { once: true, fade: 0.05 });
+        if (dst && !dst.isDown) dst.play(this.dodgeFlip ? 'dodgeL' : 'dodgeR', { once: true, fade: 0.05 });
         this.number(e.dst, 'MISS', 'miss');
         break;
       case 'dodge_roll':

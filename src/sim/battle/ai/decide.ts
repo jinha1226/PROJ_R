@@ -43,6 +43,7 @@ function intentKind(c: Candidate): IntentKind {
 }
 
 function execute(s: BattleState, u: UnitState, c: Candidate): void {
+  if (c.kind !== 'rescue' || c.target?.id !== u.rescueTarget) u.rescueProgress = 0;
   u.rescueTarget = null;
   if (c.kind === 'skill' && c.inRange) {
     startAction(s, u, c.skillId!, c.target?.id, c.target ? { ...c.target.pos } : undefined);

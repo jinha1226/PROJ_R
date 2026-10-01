@@ -19,7 +19,8 @@ export function createTelegraph(
   const tel: Telegraph = {
     id: s.nextId++, srcId: caster.id, skillId: skill.id, team: caster.team, area: skill.area,
     origin: areaOrigin(skill.area, caster, target, targetPos), dir,
-    startedAt: s.tick, firesAt: s.tick + secToTicks(skill.windup), areaMult: phaseAreaMult(caster),
+    // fires on the same tick the caster's windup completes (advanceActions runs before updateTelegraphs)
+    startedAt: s.tick, firesAt: s.tick + secToTicks(skill.windup) - 1, areaMult: phaseAreaMult(caster),
   };
   s.telegraphs.push(tel);
   emit(s, { type: 'telegraph_start', src: caster.id, skillId: skill.id, pos: tel.origin, data: { id: tel.id } });

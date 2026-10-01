@@ -127,6 +127,10 @@ export class Actor {
     return this.busy;
   }
 
+  get isDown(): boolean {
+    return this.state !== 'alive';
+  }
+
   update(dt: number): void {
     this.mixer.update(dt);
     if (this.flashLeft > 0) {
