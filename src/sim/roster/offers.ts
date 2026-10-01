@@ -91,3 +91,11 @@ export function applyOfferToRoster(r: Roster, mercId: string, offer: LevelOffer,
   next = { ...next, pendingLevelUps: Math.max(0, next.pendingLevelUps - 1) };
   return { ...r, inventory, mercs: r.mercs.map((x) => (x.id === mercId ? next : x)) };
 }
+
+/** Level-ups with no choices (e.g. the novice before promotion) are settled automatically; stats still grow. */
+export function settleEmptyLevelUps(r: Roster): Roster {
+  return {
+    ...r,
+    mercs: r.mercs.map((m) => (m.pendingLevelUps > 0 && levelOffers(m, r, r.seed + r.battles).length === 0 ? { ...m, pendingLevelUps: 0 } : m)),
+  };
+}

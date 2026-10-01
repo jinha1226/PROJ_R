@@ -59,6 +59,7 @@ export const KO = {
   title: KO_GROWTH.title,
   titleDesc: KO_GROWTH.titleDesc,
   rank: KO_GROWTH.rank,
+  role: KO_GROWTH.role,
   chronicle: KO_GROWTH.chronicle,
   reason: {
     ...KO_PERSONALITY.reason,

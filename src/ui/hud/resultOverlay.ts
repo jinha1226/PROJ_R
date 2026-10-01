@@ -5,6 +5,8 @@ import { iconBadge, type IconKey } from '../../view/overlay/icons';
 export interface ResultActions {
   retry(): void;
   back(): void;
+  /** show a single "continue" button (calls retry) */
+  continueOnly?: boolean;
 }
 
 const TITLE: Record<Outcome, string> = { victory: 'ui.victory', defeat: 'ui.defeat', retreat: 'ui.retreatResult' };
@@ -41,12 +43,13 @@ export function showResult(
       <tbody>${rows}</tbody></table>
       ${story ? storyHtml(story) : ''}
       <div class="result-actions">
-        <button class="btn primary" data-testid="retry">${t('ui.retry')}</button>
-        <button class="btn" data-testid="back">${t('ui.backToSandbox')}</button>
+        ${act.continueOnly ? `<button class="btn primary" data-testid="continue">계속</button>`
+          : `<button class="btn primary" data-testid="retry">${t('ui.retry')}</button><button class="btn" data-testid="back">${t('ui.backToSandbox')}</button>`}
       </div>
     </div>`;
-  el.querySelector('[data-testid="retry"]')!.addEventListener('click', act.retry);
-  el.querySelector('[data-testid="back"]')!.addEventListener('click', act.back);
+  el.querySelector('[data-testid="retry"]')?.addEventListener('click', act.retry);
+  el.querySelector('[data-testid="back"]')?.addEventListener('click', act.back);
+  el.querySelector('[data-testid="continue"]')?.addEventListener('click', act.retry);
   parent.appendChild(el);
   return el;
 }

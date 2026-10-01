@@ -1,5 +1,5 @@
 import type { Screen } from '../../app/router';
-import type { BattleEvent, BattleSetup, Outcome } from '../../sim/battle/types';
+import type { BattleEvent, BattleSetup, BattleState, Outcome } from '../../sim/battle/types';
 import { describeRelations } from '../hud/relationText';
 import { buildStory } from '../hud/story';
 import type { AssetLibrary } from '../../view/actors/assets';
@@ -15,6 +15,8 @@ export interface BattleScreenActions {
   retry(): void;
   back(): void;
   fatal(err: unknown): void;
+  /** company mode: the result screen shows a single "continue" that hands over the final state */
+  onContinue?(state: BattleState, events: readonly BattleEvent[]): void;
 }
 
 interface DebugHook {
@@ -106,7 +108,9 @@ export class BattleScreen implements Screen {
       return u ? unitName(u.setup) : id;
     };
     const story = buildStory(this.setup, this.events, nameById);
-    setTimeout(() => showResult(el, outcome, rt.battle.state.units, (u) => unitName(u.setup), this.act, story), 900);
+    const cont = this.act.onContinue;
+    const actions = cont ? { retry: () => cont(rt.battle.state, this.events), back: () => cont(rt.battle.state, this.events), continueOnly: true } : this.act;
+    setTimeout(() => showResult(el, outcome, rt.battle.state.units, (u) => unitName(u.setup), actions, story), 900);
   }
 
   unmount(): void {

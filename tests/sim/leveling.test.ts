@@ -70,3 +70,15 @@ describe('leveling', () => {
     expect(offers).toEqual([]);
   });
 });
+
+describe('settling choice-less level-ups', () => {
+  it('consumes pending level-ups that have nothing to choose', async () => {
+    const { settleEmptyLevelUps } = await import('../../src/sim/roster/offers');
+    const r = roster();
+    const p = { ...r.mercs[0]!, level: 2, pendingLevelUps: 1 };
+    const m1 = { ...r.mercs[1]!, level: 2, pendingLevelUps: 1 };
+    const out = settleEmptyLevelUps({ ...r, mercs: [p, m1, ...r.mercs.slice(2)] });
+    expect(out.mercs[0]!.pendingLevelUps).toBe(0);
+    expect(out.mercs[1]!.pendingLevelUps).toBe(1);
+  });
+});
