@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Input, type PadLike } from '../../src/app/input/input';
+import { stickVector, TouchState } from '../../src/app/input/touch';
 
 const pad = (axes: number[], pressed: number[] = []): PadLike => ({ axes, buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: pressed.includes(i) })) });
 
@@ -48,5 +49,60 @@ describe('input', () => {
     inp.key('Escape', false);
     expect(inp.poll().cancel).toBe(true);
     expect(inp.poll().cancel).toBe(false);
+  });
+  it('maps the sortie keys: J/K/L/; skills, 1–4 quick slots, E or pad B to pick up, held attack', () => {
+    const inp = new Input(() => []);
+    inp.key('KeyK', true);
+    inp.key('Digit3', true);
+    inp.key('KeyE', true);
+    inp.key('Semicolon', true);
+    let s = inp.poll();
+    expect([s.skill1, s.quick, s.pick, s.ult]).toEqual([true, 2, true, true]);
+    inp.key('KeyJ', true);
+    s = inp.poll();
+    expect(s.attackHeld).toBe(true);
+    expect(inp.poll().attackHeld).toBe(true);
+    const padIn = new Input(() => [pad([0, 0], [1, 13])]);
+    s = padIn.poll();
+    expect([s.pick, s.quick]).toEqual([true, 1]);
+  });
+  it('touch controls feed the same state (virtual source)', () => {
+    const inp = new Input(() => []);
+    inp.setVirtual({ move: { x: 0.5, y: 0 }, attack: true, quick: 0 });
+    const s = inp.poll();
+    expect(s.move).toEqual({ x: 0.5, y: 0 });
+    expect(s.attackHeld).toBe(true);
+    expect(s.quick).toBe(0);
+    expect(inp.poll().quick).toBeNull();
+  });
+});
+
+describe('touch controls', () => {
+  it('a stick vector is clamped to its radius with a dead zone', () => {
+    expect(stickVector({ x: 0, y: 0 }, { x: 5, y: 0 }, 60, 0.15)).toEqual({ x: 0, y: 0 });
+    expect(stickVector({ x: 0, y: 0 }, { x: 120, y: 0 }, 60, 0.15)).toEqual({ x: 1, y: 0 });
+    const v = stickVector({ x: 0, y: 0 }, { x: 30, y: 30 }, 60, 0.15);
+    expect(Math.hypot(v.x, v.y)).toBeGreaterThan(0.5);
+    expect(Math.hypot(v.x, v.y)).toBeLessThan(0.8);
+  });
+  it('holds the stick with one finger while another presses attack', () => {
+    const t = new TouchState(800, 60);
+    t.down(1, 100, 300);           // left half → stick at the touch point
+    t.move(1, 160, 300);
+    t.press(2, 'attack');
+    expect(t.state().move!.x).toBeCloseTo(1);
+    expect(t.state().attack).toBe(true);
+    t.up(2);
+    expect(t.state().attack).toBe(false);
+    expect(t.state().move!.x).toBeCloseTo(1);
+    t.up(1);
+    expect(t.state().move).toEqual({ x: 0, y: 0 });
+  });
+  it('quick slot taps are one-shot', () => {
+    const t = new TouchState(800, 60);
+    t.press(3, 'quick1');
+    expect(t.state().quick).toBe(1);
+    t.up(3);
+    expect(t.state().quick ?? null).toBeNull();
   });
 });

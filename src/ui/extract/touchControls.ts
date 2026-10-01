@@ -1,0 +1,96 @@
+import type { Input } from '../../app/input/input';
+import { TouchState, type TouchButton } from '../../app/input/touch';
+
+const STICK_RADIUS = 60;
+const BUTTONS: { b: TouchButton; label: string; cls: string }[] = [
+  { b: 'attack', label: '공격', cls: 'tb-attack' },
+  { b: 'skill1', label: '기술1', cls: 'tb-s1' },
+  { b: 'skill2', label: '기술2', cls: 'tb-s2' },
+  { b: 'ult', label: '궁극', cls: 'tb-ult' },
+  { b: 'pick', label: '줍기', cls: 'tb-pick' },
+];
+
+export const isTouchDevice = (): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+
+/** Floating stick on the left half, action buttons on the right; feeds Input as its virtual source. */
+export class TouchControls {
+  readonly el = document.createElement('div');
+  private readonly ts: TouchState;
+  private readonly knob = document.createElement('div');
+  private readonly base = document.createElement('div');
+
+  constructor(private readonly input: Input, quickCount: () => number) {
+    this.ts = new TouchState(window.innerWidth, STICK_RADIUS);
+    this.el.className = 'touch-controls';
+    this.base.className = 'tc-stick';
+    this.knob.className = 'tc-knob';
+    this.base.appendChild(this.knob);
+    this.base.hidden = true;
+    const pad = document.createElement('div');
+    pad.className = 'tc-pad';
+    pad.addEventListener('pointerdown', (e) => this.onPadDown(e));
+    const buttons = document.createElement('div');
+    buttons.className = 'tc-buttons';
+    for (const { b, label, cls } of BUTTONS) buttons.appendChild(this.button(b, label, cls));
+    const quick = document.createElement('div');
+    quick.className = 'tc-quick';
+    for (let i = 0; i < 4; i++) {
+      const q = this.button(`quick${i}` as TouchButton, String(i + 1), 'tb-quick');
+      q.dataset.slot = String(i);
+      quick.appendChild(q);
+    }
+    this.el.append(pad, this.base, buttons, quick);
+    const move = (e: PointerEvent) => { this.ts.move(e.pointerId, e.clientX, e.clientY); this.sync(); };
+    const up = (e: PointerEvent) => { this.ts.up(e.pointerId); this.sync(); };
+    this.el.addEventListener('pointermove', move);
+    this.el.addEventListener('pointerup', up);
+    this.el.addEventListener('pointercancel', up);
+    const refreshQuick = () => quick.querySelectorAll<HTMLElement>('.tb-quick').forEach((q) => { q.hidden = Number(q.dataset.slot) >= quickCount(); });
+    refreshQuick();
+    this.el.addEventListener('pointerdown', refreshQuick);
+  }
+
+  private button(b: TouchButton, label: string, cls: string): HTMLElement {
+    const el = document.createElement('div');
+    el.className = `tc-btn ${cls}`;
+    el.textContent = label;
+    el.dataset.testid = `touch-${b}`;
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      el.setPointerCapture?.(e.pointerId);
+      this.ts.press(e.pointerId, b);
+      this.sync();
+    });
+    return el;
+  }
+
+  private onPadDown(e: PointerEvent): void {
+    if (!this.ts.down(e.pointerId, e.clientX, e.clientY)) return;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    this.sync();
+  }
+
+  private sync(): void {
+    const st = this.ts.state();
+    this.input.setVirtual(st);
+    const o = this.ts.stickOrigin();
+    this.base.hidden = !o;
+    if (o) {
+      this.base.style.left = `${o.x}px`;
+      this.base.style.top = `${o.y}px`;
+      this.knob.style.transform = `translate(${(st.move?.x ?? 0) * STICK_RADIUS}px, ${(st.move?.y ?? 0) * STICK_RADIUS}px)`;
+    }
+    for (const el of this.el.querySelectorAll<HTMLElement>('.tc-btn')) el.classList.toggle('on', false);
+  }
+
+  /** The pick-up button only shows when something is in reach. */
+  setPickVisible(on: boolean): void {
+    const p = this.el.querySelector<HTMLElement>('.tb-pick');
+    if (p) p.hidden = !on;
+  }
+
+  dispose(): void {
+    this.input.setVirtual({});
+    this.el.remove();
+  }
+}
