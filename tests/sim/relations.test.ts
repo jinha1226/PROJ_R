@@ -43,7 +43,7 @@ describe('relations', () => {
     expect(partners(s, a0!, 'friend').map((u) => u.id)).toEqual(['a1', 'a4']);
     a1!.downed = true;
     expect(partners(s, a0!, 'friend').map((u) => u.id)).toEqual(['a4']);
-    expect(partners(s, a0!, 'mentor')).toEqual([]);
+    expect(partners(s, a0!, 'mentor').map((u) => u.id)).toEqual(['a4']);
   });
   it('lethal guard can keep a unit at 1 hp', () => {
     const s = createState(setupFromPresets(1, 'bonds', 'skeletons'));
