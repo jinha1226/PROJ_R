@@ -9,11 +9,12 @@ class Occupancy {
   readonly h: number;
   readonly blocked: Uint8Array;
 
-  constructor(readonly b: Bounds, readonly cell: number, obstacles: Obstacle[], clearance: number) {
+  constructor(readonly b: Bounds, readonly cell: number, obstacles: Obstacle[], clearance: number, conservative: boolean) {
     this.w = Math.ceil((b.maxX - b.minX) / cell);
     this.h = Math.ceil((b.maxY - b.minY) / cell);
     this.blocked = new Uint8Array(this.w * this.h);
-    const pad = clearance + (cell * SQRT2) / 2;
+    // conservative: every point of a free cell is clear (LOS); otherwise only its centre (routing through door gaps)
+    const pad = clearance + (conservative ? (cell * SQRT2) / 2 : cell / 2);
     for (let j = 0; j < this.h; j++)
       for (let i = 0; i < this.w; i++) {
         const c = this.center(i, j);
@@ -87,8 +88,8 @@ export class NavGrid {
   private readonly fine: Occupancy;
 
   constructor(bounds: Bounds, obstacles: Obstacle[], cell = 1, clearance = 0.4) {
-    this.coarse = new Occupancy(bounds, cell, obstacles, clearance);
-    this.fine = new Occupancy(bounds, cell / 2, obstacles, clearance);
+    this.coarse = new Occupancy(bounds, cell, obstacles, clearance, false);
+    this.fine = new Occupancy(bounds, cell / 2, obstacles, clearance, true);
   }
 
   walkable(p: Vec2): boolean {
