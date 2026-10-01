@@ -27,7 +27,8 @@ export function walkTo(w: WorldState, u: UnitState, st: AiState, dest: Vec2, spe
   return false;
 }
 
-function goHome(w: WorldState, g: string): void {
+/** A group gives up the chase and walks back to its post. */
+export function goHome(w: WorldState, g: string): void {
   const grp = w.groups[g]!;
   grp.alerted = false;
   for (const id of grp.members) {
