@@ -18,9 +18,9 @@ test('bonds party shows relationship drama and the moments summary', async ({ pa
   await expect(page.locator('[data-testid="inspect"]')).toContainText('전우');
   await expect(page.locator('[data-testid="inspect"]')).toContainText('보호본능');
   await page.screenshot({ path: 'test-artifacts/bonds-inspect.png' });
-  await page.click('[data-testid="pause"]');
-  await page.click('[data-testid="speed-4"]');
-  await expect(page.locator('[data-testid="result"]')).toBeVisible({ timeout: 90_000 });
+  // software-rendered CI is too slow to watch a 12-unit battle to the end; fast-forward the sim
+  await page.evaluate(() => (window as unknown as { __PROJR__: { finish(): void } }).__PROJR__.finish());
+  await expect(page.locator('[data-testid="result"]')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-testid="moments"] li').first()).toBeVisible();
   await page.screenshot({ path: 'test-artifacts/bonds-result.png' });
   expect(errors).toEqual([]);

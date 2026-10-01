@@ -50,3 +50,13 @@ describe('battle player', () => {
     expect(p.battle.outcome).toBe('retreat');
   });
 });
+
+describe('battle player fast-forward', () => {
+  it('finish() runs the battle to its end and reports every step', () => {
+    let steps = 0;
+    const p = new BattlePlayer(new Battle(setupFromPresets(1, 'standard', 'bandits')), () => { steps++; });
+    p.finish();
+    expect(p.battle.outcome).not.toBeNull();
+    expect(steps).toBe(p.battle.state.tick);
+  });
+});

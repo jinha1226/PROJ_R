@@ -47,6 +47,16 @@ export class BattlePlayer {
     return { prev: this.prev, curr: this.curr, alpha: Math.max(0, Math.min(0.999, this.acc / DT)) };
   }
 
+  /** Runs the battle to completion immediately (debug/e2e), reporting each step. */
+  finish(): void {
+    while (!this.battle.outcome) {
+      const r = this.battle.step();
+      this.prev = this.curr;
+      this.curr = r.snapshot;
+      this.onStep(r);
+    }
+  }
+
   /** Real-time seconds of slowed playback (scale < 1), for highlight moments. */
   slowmo(realSec: number, scale: number): void {
     this.slowLeft = Math.max(this.slowLeft, realSec);

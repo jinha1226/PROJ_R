@@ -18,6 +18,7 @@ export interface BattleScreenActions {
 }
 
 interface DebugHook {
+  finish(): void;
   tick(): number;
   outcome(): Outcome | null;
   speed(s: 0 | 1 | 2 | 4): void;
@@ -78,6 +79,7 @@ export class BattleScreen implements Screen {
     this.parts = [log, inspect, controls, { dispose: detachCamera }];
     (window as unknown as { __PROJR__: DebugHook }).__PROJR__ = {
       tick: () => rt.battle.state.tick,
+      finish: () => rt.player.finish(),
       outcome: () => rt.battle.outcome,
       speed: (s) => { rt.player.speed = s; },
     };
