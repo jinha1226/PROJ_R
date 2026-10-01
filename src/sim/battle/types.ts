@@ -79,6 +79,8 @@ export interface Intent {
   skillId?: string;
   targetId?: string;
   dest?: Vec2;
+  /** ally this intent is for (protect) */
+  allyId?: string;
   /** ko.reason key */
   reason: string;
   detail?: string[];
@@ -176,6 +178,8 @@ export interface BattleState {
   berserkMult: number;
   /** pairKey → relation, only pairs where both allies are deployed */
   relations: Map<string, Relation>;
+  /** "src|dst|kind" → tick when that relation trigger may fire again */
+  triggerReady: Map<string, number>;
 }
 
 export interface UnitSnap {

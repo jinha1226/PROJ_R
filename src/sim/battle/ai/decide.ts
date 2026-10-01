@@ -63,7 +63,7 @@ function execute(s: BattleState, u: UnitState, c: Candidate): void {
 }
 
 const sameIntent = (a: Intent | null, b: Intent): boolean =>
-  !!a && a.kind === b.kind && a.targetId === b.targetId && a.skillId === b.skillId;
+  !!a && a.kind === b.kind && a.targetId === b.targetId && a.skillId === b.skillId && a.allyId === b.allyId;
 
 export function decideUnit(s: BattleState, u: UnitState): void {
   const ctx = makeCtx(u, s, effectiveStats(u, s));
@@ -75,12 +75,12 @@ export function decideUnit(s: BattleState, u: UnitState): void {
   if (!best) return;
   const { c } = best;
   const intent: Intent = {
-    kind: intentKind(c), skillId: c.skillId, targetId: c.target?.id, dest: c.dest,
+    kind: intentKind(c), skillId: c.skillId, targetId: c.target?.id, dest: c.dest, allyId: c.ally?.id,
     reason: best.reasons[0]?.reason ?? defaultReason(c),
     detail: [...new Set(best.reasons.map((r) => r.reason))].slice(0, 3),
   };
   if (!sameIntent(u.intent, intent))
-    emit(s, { type: 'intent', src: u.id, dst: intent.targetId, skillId: intent.skillId, reason: intent.reason, data: { kind: intent.kind } });
+    emit(s, { type: 'intent', src: u.id, dst: intent.targetId, skillId: intent.skillId, reason: intent.reason, data: { kind: intent.kind, allyId: intent.allyId } });
   u.intent = intent;
   execute(s, u, c);
 }

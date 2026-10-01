@@ -114,5 +114,6 @@ export function createState(setup: BattleSetup): BattleState {
     nextId: 1,
     berserkMult: 1,
     relations: buildRelations(setup),
+    triggerReady: new Map(),
   };
 }

@@ -13,6 +13,8 @@ export interface Candidate {
   skillId?: string;
   skill?: SkillDef;
   target?: UnitState;
+  /** ally the candidate serves (protect) */
+  ally?: UnitState;
   dest?: Vec2;
   inRange?: boolean;
 }
