@@ -47,7 +47,7 @@ const list: EnemyDef[] = [
     gear: { weapon: 'Staff', helmet: true, cape: false },
   },
   {
-    id: 'ashen_knight', role: 'vanguard', base: stats(500, 10, 25, 0.8, 2.2, 2.8, 0, 0.05),
+    id: 'ashen_knight', role: 'vanguard', base: stats(650, 11, 25, 0.8, 2.2, 2.8, 0, 0.05),
     basic: 'heavy_cleave', actives: ['crushing_slam', 'ashen_charge', 'raise_dead'], model: 'Skeleton_Warrior',
     gear: { weapon: 'Axe', offhand: 'Shield_Large', helmet: true, cape: true }, scale: 1.8, boss: true,
     phases: [{ hpBelow: 0.5, statMult: { atkSpeed: 1.25, moveSpeed: 1.15 }, areaMult: 1.3 }],

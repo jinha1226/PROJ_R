@@ -11,7 +11,7 @@ import type { Mercenary } from '../../../src/sim/roster/types';
 import { newRunV2 } from '../../../src/sim/week/week';
 import type { ClassId } from '../../../src/data/types';
 import type { RunState, Theme } from '../../../src/sim/run/types';
-import { enemyFromDef } from '../../../src/sim/battle/setup';
+import { bossBattleSetup } from '../../../src/sim/week/boss';
 
 const PARTY: ClassId[] = ['warrior', 'berserker', 'crossbow', 'mage', 'priest'];
 
@@ -28,8 +28,11 @@ export function standardParty(week: number, seed: number): Mercenary[] {
   return PARTY.slice(0, sizeForWeek(week)).map((classId, i) => {
     const m = generateRecruit(rng, { level, usedNames: used, classId, id: `m${i}` });
     const better = Object.values(ITEMS).find((it) => it.slot === 'weapon' && it.weaponType === WEAPON_TYPE_OF_CLASS[classId] && it.tier > 0);
-    const weapon = week >= 7 && better ? better.id : starterWeapon(classId);
-    const armor = week >= 10 ? 'guard_plate' : week >= 6 ? 'chain_mail' : week >= 3 ? 'padded_vest' : 'ragged_clothes';
+    // what a player's purse actually buys (measured with the weekly bot in weekRun.test.ts):
+    // cheap vests early, and only the front pair upgraded late
+    const front = i < 2;
+    const weapon = week >= 8 && front && better ? better.id : starterWeapon(classId);
+    const armor = week >= 9 && front ? 'chain_mail' : week >= 3 ? 'padded_vest' : 'ragged_clothes';
     const passives = level >= 7 ? ['toughness', 'sharpEdge'] : level >= 4 ? ['toughness'] : [];
     const lv = level >= 8 ? 3 : level >= 5 ? 2 : 1;
     const skillLevels = Object.fromEntries(CLASSES[classId].actives.map((a) => [a, lv]));
@@ -54,12 +57,12 @@ export function roomBattle(week: number, stars: 1 | 2 | 3, seed: number, theme: 
   return roomBattleSetup({ ...run0, exploration: e }, target.id, formation);
 }
 
-/** Week-12 boss fight with the recommended party (dungeon room, boss + two archers). */
+/** Week-12 boss fight with the recommended party — the same setup the game uses. */
 export function bossBattle(seed: number): BattleSetup {
-  const setup = roomBattle(12, 3, seed, 'dungeon');
-  const enemies = [enemyFromDef('ashen_knight', 2, 1, 12, 0), enemyFromDef('skeleton_archer', 0, 0, 12, 1), enemyFromDef('skeleton_archer', 0, 3, 12, 2)]
-    .map((u, i) => ({ ...u, spawn: { x: [0, -3, 3][i]!, y: [0, -2.5, 2.5][i]! } }));
-  return { ...setup, enemies };
+  const party = standardParty(12, seed);
+  const run = runWith(party, 12, seed);
+  const formation = Object.fromEntries(autoFormation(party).map(({ merc, col, row }) => [merc.id, { col, row }]));
+  return { ...bossBattleSetup(run, formation), seed };
 }
 
 export function winRate(make: (seed: number) => BattleSetup, n: number): { rate: number; avgSec: number } {

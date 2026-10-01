@@ -47,14 +47,17 @@ registerCandidateGenerator((u, s) => {
     .map(({ ally, foe }): Candidate => ({ kind: 'protect', target: foe, ally, dest: lerp(ally.pos, foe.pos, 0.35) }));
 });
 
+const LAST_HIT_FRACTION = 0.4;
+
 registerConsideration({ id: 'relation:protect', reason: 'protectFriend', score: (c, { u, s }) => {
   if (c.kind === 'protect') return 45 + (c.ally && isMentorOf(s, u, c.ally) ? 10 : 0) + (u.setup.traits.includes('protective') ? 20 : 0);
   if (c.kind !== 'skill' || c.skill?.target !== 'enemy' || !c.target) return 0;
   return threatened(u, s).some((t) => t.foe === c.target) ? 25 : 0;
 } });
 
+/** Rivals race for the last hit: only a nearly dead target is worth stealing (a full-HP boss is not). */
 registerConsideration({ id: 'relation:rivalry', reason: 'rivalry', score: (c, { u, s }) => {
-  if (c.kind !== 'skill' || c.skill?.target !== 'enemy' || !c.target) return 0;
+  if (c.kind !== 'skill' || c.skill?.target !== 'enemy' || !c.target || c.target.hp > c.target.maxHp * LAST_HIT_FRACTION) return 0;
   return partners(s, u, 'rival').some((r) => r.intent?.targetId === c.target!.id) ? 12 : 0;
 } });
 

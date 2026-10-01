@@ -34,6 +34,11 @@ describe('post-battle relationship update', () => {
     expect(find(r.relations, 'a0', 'a1')!.affinity).toBe(2 + 20 + 5);
     expect(r.moments.some((m) => m.kind === 'rescue' && m.a === 'a0' && m.b === 'a1')).toBe(true);
   });
+  it('a rivalry is judged once per three new contests, not re-rolled every battle', () => {
+    let relations: Relation[] = [{ a: 'a0', b: 'a1', affinity: 0, rival: false, battlesTogether: 3, contests: 3 }];
+    for (let i = 0; i < 30; i++) relations = applyBattleToRelations({ relations, allies: allies([[], []]), events: [], seed: i }).relations;
+    expect(find(relations, 'a0', 'a1')!.rival).toBe(false);
+  });
   it('three last-hit contests make competitive pairs rivals', () => {
     const relations: Relation[] = [{ a: 'a0', b: 'a1', affinity: 0, rival: false, battlesTogether: 3, contests: 2 }];
     const r = applyBattleToRelations({

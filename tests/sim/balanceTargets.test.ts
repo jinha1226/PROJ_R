@@ -19,9 +19,8 @@ describe('balance targets (recommended pace party, auto battle)', () => {
     expect(r[1]! + 0.05).toBeGreaterThanOrEqual(r[2]!);
     expect(r[2]).toBeGreaterThanOrEqual(0.3);
   }, 120_000);
-  it('the boss is beatable but not free for a recommended party', () => {
+  it('a well-built company reliably beats the boss (the naive weekly bot is the floor, see docs/balance.md)', () => {
     const r = winRate((seed) => bossBattle(seed), N).rate;
-    expect(r).toBeGreaterThanOrEqual(0.3);
-    expect(r).toBeLessThanOrEqual(0.8);
+    expect(r).toBeGreaterThanOrEqual(0.8);
   }, 120_000);
 });

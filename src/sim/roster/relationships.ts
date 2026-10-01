@@ -101,7 +101,8 @@ export function applyBattleToRelations(input: { relations: Relation[]; allies: U
       const before = relationKinds(old, levelA, levelB);
       const r = { ...old, battlesTogether: old.battlesTogether + 1, contests: old.contests + (contests.get(k) ?? 0) };
       r.affinity = Math.max(-100, Math.min(100, Math.round(r.affinity + compatGain(A.traits, B.traits) + affinityOf(k, input.events))));
-      if (!r.rival && r.contests >= CONTESTS_FOR_RIVAL) {
+      // each further three contests is one rivalry check
+      if (!r.rival && Math.floor(r.contests / CONTESTS_FOR_RIVAL) > Math.floor(old.contests / CONTESTS_FOR_RIVAL)) {
         const competitive = A.traits.includes('competitive') || B.traits.includes('competitive');
         r.rival = competitive || rng.chance(RIVAL_CHANCE);
       }

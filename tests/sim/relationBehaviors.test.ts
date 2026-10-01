@@ -7,6 +7,7 @@ import { emit } from '../../src/sim/battle/events';
 import { effectiveStats } from '../../src/sim/battle/stats';
 import { hasEmotion } from '../../src/sim/personality/emotions';
 import { v } from '../../src/core/vec2';
+import { considerations, makeCtx } from '../../src/sim/battle/ai/considerations';
 
 const bonds = () => {
   const s = createState(setupFromPresets(1, 'bonds', 'skeletons'));
@@ -51,6 +52,19 @@ describe('relationship behaviors', () => {
     owen.downed = true;
     decideUnit(s, bran);
     expect(bran.intent?.kind).not.toBe('protect');
+  });
+  it('rivals race for the last hit only on a nearly dead target', () => {
+    const { s, by, foes } = bonds();
+    const kael = by('a2');
+    const yuna = by('a3');
+    const foe = foes[0]!;
+    yuna.intent = { kind: 'attack', targetId: foe.id, reason: 'attack' };
+    const rivalry = considerations.find((c) => c.id === 'relation:rivalry')!;
+    const cand = { kind: 'skill', skill: { target: 'enemy' }, target: foe } as unknown as Parameters<typeof rivalry.score>[0];
+    const score = () => rivalry.score(cand, makeCtx(kael, s, effectiveStats(kael, s)));
+    expect(score()).toBe(0);
+    foe.hp = foe.maxHp * 0.3;
+    expect(score()).toBeGreaterThan(0);
   });
   it('rivals sharpen each other nearby', () => {
     const { s, by } = bonds();
