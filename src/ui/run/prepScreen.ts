@@ -11,6 +11,8 @@ export interface PrepApi extends Omit<RosterPanelApi, 'roster' | 'changed'> {
   enemies: { enemyId: string }[];
   title: string;
   start(formation: Record<string, Slot>): void;
+  /** limit placement to these mercs (exploration party) */
+  only?: string[];
 }
 
 /** Battle preparation: formation, relationship preview, enemy preview, and roster management. */
@@ -21,7 +23,7 @@ export class PrepScreen implements Screen {
   private preview = document.createElement('div');
 
   constructor(private readonly api: PrepApi, initial: Record<string, Slot>) {
-    const mercs = api.run().roster.mercs.filter((m) => m.alive);
+    const mercs = api.run().roster.mercs.filter((m) => m.alive && (!api.only || api.only.includes(m.id)));
     this.grid = new FormationGrid(mercs, initial, () => this.refresh());
     this.panel = new RosterPanel({ ...api, roster: () => api.run().roster, changed: () => this.refresh() });
   }

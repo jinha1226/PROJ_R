@@ -39,7 +39,7 @@ export class RosterScreen implements Screen {
     const run = this.api.run();
     const pending = run.roster.mercs.filter((m) => m.pendingLevelUps > 0).length;
     this.head.innerHTML = runHud(run, `${pending ? `<button class="btn primary" data-act="levelup" data-testid="levelup-next">레벨업 진행 (${pending})</button>` : ''}
-      <button class="btn" data-act="back" data-testid="back-to-map">지도로</button>`)
+      <button class="btn" data-act="back" data-testid="back-to-map">돌아가기</button>`)
       .replace('data-act="roster"', 'data-act="noop" hidden').replace('data-act="quit"', 'data-act="noop" hidden');
     this.panel.render();
     renderRelationGraph(this.graph, run.roster);
