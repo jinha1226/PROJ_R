@@ -16,6 +16,9 @@ const PROTECT_COOLDOWN = 6 * TICK_RATE;
 const FEUD_COOLDOWN = 10 * TICK_RATE;
 const near = (a: UnitState, b: UnitState): boolean => dist(a.pos, b.pos) <= PROXIMITY;
 const byId = (s: BattleState, id?: string) => (id ? s.units.find((u) => u.id === id) : undefined);
+/** Mentorship only flows from the higher-level unit to the lower-level one. */
+const isMentorOf = (s: BattleState, master: UnitState, disciple: UnitState): boolean =>
+  master.setup.level > disciple.setup.level && hasRelation(s, master, disciple, 'mentor');
 
 /** Emits a relation_trigger unless the same src/dst/kind fired within the cooldown. */
 export function fireTrigger(s: BattleState, src: string, dst: string, kind: RelationTriggerKind, cooldown: number, data: Record<string, unknown> = {}): void {
@@ -45,7 +48,7 @@ registerCandidateGenerator((u, s) => {
 });
 
 registerConsideration({ id: 'relation:protect', reason: 'protectFriend', score: (c, { u, s }) => {
-  if (c.kind === 'protect') return 45 + (c.ally && hasRelation(s, u, c.ally, 'mentor') ? 10 : 0) + (u.setup.traits.includes('protective') ? 20 : 0);
+  if (c.kind === 'protect') return 45 + (c.ally && isMentorOf(s, u, c.ally) ? 10 : 0) + (u.setup.traits.includes('protective') ? 20 : 0);
   if (c.kind !== 'skill' || c.skill?.target !== 'enemy' || !c.target) return 0;
   return threatened(u, s).some((t) => t.foe === c.target) ? 25 : 0;
 } });
@@ -73,7 +76,7 @@ function onEvent(s: BattleState, e: BattleEvent): void {
   if (e.type === 'intent' && e.data?.kind === 'protect' && e.src && typeof e.data.allyId === 'string') {
     const u = byId(s, e.src);
     const ally = byId(s, e.data.allyId);
-    if (u && ally) fireTrigger(s, u.id, ally.id, hasRelation(s, u, ally, 'mentor') ? 'mentor' : 'protect', PROTECT_COOLDOWN);
+    if (u && ally) fireTrigger(s, u.id, ally.id, isMentorOf(s, u, ally) ? 'mentor' : 'protect', PROTECT_COOLDOWN);
   } else if (e.type === 'died') {
     const killer = byId(s, e.src);
     if (!killer || killer.team !== 'ally') return;

@@ -81,7 +81,7 @@ function onEvent(s: BattleState, e: BattleEvent): void {
     const attacker = byId(s, e.src);
     if (!victim || !attacker || attacker.team === victim.team) return;
     for (const v of s.units) {
-      if (v.team !== victim.team || !has(v, 'vengeful') || !relatedEvenIfDown(s, v, victim, 'friend')) continue;
+      if (v.team !== victim.team || v.downed || !has(v, 'vengeful') || !relatedEvenIfDown(s, v, victim, 'friend')) continue;
       addEmotion(s, v, 'revenge', { targetId: attacker.id });
       emit(s, { type: 'relation_trigger', src: v.id, dst: victim.id, data: { kind: 'revenge', targetId: attacker.id } });
     }

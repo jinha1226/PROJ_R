@@ -9,6 +9,7 @@ import { DECISION_INTERVAL, TICK_RATE } from '../battle/constants';
 import { emit } from '../battle/events';
 import { isActionBlocked } from '../battle/tags';
 import type { BattleState, UnitState } from '../battle/types';
+import { addEmotion } from './emotions';
 import { pairKey, partners } from './relations';
 
 const MAX_PAIR_DIST = 6;
@@ -67,4 +68,6 @@ candidateExecutors.pairCombo = (s: BattleState, lead: UnitState, c: Candidate) =
   partner.momentum = Math.max(0, partner.momentum - MOMENTUM_COST);
   s.pairCooldowns.set(pairKey(lead.id, partner.id), s.tick + def.cooldown * TICK_RATE);
   emit(s, { type: 'pair_combo', src: lead.id, dst: partner.id, skillId: def.id });
+  addEmotion(s, lead, 'elation');
+  addEmotion(s, partner, 'elation');
 };

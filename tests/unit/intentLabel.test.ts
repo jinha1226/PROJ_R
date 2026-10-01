@@ -20,3 +20,9 @@ describe('intent label', () => {
     expect(intentLabel(null, names)).toBeNull();
   });
 });
+
+describe('intent label: protect', () => {
+  it('names the ally being protected', () => {
+    expect(intentLabel({ kind: 'protect', targetId: 'e1', allyId: 'a1', reason: 'protectFriend' }, names)?.text).toBe('엄호 → 오웬');
+  });
+});

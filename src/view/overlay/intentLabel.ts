@@ -7,7 +7,8 @@ const TARGETED = new Set(['attack', 'approach', 'rescue', 'protect']);
 /** Short in-world description of what a unit is doing; null when there is nothing worth showing. */
 export function intentLabel(intent: Intent | null, nameOf: (id: string) => string): { icon: IconKey; text: string } | null {
   if (!intent || intent.kind === 'idle') return null;
-  const target = intent.targetId ? nameOf(intent.targetId) : '';
+  const subject = intent.kind === 'protect' && intent.allyId ? intent.allyId : intent.targetId;
+  const target = subject ? nameOf(subject) : '';
   const icon: IconKey = intent.reason === 'comboPair' ? 'relation:combo' : `intent:${intent.kind}`;
   if (intent.kind === 'skill' && intent.skillId) return { icon, text: target ? `${t(`skill.${intent.skillId}`)} → ${target}` : t(`skill.${intent.skillId}`) };
   const verb = t(`intent.${intent.kind}`);
