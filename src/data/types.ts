@@ -160,3 +160,37 @@ export interface EnemyDef {
   boss?: boolean;
   phases?: BossPhase[];
 }
+
+export interface Relation {
+  a: string;
+  b: string;
+  affinity: number;
+  rival: boolean;
+  battlesTogether: number;
+  /** last-hit contests counted toward rivalry */
+  contests: number;
+}
+
+export interface TraitDef {
+  id: TraitId;
+  affinityMult: number;
+  likes: TraitId[];
+  dislikes: TraitId[];
+}
+
+export interface EmotionDef {
+  id: EmotionId;
+  durationSec: number;
+  statMult: Partial<Stats>;
+  momentumMult: number;
+}
+
+export interface ComboDef {
+  id: string;
+  classes: [ClassId, ClassId];
+  lead: ClassId;
+  skill: string;
+  partnerSkill: string;
+  /** seconds */
+  cooldown: number;
+}

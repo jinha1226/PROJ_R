@@ -1,6 +1,6 @@
 import type { Vec2 } from '../../core/vec2';
 import type { Rng } from '../../core/rng';
-import type { AreaShape, BossPhase, GearVisual, ModelId, Role, Stats, TacticId, TagId } from '../../data/types';
+import type { AreaShape, BossPhase, GearVisual, ModelId, Relation, Role, Stats, TacticId, TagId, TraitId } from '../../data/types';
 
 export type Team = 'ally' | 'enemy';
 export type Line = 'front' | 'mid' | 'back';
@@ -17,6 +17,8 @@ export interface UnitSetup {
   actives: string[];
   ultimate?: string;
   tactics: TacticId[];
+  traits: TraitId[];
+  level: number;
   slot: { col: 0 | 1 | 2; row: 0 | 1 | 2 | 3 };
   color: string;
   model: ModelId;
@@ -42,6 +44,7 @@ export interface BattleSetup {
   allies: UnitSetup[];
   enemies: UnitSetup[];
   obstacles?: Obstacle[];
+  relations?: Relation[];
 }
 
 export interface TagInstance {

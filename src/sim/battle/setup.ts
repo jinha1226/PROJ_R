@@ -2,7 +2,7 @@ import { createRng } from '../../core/rng';
 import { v, type Vec2 } from '../../core/vec2';
 import { CLASSES } from '../../data/classes';
 import { ENEMIES } from '../../data/enemies';
-import { ALLY_PRESETS, ENEMY_PRESETS, type AllyPresetMember } from '../../data/presets';
+import { ALLY_PRESETS, ALLY_RELATIONS, ENEMY_PRESETS, type AllyPresetMember } from '../../data/presets';
 import type { Stats } from '../../data/types';
 import { DECISION_INTERVAL, STAGE_SCALE } from './constants';
 import type { BattleSetup, BattleState, Line, Obstacle, Team, UnitSetup, UnitState } from './types';
@@ -26,12 +26,12 @@ const grow = (base: Stats, growth: Partial<Stats>, levels: number): Stats => {
   return out;
 };
 
-export function allyFromClass(m: AllyPresetMember, index: number, level = 1): UnitSetup {
+export function allyFromClass(m: AllyPresetMember, index: number, level = m.level ?? 1): UnitSetup {
   const c = CLASSES[m.classId];
   return {
     id: `a${index}`, name: m.name, team: 'ally', role: c.role, defId: c.id,
     stats: grow(c.base, c.growth, level - 1), basic: c.basic, actives: [...c.actives], ultimate: c.ultimate,
-    tactics: [...m.tactics], slot: { col: m.col, row: m.row }, color: m.color, model: c.model,
+    tactics: [...m.tactics], traits: [...(m.traits ?? [])], level, slot: { col: m.col, row: m.row }, color: m.color, model: c.model,
     gear: { ...c.gear }, isLeader: index === 0,
   };
 }
@@ -43,7 +43,7 @@ export function enemyFromDef(enemyId: string, col: Col, row: Row, stage: number,
   return {
     id: `e${index}`, name: enemyId, team: 'enemy', role: d.role, defId: d.id,
     stats: { ...d.base, maxHp: Math.round(d.base.maxHp * k), atk: Math.round(d.base.atk * k) },
-    basic: d.basic, actives: [...d.actives], ultimate: d.ultimate, tactics: [],
+    basic: d.basic, actives: [...d.actives], ultimate: d.ultimate, tactics: [], traits: [], level: stage,
     slot: { col, row }, color: '#d0533f', model: d.model, gear: { ...d.gear },
     tint: d.tint, scale: d.scale, elite: d.elite, boss: d.boss, phases: d.phases,
   };
@@ -72,6 +72,7 @@ export function setupFromPresets(seed: number, allyKey: string, enemyKey: string
     allies: allies.map((m, i) => allyFromClass(m, i)),
     enemies: enemies.members.map((m, i) => enemyFromDef(m.enemyId, m.col, m.row, enemies.stage, i)),
     obstacles: rollObstacles(seed),
+    relations: (ALLY_RELATIONS[allyKey] ?? []).map((r) => ({ ...r })),
   };
 }
 
