@@ -10,6 +10,10 @@ export interface Loadout {
   bag: Stack[];
   quick: (Stack | null)[];
   pouch: Stack | null;
+  /** party pack overrides: slots / carry limit summed over members, and the members' worn weight */
+  slots?: number;
+  carry?: number;
+  baseWeight?: number;
 }
 
 const POCKET_SLOTS = 6;
@@ -19,14 +23,14 @@ const MAX_SLOW = 0.3;
 
 export const emptyLoadout = (): Loadout => ({ equipped: {}, bag: [], quick: [null], pouch: null });
 
-export const bagSlots = (l: Loadout): number => (l.equipped.bag ? xitem(l.equipped.bag).bag!.slots : POCKET_SLOTS);
-export const carryLimit = (l: Loadout): number => (l.equipped.bag ? xitem(l.equipped.bag).bag!.carry : POCKET_CARRY);
+export const bagSlots = (l: Loadout): number => l.slots ?? (l.equipped.bag ? xitem(l.equipped.bag).bag!.slots : POCKET_SLOTS);
+export const carryLimit = (l: Loadout): number => l.carry ?? (l.equipped.bag ? xitem(l.equipped.bag).bag!.carry : POCKET_CARRY);
 export const quickSlots = (l: Loadout): number => (l.equipped.belt ? xitem(l.equipped.belt).belt!.quickSlots : 1);
 
 const worn = (l: Loadout): string[] => Object.values(l.equipped).filter((id): id is string => !!id);
 
 export function totalWeight(l: Loadout): number {
-  const w = worn(l).reduce((a, id) => a + xitem(id).weight, 0)
+  const w = (l.baseWeight ?? 0) + worn(l).reduce((a, id) => a + xitem(id).weight, 0)
     + l.bag.reduce((a, s) => a + stackWeight(s), 0) + l.quick.reduce((a, s) => a + stackWeight(s), 0) + stackWeight(l.pouch);
   return Math.round(w * 100) / 100;
 }
@@ -118,6 +122,16 @@ export function moveToQuick(l: Loadout, bagIndex: number, quickIndex: number): L
   const bag = l.bag.filter((_, i) => i !== bagIndex);
   if (prev) bag.splice(bagIndex, 0, prev);
   return { ...l, bag, quick: l.quick.map((q, i) => (i === quickIndex ? s : q)) };
+}
+
+/** The party's shared pack: every member's bag slots and carry limit added up; worn gear counts as weight. */
+export function partyPack(members: Loadout[], pack: Stack[], pouch: Stack | null): Loadout {
+  return {
+    equipped: {}, bag: pack, quick: [], pouch,
+    slots: members.reduce((a, m) => a + bagSlots(m), 0),
+    carry: members.reduce((a, m) => a + carryLimit(m), 0),
+    baseWeight: Math.round(members.reduce((a, m) => a + worn(m).reduce((b, id) => b + xitem(id).weight, 0), 0) * 100) / 100,
+  };
 }
 
 /** On death everything is lost except the safe pouch. */
