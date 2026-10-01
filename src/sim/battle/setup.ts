@@ -118,5 +118,7 @@ export function createState(setup: BattleSetup): BattleState {
     pairCooldowns: new Map(),
     bounds: { ...(setup.bounds ?? ARENA) },
     mode: setup.mode ?? 'arena',
+    tempo: setup.tempo ?? 1,
+    moveScale: setup.moveScale ?? 1,
   };
 }

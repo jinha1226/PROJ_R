@@ -74,6 +74,10 @@ export interface BattleSetup {
   bounds?: Bounds;
   /** 'world': no berserk, no tick limit, no team-wipe outcome — the region sim decides the end */
   mode?: 'arena' | 'world';
+  /** action speed factor: windups, recoveries and cooldowns are divided by it (default 1) */
+  tempo?: number;
+  /** movement speed factor for every unit (default 1) */
+  moveScale?: number;
 }
 
 export interface TagInstance {
@@ -221,6 +225,8 @@ export interface BattleState {
   mode: 'arena' | 'world';
   /** allies' commanded priority target (party focus fire in the region); absent in arena battles */
   focusTargetId?: string;
+  tempo: number;
+  moveScale: number;
 }
 
 export interface UnitSnap {

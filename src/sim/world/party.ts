@@ -13,6 +13,10 @@ import { emitW } from './worldState';
 
 export interface Member { merc: Mercenary; gear: Loadout }
 
+/** Sorties play brisker than set-piece battles: faster actions and movement (spec §12). */
+export const SORTIE_TEMPO = 1.33;
+export const SORTIE_MOVE = 1.3;
+
 /** Spawn points around the start, nearest first (behind the leader). */
 const RING: Vec2[] = [{ x: 0, y: 0 }, { x: -1.4, y: -1 }, { x: -1.4, y: 1 }, { x: -2.6, y: -1.6 }, { x: -2.6, y: 1.6 }, { x: -3.6, y: 0 }];
 
@@ -39,7 +43,7 @@ export function createPartyWorld(region: Region, members: Member[], pack: Stack[
     return { ...heroSetup(m.merc, gear[m.merc.id]!, speedMult(packLoadout)), id: m.merc.id, spawn, facing: into.x > 0 ? 0 : Math.PI, controlled: true, isLeader: i === 0 };
   });
   const enemies = region.spawns.map((s, i) => ({ ...worldEnemy(s.enemyId, s.stage, i), id: s.id, spawn: { ...s.pos }, facing: Math.PI * ((i * 0.37) % 2), controlled: true }));
-  const b = createState({ seed, allies, enemies, obstacles: region.obstacles, bounds: region.bounds, mode: 'world' });
+  const b = createState({ seed, allies, enemies, obstacles: region.obstacles, bounds: region.bounds, mode: 'world', tempo: SORTIE_TEMPO, moveScale: SORTIE_MOVE });
   for (const u of b.units) if (u.team === 'enemy') u.dormant = true;
   const groups: Record<string, Group> = {};
   for (const s of region.spawns) (groups[s.group] ??= { alerted: false, home: { ...s.pos }, members: [] }).members.push(s.id);

@@ -57,7 +57,7 @@ export function moveUnits(s: BattleState): void {
       step = separation(u, s, 1);
     } else {
       const speed = effectiveStats(u, s).moveSpeed * (u.speedScale ?? 1);
-      step = clampLen(add(u.vel, separation(u, s, speed)), speed);
+      step = scale(clampLen(add(u.vel, separation(u, s, speed)), speed), s.moveScale);
       if (len(u.vel) > 0.05) u.facing = angleOf(u.vel);
     }
     // fast forced moves in the region are swept in short hops so they cannot tunnel through thin walls
