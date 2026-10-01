@@ -42,7 +42,7 @@ export const KO = {
     attack: '공격 중', skill: '기술 사용', approach: '목표에게 접근 중', kite: '거리를 벌리는 중',
     dodge: '위험 범위를 피하는 중', rescue: '쓰러진 동료를 구하러 가는 중', guard: '후열을 지키는 중',
     retreat: '후퇴 중', idle: '대기 중', focusLow: '약해진 적을 노림', focusMarked: '표식된 적을 노림',
-    focusCaster: '술사를 견제함', combo: '연계를 노림', heal: '다친 동료를 치유함', protectBack: '후열을 노리는 적을 막음',
+    focusCaster: '술사를 견제함', vanguard: '선봉에 서서 돌격함', combo: '연계를 노림', heal: '다친 동료를 치유함', protectBack: '후열을 노리는 적을 막음',
     followLeader: '리더의 목표를 따름', cover: '엄폐물 뒤로 이동', taunted: '도발에 걸림', threat: '가장 위협적인 적을 노림',
   } as Record<string, string>,
   ui: {

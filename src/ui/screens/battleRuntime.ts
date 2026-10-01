@@ -9,6 +9,7 @@ import { ProjectileFx } from '../../view/fx/projectileFx';
 import { ShieldFx } from '../../view/fx/shieldFx';
 import { TelegraphFx } from '../../view/fx/telegraphFx';
 import { TransientFx } from '../../view/fx/transientFx';
+import { TargetLineFx } from '../../view/fx/targetLineFx';
 import { DamageNumbers } from '../../view/overlay/damageNumbers';
 import { UnitOverlay } from '../../view/overlay/unitOverlay';
 import { BattlePlayer, type Frame } from '../../view/playback/battlePlayer';
@@ -41,6 +42,8 @@ export class BattleRuntime {
   private readonly proj: ProjectileFx;
   private readonly fx: TransientFx;
   private readonly shields: ShieldFx;
+  private readonly targetLine: TargetLineFx;
+  selected: string | null = null;
   private readonly router: EventRouter;
   private frame: Frame;
   private readonly pos = new Map<string, { x: number; z: number; facing: number }>();
@@ -52,7 +55,11 @@ export class BattleRuntime {
     addLighting(this.h.scene);
     buildArena(this.h.scene, this.battle.state.obstacles, setup.seed);
     this.cam = new BattleCamera(this.h.camera);
-    this.overlay = new UnitOverlay(container, this.h.camera, unitName);
+    this.overlay = new UnitOverlay(container, this.h.camera, unitName, (id) => {
+      const u = this.battle.state.units.find((x) => x.id === id);
+      return u ? unitName(u.setup) : '';
+    });
+    this.targetLine = new TargetLineFx(this.h.scene);
     this.numbers = new DamageNumbers(container);
     this.tel = new TelegraphFx(this.h.scene);
     this.proj = new ProjectileFx(this.h.scene);
@@ -90,6 +97,10 @@ export class BattleRuntime {
     return a;
   }
 
+  setIntentsVisible(on: boolean): void {
+    this.overlay.setIntentsVisible(on);
+  }
+
   snap(id: string): UnitSnap | undefined {
     return this.frame.curr.units.find((u) => u.id === id);
   }
@@ -116,6 +127,10 @@ export class BattleRuntime {
       this.shields.set(u.id, u.alive && u.shield > 0, p.x, p.y, a.spec.scale ?? 1);
       if (u.alive && !u.downed) living.push({ x: p.x, y: p.y });
     }
+    const sel = this.selected ? curr.units.find((u) => u.id === this.selected) : undefined;
+    const tgt = sel?.alive && !sel.downed && sel.intent?.targetId ? this.pos.get(sel.intent.targetId) : undefined;
+    const team = sel ? this.battle.state.units.find((u) => u.id === sel.id)?.team : undefined;
+    this.targetLine.set(sel && tgt ? this.pos.get(sel.id) ?? null : null, tgt ?? null, team);
     this.tel.sync(curr.telegraphs);
     this.proj.sync(prev, curr, alpha);
     this.fx.update(dt);
@@ -144,6 +159,7 @@ export class BattleRuntime {
     this.proj.dispose();
     this.fx.dispose();
     this.shields.dispose();
+    this.targetLine.dispose();
     this.overlay.dispose();
     this.numbers.dispose();
     this.h.dispose();

@@ -60,6 +60,7 @@ export class BattleScreen implements Screen {
       retreat: () => rt.player.retreat(),
       cameraAuto: () => rt.cam.resetAuto(),
       isCameraManual: () => rt.cam.mode === 'manual',
+      setIntents: (on) => rt.setIntentsVisible(on),
     });
     const detachCamera = attachCameraInput(stage, rt.cam, (x, y) => {
       const id = rt.pick(x, y);
@@ -76,6 +77,7 @@ export class BattleScreen implements Screen {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const ok = guardFrame(() => {
+        rt.selected = inspect.selectedId;
         rt.update(dt);
         inspect.update((id) => rt.snap(id));
         controls.tick();

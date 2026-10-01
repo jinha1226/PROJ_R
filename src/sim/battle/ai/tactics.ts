@@ -18,7 +18,7 @@ const RULES: Record<TacticId, { reason: string; score: TacticScore }> = {
   },
   markHunt: { reason: 'focusMarked', score: (c) => (enemySkill(c) && hasTag(c.target!, 'marked') ? 25 : 0) },
   vanguard: {
-    reason: 'approach',
+    reason: 'vanguard',
     score: (c, { u, s }) => {
       if (!enemySkill(c)) return 0;
       const close = nearest(u, foesOf(u, s).filter((f) => !f.downed));

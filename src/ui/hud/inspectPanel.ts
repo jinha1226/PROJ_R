@@ -32,6 +32,10 @@ export class InspectPanel {
     }
   }
 
+  get selectedId(): string | null {
+    return this.selected;
+  }
+
   select(id: string | null): void {
     this.selected = this.selected === id ? null : id;
     this.panel.hidden = !this.selected;

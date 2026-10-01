@@ -7,6 +7,7 @@ export interface ControlsDeps {
   retreat(): void;
   cameraAuto(): void;
   isCameraManual(): boolean;
+  setIntents(on: boolean): void;
 }
 
 /** Pause / speed / retreat buttons plus Space and 1/2/3 hotkeys. */
@@ -19,6 +20,7 @@ export class Controls {
     if (e.key === '1') this.speed(1);
     if (e.key === '2') this.speed(2);
     if (e.key === '3') this.speed(4);
+    if (e.key.toLowerCase() === 'h') this.toggleIntents();
   };
 
   constructor(parent: HTMLElement, private readonly d: ControlsDeps) {
@@ -28,6 +30,7 @@ export class Controls {
       <button class="btn" data-testid="speed-1">1x</button>
       <button class="btn" data-testid="speed-2">2x</button>
       <button class="btn" data-testid="speed-4">4x</button>
+      <button class="btn active" data-testid="toggle-intent" title="H">${t('ui.intentToggle')}</button>
       <button class="btn" data-testid="camera-auto" title="C">${t('ui.cameraAuto')}</button>
       <button class="btn danger" data-testid="retreat">${t('ui.retreat')}</button>`;
     parent.appendChild(this.el);
@@ -35,6 +38,7 @@ export class Controls {
     for (const s of [1, 2, 4] as const) this.btn(`speed-${s}`).addEventListener('click', () => this.speed(s));
     this.btn('retreat').addEventListener('click', () => d.retreat());
     this.btn('camera-auto').addEventListener('click', () => { d.cameraAuto(); this.render(); });
+    this.btn('toggle-intent').addEventListener('click', () => this.toggleIntents());
     window.addEventListener('keydown', this.onKey);
     this.render();
   }
@@ -47,6 +51,14 @@ export class Controls {
     this.lastSpeed = s;
     this.d.setSpeed(s);
     this.render();
+  }
+
+  private intentsOn = true;
+
+  private toggleIntents(): void {
+    this.intentsOn = !this.intentsOn;
+    this.d.setIntents(this.intentsOn);
+    this.btn('toggle-intent').classList.toggle('active', this.intentsOn);
   }
 
   togglePause(): void {

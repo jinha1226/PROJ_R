@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { TagId } from '../../data/types';
 import type { UnitSnap, UnitSetup } from '../../sim/battle/types';
 import { iconBadge } from './icons';
+import { intentLabel } from './intentLabel';
 import './overlay.css';
 
 interface Row {
@@ -10,7 +11,9 @@ interface Row {
   shield: HTMLDivElement;
   mom: HTMLDivElement;
   tags: HTMLDivElement;
+  intent: HTMLDivElement;
   tagKey: string;
+  intentKey: string;
   height: number;
 }
 
@@ -20,7 +23,12 @@ export class UnitOverlay {
   private readonly rows = new Map<string, Row>();
   private readonly v = new THREE.Vector3();
 
-  constructor(parent: HTMLElement, private readonly camera: THREE.Camera, private readonly nameOf: (u: UnitSetup) => string) {
+  constructor(
+    parent: HTMLElement,
+    private readonly camera: THREE.Camera,
+    private readonly nameOf: (u: UnitSetup) => string,
+    private readonly targetName: (id: string) => string,
+  ) {
     this.el.className = 'unit-overlay';
     parent.appendChild(this.el);
   }
@@ -28,14 +36,15 @@ export class UnitOverlay {
   add(u: UnitSetup): void {
     const el = document.createElement('div');
     el.className = `uo ${u.team}${u.boss ? ' boss' : ''}`;
-    el.innerHTML = `<div class="uo-tags"></div><div class="uo-name"></div><div class="uo-bar"><div class="uo-hp"></div><div class="uo-shield"></div></div><div class="uo-mom"><div></div></div>`;
+    el.innerHTML = `<div class="uo-intent"></div><div class="uo-tags"></div><div class="uo-name"></div><div class="uo-bar"><div class="uo-hp"></div><div class="uo-shield"></div></div><div class="uo-mom"><div></div></div>`;
     const name = el.querySelector<HTMLDivElement>('.uo-name')!;
     name.textContent = this.nameOf(u);
     name.style.color = u.team === 'ally' ? u.color : '#ffb4a8';
     this.el.appendChild(el);
     this.rows.set(u.id, {
       el, hp: el.querySelector('.uo-hp')!, shield: el.querySelector('.uo-shield')!, mom: el.querySelector('.uo-mom')!,
-      tags: el.querySelector('.uo-tags')!, tagKey: '', height: 2.0 * (u.scale ?? 1),
+      tags: el.querySelector('.uo-tags')!, intent: el.querySelector('.uo-intent')!, tagKey: '', intentKey: '',
+      height: 2.0 * (u.scale ?? 1),
     });
   }
 
@@ -53,11 +62,21 @@ export class UnitOverlay {
     r.shield.style.width = `${Math.min(1, u.shield / u.maxHp) * 100}%`;
     (r.mom.firstElementChild as HTMLDivElement).style.width = `${u.momentum}%`;
     r.mom.classList.toggle('full', u.momentum >= 100);
+    const label = u.alive && !u.downed ? intentLabel(u.intent, this.targetName) : null;
+    const ikey = label ? `${label.icon}|${label.text}` : '';
+    if (ikey !== r.intentKey) {
+      r.intentKey = ikey;
+      r.intent.innerHTML = label ? `${iconBadge(label.icon, 15)}<span>${label.text}</span>` : '';
+    }
     const key = u.tags.join(',');
     if (key !== r.tagKey) {
       r.tagKey = key;
       r.tags.innerHTML = [...new Set(u.tags)].map((tg) => iconBadge(tg as TagId, 16)).join('');
     }
+  }
+
+  setIntentsVisible(on: boolean): void {
+    this.el.classList.toggle('hide-intents', !on);
   }
 
   screenPos(x: number, y: number, z: number, w: number, h: number): { left: number; top: number } {

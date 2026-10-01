@@ -22,3 +22,9 @@
 .dmg.combo { color: #ffe23a; font-size: 18px; }
 .dmg.ally-hurt { color: #ff8a7a; }
 @keyframes dmg-rise { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -42px; } }
+.uo-intent { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #f4ecd8; background: #14121acc; border-radius: 9px; padding: 1px 6px 1px 2px; white-space: nowrap; min-height: 0; }
+.uo-intent:empty { display: none; }
+.uo-intent .icon-badge { color: #1b1a1f; }
+.uo.enemy .uo-intent { padding: 1px; }
+.uo.enemy .uo-intent span { display: none; }
+.unit-overlay.hide-intents .uo-intent { display: none; }
