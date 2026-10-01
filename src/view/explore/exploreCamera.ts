@@ -10,11 +10,19 @@ export class IsoCamera {
   private targetYaw = Math.PI / 4;
   private readonly center = new THREE.Vector3();
   private inited = false;
+  private shakeLeft = 0;
+  private shakeAmp = 0;
 
   constructor(private readonly cam: THREE.OrthographicCamera, private height = VIEW_H) {}
 
   rotateStep(dir: 1 | -1): void {
     this.targetYaw += (dir * Math.PI) / 2;
+  }
+
+  /** A short jolt (strength scales with the view so it reads the same at any zoom). */
+  shake(sec: number, amp = 0.25): void {
+    this.shakeLeft = Math.max(this.shakeLeft, sec);
+    this.shakeAmp = Math.max(this.shakeLeft > sec ? this.shakeAmp : 0, amp);
   }
 
   /** View height in metres of ground (smaller = closer). */
@@ -47,6 +55,12 @@ export class IsoCamera {
     this.cam.updateProjectionMatrix();
     const flat = Math.cos(ELEVATION) * DISTANCE;
     this.cam.position.set(this.center.x + Math.sin(this.yaw) * flat, Math.sin(ELEVATION) * DISTANCE, this.center.z + Math.cos(this.yaw) * flat);
-    this.cam.lookAt(this.center);
+    if (this.shakeLeft > 0) {
+      this.shakeLeft -= dt;
+      const a = this.shakeAmp * (this.height / 15) * Math.min(1, this.shakeLeft * 6);
+      const j = new THREE.Vector3((Math.random() - 0.5) * 2 * a, 0, (Math.random() - 0.5) * 2 * a);
+      this.cam.position.add(j);
+      this.cam.lookAt(this.center.clone().add(j));
+    } else this.cam.lookAt(this.center);
   }
 }

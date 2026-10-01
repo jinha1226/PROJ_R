@@ -138,3 +138,9 @@
 .xzoom .btn { width: 40px; height: 40px; padding: 0; font-size: 20px; border-radius: 10px; background: #1b1a1fcc; }
 .sortie.portrait .xzoom { right: 8px; top: 166px; }
 @media (pointer: coarse) { .sortie.landscape .xzoom { top: 114px; } }
+
+/* sortie hit feedback: bigger damage numbers than the arena (the camera sits farther out) */
+.sortie .dmg { font-size: 20px; }
+.sortie .dmg.crit { font-size: 30px; color: #ffd04a; text-shadow: 0 1px 2px #000, 0 0 8px #ff8a00; }
+.sortie .dmg.ally-hurt { font-size: 22px; }
+.sortie.portrait .dmg { font-size: 18px; } .sortie.portrait .dmg.crit { font-size: 26px; }

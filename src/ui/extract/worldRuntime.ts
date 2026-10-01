@@ -81,7 +81,7 @@ export class WorldRuntime {
       actors: this.actors, fx: this.fx, numbers: this.numbers, posOf: (id) => this.pos.get(id),
       toScreen: (x, y, z) => this.overlay.screenPos(x, y, z, container.clientWidth, container.clientHeight),
       teamOf: (id) => this.sim.w.b.units.find((u) => u.id === id)?.team,
-      shake: () => undefined, onSummon: () => undefined, onBerserk: () => undefined, log: () => undefined,
+      shake: (sec) => this.cam.shake(sec), onSummon: () => undefined, onBerserk: () => undefined, log: () => undefined,
       tether: () => undefined, bark: () => undefined, popIcon: (id, icon) => this.overlay.pop(id, icon), slowmo: () => undefined, punch: () => undefined,
     });
     this.prev = this.curr = this.sim.snapshot(VIEW_RADIUS);
@@ -94,7 +94,7 @@ export class WorldRuntime {
       let steps = 0;
       while (this.acc >= DT - 1e-9 && steps < MAX_STEPS && !this.sim.w.outcome) {
         this.sim.step(input());
-        for (const e of this.sim.w.b.events) this.router.handle(e);
+        for (const e of this.sim.w.b.events) { this.router.handle(e); this.jolt(e); }
         this.prev = this.curr;
         this.curr = this.sim.snapshot(VIEW_RADIUS);
         this.acc -= DT;
@@ -145,6 +145,14 @@ export class WorldRuntime {
     this.fx.update(dt);
     this.cam.follow(focus.x, focus.z, dt);
     this.h.renderer.render(this.h.scene, this.h.camera);
+  }
+
+  /** Hit feedback: a crit or a kill jolts the camera a little, a member going down jolts it hard. */
+  private jolt(e: { type: string; crit?: boolean; dst?: string }): void {
+    const team = this.sim.w.b.units.find((u) => u.id === e.dst)?.team;
+    if (e.type === 'damage' && e.crit) this.cam.shake(0.12, 0.18);
+    else if (e.type === 'died' && team === 'enemy') this.cam.shake(0.1, 0.14);
+    else if (e.type === 'downed' && team === 'ally') this.cam.shake(0.3, 0.4);
   }
 
   /** Rebuilds a member's model when worn gear changes their look (field equip). */
