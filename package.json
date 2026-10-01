@@ -11,7 +11,8 @@
     "lint": "eslint . && node scripts/check-file-length.mjs",
     "test": "vitest run",
     "e2e": "playwright test",
-    "assets": "node scripts/prepare-assets.mjs"
+    "assets": "node scripts/prepare-assets.mjs && node scripts/prepare-env.mjs",
+    "assets:env": "node scripts/prepare-env.mjs"
   },
   "dependencies": {
     "lucide": "^1.49.0",

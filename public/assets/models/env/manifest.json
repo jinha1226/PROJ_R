@@ -1,0 +1,32 @@
+{
+  "dungeon": [
+    "floor",
+    "wall",
+    "pillar",
+    "crates",
+    "barrel",
+    "torch",
+    "chest",
+    "rubble"
+  ],
+  "forest": [
+    "tree",
+    "treeB",
+    "trees",
+    "treesB",
+    "rock",
+    "rockB",
+    "bush"
+  ],
+  "graveyard": [
+    "grave",
+    "graveB",
+    "fence",
+    "deadtree",
+    "deadtreeB",
+    "crypt",
+    "lantern",
+    "arch",
+    "floor"
+  ]
+}
