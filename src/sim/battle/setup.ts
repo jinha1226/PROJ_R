@@ -84,7 +84,7 @@ export function makeUnitState(setup: UnitSetup, pos: Vec2, index: number, summon
     hp: setup.stats.maxHp, maxHp: setup.stats.maxHp, shield: 0, momentum: 0,
     alive: true, downed: false, lifeline: 0, action: null, cooldowns: {}, tags: [], emotions: [], intent: null,
     decisionIn: (index % DECISION_INTERVAL) + (setup.traits.includes('cautious') ? CAUTIOUS_DELAY : 0), forced: null, engagedWith: null, threat: {},
-    rescueUsed: false, rescueProgress: 0, rescueTarget: null, phaseIndex: 0, summoned,
+    rescueUsed: false, minLifelineFrac: 1, rescueProgress: 0, rescueTarget: null, phaseIndex: 0, summoned,
     stats: { kills: 0, damageDealt: 0, healingDone: 0, dodges: 0 },
   };
 }

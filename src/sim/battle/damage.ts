@@ -74,6 +74,7 @@ export function dealDamage(s: BattleState, src: UnitState, dst: UnitState, opts:
   emit(s, { type: 'damage', src: src.id, dst: dst.id, amount, crit, skillId: opts.skillId, reason: opts.reason });
   if (dst.downed) {
     dst.lifeline -= rest;
+    dst.minLifelineFrac = Math.min(dst.minLifelineFrac, Math.max(0, dst.lifeline / (dst.maxHp * LIFELINE_PCT)));
     if (dst.lifeline <= 0) killUnit(s, dst, src);
     return amount;
   }

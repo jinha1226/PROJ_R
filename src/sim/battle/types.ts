@@ -128,6 +128,8 @@ export interface UnitState {
   engagedWith: string | null;
   threat: Record<string, number>;
   rescueUsed: boolean;
+  /** lowest lifeline fraction reached while downed this battle (1 = never downed) */
+  minLifelineFrac: number;
   rescueProgress: number;
   rescueTarget: string | null;
   phaseIndex: number;
