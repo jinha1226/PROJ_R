@@ -25,7 +25,7 @@ const goldFor = (ctx: BattleCtx): number =>
 
 /** Applies a battle's result to the run: aftermath, rewards or retreat penalties, and run end checks. */
 export function finishBattle(run: RunState, ctx: BattleCtx, deployed: string[], report: BattleReport): { run: RunState; aftermath: Aftermath; reward: { gold: number; items: string[] } } {
-  const aftermath = resolveBattle(run.roster, deployed, report);
+  const aftermath = resolveBattle(run.roster, deployed, report, { perBattleHeal: false });
   let roster = aftermath.roster;
   let gold = run.gold;
   const items = [...aftermath.loot];

@@ -8,6 +8,7 @@ const KIND: Record<string, string> = { train: '훈련', rest: '휴식', explore:
 const NOTE: Record<string, string> = {
   spar: '{a}와(과) {b}이(가) 대련 끝에 서로를 라이벌로 인정했다.', trainBond: '{a}와(과) {b}이(가) 함께 땀 흘리며 가까워졌다.',
   talk: '{a}와(과) {b}이(가) 밤새 이야기를 나눴다.', returned: '방 {rooms}곳을 둘러보고 무사히 돌아왔다.', retreated: '패퇴해 서둘러 물러났다.',
+  retreatGold: '후퇴하며 골드 {gold}을(를) 잃었다.',
 };
 
 /** End-of-week summary: what happened, who grew, what was found. */
@@ -29,7 +30,9 @@ export class ReportScreen implements Screen {
       ${r.gold ? `<p>골드 <b class="gold">+${r.gold}</b></p>` : ''}${items ? `<h3>얻은 장비</h3><ul class="loot">${items}</ul>` : ''}
       ${moments ? `<h3>이번 주의 순간들</h3><ul class="moments">${moments}</ul>` : ''}
       <div class="choice-list"><button class="btn primary" data-testid="next-week">다음 주로</button></div></div>`;
-    this.el.querySelector('button')!.addEventListener('click', this.next);
+    const btn = this.el.querySelector('button')!;
+    // the level-up modal opens on top; a focused button would re-fire on Enter
+    btn.addEventListener('click', () => { btn.disabled = true; btn.blur(); this.next(); }, { once: true });
     root.appendChild(this.el);
   }
 

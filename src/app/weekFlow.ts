@@ -19,6 +19,7 @@ import { PrepScreen } from '../ui/run/prepScreen';
 import { ShopScreen } from '../ui/run/restShopScreens';
 import { RosterScreen } from '../ui/run/rosterScreen';
 import { BattleScreen } from '../ui/screens/battleScreen';
+import { LoadingScreen } from '../ui/screens/loadingScreen';
 import { HubScreen } from '../ui/week/hubScreen';
 import { ReportScreen } from '../ui/week/reportScreen';
 import { getAssets } from './assetCache';
@@ -32,6 +33,7 @@ import { addHall, clearRun, saveRun } from './save';
 export class WeekFlow {
   private run!: RunState;
   private explore: ExploreFlow;
+  private advancing = false;
 
   constructor(private readonly router: Router, private readonly root: HTMLElement, private readonly toTitle: () => void) {
     this.explore = new ExploreFlow({
@@ -127,9 +129,15 @@ export class WeekFlow {
   }
 
   private async nextWeek(): Promise<void> {
-    this.set({ ...this.run, roster: settleEmptyLevelUps(this.run.roster) });
-    while (this.run.roster.mercs.some((m) => m.pendingLevelUps > 0)) await this.levelUp(this.root);
-    this.set(endWeek(this.run));
+    if (this.advancing) return;
+    this.advancing = true;
+    try {
+      this.set({ ...this.run, roster: settleEmptyLevelUps(this.run.roster) });
+      while (this.run.roster.mercs.some((m) => m.pendingLevelUps > 0)) await this.levelUp(this.root);
+      this.set(endWeek(this.run));
+    } finally {
+      this.advancing = false;
+    }
     this.route();
   }
 
@@ -146,6 +154,7 @@ export class WeekFlow {
   private async bossFight(formation: Record<string, Slot>): Promise<void> {
     try {
       this.set(beginBattle(this.run, formation));
+      this.router.go(new LoadingScreen());
       const [lib, env] = await Promise.all([getAssets(), getEnv('dungeon')]);
       const setup = bossBattleSetup(this.run, formation);
       const deployed = setup.allies.map((u) => u.id);

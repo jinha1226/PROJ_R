@@ -31,12 +31,14 @@ const MOVE_KEYS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: 
 /** Keyboard + first connected gamepad, merged; buttons are edge-triggered, movement is continuous. */
 export class Input {
   private readonly down = new Set<string>();
+  /** keys pressed since the last poll, so a tap between two frames is not lost */
+  private readonly tapped = new Set<string>();
   private readonly prev = new Set<Action>();
 
   constructor(private readonly pads: () => readonly (PadLike | null | undefined)[] = () => navigator.getGamepads?.() ?? []) {}
 
   key(code: string, isDown: boolean): void {
-    if (isDown) this.down.add(code);
+    if (isDown) { this.down.add(code); this.tapped.add(code); }
     else this.down.delete(code);
   }
 
@@ -75,7 +77,7 @@ export class Input {
         y = ay * k;
       }
     }
-    const held = (a: Action) => any(KEYS[a]) || !!pad?.buttons[PAD[a]]?.pressed;
+    const held = (a: Action) => any(KEYS[a]) || KEYS[a].some((c) => this.tapped.has(c)) || !!pad?.buttons[PAD[a]]?.pressed;
     const state = { move: { x: x || 0, y: y || 0 } } as InputState;
     for (const a of Object.keys(PAD) as Action[]) {
       const h = held(a);
@@ -83,6 +85,7 @@ export class Input {
       if (h) this.prev.add(a);
       else this.prev.delete(a);
     }
+    this.tapped.clear();
     return state;
   }
 }

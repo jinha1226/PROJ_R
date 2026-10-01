@@ -10,6 +10,7 @@ import { AftermathScreen } from '../ui/screens/aftermathScreen';
 import { BattleScreen } from '../ui/screens/battleScreen';
 import { EventScreen } from '../ui/run/eventScreen';
 import { PrepScreen } from '../ui/run/prepScreen';
+import { LoadingScreen } from '../ui/screens/loadingScreen';
 import { getAssets } from './assetCache';
 import { getEnv } from './envCache';
 import type { Router } from './router';
@@ -33,6 +34,7 @@ export class ExploreFlow {
   async show(): Promise<void> {
     const run = this.h.run();
     if (!run.exploration) return this.h.done();
+    this.h.router.go(new LoadingScreen());
     try {
       const [lib, env] = await Promise.all([getAssets(), getEnv(run.exploration.theme)]);
       this.screen = new ExploreScreen({
@@ -97,6 +99,7 @@ export class ExploreFlow {
   private async fight(roomId: string, formation: Record<string, Slot>): Promise<void> {
     try {
       this.h.set(beginBattle(this.h.run(), { ...this.h.run().formation, ...formation }));
+      this.h.router.go(new LoadingScreen());
       const run = this.h.run();
       const e = run.exploration!;
       const room = e.rooms[roomId]!;

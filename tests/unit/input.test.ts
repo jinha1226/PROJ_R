@@ -42,4 +42,11 @@ describe('input', () => {
     expect(s.rotateL).toBe(true);
     expect(s.toggleManual).toBe(true);
   });
+  it('a tap shorter than a frame still counts as one press', () => {
+    const inp = new Input(() => []);
+    inp.key('Escape', true);
+    inp.key('Escape', false);
+    expect(inp.poll().cancel).toBe(true);
+    expect(inp.poll().cancel).toBe(false);
+  });
 });

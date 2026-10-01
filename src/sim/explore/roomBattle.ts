@@ -8,8 +8,14 @@ import { stageOf } from './progress';
 import type { Dir, Prop } from './types';
 
 const FORWARD: Record<Dir, Vec2> = { n: { x: 0, y: 1 }, s: { x: 0, y: -1 }, e: { x: -1, y: 0 }, w: { x: 1, y: 0 } };
-const ANCHOR_IN = 5.2;
+/** formation depth per room axis: the long (e/w) axis has room to spare, the short (n/s) one is compressed */
+const LONG = { anchorIn: 5.2, colGap: 2.2 };
+const SHORT = { anchorIn: 2.6, colGap: 1.4 };
+/** enemies start at least this far beyond the allies' front column */
+const FRONT_GAP = 3.2;
 const MARGIN = 0.8;
+
+const dot = (a: Vec2, b: Vec2) => a.x * b.x + a.y * b.y;
 
 const toObstacle = (p: Prop): Obstacle => ({ pos: { x: p.x, y: p.y }, radius: p.r, kind: p.kind === 'pillar' || p.kind === 'crypt' ? 'pillar' : 'rock' });
 
@@ -41,20 +47,26 @@ export function roomBattleSetup(run: RunState, roomId: string, formation: Record
   const entry: Dir = e.enteredFrom ?? 'w';
   const fwd = FORWARD[entry];
   const side = { x: -fwd.y, y: fwd.x };
-  const anchor = add(DOOR_POS[entry], scale(fwd, ANCHOR_IN));
+  const depth = fwd.x !== 0 ? LONG : SHORT;
+  const anchor = add(DOOR_POS[entry], scale(fwd, depth.anchorIn));
   const obstacles = room.props.map(toObstacle);
   const taken: Vec2[] = [];
-  const mercs = e.party.map((id) => run.roster.mercs.find((m) => m.id === id)).filter((m): m is NonNullable<typeof m> => !!m && m.alive);
+  const living = e.party.map((id) => run.roster.mercs.find((m) => m.id === id)).filter((m): m is NonNullable<typeof m> => !!m && m.alive);
+  // members left on the bench in prep sit this one out (an empty formation means "everyone")
+  const placed = living.filter((m) => formation[m.id]);
+  const mercs = placed.length ? placed : living;
   const allies = mercs.map((m, i) => {
     const slot = formation[m.id] ?? { col: 2, row: (i % 4) as Slot['row'] };
-    const local = add(scale(fwd, (slot.col - 1) * 2.2), scale(side, (slot.row - 1.5) * 2.0));
+    const local = add(scale(fwd, (slot.col - 1) * depth.colGap), scale(side, (slot.row - 1.5) * 2.0));
     const spawn = settle(add(anchor, local), obstacles, taken);
     taken.push(spawn);
     return { ...mercToUnitSetup(m, i, slot), spawn, facing: angleOf(fwd) };
   });
   const stage = stageOf(e, room);
+  const minAhead = Math.max(...allies.map((a) => dot(a.spawn, fwd))) + FRONT_GAP;
   const enemies = (room.enemies ?? []).map((en, i) => {
-    const spawn = settle({ x: en.x, y: en.y }, obstacles, taken);
+    const ahead = minAhead - dot({ x: en.x, y: en.y }, fwd);
+    const spawn = settle(ahead > 0 ? add({ x: en.x, y: en.y }, scale(fwd, ahead)) : { x: en.x, y: en.y }, obstacles, taken);
     taken.push(spawn);
     return { ...enemyFromDef(en.enemyId, 2, 0, stage, i), spawn, facing: angleOf(sub(anchor, spawn)) };
   });

@@ -43,7 +43,8 @@ const isMentored = (m: Mercenary, all: Mercenary[], rels: Relation[]) => all.som
   return !!r && o.level > m.level && relationKinds(r, r.a === m.id ? m.level : o.level, r.a === m.id ? o.level : m.level).has('mentor');
 });
 
-export function resolveBattle(roster: Roster, deployed: string[], report: BattleReport): Aftermath {
+/** `perBattleHeal`: injuries tick down after each battle (company mode); the weekly run heals once a week instead. */
+export function resolveBattle(roster: Roster, deployed: string[], report: BattleReport, { perBattleHeal = true } = {}): Aftermath {
   const battle = roster.battles + 1;
   const rng = createRng((roster.seed ^ Math.imul(battle, 2654435761)) >>> 0);
   const ev = report.events;
@@ -144,7 +145,7 @@ export function resolveBattle(roster: Roster, deployed: string[], report: Battle
   const memorial = [...roster.memorial];
   for (const m0 of roster.mercs) {
     let m = updated.get(m0.id) ?? m0;
-    if (m.alive && m.injury > 0 && !out.injuries.includes(m.id)) m = { ...m, injury: m.injury - 1 };
+    if (perBattleHeal && m.alive && m.injury > 0 && !out.injuries.includes(m.id)) m = { ...m, injury: m.injury - 1 };
     if (!m.alive) {
       inventory = [...inventory, ...Object.values(m.gear).filter((g): g is string => !!g)];
       memorial.push({ ...m, gear: {} });

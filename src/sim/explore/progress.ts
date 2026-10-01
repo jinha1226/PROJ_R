@@ -3,8 +3,12 @@ import { autoFormation } from '../roster/formation';
 import { addXp } from '../roster/leveling';
 import { rollItem } from '../roster/loot';
 import type { RunState, WeekReport } from '../run/types';
+import { assertChoosing } from '../week/week';
 import { generateExploration, OPPOSITE } from './generate';
+import type { Moment } from '../roster/relationships';
 import type { Dir, Exploration, Room } from './types';
+
+const MAX_MOMENTS = 8;
 
 const MAX_PARTY = 5;
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
@@ -13,6 +17,7 @@ const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >
 export const stageOf = (e: Exploration, room?: Room): number => Math.max(1, e.week + (e.stars - 1) - (room?.type === 'elite' ? 1 : 0));
 
 export function chooseExplore(run: RunState, cardIndex: number, party: string[]): RunState {
+  assertChoosing(run);
   const card = run.regionCards?.[cardIndex];
   if (!card) throw new Error('no such region');
   const ready = party.filter((id) => run.roster.mercs.some((m) => m.id === id && m.alive && m.injury === 0)).slice(0, MAX_PARTY);
@@ -50,6 +55,13 @@ export function markDone(run: RunState, roomId: string, loot: Partial<Exploratio
 }
 
 /** Chest reward follows the region's reward focus: gear → item, gold → coins, xp → party xp. */
+/** Adds xp and moments to the exploration's tally (shown in the week report). */
+export function gain(e: Exploration, xp: Record<string, number>, moments: Moment[] = []): Exploration {
+  const total = { ...(e.gained?.xp ?? {}) };
+  for (const [id, v] of Object.entries(xp)) total[id] = (total[id] ?? 0) + v;
+  return { ...e, gained: { xp: total, moments: [...(e.gained?.moments ?? []), ...moments] } };
+}
+
 export function openChest(run: RunState): RunState {
   const room = current(run);
   if (room.type !== 'chest' || room.done) throw new Error('nothing to open');
@@ -61,7 +73,8 @@ export function openChest(run: RunState): RunState {
   }
   if (e.reward === 'xp') {
     const mercs = run.roster.mercs.map((m) => (e.party.includes(m.id) ? addXp(m, 15 * e.stars) : m));
-    return markDone({ ...run, roster: { ...run.roster, mercs } }, room.id, { gold: 0 });
+    const done = markDone({ ...run, roster: { ...run.roster, mercs } }, room.id, { gold: 0 });
+    return { ...done, exploration: gain(done.exploration!, Object.fromEntries(e.party.map((id) => [id, 15 * e.stars]))) };
   }
   const item = rollItem(rng, stageOf(e, room) + 1);
   return markDone({ ...run, roster: { ...run.roster, inventory: [...run.roster.inventory, item] } }, room.id, { items: [item] });
@@ -83,7 +96,7 @@ export function leaveExploration(run: RunState, retreated = false): RunState {
   const e = run.exploration;
   if (!e) return run;
   const report: WeekReport = {
-    week: run.week, kind: 'explore', deployed: e.party, xp: {}, moments: [], gold: e.loot.gold, items: e.loot.items,
+    week: run.week, kind: 'explore', deployed: e.party, xp: e.gained?.xp ?? {}, moments: (e.gained?.moments ?? []).slice(0, MAX_MOMENTS), gold: e.loot.gold, items: e.loot.items,
     notes: [{ key: retreated ? 'retreated' : 'returned', vars: { rooms: String(e.visited.length) } }],
   };
   return { ...run, phase: 'report', report, exploration: undefined, pending: undefined };

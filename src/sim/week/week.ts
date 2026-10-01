@@ -63,6 +63,11 @@ export function skipStart(run: RunState): RunState {
   return { ...run, visitors: undefined, startEvent: undefined, phase: 'choose' };
 }
 
+/** One action per week: the action screens may only act while the week is still open. */
+export function assertChoosing(run: RunState): void {
+  if (run.phase !== 'choose') throw new Error(`no weekly action in phase ${run.phase}`);
+}
+
 export function canExplore(run: RunState): boolean {
   return run.roster.mercs.some((m) => m.alive && m.injury === 0);
 }
@@ -72,6 +77,7 @@ const report = (run: RunState, kind: WeekReport['kind'], deployed: string[], xp:
 
 /** Up to five members train: each gains 40% of their next level's xp; sometimes rivals spar. */
 export function trainWeek(run: RunState, ids: string[]): RunState {
+  assertChoosing(run);
   const chosen = ids.slice(0, 5).filter((id) => run.roster.mercs.some((m) => m.id === id));
   const xp: Record<string, number> = {};
   const roster = { ...run.roster, mercs: run.roster.mercs.map((m) => {
@@ -97,6 +103,7 @@ export function trainWeek(run: RunState, ids: string[]): RunState {
 
 /** Everyone heals; optionally two members talk by the fire. */
 export function restWeek(run: RunState, a?: string, b?: string): RunState {
+  assertChoosing(run);
   let next = applyEffects(run, [{ kind: 'healAll' }]);
   const notes: WeekReport['notes'] = [];
   if (a && b && a !== b) {

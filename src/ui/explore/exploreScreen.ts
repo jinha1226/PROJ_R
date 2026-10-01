@@ -41,6 +41,8 @@ export class ExploreScreen implements Screen {
   private input = new Input();
   private detach: (() => void) | null = null;
   private raf = 0;
+  private leaveArmed = false;
+  private gone = false;
 
   constructor(private readonly api: ExploreApi) {}
 
@@ -84,7 +86,8 @@ export class ExploreScreen implements Screen {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (guardFrame(() => this.frame(dt, cam), (err) => this.api.fatal(err))) this.raf = requestAnimationFrame(loop);
+      // a frame may route away (exit, event, 귀환); never schedule past unmount
+      if (guardFrame(() => this.frame(dt, cam), (err) => this.api.fatal(err)) && !this.gone) this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
   }
@@ -108,8 +111,16 @@ export class ExploreScreen implements Screen {
     const prompt = this.el.querySelector<HTMLElement>('.explore-prompt')!;
     prompt.hidden = !near;
     if (near) prompt.innerHTML = `${iconBadge(`room:${near}` as 'room:chest', 22)} <b>E</b> / Ⓐ ${t(`explore.act.${near}`)}`;
-    if (near && s.interact) this.api.interact(near);
-    if (s.cancel && !near) this.renderHud(true);
+    if (near && s.interact) {
+      this.api.interact(near);
+      if (this.gone) return;
+    }
+    if (s.cancel && !near) {
+      // first Esc/B arms 귀환, the second confirms it (pad players have no mouse)
+      if (this.leaveArmed) return this.api.leave();
+      this.leaveArmed = true;
+      this.renderHud(true);
+    }
     this.h!.renderer.render(this.h!.scene, this.h!.camera);
   }
 
@@ -129,6 +140,7 @@ export class ExploreScreen implements Screen {
   }
 
   unmount(): void {
+    this.gone = true;
     cancelAnimationFrame(this.raf);
     this.detach?.();
     for (const a of this.actors) a.dispose();

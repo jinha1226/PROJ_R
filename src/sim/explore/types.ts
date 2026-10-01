@@ -1,3 +1,4 @@
+import type { Moment } from '../roster/relationships';
 import type { RegionCard, Theme } from '../run/types';
 
 export type Dir = 'n' | 's' | 'e' | 'w';
@@ -34,4 +35,6 @@ export interface Exploration {
   loot: { gold: number; items: string[] };
   party: string[];
   rested: boolean;
+  /** growth and stories gathered on the way, for the week report */
+  gained?: { xp: Record<string, number>; moments: Moment[] };
 }

@@ -125,3 +125,40 @@ test('reloading mid room battle settles it as a retreat that ends the exploratio
   await page.click('[data-testid="next-week"]');
   await expect(page.locator('[data-testid="gold"]')).toHaveText(`${Math.floor(gold * 0.7)} G`);
 });
+
+test('pressing Enter under the level-up modal does not advance the week twice', async ({ page }) => {
+  await newRun(page, '42');
+  await page.click('[data-testid="act-train"]');
+  await page.locator('.pick-chips .fchip').first().click();
+  await page.click('[data-testid="go-train"]');
+  await expect(page.locator('[data-testid="week-report"]')).toBeVisible();
+  // give the protagonist a promotion to choose, as if training had levelled them
+  await page.evaluate(() => {
+    const run = JSON.parse(localStorage.getItem('projr.run.v2')!) as { roster: { mercs: { level: number; pendingLevelUps: number }[] } };
+    run.roster.mercs[0]!.level = 3;
+    run.roster.mercs[0]!.pendingLevelUps = 1;
+    localStorage.setItem('projr.run.v2', JSON.stringify(run));
+  });
+  await page.reload();
+  await page.click('[data-testid="continue-run"]');
+  await page.click('[data-testid="next-week"]');
+  await expect(page.locator('[data-testid="offer-0"]')).toHaveCount(1);
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-testid="offer-0"]')).toHaveCount(1);
+  await page.click('[data-testid="offer-0"]');
+  await expect(page.locator('[data-testid="week"]')).toHaveText('2주차');
+});
+
+test('Esc twice (or B twice) leaves the exploration from anywhere', async ({ page }) => {
+  await newRun(page, '42');
+  await page.click('[data-testid="act-rest"]');
+  await page.click('[data-testid="go-rest"]');
+  await page.click('[data-testid="next-week"]');
+  await page.click('[data-testid="skip-visitors"]');
+  await setOut(page);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-testid="week-report"]')).toBeVisible({ timeout: 5_000 });
+});
