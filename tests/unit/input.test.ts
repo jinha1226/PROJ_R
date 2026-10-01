@@ -126,4 +126,20 @@ describe('touch controls', () => {
     expect(cameraTurn({ rotateL: false, rotateR: true, ult: false })).toBe(1);
     expect(cameraTurn({ rotateL: true, rotateR: false, ult: false })).toBe(-1);
   });
+  it('party orders: F/R/G on the keyboard, X/Y/RB on a pad, and touch buttons', () => {
+    const inp = new Input(() => []);
+    inp.key('KeyF', true);
+    inp.key('KeyG', true);
+    let s = inp.poll();
+    expect([s.focus, s.retreat, s.regroup]).toEqual([true, false, true]);
+    const pad = new Input(() => [{ axes: [0, 0], buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: i === 3 })) }]);
+    expect(pad.poll().retreat).toBe(true);
+    const t = new TouchState(() => 800, 60);
+    t.press(1, 'focus');
+    const v = new Input(() => []);
+    v.setVirtual(t.state());
+    s = v.poll();
+    expect(s.focus).toBe(true);
+    expect(cameraTurn({ rotateL: false, rotateR: true, regroup: true })).toBe(0);
+  });
 });

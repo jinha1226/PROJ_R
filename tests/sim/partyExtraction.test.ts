@@ -87,4 +87,14 @@ describe('party losses and extraction', () => {
     expect(s.w.outcome).toBe('failed');
     expect(s.end().members.every((m) => m.state === 'dead')).toBe(true);
   });
+  it('consumables are used straight from the shared pack', () => {
+    const s = WorldSim.party(testRegion([], { start: { x: 0, y: 0 } }), geared(2), [{ id: 'x_potion_m', n: 2 }], null, 1);
+    const h = heroUnit(s.w);
+    h.hp = h.maxHp / 3;
+    go(s, 1);
+    s.useItem(0);
+    go(s, SEC);
+    expect(h.hp).toBeGreaterThan(h.maxHp / 2);
+    expect(s.w.hero.loadout.bag).toEqual([{ id: 'x_potion_m', n: 1 }]);
+  });
 });

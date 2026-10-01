@@ -20,6 +20,10 @@ export interface InputState {
   ult: boolean;
   /** pick up / search / open (sortie): E or pad B */
   pick: boolean;
+  /** party orders (sortie): focus fire F / pad X, retreat R / pad Y, regroup G / pad RB */
+  focus: boolean;
+  retreat: boolean;
+  regroup: boolean;
   /** attack button currently held (sorties attack continuously) */
   attackHeld: boolean;
   /** quick slot pressed this frame (1–4 / d-pad up·down·left·right) */
@@ -29,12 +33,13 @@ export interface InputState {
 type Action = Exclude<keyof InputState, 'move' | 'attackHeld' | 'quick'>;
 
 const DEAD = 0.2;
-const PAD: Record<Action, number> = { interact: 0, cancel: 1, attack: 0, skill1: 2, skill2: 3, rotateL: 4, rotateR: 5, ult: 5, toggleManual: 8, menu: 9, pick: 1 };
+const PAD: Record<Action, number> = { interact: 0, cancel: 1, attack: 0, skill1: 2, skill2: 3, rotateL: 4, rotateR: 5, ult: 5, toggleManual: 8, menu: 9, pick: 1, focus: 2, retreat: 3, regroup: 5 };
 const PAD_QUICK = [12, 13, 14, 15];
 const KEY_QUICK = ['Digit1', 'Digit2', 'Digit3', 'Digit4'];
 const KEYS: Record<Action, string[]> = {
   interact: ['KeyE', 'Enter'], cancel: ['Escape', 'Backspace'], rotateL: ['KeyZ'], rotateR: ['KeyX'], menu: ['Escape'],
   toggleManual: ['Tab'], attack: ['KeyJ'], skill1: ['KeyK'], skill2: ['KeyL'], ult: ['KeyI', 'Semicolon'], pick: ['KeyE'],
+  focus: ['KeyF'], retreat: ['KeyR'], regroup: ['KeyG'],
 };
 const MOVE_KEYS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'] };
 
@@ -96,7 +101,7 @@ export class Input {
     }
     const v = this.virtual;
     if (v.move && Math.hypot(v.move.x, v.move.y) > 0) { x = v.move.x; y = v.move.y; }
-    const virt = (a: Action) => (a === 'attack' || a === 'skill1' || a === 'skill2' || a === 'ult' || a === 'pick' || a === 'menu' ? !!v[a] : a === 'toggleManual' ? !!v.auto : false);
+    const virt = (a: Action) => (a === 'attack' || a === 'skill1' || a === 'skill2' || a === 'ult' || a === 'pick' || a === 'menu' || a === 'focus' || a === 'retreat' || a === 'regroup' ? !!v[a] : a === 'toggleManual' ? !!v.auto : false);
     const held = (a: Action) => any(KEYS[a]) || KEYS[a].some((c) => this.tapped.has(c)) || !!pad?.buttons[PAD[a]]?.pressed || virt(a);
     const state = { move: { x: x || 0, y: y || 0 } } as InputState;
     state.attackHeld = any(KEYS.attack) || !!pad?.buttons[PAD.attack]?.pressed || !!v.attack;

@@ -108,3 +108,29 @@ export function settleCompany(c: XCompany, end: SortieEnd): { company: XCompany;
   return { company: refreshTavern(next), lost: [...(ok ? [] : end.pack), ...lostGear], gained: ok ? end.pack : [], died };
 }
 
+
+export function packToStash(c: XCompany, i: number): XCompany {
+  const s = c.pack[i];
+  if (!s) throw new Error(`nothing at pack[${i}]`);
+  return bank({ ...c, pack: c.pack.filter((_, k) => k !== i) }, [s]);
+}
+
+/** One stash stack into the safe pouch (the previous pouch item returns to the stash). */
+export function stashToPouch(c: XCompany, i: number): XCompany {
+  const s = c.stash[i];
+  if (!s) throw new Error(`nothing at stash[${i}]`);
+  const next = { ...c, stash: c.stash.filter((_, k) => k !== i), pouch: s };
+  return c.pouch ? bank(next, [c.pouch]) : next;
+}
+
+export const pouchToStash = (c: XCompany): XCompany => (c.pouch ? bank({ ...c, pouch: null }, [c.pouch]) : c);
+
+/** Moves a member one place forward (-1) or back (+1) in the sortie order; the first is the leader. */
+export function moveInParty(c: XCompany, id: string, dir: -1 | 1): XCompany {
+  const i = c.party.indexOf(id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= c.party.length) return c;
+  const party = [...c.party];
+  [party[i], party[j]] = [party[j]!, party[i]!];
+  return { ...c, party };
+}

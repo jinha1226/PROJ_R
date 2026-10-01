@@ -27,14 +27,15 @@ const DRINK_TICKS = 16;
 const RECALL_TICKS = 10 * SEC;
 
 /** Uses the item in a quick slot: potions take a moment, the rest act at once. */
-function useQuick(w: WorldState, index: number): void {
-  const s = w.hero.loadout.quick[index];
+/** Uses a consumable from a quick slot or straight from the shared pack. */
+export function useItem(w: WorldState, where: 'quick' | 'bag', index: number): void {
+  const s = where === 'quick' ? w.hero.loadout.quick[index] : w.hero.loadout.bag[index];
   if (!s) return;
   const use = xitem(s.id).use;
   if (!use) return;
   if (use.kind === 'heal' && w.hero.drink) return;
   if (use.kind === 'recall' && w.hero.channel && w.hero.channel.kind !== 'search') return;
-  w.hero.loadout = removeAt(w.hero.loadout, 'quick', index, 1).loadout;
+  w.hero.loadout = removeAt(w.hero.loadout, where, index, 1).loadout;
   const tick = w.b.tick;
   if (use.kind === 'heal') w.hero.drink = { ticks: 0, total: DRINK_TICKS, item: s.id };
   else if (use.kind === 'antidote') w.hero.poisonImmuneUntil = tick + use.sec * SEC;
@@ -54,7 +55,7 @@ function useQuick(w: WorldState, index: number): void {
 export function applyHeroInput(w: WorldState, input: HeroInput): void {
   const u = heroUnit(w);
   if (!u.alive || u.downed) return;
-  if (input.quick !== null) useQuick(w, input.quick);
+  if (input.quick !== null) useItem(w, 'quick', input.quick);
   const ch = w.hero.channel;
   const len = Math.min(1, Math.hypot(input.move.x, input.move.y));
   if (len > 0.1 && ch && ch.kind !== 'extract') w.hero.channel = undefined;

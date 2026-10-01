@@ -1,5 +1,5 @@
 export interface Vec { x: number; y: number }
-export type TouchButton = 'attack' | 'skill1' | 'skill2' | 'ult' | 'pick' | 'menu' | 'auto' | 'quick0' | 'quick1' | 'quick2' | 'quick3';
+export type TouchButton = 'attack' | 'skill1' | 'skill2' | 'ult' | 'pick' | 'menu' | 'auto' | 'focus' | 'retreat' | 'regroup' | 'quick0' | 'quick1' | 'quick2' | 'quick3';
 
 /** What touch contributes to the input state (merged by Input as its virtual source). */
 export interface VirtualInput {
@@ -11,6 +11,9 @@ export interface VirtualInput {
   pick?: boolean;
   menu?: boolean;
   auto?: boolean;
+  focus?: boolean;
+  retreat?: boolean;
+  regroup?: boolean;
   quick?: number | null;
 }
 
@@ -66,7 +69,7 @@ export class TouchState {
     return {
       move: this.stick ? stickVector(this.stick.origin, this.stick.at, this.radius, this.dead) : { x: 0, y: 0 },
       attack: on.has('attack'), skill1: on.has('skill1'), skill2: on.has('skill2'), ult: on.has('ult'), pick: on.has('pick'),
-      menu: on.has('menu'), auto: on.has('auto'),
+      menu: on.has('menu'), auto: on.has('auto'), focus: on.has('focus'), retreat: on.has('retreat'), regroup: on.has('regroup'),
       quick: q ? Number(q.slice(5)) : null,
     };
   }

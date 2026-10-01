@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   newCompany, canDeploy, setParty, hire, settleCompany, isGameOver, stashToMerc, mercToStash, stashToPack, MAX_MERCS,
+  packToStash, stashToPouch, pouchToStash, moveInParty,
 } from '../../src/sim/extract/company';
 import { saveCompany, loadCompany } from '../../src/app/extractSave';
 import type { KV } from '../../src/app/save';
@@ -90,5 +91,19 @@ describe('extraction company', () => {
     expect(loadCompany(kv)).toEqual(c);
     kv.setItem('projr.extract.v2', '{"version":1}');
     expect(loadCompany(kv)).toBeNull();
+  });
+  it('moves supplies back, uses the safe pouch, and reorders the party', () => {
+    let c = { ...newCompany(5), stash: [{ id: 'x_potion_s', n: 2 }, { id: 'x_idol', n: 1 }] };
+    c = stashToPack(c, 0);
+    c = packToStash(c, 0);
+    expect(c.pack).toEqual([]);
+    expect(c.stash).toEqual([{ id: 'x_idol', n: 1 }, { id: 'x_potion_s', n: 2 }]);
+    c = stashToPouch(c, 0);
+    expect(c.pouch).toEqual({ id: 'x_idol', n: 1 });
+    c = pouchToStash(c);
+    expect(c.pouch).toBeNull();
+    const [a, b] = c.party;
+    c = moveInParty(c, b!, -1);
+    expect(c.party.slice(0, 2)).toEqual([b, a]);
   });
 });

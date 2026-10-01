@@ -17,7 +17,7 @@ import type { GearSlot } from '../../data/extract';
 import { updateActivation } from './activation';
 import { phaseOf, updateClock } from './clock';
 import { onHeroDamage, updateChannel, updateHazards, updateRegen } from './extraction';
-import { alertOnHit, applyHeroInput, type HeroInput } from './heroControl';
+import { alertOnHit, applyHeroInput, useItem, type HeroInput } from './heroControl';
 import { dropBody, interact, lootDrop, lootTake, nearby, startEquip, toPouch, toQuick, unequip, type Nearby } from './interact';
 import { updatePatrol, walkTo } from './patrol';
 import { updatePerception } from './perception';
@@ -131,6 +131,7 @@ export class WorldSim {
   unequip(slot: GearSlot, member?: string): void { if (!this.w.outcome) unequip(this.w, slot, member); }
   toQuick(bagIndex: number, quickIndex: number): void { if (!this.w.outcome) toQuick(this.w, bagIndex, quickIndex); }
   toPouch(bagIndex: number): void { if (!this.w.outcome) toPouch(this.w, bagIndex); }
+  useItem(bagIndex: number): void { if (!this.w.outcome) useItem(this.w, 'bag', bagIndex); }
 
   /** Units within `radius` of the hero (the view only draws what is near). */
   snapshot(radius: number): Snapshot {
