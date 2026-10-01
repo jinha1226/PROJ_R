@@ -30,11 +30,8 @@ const io = new NodeIO();
 
 function dropAnimation(a) {
   for (const c of a.listChannels()) c.dispose();
-  for (const smp of a.listSamplers()) {
-    smp.getInput()?.dispose();
-    smp.getOutput()?.dispose();
-    smp.dispose();
-  }
+  // Accessors may be shared between clips; leave them for prune() to collect.
+  for (const smp of a.listSamplers()) smp.dispose();
   a.dispose();
 }
 

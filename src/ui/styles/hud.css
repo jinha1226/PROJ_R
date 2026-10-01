@@ -1,0 +1,36 @@
+.battle-stage { position: absolute; inset: 0; }
+.battle-canvas { display: block; width: 100%; height: 100%; }
+.screen.battle.berserk::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px #c0201888; animation: pulse 1.2s infinite alternate; }
+@keyframes pulse { from { opacity: 0.5; } to { opacity: 1; } }
+
+.hud-controls { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+.hud-chips { position: absolute; left: 12px; right: 12px; top: 10px; display: flex; flex-wrap: wrap; gap: 4px; pointer-events: none; }
+.chip { pointer-events: auto; font: inherit; font-size: 12px; color: var(--text); background: #26242ccc; border: 1px solid var(--line); border-left-width: 4px; border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+.chip.enemy { border-left-color: var(--danger); color: #ffcabf; }
+
+.hud-inspect { position: absolute; right: 12px; top: 48px; width: 240px; background: #26242ce6; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 13px; }
+.insp-name { font-weight: 800; font-size: 16px; }
+.insp-sub { color: var(--muted); margin-bottom: 8px; }
+.insp-row { margin: 2px 0; }
+.insp-row b { display: inline-block; width: 36px; color: var(--muted); font-weight: 600; }
+.insp-intent { margin-top: 8px; padding: 6px 8px; background: #0004; border-left: 3px solid var(--accent); border-radius: 3px; }
+.insp-reasons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.reason-chip { font-size: 11px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 1px 7px; }
+
+.hud-log { position: absolute; left: 12px; bottom: 12px; width: min(380px, calc(100% - 24px)); max-height: 34vh; display: flex; flex-direction: column; background: #1b1a1fcc; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+.hud-log-head { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.hud-log-head span { cursor: pointer; font-weight: 700; }
+.hud-log-head label { color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.hud-log-list { overflow-y: auto; padding: 4px 10px; }
+.hud-log.collapsed .hud-log-list { display: none; }
+.hud-log-row { padding: 1px 0; color: var(--muted); }
+.hud-log-row.hl { color: var(--text); font-weight: 600; }
+.hud-log-row.ev-combo { color: #ffe23a; }
+.hud-log-row.ev-rescued { color: #8cd8ff; }
+.hud-log-row.ev-died, .hud-log-row.ev-downed { color: #ff9a8a; }
+.hud-log.only-hl .hud-log-row:not(.hl) { display: none; }
+
+@media (max-width: 720px) {
+  .hud-inspect { top: auto; bottom: 60px; width: calc(100% - 24px); }
+  .hud-log { max-height: 22vh; bottom: 56px; }
+}

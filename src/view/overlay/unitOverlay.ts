@@ -3,8 +3,13 @@ import type { TagId } from '../../data/types';
 import type { UnitSnap, UnitSetup } from '../../sim/battle/types';
 import './overlay.css';
 
-const TAG_ICON: Record<TagId, string> = {
-  marked: '🎯', knockdown: '💫', wet: '💧', stun: '⚡', burn: '🔥', bleed: '🩸', slow: '🐌', shield: '🛡️', taunted: '❗',
+/** One-letter Korean badges with tag colors — renders without emoji fonts. */
+const TAG_BADGE: Record<TagId, { label: string; color: string }> = {
+  marked: { label: '표', color: '#e0a040' }, knockdown: { label: '넘', color: '#b0a090' },
+  wet: { label: '젖', color: '#4aa3ff' }, stun: { label: '기', color: '#ffe040' },
+  burn: { label: '화', color: '#ff6a2a' }, bleed: { label: '출', color: '#d03040' },
+  slow: { label: '둔', color: '#8a7ad0' }, shield: { label: '막', color: '#bfe6ff' },
+  taunted: { label: '도', color: '#ff5050' },
 };
 
 interface Row {
@@ -59,7 +64,11 @@ export class UnitOverlay {
     const key = u.tags.join(',');
     if (key !== r.tagKey) {
       r.tagKey = key;
-      r.tags.textContent = [...new Set(u.tags)].map((t) => TAG_ICON[t as TagId] ?? '').join('');
+      r.tags.innerHTML = [...new Set(u.tags)]
+        .map((t) => TAG_BADGE[t as TagId])
+        .filter((b) => b)
+        .map((b) => `<span class="uo-tag" style="background:${b!.color}">${b!.label}</span>`)
+        .join('');
     }
   }
 

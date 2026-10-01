@@ -31,8 +31,8 @@ export async function loadAssets(baseUrl: string, onProgress?: (p: number) => vo
     try {
       const g = await loader.loadAsync(`${baseUrl}assets/${f}`);
       loaded.set(f, { scene: g.scene, animations: g.animations });
-    } catch {
-      throw new Error(`asset-load-failed: ${f}`);
+    } catch (cause) {
+      throw new Error(`asset-load-failed: ${f} (${cause instanceof Error ? cause.message : String(cause)})`, { cause });
     }
     done++;
     onProgress?.(done / files.length);

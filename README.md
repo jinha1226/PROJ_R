@@ -7,6 +7,15 @@
 - 설계서: [docs/superpowers/specs](docs/superpowers/specs/2026-10-01-mercenary-roguelike-design.md)
 - 구현 계획: [docs/superpowers/plans](docs/superpowers/plans/)
 
+## 지금 플레이할 수 있는 것: 전투 샌드박스
+
+아군 프리셋(혼자인 견습 / 기본 5인 / 원소 연계)과 적 프리셋(해골 졸개 / 산적단 / 해골 부대 / 보스)을 고르고
+시드를 정해 자동 전투를 관전합니다. 같은 시드는 항상 같은 전투를 재현합니다.
+
+- `Space` 일시정지 · `1` `2` `3` 속도 1x/2x/4x · `후퇴` 버튼
+- 상단 이름표나 캐릭터를 클릭하면 현재 의도와 그 이유(전술·상황)를 보여줍니다.
+- 전투 기록의 `연계·구출만`으로 중요한 순간만 볼 수 있습니다.
+
 ## 개발
 
 Node.js 22 이상.
