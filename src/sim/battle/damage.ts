@@ -1,4 +1,6 @@
+import { CRIT_MULT, LIFELINE_PCT, MOMENTUM_MAX } from './constants';
 import { emit } from './events';
+import { damageMultiplier, effectiveStats } from './stats';
 import type { BattleState, UnitState } from './types';
 
 export interface HitOpts {
@@ -9,9 +11,83 @@ export interface HitOpts {
   reason?: string;
 }
 
+export function computeDamage(atk: number, mult: number, def: number, crit: boolean, otherMult: number): number {
+  return Math.max(1, Math.round(atk * mult * (100 / (100 + def)) * (crit ? CRIT_MULT : 1) * otherMult));
+}
+
+const gainMomentum = (u: UnitState, amount: number): void => {
+  if (u.alive && !u.downed) u.momentum = Math.min(MOMENTUM_MAX, u.momentum + amount);
+};
+
+export function killUnit(s: BattleState, u: UnitState, by: UnitState | null): void {
+  if (!u.alive) return;
+  u.alive = false;
+  u.downed = false;
+  u.action = null;
+  u.forced = null;
+  u.vel = { x: 0, y: 0 };
+  s.telegraphs = s.telegraphs.filter((t) => t.srcId !== u.id);
+  if (by) by.stats.kills++;
+  emit(s, { type: 'died', src: by?.id, dst: u.id });
+}
+
+export function downUnit(s: BattleState, u: UnitState, by: UnitState | null): void {
+  u.downed = true;
+  u.hp = 0;
+  u.lifeline = u.maxHp * LIFELINE_PCT;
+  u.action = null;
+  u.forced = null;
+  u.vel = { x: 0, y: 0 };
+  u.momentum = 0;
+  u.engagedWith = null;
+  u.rescueTarget = null;
+  u.tags = u.tags.filter((t) => t.tag === 'shield');
+  s.telegraphs = s.telegraphs.filter((t) => t.srcId !== u.id);
+  emit(s, { type: 'downed', src: by?.id, dst: u.id });
+}
+
+/** Returns damage actually dealt (0 on a dodge). */
 export function dealDamage(s: BattleState, src: UnitState, dst: UnitState, opts: HitOpts): number {
-  const amount = Math.max(1, Math.round(src.setup.stats.atk * opts.mult));
-  dst.hp = Math.max(0, dst.hp - amount);
-  emit(s, { type: 'damage', src: src.id, dst: dst.id, amount, skillId: opts.skillId });
+  if (!dst.alive) return 0;
+  const se = effectiveStats(src, s);
+  const de = effectiveStats(dst, s);
+  if (opts.canDodge && !dst.downed && s.rng.chance(de.dodge)) {
+    dst.stats.dodges++;
+    emit(s, { type: 'miss', src: src.id, dst: dst.id, skillId: opts.skillId });
+    return 0;
+  }
+  const crit = opts.canCrit && s.rng.chance(se.crit);
+  const amount = computeDamage(se.atk, opts.mult, de.def, crit, damageMultiplier(src, dst, s));
+  let rest = amount;
+  if (dst.shield > 0) {
+    const absorbed = Math.min(dst.shield, rest);
+    dst.shield -= absorbed;
+    rest -= absorbed;
+  }
+  gainMomentum(src, (amount / dst.maxHp) * 40);
+  gainMomentum(dst, (amount / dst.maxHp) * 60);
+  dst.threat[src.id] = (dst.threat[src.id] ?? 0) + amount;
+  src.stats.damageDealt += amount;
+  emit(s, { type: 'damage', src: src.id, dst: dst.id, amount, crit, skillId: opts.skillId, reason: opts.reason });
+  if (dst.downed) {
+    dst.lifeline -= rest;
+    if (dst.lifeline <= 0) killUnit(s, dst, src);
+    return amount;
+  }
+  dst.hp -= rest;
+  if (dst.hp <= 0) {
+    if (dst.team === 'ally') downUnit(s, dst, src);
+    else killUnit(s, dst, src);
+  }
   return amount;
+}
+
+export function heal(s: BattleState, src: UnitState, dst: UnitState, amount: number, skillId: string): number {
+  if (!dst.alive || dst.downed) return 0;
+  const healed = Math.min(Math.round(amount), dst.maxHp - dst.hp);
+  if (healed <= 0) return 0;
+  dst.hp += healed;
+  src.stats.healingDone += healed;
+  emit(s, { type: 'heal', src: src.id, dst: dst.id, amount: healed, skillId });
+  return healed;
 }
