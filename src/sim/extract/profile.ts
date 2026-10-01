@@ -3,7 +3,7 @@ import { WEAPON_TYPE_OF_CLASS } from '../../data/items';
 import { createProtagonist } from '../roster/generate';
 import { addXp } from '../roster/leveling';
 import { putInto, stackValue, type Stack } from './inventory';
-import { addItem, emptyLoadout, loseOnDeath, quickSlots, removeAt, type Loadout } from './loadout';
+import { addItem, emptyLoadout, loseOnDeath, quickSlots, removeAt, settleCapacity, type Loadout } from './loadout';
 import { bank, STASH_SLOTS } from './merchant';
 import type { XProfile } from './profileTypes';
 
@@ -66,8 +66,10 @@ export function stashToLoadout(p: XProfile, stashIndex: number): XProfile {
     if (def.slot === 'weapon' && def.weaponType !== WEAPON_TYPE_OF_CLASS[p.hero.classId]) throw new Error('wrong weapon type');
     const old = l.equipped[def.slot];
     const stash = s.n > 1 ? [...rest.slice(0, stashIndex), { id: s.id, n: s.n - 1 }, ...rest.slice(stashIndex)] : rest;
-    const next = { ...p, stash, loadout: { ...l, equipped: { ...l.equipped, [def.slot]: s.id } } };
-    return old ? bank(next, [{ id: old, n: 1 }]) : next;
+    // a smaller bag or belt spills what no longer fits back into the stash
+    const settled = settleCapacity({ ...l, equipped: { ...l.equipped, [def.slot]: s.id } });
+    const next = { ...p, stash, loadout: settled.loadout };
+    return bank(next, [...(old ? [{ id: old, n: 1 }] : []), ...settled.dropped]);
   }
   if (def.kind === 'consumable') {
     const qn = quickSlots(l);

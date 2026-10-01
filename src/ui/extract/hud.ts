@@ -48,7 +48,8 @@ export class Hud {
     q('.xhud-clock').innerHTML = `<b>${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}</b> ${PHASE_NAME[phase]}`;
     q('.xhud-clock').className = `xhud-clock ph-${phase}`;
     q('.xhud-auto').hidden = !auto;
-    const ch = w.hero.channel;
+    const dr = w.hero.drink;
+    const ch = w.hero.channel ?? (dr ? { kind: 'drink', ticks: dr.ticks, total: dr.total } : undefined);
     q('.xhud-channel').hidden = !ch;
     if (ch) {
       q('.xhud-channel span').textContent = CHANNEL_NAME[ch.kind] ?? '';

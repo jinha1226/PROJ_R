@@ -93,11 +93,14 @@ export function lootDrop(w: WorldState, where: 'bag' | 'quick', index: number): 
 
 export function startEquip(w: WorldState, index: number): void {
   const s = w.hero.loadout.bag[index];
-  if (!s || xitem(s.id).kind !== 'gear') return;
-  w.hero.channel = { kind: 'equip', ticks: 0, total: EQUIP_TICKS, index };
+  if (!s || xitem(s.id).kind !== 'gear' || (w.hero.channel && w.hero.channel.kind !== 'search')) return;
+  w.hero.channel = { kind: 'equip', ticks: 0, total: EQUIP_TICKS, target: s.id };
 }
 
-export function finishEquip(w: WorldState, index: number): void {
+/** Puts on the item chosen when the equip began (the bag may have shifted meanwhile). */
+export function finishEquip(w: WorldState, itemId: string): void {
+  const index = w.hero.loadout.bag.findIndex((s) => s.id === itemId);
+  if (index < 0) return void emitW(w, 'equip_failed');
   try {
     const r = equipFromBag(w.hero.loadout, index, WEAPON_TYPE_OF_CLASS[w.hero.merc.classId]);
     w.hero.loadout = r.loadout;

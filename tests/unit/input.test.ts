@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Input, type PadLike } from '../../src/app/input/input';
 import { stickVector, TouchState } from '../../src/app/input/touch';
+import { cameraTurn } from '../../src/app/input/sortieInput';
 
 const pad = (axes: number[], pressed: number[] = []): PadLike => ({ axes, buttons: Array.from({ length: 16 }, (_, i) => ({ pressed: pressed.includes(i) })) });
 
@@ -104,5 +105,25 @@ describe('touch controls', () => {
     expect(t.state().quick).toBe(1);
     t.up(3);
     expect(t.state().quick ?? null).toBeNull();
+  });
+  it('touch has pause and auto buttons that reach the input state', () => {
+    const t = new TouchState(() => 800, 60);
+    t.press(1, 'menu');
+    expect(t.state().menu).toBe(true);
+    const inp = new Input(() => []);
+    inp.setVirtual({ menu: true, auto: true });
+    const s = inp.poll();
+    expect([s.menu, s.toggleManual]).toEqual([true, true]);
+  });
+  it('the stick follows the current screen width (after rotating the phone)', () => {
+    let width = 400;
+    const t = new TouchState(() => width, 60);
+    width = 900;
+    expect(t.down(1, 300, 200)).toBe(true);
+  });
+  it('the pad ultimate (RB) does not also turn the camera', () => {
+    expect(cameraTurn({ rotateL: false, rotateR: true, ult: true })).toBe(0);
+    expect(cameraTurn({ rotateL: false, rotateR: true, ult: false })).toBe(1);
+    expect(cameraTurn({ rotateL: true, rotateR: false, ult: false })).toBe(-1);
   });
 });

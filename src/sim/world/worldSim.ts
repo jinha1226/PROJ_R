@@ -99,13 +99,14 @@ export class WorldSim {
     updateClock(this.w);
   }
 
-  nearby(): Nearby { return nearby(this.w); }
-  lootTake(id: string, index: number): boolean { return lootTake(this.w, id, index); }
-  lootDrop(where: 'bag' | 'quick', index: number): void { lootDrop(this.w, where, index); }
-  equip(index: number): void { startEquip(this.w, index); }
-  unequip(slot: GearSlot): void { unequip(this.w, slot); }
-  toQuick(bagIndex: number, quickIndex: number): void { toQuick(this.w, bagIndex, quickIndex); }
-  toPouch(bagIndex: number): void { toPouch(this.w, bagIndex); }
+  // once the sortie has ended (extracted or down) the loadout is frozen
+  nearby(): Nearby { return this.w.outcome ? null : nearby(this.w); }
+  lootTake(id: string, index: number): boolean { return !this.w.outcome && lootTake(this.w, id, index); }
+  lootDrop(where: 'bag' | 'quick', index: number): void { if (!this.w.outcome) lootDrop(this.w, where, index); }
+  equip(index: number): void { if (!this.w.outcome) startEquip(this.w, index); }
+  unequip(slot: GearSlot): void { if (!this.w.outcome) unequip(this.w, slot); }
+  toQuick(bagIndex: number, quickIndex: number): void { if (!this.w.outcome) toQuick(this.w, bagIndex, quickIndex); }
+  toPouch(bagIndex: number): void { if (!this.w.outcome) toPouch(this.w, bagIndex); }
 
   /** Units within `radius` of the hero (the view only draws what is near). */
   snapshot(radius: number): Snapshot {

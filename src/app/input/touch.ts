@@ -1,5 +1,5 @@
 export interface Vec { x: number; y: number }
-export type TouchButton = 'attack' | 'skill1' | 'skill2' | 'ult' | 'pick' | 'quick0' | 'quick1' | 'quick2' | 'quick3';
+export type TouchButton = 'attack' | 'skill1' | 'skill2' | 'ult' | 'pick' | 'menu' | 'auto' | 'quick0' | 'quick1' | 'quick2' | 'quick3';
 
 /** What touch contributes to the input state (merged by Input as its virtual source). */
 export interface VirtualInput {
@@ -9,6 +9,8 @@ export interface VirtualInput {
   skill2?: boolean;
   ult?: boolean;
   pick?: boolean;
+  menu?: boolean;
+  auto?: boolean;
   quick?: number | null;
 }
 
@@ -27,11 +29,16 @@ export class TouchState {
   private stick: { id: number; origin: Vec; at: Vec } | null = null;
   private readonly held = new Map<number, TouchButton>();
 
-  constructor(private readonly width: number, private readonly radius: number, private readonly dead = 0.15) {}
+  private readonly width: () => number;
+
+  /** width: the screen width now (a getter, so turning the phone moves the stick area with it) */
+  constructor(width: number | (() => number), private readonly radius: number, private readonly dead = 0.15) {
+    this.width = typeof width === 'number' ? () => width : width;
+  }
 
   /** A touch on the left half starts the stick where the thumb lands. */
   down(id: number, x: number, y: number): boolean {
-    if (this.stick || x >= this.width / 2) return false;
+    if (this.stick || x >= this.width() / 2) return false;
     this.stick = { id, origin: { x, y }, at: { x, y } };
     return true;
   }
@@ -59,6 +66,7 @@ export class TouchState {
     return {
       move: this.stick ? stickVector(this.stick.origin, this.stick.at, this.radius, this.dead) : { x: 0, y: 0 },
       attack: on.has('attack'), skill1: on.has('skill1'), skill2: on.has('skill2'), ult: on.has('ult'), pick: on.has('pick'),
+      menu: on.has('menu'), auto: on.has('auto'),
       quick: q ? Number(q.slice(5)) : null,
     };
   }

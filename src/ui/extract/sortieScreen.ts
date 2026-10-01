@@ -1,5 +1,6 @@
 import type { Screen } from '../../app/router';
 import { Input } from '../../app/input/input';
+import { cameraTurn } from '../../app/input/sortieInput';
 import type { Loadout } from '../../sim/extract/loadout';
 import type { Region } from '../../sim/extract/regionTypes';
 import type { Mercenary } from '../../sim/roster/types';
@@ -84,8 +85,8 @@ export class SortieScreen implements Screen {
     if (s.menu && !this.panel) this.openPanel();
     else if ((s.menu || s.cancel) && this.panel) this.closePanel();
     if (s.toggleManual) this.auto = !this.auto;
-    if (s.rotateL) rt.cam.rotateStep(-1);
-    if (s.rotateR) rt.cam.rotateStep(1);
+    const turn = cameraTurn(s);
+    if (turn) rt.cam.rotateStep(turn);
     const looting = !!this.panel;
     // one-shot presses wait for the next sim tick (a frame may run zero ticks)
     const p = this.latched;

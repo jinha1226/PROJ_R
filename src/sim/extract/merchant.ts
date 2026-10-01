@@ -1,4 +1,4 @@
-import { X_ITEMS, xitem } from '../../data/extract';
+import { STARTER_KIT, X_ITEMS, xitem } from '../../data/extract';
 import { mergeAll, putInto } from './inventory';
 import type { XProfile } from './profileTypes';
 
@@ -11,13 +11,17 @@ export const MERCHANT_STOCK: string[] = Object.values(X_ITEMS)
   .sort((a, b) => (a.kind === b.kind ? a.value - b.value : a.kind === 'consumable' ? -1 : 1))
   .map((i) => i.id);
 
+/** The free kit is worth nothing to the merchant (otherwise claim-and-sell prints gold). */
+const STARTER = new Set([...Object.values(STARTER_KIT.weapon), STARTER_KIT.chest]);
+export const sellPrice = (id: string): number => (STARTER.has(id) ? 0 : xitem(id).value);
+
 /** Sells n (default all) of a stash stack at its value. */
 export function sell(p: XProfile, stashIndex: number, n?: number): XProfile {
   const s = p.stash[stashIndex];
   if (!s) throw new Error(`nothing at stash[${stashIndex}]`);
   const k = Math.min(s.n, n ?? s.n);
   const stash = s.n - k > 0 ? p.stash.map((x, i) => (i === stashIndex ? { id: x.id, n: x.n - k } : x)) : p.stash.filter((_, i) => i !== stashIndex);
-  return { ...p, gold: p.gold + xitem(s.id).value * k, stash };
+  return { ...p, gold: p.gold + sellPrice(s.id) * k, stash };
 }
 
 /** Buys one into the stash at twice the value. */

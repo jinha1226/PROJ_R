@@ -104,8 +104,10 @@ export class NavGrid {
   }
 
   /** Waypoints after `from`, ending exactly at `to`; null when `to` cannot be reached. */
-  path(from: Vec2, to: Vec2): Vec2[] | null {
-    if (!this.walkable(to)) return null;
+  path(from: Vec2, wanted: Vec2): Vec2[] | null {
+    // a target hugging a wall: head for the nearest free point instead
+    const to = this.walkable(wanted) ? wanted : this.nearestWalkable(wanted, 2);
+    if (!to) return null;
     if (this.lineClear(from, to)) return [{ ...to }];
     const g = this.coarse;
     const start = this.nearestFree(g.index(from));
@@ -179,6 +181,16 @@ export class NavGrid {
       const k = this.nearestFree(g.index(p));
       return k >= 0 && seen[k] === 1;
     };
+  }
+
+  private nearestWalkable(p: Vec2, maxR: number): Vec2 | null {
+    const step = this.fine.cell / 2;
+    for (let r = step; r <= maxR; r += step)
+      for (let a = 0; a < 16; a++) {
+        const q = { x: p.x + Math.cos((a / 16) * Math.PI * 2) * r, y: p.y + Math.sin((a / 16) * Math.PI * 2) * r };
+        if (this.walkable(q)) return q;
+      }
+    return null;
   }
 
   private nearestFree(k: number): number {

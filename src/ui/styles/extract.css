@@ -80,3 +80,6 @@
 .tb-pick { right: 120px; bottom: 150px; width: 70px; height: 70px; border-color: #5fe08a; }
 .tc-quick { position: absolute; right: 230px; bottom: 20px; display: flex; gap: 8px; pointer-events: none; }
 .tb-quick { position: static; width: 48px; height: 48px; }
+.tc-menu { position: absolute; left: 12px; top: 44px; display: flex; gap: 8px; pointer-events: none; }
+.tb-menu, .tb-auto { position: static; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.tc-btn.on { background: #e0a64a99; }

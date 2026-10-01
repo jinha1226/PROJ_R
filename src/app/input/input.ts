@@ -96,7 +96,7 @@ export class Input {
     }
     const v = this.virtual;
     if (v.move && Math.hypot(v.move.x, v.move.y) > 0) { x = v.move.x; y = v.move.y; }
-    const virt = (a: Action) => (a === 'attack' || a === 'skill1' || a === 'skill2' || a === 'ult' || a === 'pick' ? !!v[a] : false);
+    const virt = (a: Action) => (a === 'attack' || a === 'skill1' || a === 'skill2' || a === 'ult' || a === 'pick' || a === 'menu' ? !!v[a] : a === 'toggleManual' ? !!v.auto : false);
     const held = (a: Action) => any(KEYS[a]) || KEYS[a].some((c) => this.tapped.has(c)) || !!pad?.buttons[PAD[a]]?.pressed || virt(a);
     const state = { move: { x: x || 0, y: y || 0 } } as InputState;
     state.attackHeld = any(KEYS.attack) || !!pad?.buttons[PAD.attack]?.pressed || !!v.attack;

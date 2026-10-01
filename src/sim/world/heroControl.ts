@@ -65,10 +65,11 @@ function useQuick(w: WorldState, index: number): void {
   if (!s) return;
   const use = xitem(s.id).use;
   if (!use) return;
-  if (use.kind === 'heal' && w.hero.channel?.kind === 'drink') return;
+  if (use.kind === 'heal' && w.hero.drink) return;
+  if (use.kind === 'recall' && w.hero.channel && w.hero.channel.kind !== 'search') return;
   w.hero.loadout = removeAt(w.hero.loadout, 'quick', index, 1).loadout;
   const tick = w.b.tick;
-  if (use.kind === 'heal') w.hero.channel = { kind: 'drink', ticks: 0, total: DRINK_TICKS, target: s.id };
+  if (use.kind === 'heal') w.hero.drink = { ticks: 0, total: DRINK_TICKS, item: s.id };
   else if (use.kind === 'antidote') w.hero.poisonImmuneUntil = tick + use.sec * SEC;
   else if (use.kind === 'recall') w.hero.channel = { kind: 'recall', ticks: 0, total: RECALL_TICKS };
   else {
@@ -91,7 +92,7 @@ export function applyHeroInput(w: WorldState, input: HeroInput): void {
   if (input.auto) return;
   const ch = w.hero.channel;
   const len = Math.min(1, Math.hypot(input.move.x, input.move.y));
-  if (len > 0.1 && ch && ch.kind !== 'drink' && ch.kind !== 'extract') w.hero.channel = undefined;
+  if (len > 0.1 && ch && ch.kind !== 'extract') w.hero.channel = undefined;
   if (u.action || u.forced || isActionBlocked(u)) return;
   if (len > 0.1) {
     const speed = effectiveStats(u, w.b).moveSpeed;

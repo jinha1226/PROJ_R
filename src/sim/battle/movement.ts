@@ -39,6 +39,8 @@ function separation(u: UnitState, s: BattleState, speed: number): Vec2 {
   return push;
 }
 
+const MAX_HOP = 0.3;
+
 function resolveObstacles(u: UnitState, s: BattleState): void {
   for (const o of s.obstacles) u.pos = pushOutOfObstacle(u.pos, UNIT_RADIUS, o);
 }
@@ -58,8 +60,12 @@ export function moveUnits(s: BattleState): void {
       step = clampLen(add(u.vel, separation(u, s, speed)), speed);
       if (len(u.vel) > 0.05) u.facing = angleOf(u.vel);
     }
-    u.pos = add(u.pos, scale(step, DT));
-    resolveObstacles(u, s);
+    // fast forced moves in the region are swept in short hops so they cannot tunnel through thin walls
+    const hops = s.mode === 'world' ? Math.max(1, Math.ceil((len(step) * DT) / MAX_HOP)) : 1;
+    for (let k = 0; k < hops; k++) {
+      u.pos = add(u.pos, scale(step, DT / hops));
+      resolveObstacles(u, s);
+    }
     u.pos = clampToBounds(s.bounds, u.pos, UNIT_RADIUS);
   }
 }

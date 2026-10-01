@@ -78,5 +78,7 @@ test('touch devices get the stick and buttons', async ({ browser }) => {
   await waitWorld(page);
   await expect(page.locator('[data-testid="touch-attack"]')).toBeVisible();
   await page.screenshot({ path: 'test-artifacts/extract-touch.png' });
+  await page.locator('[data-testid="touch-menu"]').dispatchEvent('pointerdown', { pointerId: 7, bubbles: true });
+  await expect(page.locator('[data-testid="pause-panel"]')).toBeVisible({ timeout: 5_000 });
   await ctx.close();
 });

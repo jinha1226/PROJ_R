@@ -9,6 +9,19 @@ const BUTTONS: { b: TouchButton; label: string; cls: string }[] = [
   { b: 'ult', label: '궁극', cls: 'tb-ult' },
   { b: 'pick', label: '줍기', cls: 'tb-pick' },
 ];
+const MENU: { b: TouchButton; label: string; cls: string }[] = [
+  { b: 'menu', label: '가방·메뉴', cls: 'tb-menu' },
+  { b: 'auto', label: '자동', cls: 'tb-auto' },
+];
+
+/** Pointer capture can throw for a pointer that already ended; the press itself still counts. */
+function capture(el: HTMLElement, id: number): void {
+  try {
+    el.setPointerCapture?.(id);
+  } catch {
+    /* pointer no longer active */
+  }
+}
 
 export const isTouchDevice = (): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
@@ -20,7 +33,7 @@ export class TouchControls {
   private readonly base = document.createElement('div');
 
   constructor(private readonly input: Input, quickCount: () => number) {
-    this.ts = new TouchState(window.innerWidth, STICK_RADIUS);
+    this.ts = new TouchState(() => window.innerWidth, STICK_RADIUS);
     this.el.className = 'touch-controls';
     this.base.className = 'tc-stick';
     this.knob.className = 'tc-knob';
@@ -39,7 +52,10 @@ export class TouchControls {
       q.dataset.slot = String(i);
       quick.appendChild(q);
     }
-    this.el.append(pad, this.base, buttons, quick);
+    const menu = document.createElement('div');
+    menu.className = 'tc-menu';
+    for (const { b, label, cls } of MENU) menu.appendChild(this.button(b, label, cls));
+    this.el.append(pad, this.base, buttons, quick, menu);
     const move = (e: PointerEvent) => { this.ts.move(e.pointerId, e.clientX, e.clientY); this.sync(); };
     const up = (e: PointerEvent) => { this.ts.up(e.pointerId); this.sync(); };
     this.el.addEventListener('pointermove', move);
@@ -57,7 +73,7 @@ export class TouchControls {
     el.dataset.testid = `touch-${b}`;
     el.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
-      el.setPointerCapture?.(e.pointerId);
+      capture(el, e.pointerId);
       this.ts.press(e.pointerId, b);
       this.sync();
     });
@@ -66,7 +82,7 @@ export class TouchControls {
 
   private onPadDown(e: PointerEvent): void {
     if (!this.ts.down(e.pointerId, e.clientX, e.clientY)) return;
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    capture(e.target as HTMLElement, e.pointerId);
     this.sync();
   }
 
@@ -80,7 +96,8 @@ export class TouchControls {
       this.base.style.top = `${o.y}px`;
       this.knob.style.transform = `translate(${(st.move?.x ?? 0) * STICK_RADIUS}px, ${(st.move?.y ?? 0) * STICK_RADIUS}px)`;
     }
-    for (const el of this.el.querySelectorAll<HTMLElement>('.tc-btn')) el.classList.toggle('on', false);
+    const on = new Set(Object.entries(st).filter(([, v]) => v === true).map(([k]) => k));
+    for (const el of this.el.querySelectorAll<HTMLElement>('.tc-btn')) el.classList.toggle('on', on.has((el.dataset.testid ?? '').slice(6)));
   }
 
   /** The pick-up button only shows when something is in reach. */

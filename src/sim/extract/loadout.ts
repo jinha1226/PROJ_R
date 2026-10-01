@@ -63,7 +63,7 @@ export function removeAt(l: Loadout, where: 'bag' | 'quick' | 'pouch', index: nu
 }
 
 /** After the bag or belt changed: whatever no longer fits goes to the bag, then to the ground. */
-function settleCapacity(l: Loadout): { loadout: Loadout; dropped: Stack[] } {
+export function settleCapacity(l: Loadout): { loadout: Loadout; dropped: Stack[] } {
   let dropped: Stack[] = [];
   const qn = quickSlots(l);
   const spill = l.quick.slice(qn).filter((s): s is Stack => !!s);

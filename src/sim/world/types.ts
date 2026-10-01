@@ -10,7 +10,7 @@ export type AiMode = 'idle' | 'patrol' | 'alert' | 'return';
 export interface AiState { mode: AiMode; wp: number; home: Vec2; path?: Vec2[]; repathIn: number }
 export interface Group { alerted: boolean; home: Vec2; members: string[]; hunter?: boolean }
 export interface Pile { id: string; pos: Vec2; items: Stack[] }
-export type ChannelKind = 'search' | 'extract' | 'recall' | 'equip' | 'drink';
+export type ChannelKind = 'search' | 'extract' | 'recall' | 'equip';
 export interface Channel { kind: ChannelKind; ticks: number; total: number; target?: string; index?: number }
 
 export interface WorldEvent { tick: number; type: string; data?: Record<string, unknown> }
@@ -19,6 +19,8 @@ export interface HeroState {
   merc: Mercenary;
   loadout: Loadout;
   channel?: Channel;
+  /** a potion being drunk: its own timer, so it never interrupts recall or extraction */
+  drink?: { ticks: number; total: number; item: string };
   poisonImmuneUntil: number;
   hiddenUntil: number;
   /** hp seen last tick, to notice damage (cancels channels) */

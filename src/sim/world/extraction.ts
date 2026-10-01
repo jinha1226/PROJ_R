@@ -24,7 +24,7 @@ export function onHeroDamage(w: WorldState): void {
   const ch = w.hero.channel;
   if (!hurt || !ch) return;
   if (ch.kind === 'extract') ch.ticks = 0;
-  else if (ch.kind !== 'drink') {
+  else {
     w.hero.channel = undefined;
     emitW(w, 'interrupted', { kind: ch.kind });
   }
@@ -32,6 +32,14 @@ export function onHeroDamage(w: WorldState): void {
 
 /** Progresses the hero's channel (search, equip, drink, recall, extract) and starts extraction in a zone. */
 export function updateChannel(w: WorldState): void {
+  const dr = w.hero.drink;
+  if (dr && ++dr.ticks >= dr.total) {
+    w.hero.drink = undefined;
+    const h = heroUnit(w);
+    const use = xitem(dr.item).use;
+    if (use?.kind === 'heal') h.hp = Math.min(h.maxHp, h.hp + h.maxHp * use.frac);
+    w.hero.lastHp = h.hp;
+  }
   const zone = openExtractAt(w);
   const ch = w.hero.channel;
   if (zone && !ch) w.hero.channel = { kind: 'extract', ticks: 0, total: EXTRACT_TICKS, target: zone.id };
@@ -42,13 +50,8 @@ export function updateChannel(w: WorldState): void {
   if (c.ticks < c.total) return;
   w.hero.channel = undefined;
   if (c.kind === 'search') finishSearch(w, c.target!);
-  else if (c.kind === 'equip') finishEquip(w, c.index!);
-  else if (c.kind === 'drink') {
-    const h = heroUnit(w);
-    const use = xitem(c.target!).use;
-    if (use?.kind === 'heal') h.hp = Math.min(h.maxHp, h.hp + h.maxHp * use.frac);
-    w.hero.lastHp = h.hp;
-  } else if (c.kind === 'recall' || c.kind === 'extract') {
+  else if (c.kind === 'equip') finishEquip(w, c.target!);
+  else if (c.kind === 'recall' || c.kind === 'extract') {
     w.outcome = 'extracted';
     w.xp += EXTRACT_XP;
     emitW(w, 'extracted', { via: c.kind });
