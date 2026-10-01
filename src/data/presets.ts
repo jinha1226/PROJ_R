@@ -41,7 +41,7 @@ export const ALLY_PRESETS: Record<string, AllyPresetMember[]> = {
 };
 
 export const ENEMY_PRESETS: Record<string, { stage: number; members: EnemyPresetMember[] }> = {
-  tutorial: { stage: 1, members: [e('skeleton_minion', 2, 1), e('skeleton_minion', 2, 2)] },
+  tutorial: { stage: 1, members: [e('skeleton_minion', 2, 0), e('skeleton_minion', 2, 1), e('skeleton_minion', 2, 2)] },
   bandits: {
     stage: 1,
     members: [

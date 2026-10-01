@@ -1,6 +1,7 @@
 import { createState } from './setup';
 import { makeSnapshot } from './snapshot';
-import { checkOutcome } from './rules';
+import { checkOutcome, processCommands, updateRules } from './rules';
+import { updateRescue } from './rescue';
 import { advanceActions, tickCooldowns } from './actions';
 import { decide } from './ai/decide';
 import { updateEngagement } from './engagement';
@@ -31,6 +32,9 @@ export class Battle {
     const s = this.state;
     if (s.outcome) return { snapshot: this.last, events: [] };
     s.events = [];
+    processCommands(s);
+    if (s.outcome) return this.finish();
+    updateRules(s);
     tickTags(s);
     tickCooldowns(s);
     decide(s);
@@ -39,10 +43,15 @@ export class Battle {
     updateProjectiles(s);
     moveUnits(s);
     updateEngagement(s);
+    updateRescue(s);
     checkOutcome(s);
-    s.tick++;
-    this.last = makeSnapshot(s);
-    return { snapshot: this.last, events: s.events };
+    return this.finish();
+  }
+
+  private finish(): StepResult {
+    this.state.tick++;
+    this.last = makeSnapshot(this.state);
+    return { snapshot: this.last, events: this.state.events };
   }
 }
 
