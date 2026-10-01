@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 export function addLighting(scene: THREE.Scene): void {
-  scene.add(new THREE.HemisphereLight('#fff4e0', '#3a3428', 0.9));
-  const sun = new THREE.DirectionalLight('#ffe2b0', 2.2);
+  scene.add(new THREE.HemisphereLight('#fff6e6', '#6a5c48', 1.4));
+  const sun = new THREE.DirectionalLight('#ffe8c0', 2.6);
   sun.position.set(-8, 14, 6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);

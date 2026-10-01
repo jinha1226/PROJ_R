@@ -8,7 +8,7 @@ function groundTexture(seed: number): THREE.CanvasTexture {
   c.width = c.height = size;
   const g = c.getContext('2d')!;
   const rng = createRng(seed);
-  g.fillStyle = '#6e5c3f';
+  g.fillStyle = '#9a8460';
   g.fillRect(0, 0, size, size);
   const blot = (color: string, n: number, rMin: number, rMax: number, alpha: number) => {
     g.fillStyle = color;
@@ -19,11 +19,11 @@ function groundTexture(seed: number): THREE.CanvasTexture {
       g.fill();
     }
   };
-  blot('#5f6b38', 260, 20, 90, 0.35);
-  blot('#4f5a2e', 160, 10, 50, 0.4);
-  blot('#85704c', 220, 8, 40, 0.35);
-  blot('#3e3426', 400, 2, 6, 0.5);
-  blot('#a08a62', 300, 1, 4, 0.5);
+  blot('#87945a', 260, 20, 90, 0.4);
+  blot('#73804a', 160, 10, 50, 0.35);
+  blot('#b09a72', 220, 8, 40, 0.35);
+  blot('#6e5e44', 400, 2, 6, 0.4);
+  blot('#c8b48a', 300, 1, 4, 0.5);
   g.globalAlpha = 1;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
