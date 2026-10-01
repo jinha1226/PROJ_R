@@ -29,7 +29,7 @@ export function updateAutoLoot(w: WorldState): void {
   const members = partyUnits(w).filter((u) => !u.downed);
   let took = false;
   for (const p of w.piles) {
-    if (!p.items.length || !members.some((u) => Math.hypot(u.pos.x - p.pos.x, u.pos.y - p.pos.y) <= AUTO_RADIUS)) continue;
+    if (p.manual || !p.items.length || !members.some((u) => Math.hypot(u.pos.x - p.pos.x, u.pos.y - p.pos.y) <= AUTO_RADIUS)) continue;
     p.items = p.items.flatMap((s) => {
       if (!isAutoPick(s.id)) return [s];
       const got = scoop(w, s.id, s.n);

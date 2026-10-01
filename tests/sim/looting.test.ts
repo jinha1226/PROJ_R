@@ -5,6 +5,7 @@ import { heroUnit } from '../../src/sim/world/worldState';
 import { alertGroup } from '../../src/sim/world/perception';
 import { isAutoPick, SEARCH_TICKS } from '../../src/sim/world/autoLoot';
 import { addItem } from '../../src/sim/extract/loadout';
+import { xitem } from '../../src/data/extract';
 import type { Container } from '../../src/sim/extract/region';
 import { testRegion, crew, spawn } from './support/worldKit';
 
@@ -68,6 +69,28 @@ describe('looting', () => {
     go(s, 1, { interact: true });
     go(s, 25);
     expect(s.w.containers.c_crate!.items.length).toBeGreaterThan(0);
+    expect(saw(s, 'loot')).toBe(true);
+  });
+
+  it('something dropped by hand is not picked straight back up', () => {
+    const s = world();
+    for (let i = 0; i < 18; i++) s.w.hero.loadout = addItem(s.w.hero.loadout, 'x_lute').loadout;
+    s.w.hero.loadout = { ...s.w.hero.loadout, bag: [...s.w.hero.loadout.bag.slice(0, 17), { id: 'x_coins', n: 1 }] };
+    s.lootDrop('bag', 17);
+    go(s, SEC);
+    expect(s.w.hero.loadout.bag.some((x) => x.id === 'x_coins')).toBe(false);
+    expect(s.w.piles.some((p) => p.items.some((x) => x.id === 'x_coins'))).toBe(true);
+  });
+
+  it('rare things are left in the chest for the player to decide on', () => {
+    const s = world([box('vault', 1.5, 2)]);
+    go(s, 1, { interact: true });
+    go(s, 45);
+    const rare = (id: string) => xitem(id).tier >= 3 || xitem(id).kind === 'relic';
+    const left = s.w.containers.c_vault!.items;
+    expect(left.length).toBeGreaterThan(0);
+    expect(left.every((x) => rare(x.id))).toBe(true);
+    expect(s.w.hero.loadout.bag.some((x) => rare(x.id))).toBe(false);
     expect(saw(s, 'loot')).toBe(true);
   });
 

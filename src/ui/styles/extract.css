@@ -129,7 +129,7 @@
 .sortie.portrait .tc-buttons { right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); }
 .sortie.portrait .tc-menu { left: auto; top: auto; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 236px); }
 .sortie.portrait .xbag { place-items: end center; }
-.sortie.portrait .xbag-panel { width: 100vw; max-height: 72vh; border-radius: 16px 16px 0 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.sortie.portrait .xbag-panel { width: 100vw; max-height: 50vh; border-radius: 16px 16px 0 0; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); }
 /* landscape on a phone: smaller map, the menu button beside it (clear of the party column) */
 @media (pointer: coarse) { .sortie.landscape .xhud-map { width: 128px; height: 96px; } .sortie.landscape .tc-menu { left: auto; top: 10px; right: 152px; } }
 

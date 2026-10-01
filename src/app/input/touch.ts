@@ -59,6 +59,11 @@ export class TouchState {
     this.held.delete(id);
   }
 
+  /** Lets go of the stick (a second finger turned the touch into a pinch). */
+  releaseStick(): void {
+    this.stick = null;
+  }
+
   stickOrigin(): Vec | null {
     return this.stick ? { ...this.stick.origin } : null;
   }

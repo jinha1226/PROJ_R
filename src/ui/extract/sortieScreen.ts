@@ -66,12 +66,12 @@ export class SortieScreen implements Screen {
       return this.api.fatal(e);
     }
     this.el.appendChild(this.hud.el);
-    this.zoom = new ZoomControl(this.rt.cam, stage);
-    this.el.appendChild(this.zoom.el);
     if (mobile) {
       this.touch = new TouchControls(this.input);
       this.el.appendChild(this.touch.el);
     }
+    this.zoom = new ZoomControl(this.rt.cam, stage, () => this.touch?.releaseStick());
+    this.el.appendChild(this.zoom.el);
     // turning the phone swaps the layout and the camera's view, nothing else (the sortie keeps running)
     this.unwatch = watchLayout((l) => {
       this.el.classList.toggle('portrait', l === 'portrait');

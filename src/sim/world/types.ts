@@ -9,7 +9,8 @@ import type { NavGrid } from './nav';
 export type AiMode = 'idle' | 'patrol' | 'alert' | 'return';
 export interface AiState { mode: AiMode; wp: number; home: Vec2; path?: Vec2[]; repathIn: number }
 export interface Group { alerted: boolean; home: Vec2; members: string[]; hunter?: boolean }
-export interface Pile { id: string; pos: Vec2; items: Stack[] }
+/** manual: the party put it down on purpose (never auto-picked back up) */
+export interface Pile { id: string; pos: Vec2; items: Stack[]; manual?: boolean }
 export type ChannelKind = 'search' | 'extract' | 'recall' | 'equip';
 export interface Channel { kind: ChannelKind; ticks: number; total: number; target?: string; index?: number; member?: string; waiting?: boolean }
 

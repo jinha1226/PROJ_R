@@ -131,3 +131,32 @@ test('the + button brings the camera closer', async ({ page }) => {
   await page.click('[data-testid="zoom-in"]');
   await expect.poll(zoom).toBeLessThan(before);
 });
+
+test('on a phone the bag sheet covers at most half the screen, and a pinch zooms without grabbing the stick', async ({ browser }) => {
+  const ctx = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await fresh(page);
+  await page.click('[data-testid="start-sortie"]');
+  await waitWorld(page);
+  const zoom = () => page.evaluate(() => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.zoom());
+  const before = await zoom();
+  await page.evaluate(() => {
+    const ev = (type: string, id: number, x: number, y: number) => new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: id === 1 });
+    const pad = document.querySelector('.tc-pad')!;
+    const stage = document.querySelector('.sortie-stage canvas')!;
+    pad.dispatchEvent(ev('pointerdown', 1, 150, 600));
+    stage.dispatchEvent(ev('pointerdown', 2, 260, 500));
+    stage.dispatchEvent(ev('pointermove', 2, 330, 420));
+    pad.dispatchEvent(ev('pointermove', 1, 100, 660));
+  });
+  await expect.poll(zoom).toBeLessThan(before);
+  await expect(page.locator('.tc-stick')).toBeHidden();
+  await page.evaluate(() => {
+    for (const id of [1, 2]) window.dispatchEvent(new PointerEvent('pointerup', { pointerId: id, pointerType: 'touch', bubbles: true }));
+  });
+  await page.locator('[data-testid="touch-menu"]').dispatchEvent('pointerdown', { pointerId: 9, bubbles: true });
+  const panel = page.locator('[data-testid="pause-panel"]');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  expect((await panel.boundingBox())!.height).toBeLessThanOrEqual(844 / 2 + 1);
+  await ctx.close();
+});

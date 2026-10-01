@@ -88,6 +88,12 @@ export class TouchControls {
     for (const el of this.el.querySelectorAll<HTMLElement>('.tc-btn')) el.classList.toggle('on', on.has((el.dataset.testid ?? '').slice(6)));
   }
 
+  /** A pinch took over: drop the stick so the leader stops. */
+  releaseStick(): void {
+    this.ts.releaseStick();
+    this.sync();
+  }
+
   /** The pick-up button only shows when something is in reach. */
   setPickVisible(on: boolean): void {
     const p = this.el.querySelector<HTMLElement>('.tb-pick');

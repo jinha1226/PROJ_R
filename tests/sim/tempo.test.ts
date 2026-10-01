@@ -41,3 +41,15 @@ describe('sortie tempo', () => {
     expect(mk(1.33)).toBeLessThan(mk() * 0.85);
   });
 });
+
+describe('sortie tempo and telegraphs', () => {
+  it('a telegraphed skill fires on the tick its faster windup ends', async () => {
+    const { startAction } = await import('../../src/sim/battle/actions');
+    const b = new Battle({ ...setupFromPresets(1, 'standard', 'bandits'), tempo: 1.33 });
+    const u = b.state.units.find((x) => x.team === 'ally')!;
+    const t = b.state.units.find((x) => x.team === 'enemy')!;
+    startAction(b.state, u, 'piercing_bolt', t.id, { ...t.pos });
+    const tel = b.state.telegraphs[b.state.telegraphs.length - 1]!;
+    expect(tel.firesAt - b.state.tick + 1).toBe(u.action!.totalTicks);
+  });
+});

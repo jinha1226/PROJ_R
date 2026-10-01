@@ -3,6 +3,8 @@ import type { IsoCamera } from '../../view/explore/exploreCamera';
 import type { Layout } from './orientation';
 
 const STEP = 1.25;
+/** a second finger this soon after the first one landed on the stick pad means a pinch, not steering */
+const PINCH_GRACE_MS = 250;
 type Pt = { x: number; y: number };
 const gap = (a: Pt, b: Pt): number => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -11,10 +13,10 @@ export class ZoomControl {
   readonly el = document.createElement('div');
   private readonly z: ZoomByLayout = loadZoom();
   private layout: Layout = 'landscape';
-  private readonly touches = new Map<number, Pt>();
+  private readonly touches = new Map<number, Pt & { pad: boolean; at: number }>();
   private pinch: { d0: number; h0: number } | null = null;
 
-  constructor(private readonly cam: IsoCamera, private readonly stage: HTMLElement) {
+  constructor(private readonly cam: IsoCamera, private readonly stage: HTMLElement, private readonly onPinch: () => void = () => undefined) {
     this.el.className = 'xzoom';
     this.el.innerHTML = '<button class="btn" data-z="in" data-testid="zoom-in">＋</button><button class="btn" data-z="out" data-testid="zoom-out">−</button>';
     this.el.addEventListener('click', (e) => {
@@ -22,7 +24,7 @@ export class ZoomControl {
       if (k) this.set(this.height / (k === 'in' ? STEP : 1 / STEP));
     });
     stage.addEventListener('wheel', this.onWheel, { passive: false });
-    stage.addEventListener('pointerdown', this.onDown);
+    window.addEventListener('pointerdown', this.onDown, true);
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
     window.addEventListener('pointercancel', this.onUp);
@@ -38,10 +40,10 @@ export class ZoomControl {
     this.cam.setHeight(this.height);
   }
 
-  private set(h: number): void {
+  private set(h: number, save = true): void {
     this.z[this.layout] = clampZoom(h);
     this.cam.setHeight(this.height);
-    saveZoom(this.z);
+    if (save) saveZoom(this.z);
   }
 
   private readonly onWheel = (e: WheelEvent): void => {
@@ -49,29 +51,42 @@ export class ZoomControl {
     this.set(wheelHeight(this.height, e.deltaY));
   };
 
-  // the stick pad and the buttons sit above the stage, so only touches on open ground get here
+  // touches on buttons and panels never count; a touch on the stick pad counts only if the second finger follows quickly
   private readonly onDown = (e: PointerEvent): void => {
     if (e.pointerType !== 'touch') return;
-    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const t = e.target as Element | null;
+    if (!t?.closest?.('.tc-pad, .sortie-stage')) return;
+    const now = performance.now();
+    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY, pad: !!t.closest('.tc-pad'), at: now });
     const [a, b] = [...this.touches.values()];
-    if (a && b && this.touches.size === 2) this.pinch = { d0: gap(a, b), h0: this.height };
+    if (!a || !b || this.touches.size !== 2) return;
+    const first = a.at <= b.at ? a : b;
+    if (first.pad && now - first.at > PINCH_GRACE_MS) return;
+    this.pinch = { d0: gap(a, b), h0: this.height };
+    this.onPinch();
+    // a second finger landing on the pad must not start a stick of its own
+    e.stopPropagation();
   };
 
   private readonly onMove = (e: PointerEvent): void => {
-    if (!this.touches.has(e.pointerId)) return;
-    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const t = this.touches.get(e.pointerId);
+    if (!t) return;
+    this.touches.set(e.pointerId, { ...t, x: e.clientX, y: e.clientY });
     const [a, b] = [...this.touches.values()];
-    if (this.pinch && a && b) this.set(pinchHeight(this.pinch.h0, this.pinch.d0, gap(a, b)));
+    if (this.pinch && a && b) this.set(pinchHeight(this.pinch.h0, this.pinch.d0, gap(a, b)), false);
   };
 
   private readonly onUp = (e: PointerEvent): void => {
     this.touches.delete(e.pointerId);
-    if (this.touches.size < 2) this.pinch = null;
+    if (this.touches.size < 2 && this.pinch) {
+      this.pinch = null;
+      saveZoom(this.z);
+    }
   };
 
   dispose(): void {
     this.stage.removeEventListener('wheel', this.onWheel);
-    this.stage.removeEventListener('pointerdown', this.onDown);
+    window.removeEventListener('pointerdown', this.onDown, true);
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
     window.removeEventListener('pointercancel', this.onUp);

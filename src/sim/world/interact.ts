@@ -54,21 +54,23 @@ function openDoor(w: WorldState, poiId: string): void {
   emitW(w, 'door', { id: poiId });
 }
 
-/** A searched container goes straight into the pack (best first); the choice window opens only for what does not fit. */
+/** A searched container goes straight into the pack (best first); the choice window opens for rare finds and for what does not fit. */
 export function finishSearch(w: WorldState, id: string): void {
   const c = w.region.containers.find((x) => x.id === id)!;
   const rolled = rollContainer(c, w.seed, w.b.tick / (60 * 20));
   const order = [...rolled].sort((a, b) => xitem(b.id).value * b.n - xitem(a.id).value * a.n);
   const left: Stack[] = [];
+  const rare = (k: string) => xitem(k).tier >= 3 || xitem(k).kind === 'relic';
   for (const s of order) {
+    // rare and heavy finds are the "is it worth it" call: they wait in the chest for the player
+    if (rare(s.id)) { left.push(s); continue; }
     const r = addItem(w.hero.loadout, s.id, s.n);
     if (r.added) w.hero.loadout = r.loadout;
     if (r.added < s.n) left.push({ id: s.id, n: s.n - r.added });
   }
   w.containers[id] = { opened: true, items: left };
   refreshHero(w);
-  const rare = rolled.some((s) => xitem(s.id).tier >= 3 || xitem(s.id).kind === 'relic');
-  emitW(w, 'found', { id, items: rolled.map((s) => s.id), rare });
+  emitW(w, 'found', { id, items: rolled.map((s) => s.id), rare: rolled.some((s) => rare(s.id)) });
   if (left.length) emitW(w, 'loot', { id });
 }
 
@@ -92,17 +94,20 @@ export function lootTake(w: WorldState, id: string, index: number): boolean {
   return true;
 }
 
-export function dropAt(w: WorldState, pos: Vec2, stacks: Stack[]): void {
+/** manual: put down by the party on purpose, so auto pickup leaves the pile alone. */
+export function dropAt(w: WorldState, pos: Vec2, stacks: Stack[], manual = false): void {
   if (!stacks.length) return;
   const pile = w.piles.find((p) => d(p.pos, pos) < 1.2);
-  if (pile) pile.items = mergeAll(pile.items, stacks);
-  else w.piles.push({ id: `pile${w.piles.length}_${w.b.tick}`, pos: { ...pos }, items: mergeAll([], stacks) });
+  if (pile) {
+    pile.items = mergeAll(pile.items, stacks);
+    if (manual) pile.manual = true;
+  } else w.piles.push({ id: `pile${w.piles.length}_${w.b.tick}`, pos: { ...pos }, items: mergeAll([], stacks), ...(manual ? { manual } : {}) });
 }
 
 export function lootDrop(w: WorldState, where: 'bag' | 'quick', index: number): void {
   const r = removeAt(w.hero.loadout, where, index);
   w.hero.loadout = r.loadout;
-  dropAt(w, heroUnit(w).pos, [r.taken]);
+  dropAt(w, heroUnit(w).pos, [r.taken], true);
   refreshHero(w);
 }
 
@@ -118,7 +123,7 @@ const asMember = (w: WorldState, member: string): Loadout => ({ ...w.hero.loadou
 function applyMember(w: WorldState, member: string, l: Loadout, dropped: Stack[]): void {
   w.party.gear[member] = { ...w.party.gear[member]!, equipped: l.equipped };
   w.hero.loadout = { ...w.hero.loadout, bag: l.bag };
-  dropAt(w, heroUnit(w).pos, dropped);
+  dropAt(w, heroUnit(w).pos, dropped, true);
   refreshHero(w);
 }
 
