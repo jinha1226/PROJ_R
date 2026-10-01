@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { encounterCandidates, recruit, nameProtagonist, ROSTER_CAP } from '../../src/sim/run/recruit';
-import { newRun } from '../../src/sim/run/state';
-import type { MapNode, RunState } from '../../src/sim/run/types';
+import { newRunV2 as newRun } from '../../src/sim/week/week';
+import type { Spot, RunState } from '../../src/sim/run/types';
 
-const node = (r: RunState, step = 2): MapNode => ({ ...Object.values(r.map.nodes).find((n) => n.step === step)!, type: 'encounter' });
+const node = (_r: RunState, step = 2): Spot => ({ step, lane: 0 });
 
 describe('encounters and recruiting', () => {
   it('offers 2–3 candidates around step/2 level, exactly one free', () => {

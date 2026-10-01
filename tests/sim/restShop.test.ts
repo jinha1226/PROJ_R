@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { createRng } from '../../src/core/rng';
 import { restHeal, restTalk } from '../../src/sim/run/rest';
 import { shopStock, buy, sell, healOne, PRICE } from '../../src/sim/run/shop';
-import { newRun } from '../../src/sim/run/state';
+import { newRunV2 as newRun } from '../../src/sim/week/week';
 import { generateRecruit } from '../../src/sim/roster/generate';
 import { getItem } from '../../src/data/items';
-import type { MapNode, RunState } from '../../src/sim/run/types';
+import type { Spot, RunState } from '../../src/sim/run/types';
 
 const run = (gold = 200): RunState => {
   const r = newRun(4, 'x');
@@ -14,7 +14,7 @@ const run = (gold = 200): RunState => {
   const extra = [1, 2].map((i) => ({ ...generateRecruit(rng, { level: 2, usedNames: used, id: `m${i}` }), injury: 2, traits: ['loner', 'cautious'] as const }));
   return { ...r, gold, roster: { ...r.roster, mercs: [...r.roster.mercs, ...extra.map((m) => ({ ...m, traits: [...m.traits] }))], inventory: ['knight_blade'] } };
 };
-const node = (r: RunState): MapNode => ({ ...Object.values(r.map.nodes).find((n) => n.step === 7)!, type: 'shop' });
+const node = (): Spot => ({ step: 7, lane: 0 });
 
 describe('rest', () => {
   it('heals everyone or lets two members talk', () => {
@@ -30,14 +30,14 @@ describe('rest', () => {
 describe('shop', () => {
   it('stocks 5 priced items deterministically', () => {
     const r = run();
-    const s = shopStock(r, node(r));
+    const s = shopStock(r, node());
     expect(s.items).toHaveLength(5);
-    expect(s).toEqual(shopStock(r, node(r)));
+    expect(s).toEqual(shopStock(r, node()));
     for (const it of s.items) expect(it.price).toBe(PRICE[getItem(it.itemId).tier]);
   });
   it('buying spends gold and marks the item sold; short gold throws', () => {
     const r = run(1000);
-    const s = shopStock(r, node(r));
+    const s = shopStock(r, node());
     const out = buy(r, s, 0);
     expect(out.run.gold).toBe(1000 - s.items[0]!.price);
     expect(out.run.roster.inventory).toContain(s.items[0]!.itemId);

@@ -1,14 +1,14 @@
 import { createRng } from '../../core/rng';
 import { generateRecruit } from '../roster/generate';
 import { note } from '../roster/chronicle';
-import type { Candidate, MapNode, RunState } from './types';
+import type { Candidate, Spot, RunState } from './types';
 
 export const ROSTER_CAP = 8;
 const PAST_CHANCE = 0.2;
 const NAME_MAX = 12;
 
 /** 2–3 candidates; one is free, the others cost 25 + 10 × level. */
-export function encounterCandidates(run: RunState, node: MapNode): Candidate[] {
+export function encounterCandidates(run: RunState, node: Spot): Candidate[] {
   const rng = createRng((run.seed * 104729 + node.step * 613 + node.lane * 37) >>> 0);
   const level = Math.max(1, Math.round(node.step / 2));
   const used = new Set([...run.roster.mercs, ...run.roster.memorial].map((m) => m.name));

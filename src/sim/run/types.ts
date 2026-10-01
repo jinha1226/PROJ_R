@@ -1,22 +1,16 @@
 import type { Mercenary, Roster } from '../roster/types';
+import type { Moment } from '../roster/relationships';
 
-export type NodeType = 'battle' | 'elite' | 'encounter' | 'event' | 'rest' | 'shop' | 'boss';
-
-export interface MapNode {
-  id: string;
+/** Seed coordinates for per-week content (step = week, lane = which slot). */
+export interface Spot {
   step: number;
-  lane: 0 | 1 | 2;
-  type: NodeType;
-  next: string[];
-}
-
-export interface RunMap {
-  nodes: Record<string, MapNode>;
-  steps: number;
+  lane: number;
 }
 
 export type RunStatus = 'active' | 'won' | 'lost';
 export type Slot = { col: 0 | 1 | 2; row: 0 | 1 | 2 | 3 };
+export type WeekPhase = 'start' | 'choose' | 'exploring' | 'report' | 'boss';
+export type Theme = 'forest' | 'dungeon' | 'graveyard';
 
 export interface Candidate {
   merc: Mercenary;
@@ -42,28 +36,49 @@ export interface EventView {
   choices: EventChoice[];
 }
 
-/** Per-node state persisted while the player is inside a node (so reloads keep stock/candidates). */
+export interface RegionCard {
+  theme: Theme;
+  stars: 1 | 2 | 3;
+  reward: 'gold' | 'gear' | 'xp';
+  rooms: number;
+}
+
+export interface WeekReport {
+  week: number;
+  kind: 'train' | 'rest' | 'explore';
+  deployed: string[];
+  xp: Record<string, number>;
+  moments: Moment[];
+  notes: { key: string; vars: Record<string, string> }[];
+  gold: number;
+  items: string[];
+}
+
+/** Volatile "inside an action" state; a battle in progress resumes as a retreat. */
 export interface PendingNode {
-  nodeId: string;
-  candidates?: Candidate[];
-  shop?: ShopStock;
-  event?: EventView;
-  /** a battle was started from this node; resuming settles it as a retreat */
   inBattle?: boolean;
+  event?: EventView;
 }
 
 export interface RunState {
-  version: 1;
+  version: 2;
   seed: number;
   gold: number;
   roster: Roster;
-  map: RunMap;
-  at: string | null;
-  visited: string[];
+  week: number;
+  phase: WeekPhase;
   status: RunStatus;
   companyName?: string;
   formation: Record<string, Slot>;
-  pending?: PendingNode;
   startedAt: string;
   namedProtagonist: boolean;
+  visitors?: Candidate[];
+  startEvent?: EventView;
+  regionCards?: RegionCard[];
+  exploration?: import('../explore/types').Exploration;
+  shop?: { week: number; stock: ShopStock };
+  report?: WeekReport;
+  pending?: PendingNode;
 }
+
+export const LAST_WEEK = 12;

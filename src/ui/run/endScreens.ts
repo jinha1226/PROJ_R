@@ -32,7 +32,7 @@ export class EndScreen implements Screen {
   private summary(companyName: string | undefined): void {
     const r = this.run.roster;
     const lead = [...r.mercs, ...r.memorial].find((m) => m.protagonist);
-    const step = this.run.at ? this.run.map.nodes[this.run.at]!.step : 0;
+    const step = this.run.week;
     const highlights = [...r.mercs, ...r.memorial].flatMap((m) => m.chronicle.filter((c) => HIGHLIGHT_KEYS.has(c.key)).map((c) => `<li><b>${m.name}</b> ${chronicleText(c, r)}</li>`)).slice(0, 12).join('');
     const entry: HallEntry = {
       companyName: companyName ?? '이름 없는 무리', protagonist: lead?.name ?? '?', result: this.run.status === 'won' ? 'won' : 'lost', step,
@@ -40,7 +40,7 @@ export class EndScreen implements Screen {
       date: new Date().toISOString().slice(0, 10), seed: this.run.seed,
     };
     this.el.innerHTML = `<div class="panel node-panel" data-testid="run-end"><h2>${entry.result === 'won' ? `「${entry.companyName}」의 전설` : '여정이 끝났다'}</h2>
-      <p>${entry.result === 'won' ? '잿빛 변경을 평정했다.' : `${step}단계에서 쓰러졌다.`}</p>
+      <p>${entry.result === 'won' ? '잿빛 변경을 평정했다.' : `${step}주차에 쓰러졌다.`}</p>
       <h3>살아남은 이들</h3><ul>${r.mercs.map((m) => `<li>${displayName(m)} — Lv${m.level} ${t(`class.${m.classId}`)}</li>`).join('') || '<li>없음</li>'}</ul>
       ${r.memorial.length ? `<h3>잠든 이들</h3><ul>${r.memorial.map((m) => `<li>${displayName(m)} — Lv${m.level}</li>`).join('')}</ul>` : ''}
       ${highlights ? `<h3>연대기</h3><ul class="chronicle">${highlights}</ul>` : ''}
@@ -59,7 +59,7 @@ export class HallScreen implements Screen {
   constructor(private readonly entries: HallEntry[], private readonly back: () => void) {}
 
   mount(root: HTMLElement): void {
-    const rows = this.entries.map((e) => `<li><b>${e.result === 'won' ? '[평정] ' : ''}${e.companyName}</b> — ${e.protagonist} · ${e.result === 'won' ? '평정' : `${e.step}단계에서 전멸`}
+    const rows = this.entries.map((e) => `<li><b>${e.result === 'won' ? '[평정] ' : ''}${e.companyName}</b> — ${e.protagonist} · ${e.result === 'won' ? '평정' : `${e.step}주차에 전멸`}
       <small class="muted">${e.date} · 시드 ${e.seed} · 생존 ${e.survivors.length} · 전사 ${e.fallen.length}</small></li>`).join('');
     this.el.className = 'screen node-screen';
     this.el.innerHTML = `<div class="panel node-panel" data-testid="hall-list"><h2>명예의 전당</h2>

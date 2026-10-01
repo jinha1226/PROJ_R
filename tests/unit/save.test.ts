@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { saveRun, loadRun, clearRun, addHall, loadHall, type KV, type HallEntry } from '../../src/app/save';
-import { newRun } from '../../src/sim/run/state';
+import { newRunV2 as newRun } from '../../src/sim/week/week';
 
 const memKV = (): KV & { data: Map<string, string> } => {
   const data = new Map<string, string>();
@@ -19,11 +19,11 @@ describe('save', () => {
   });
   it('rejects corrupt, old, or incomplete saves', () => {
     const kv = memKV();
-    kv.setItem('projr.run.v1', '{not json');
+    kv.setItem('projr.run.v2', '{not json');
     expect(loadRun(kv)).toBeNull();
-    kv.setItem('projr.run.v1', JSON.stringify({ ...newRun(1, 'x'), version: 0 }));
+    kv.setItem('projr.run.v2', JSON.stringify({ ...newRun(1, 'x'), version: 1 }));
     expect(loadRun(kv)).toBeNull();
-    kv.setItem('projr.run.v1', JSON.stringify({ version: 1, seed: 1 }));
+    kv.setItem('projr.run.v2', JSON.stringify({ version: 1, seed: 1 }));
     expect(loadRun(kv)).toBeNull();
   });
   it('survives a storage that throws', () => {
@@ -43,14 +43,14 @@ describe('save', () => {
 });
 
 describe('save validation depth', () => {
-  it('rejects saves missing formation or pointing at a missing node', () => {
+  it('rejects saves missing formation or pointing at a missing room', () => {
     const kv = memKV();
     const r = newRun(2, 'x');
     const { formation: _f, ...noFormation } = r;
     void _f;
-    kv.setItem('projr.run.v1', JSON.stringify(noFormation));
+    kv.setItem('projr.run.v2', JSON.stringify(noFormation));
     expect(loadRun(kv)).toBeNull();
-    kv.setItem('projr.run.v1', JSON.stringify({ ...r, at: 'n99_9' }));
+    kv.setItem('projr.run.v2', JSON.stringify({ ...r, exploration: { rooms: {}, at: 'r9' } }));
     expect(loadRun(kv)).toBeNull();
   });
   it('ignores malformed hall entries', () => {

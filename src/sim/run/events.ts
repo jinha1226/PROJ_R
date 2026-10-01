@@ -4,7 +4,7 @@ import { pairKey } from '../personality/relations';
 import { addXp } from '../roster/leveling';
 import { EVENT_DEFS } from './eventDefs';
 import type { EventCtx, EventEffect } from './eventTypes';
-import type { EventView, MapNode, RunState } from './types';
+import type { EventView, Spot, RunState } from './types';
 
 export type { EventEffect } from './eventTypes';
 
@@ -15,10 +15,10 @@ const ctxFor = (run: RunState, seed: number, vars: Record<string, string>): Even
     withTrait: (t: TraitId, except: string[] = []) => party.find((m) => !except.includes(m.id) && m.traits.includes(t)),
   };
 };
-const nodeSeed = (run: RunState, node: MapNode) => (run.seed * 31337 + node.step * 97 + node.lane * 13) >>> 0;
+const nodeSeed = (run: RunState, node: Spot) => (run.seed * 31337 + node.step * 97 + node.lane * 13) >>> 0;
 
 /** Picks an eligible event for the node (or `forceId`, which must be eligible). */
-export function pickEvent(run: RunState, node: MapNode, forceId?: string): EventView {
+export function pickEvent(run: RunState, node: Spot, forceId?: string): EventView {
   const ctx = ctxFor(run, nodeSeed(run, node), {});
   const eligible = EVENT_DEFS.filter((e) => !e.requires || e.requires(ctx));
   const def = forceId ? eligible.find((e) => e.id === forceId) : ctx.rng.pick(eligible);

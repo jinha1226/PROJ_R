@@ -10,7 +10,6 @@ import { getAssets } from './assetCache';
 import { CompanyFlow } from './companyFlow';
 import { showFatal } from './fatal';
 import { Router } from './router';
-import { RunFlow } from './runFlow';
 import { clearRun, loadHall, loadRun } from './save';
 
 const root = document.getElementById('app')!;
@@ -22,12 +21,12 @@ let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: urlSeed || 
 function title(): void {
   router.go(new TitleScreen({
     hasSave: () => loadRun() !== null,
-    newRun: (seed) => new RunFlow(router, root, title).start(seed),
+    newRun: () => sandbox(), // week flow is wired in Plan 5 W9
     continueRun: () => {
       const r = loadRun();
       if (!r) return title();
       try {
-        new RunFlow(router, root, title).resume(r);
+        sandbox();
       } catch (e) {
         console.error('broken save discarded', e);
         clearRun();

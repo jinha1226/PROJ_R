@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { createRng } from '../../src/core/rng';
 import { pickEvent, resolveEvent, applyEffects } from '../../src/sim/run/events';
 import { EVENT_DEFS } from '../../src/sim/run/eventDefs';
-import { newRun } from '../../src/sim/run/state';
+import { newRunV2 as newRun } from '../../src/sim/week/week';
 import { generateRecruit } from '../../src/sim/roster/generate';
 import { KO } from '../../src/ui/i18n/ko';
 import type { TraitId } from '../../src/data/types';
-import type { MapNode, RunState } from '../../src/sim/run/types';
+import type { Spot, RunState } from '../../src/sim/run/types';
 
 const party = (traits: TraitId[][], gold = 100): RunState => {
   const r = newRun(9, 'x');
@@ -15,7 +15,7 @@ const party = (traits: TraitId[][], gold = 100): RunState => {
   const extra = traits.map((t, i) => ({ ...generateRecruit(rng, { level: 2, usedNames: used, id: `m${i + 1}` }), traits: t }));
   return { ...r, gold, roster: { ...r.roster, mercs: [{ ...r.roster.mercs[0]!, traits: ['calm', 'glory'] as TraitId[] }, ...extra], nextId: traits.length + 1 } };
 };
-const node = (r: RunState, lane: 0 | 1 | 2 = 0): MapNode => ({ ...Object.values(r.map.nodes).find((n) => n.step === 5 && n.lane === lane)!, type: 'event' });
+const node = (_r: RunState, lane: 0 | 1 | 2 = 0): Spot => ({ step: 5, lane });
 const forced = (r: RunState, id: string) => pickEvent(r, node(r), id);
 
 describe('events', () => {

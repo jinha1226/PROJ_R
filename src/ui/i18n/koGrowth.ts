@@ -42,7 +42,7 @@ export const KO_GROWTH = {
   role: { vanguard: '선봉', striker: '공격수', skirmisher: '유격', ranged: '원거리', caster: '술사', support: '지원' } as Record<string, string>,
   rank: { rookie: '신입', skilled: '숙련', veteran: '베테랑', hero: '영웅' } as Record<string, string>,
   chronicle: {
-    joined: '용병단에 합류했다.', named: '자신을 "{name}"(이)라 소개했다.', firstKill: '{battle}번째 전투에서 첫 적을 쓰러뜨렸다.',
+    joined: '용병단에 합류했다.', restTalk: '{who}와(과) 모닥불 곁에서 밤새 이야기를 나눴다.', named: '자신을 "{name}"(이)라 소개했다.', firstKill: '{battle}번째 전투에서 첫 적을 쓰러뜨렸다.',
     downedRescued: '쓰러졌으나 {by}이(가) 일으켜 세웠다.', rescued: '쓰러진 {who}을(를) 구해냈다.',
     bossKill: '{enemy}을(를) 쓰러뜨렸다.', eliteKill: '정예 {enemy}을(를) 쓰러뜨렸다.',
     newFriend: '{who}와(과) 친구가 되었다.', newComrade: '{who}와(과) 전우가 되었다.',

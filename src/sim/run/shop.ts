@@ -1,12 +1,12 @@
 import { createRng } from '../../core/rng';
 import { getItem, ITEMS } from '../../data/items';
-import type { MapNode, RunState, ShopStock } from './types';
+import type { Spot, RunState, ShopStock } from './types';
 
 export const PRICE: Record<number, number> = { 0: 10, 1: 40, 2: 90, 3: 160, 4: 260 };
 export const HEAL_COST = 30;
 const STOCK = 5;
 
-export function shopStock(run: RunState, node: MapNode): ShopStock {
+export function shopStock(run: RunState, node: Spot): ShopStock {
   const rng = createRng((run.seed * 6271 + node.step * 211 + node.lane * 3) >>> 0);
   const maxTier = Math.min(4, 1 + Math.floor(node.step / 3));
   const pool = Object.values(ITEMS).filter((i) => i.tier >= 1 && i.tier <= maxTier);
