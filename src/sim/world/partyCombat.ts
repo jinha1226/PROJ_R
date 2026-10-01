@@ -34,6 +34,11 @@ export function updatePartyMode(w: WorldState): void {
     if (w.party.mode === 'explore') {
       w.party.mode = 'combat';
       emitW(w, 'combat');
+      // a fight breaks off any search in progress (the chest stays shut)
+      if (w.hero.channel?.kind === 'search') {
+        w.hero.channel = undefined;
+        emitW(w, 'interrupted', { kind: 'search' });
+      }
     }
   } else if (w.party.mode === 'combat' && ++w.party.calmTicks >= CALM_TICKS) {
     w.party.mode = 'explore';

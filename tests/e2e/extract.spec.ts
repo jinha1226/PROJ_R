@@ -13,7 +13,7 @@ const fresh = async (page: Page) => {
   await expect(page.locator('[data-testid="extract-hub"]')).toBeVisible();
 };
 
-test('a party sortie: three mercenaries search a chest, take the loot, extract, and bank it', async ({ page }) => {
+test('a party sortie: three mercenaries search a chest into the pack, extract, and bank it', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await fresh(page);
@@ -31,12 +31,10 @@ test('a party sortie: three mercenaries search a chest, take the loot, extract, 
   await page.evaluate((p) => (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.teleport(p.x - 1.2, p.y), crate.pos);
   await expect(page.locator('[data-testid="prompt"]')).toBeVisible({ timeout: 10_000 });
   await page.keyboard.press('KeyE');
-  await expect(page.locator('[data-testid="loot-panel"]')).toBeVisible({ timeout: 15_000 });
+  // the search ends with the finds going straight into the pack (no window unless something does not fit)
+  await expect.poll(() => page.evaluate(() => ((window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.state() as St).hero.loadout.bag.length), { timeout: 15_000 }).toBeGreaterThan(0);
   await page.screenshot({ path: 'test-artifacts/extract-loot.png' });
-  await page.click('[data-testid="loot-0"]');
-  await page.click('[data-testid="bag-close"]');
   const carried = await page.evaluate(() => ((window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__.state() as St).hero.loadout.bag.map((s) => s.id));
-  expect(carried.length).toBeGreaterThan(0);
   await page.evaluate(() => { const w = (window as unknown as { __PROJR_WORLD__: W }).__PROJR_WORLD__; const ex = (w.state() as St).region.extracts[0]!; w.teleport(ex.pos.x, ex.pos.y); w.advance(20 * 9); });
   await expect(page.locator('[data-testid="sortie-result"]')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('.xresult-members .st-home')).toHaveCount(3);

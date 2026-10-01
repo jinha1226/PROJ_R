@@ -9,9 +9,9 @@ import { NavGrid } from './nav';
 import type { WorldState } from './types';
 import { emitW, heroUnit } from './worldState';
 import { refreshHero } from './heroRefresh';
+import { SEARCH_TICKS } from './autoLoot';
 
 export const REACH = 2.2;
-const SEARCH_TICKS = 30;
 const EQUIP_TICKS = 40;
 const d = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -34,7 +34,10 @@ export function nearby(w: WorldState): Nearby {
 export function interact(w: WorldState): void {
   const n = nearby(w);
   if (!n) return;
-  if (n.kind === 'search') w.hero.channel = { kind: 'search', ticks: 0, total: SEARCH_TICKS, target: n.id };
+  if (n.kind === 'search') {
+    const c = w.region.containers.find((x) => x.id === n.id)!;
+    w.hero.channel = { kind: 'search', ticks: 0, total: SEARCH_TICKS[c.kind], target: n.id };
+  }
   else if (n.kind === 'door') openDoor(w, n.id);
   else if (n.kind === 'loot') emitW(w, 'loot', { id: n.id });
 }
@@ -51,10 +54,22 @@ function openDoor(w: WorldState, poiId: string): void {
   emitW(w, 'door', { id: poiId });
 }
 
+/** A searched container goes straight into the pack (best first); the choice window opens only for what does not fit. */
 export function finishSearch(w: WorldState, id: string): void {
   const c = w.region.containers.find((x) => x.id === id)!;
-  w.containers[id] = { opened: true, items: rollContainer(c, w.seed, w.b.tick / (60 * 20)) };
-  emitW(w, 'loot', { id });
+  const rolled = rollContainer(c, w.seed, w.b.tick / (60 * 20));
+  const order = [...rolled].sort((a, b) => xitem(b.id).value * b.n - xitem(a.id).value * a.n);
+  const left: Stack[] = [];
+  for (const s of order) {
+    const r = addItem(w.hero.loadout, s.id, s.n);
+    if (r.added) w.hero.loadout = r.loadout;
+    if (r.added < s.n) left.push({ id: s.id, n: s.n - r.added });
+  }
+  w.containers[id] = { opened: true, items: left };
+  refreshHero(w);
+  const rare = rolled.some((s) => xitem(s.id).tier >= 3 || xitem(s.id).kind === 'relic');
+  emitW(w, 'found', { id, items: rolled.map((s) => s.id), rare });
+  if (left.length) emitW(w, 'loot', { id });
 }
 
 export function lootSource(w: WorldState, id: string): Stack[] | undefined {

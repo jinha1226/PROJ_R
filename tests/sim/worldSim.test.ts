@@ -35,7 +35,7 @@ describe('world sim: hero control', () => {
 describe('world sim: interaction and loot', () => {
   const withChest = () => testRegion([], { containers: [{ id: 'c1', kind: 'crate', pos: { x: 1.5, y: 0 }, tier: 1, extra: ['x_vault_key'] }] });
 
-  it('searching takes 1.5 s, opens the chest, and moving cancels it', () => {
+  it('searching takes a second, opens the chest into the pack, and moving cancels it', () => {
     const sim = new WorldSim(withChest(), hero(), kit(), 1);
     run(sim, 1, { interact: true });
     expect(sim.w.hero.channel?.kind).toBe('search');
@@ -43,10 +43,8 @@ describe('world sim: interaction and loot', () => {
     expect(sim.w.hero.channel).toBeUndefined();
     heroUnit(sim.w).pos = { x: 0, y: 0 };
     run(sim, 1, { interact: true });
-    run(sim, 31);
+    run(sim, 21);
     expect(sim.w.containers.c1!.opened).toBe(true);
-    const keyAt = sim.w.containers.c1!.items.findIndex((s) => s.id === 'x_vault_key');
-    expect(sim.lootTake('c1', keyAt)).toBe(true);
     expect(sim.w.hero.loadout.bag.some((s) => s.id === 'x_vault_key')).toBe(true);
   });
 

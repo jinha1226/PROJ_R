@@ -133,4 +133,8 @@ export function updateFollow(w: WorldState, members?: UnitState[]): void {
     slide(w, u);
     if (Math.hypot(u.vel.x, u.vel.y) > 0.05) u.facing = Math.atan2(u.vel.y, u.vel.x);
   });
+  // while the leader searches, the ones already in place stand watch facing outward
+  if (w.hero.channel?.kind === 'search') for (const u of followers) {
+    if (Math.hypot(u.vel.x, u.vel.y) <= 0.05) u.facing = Math.atan2(u.pos.y - lead.pos.y, u.pos.x - lead.pos.x);
+  }
 }

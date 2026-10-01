@@ -26,6 +26,7 @@ import { createWorld, emitW, heroUnit } from './worldState';
 import { createPartyWorld, partyUnits, updateLeader, type Member } from './party';
 import { applyCommand, steerParty, updatePartyMode } from './partyCombat';
 import { memberDied, sortieEnd } from './partyLoss';
+import { updateAutoLoot } from './autoLoot';
 import type { SortieEnd } from '../extract/companyTypes';
 import type { Stack } from '../extract/inventory';
 
@@ -76,6 +77,7 @@ export class WorldSim {
     updateHazards(w);
     onHeroDamage(w);
     updateRegen(w);
+    updateAutoLoot(w);
     updateChannel(w);
     updateClock(w);
     updateLeader(w);
