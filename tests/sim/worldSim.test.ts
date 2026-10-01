@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { WorldSim, idleInput, type HeroInput } from '../../src/sim/world/worldSim';
 import { heroUnit, unit } from '../../src/sim/world/worldState';
-import { addItem, emptyLoadout } from '../../src/sim/extract/loadout';
+import { addItem, emptyLoadout, type Loadout } from '../../src/sim/extract/loadout';
 import { generateRegion } from '../../src/sim/extract/region';
 import type { Obstacle } from '../../src/sim/battle/types';
 import { testRegion, spawn, hero, kit } from './support/worldKit';
@@ -13,7 +13,7 @@ describe('world sim: hero control', () => {
   it('moves with the stick, slower when heavily loaded', () => {
     const light = new WorldSim(testRegion([]), hero(), kit(), 1);
     run(light, SEC, { move: { x: 1, y: 0 } });
-    let heavy = { ...kit(), equipped: { ...kit().equipped, bag: 'x_bag_0' } }; // carry 20
+    let heavy: Loadout = { ...kit(), equipped: { ...kit().equipped, bag: 'x_bag_0' } }; // carry 20
     for (const id of ['x_idol', 'x_grail', 'x_crown']) heavy = addItem(heavy, id).loadout; // ~95% of the limit
     const slow = new WorldSim(testRegion([]), hero(), heavy, 1);
     run(slow, SEC, { move: { x: 1, y: 0 } });
