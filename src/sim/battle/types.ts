@@ -1,6 +1,8 @@
 import type { Vec2 } from '../../core/vec2';
 import type { Rng } from '../../core/rng';
-import type { AreaShape, BossPhase, EmotionId, GearVisual, ModelId, Relation, Role, Stats, TacticId, TagId, TraitId } from '../../data/types';
+import type {
+  AreaShape, BossPhase, EmotionId, GearVisual, ModelId, Relation, Role, ScarId, Stats, TacticId, TagId, TitleId, TraitId, UniqueId,
+} from '../../data/types';
 
 export type Team = 'ally' | 'enemy';
 export type Line = 'front' | 'mid' | 'back';
@@ -29,6 +31,15 @@ export interface UnitSetup {
   elite?: boolean;
   boss?: boolean;
   phases?: BossPhase[];
+  /** progression (Plan 3) */
+  skillLevels?: Record<string, number>;
+  passives?: string[];
+  uniques?: UniqueId[];
+  scars?: ScarId[];
+  title?: TitleId;
+  rank?: 'rookie' | 'skilled' | 'veteran' | 'hero';
+  gearTiers?: { weapon?: number; armor?: number };
+  injured?: boolean;
   /** Extension point for later plans (traits, relationships, ...). */
   extra?: Record<string, unknown>;
 }
