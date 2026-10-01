@@ -219,6 +219,8 @@ export interface BattleState {
   pairCooldowns: Map<string, number>;
   bounds: Bounds;
   mode: 'arena' | 'world';
+  /** allies' commanded priority target (party focus fire in the region); absent in arena battles */
+  focusTargetId?: string;
 }
 
 export interface UnitSnap {

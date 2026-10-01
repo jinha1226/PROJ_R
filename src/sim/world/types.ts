@@ -44,6 +44,8 @@ export interface PartyState {
   dead: string[];
   /** per-follower route state */
   follow: Record<string, { path?: Vec2[]; repathIn: number; crumb?: Vec2 }>;
+  /** the player is steering the leader this tick (the leader leaves the AI while the stick is held) */
+  leaderSteered: boolean;
 }
 
 /** The whole sortie: the battle state of every unit plus the region-level rules around it. */

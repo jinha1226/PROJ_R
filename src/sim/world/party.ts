@@ -50,7 +50,7 @@ export function createPartyWorld(region: Region, members: Member[], pack: Stack[
     groupOf: Object.fromEntries(region.spawns.map((s) => [s.id, s.group])),
     routes: Object.fromEntries(region.spawns.filter((s) => s.patrol).map((s) => [s.id, s.patrol!])),
     containers: {}, piles: [], doorsOpen: [], closed: [], events: [], outcome: null, xp: 0, nextSpawn: 0,
-    party: { order: members.map((m) => m.merc.id), mercs: Object.fromEntries(members.map((m) => [m.merc.id, m.merc])), gear, mode: 'explore', calmTicks: 0, trail: [], dead: [], follow: {} },
+    party: { order: members.map((m) => m.merc.id), mercs: Object.fromEntries(members.map((m) => [m.merc.id, m.merc])), gear, mode: 'explore', calmTicks: 0, trail: [], dead: [], follow: {}, leaderSteered: false },
     hero: { merc: leader, loadout: packLoadout, poisonImmuneUntil: 0, hiddenUntil: 0, lastHp: allies[0]!.stats.maxHp, lastCombat: -1e9 },
   };
 }

@@ -21,18 +21,13 @@ describe('world sim: hero control', () => {
     expect(heroUnit(slow.w).pos.x).toBeLessThan(heroUnit(light.w).pos.x * 0.85);
   });
 
-  it('attack aims at the enemy in front before a nearer one behind', () => {
-    const sim = new WorldSim(testRegion([spawn('front', 1.2, 0, 'g1'), spawn('back', -1.0, 0, 'g2')]), hero(), kit(), 1);
-    heroUnit(sim.w).facing = 0;
-    run(sim, 2, { attack: true });
-    expect(heroUnit(sim.w).action?.targetId).toBe('front');
-  });
-
-  it('hitting an unaware enemy alerts its group', () => {
-    const sim = new WorldSim(testRegion([spawn('a', 1.2, 0), spawn('b', 6, 6)]), hero(), kit(), 1);
+  it('focusing an enemy that has not noticed us starts the fight and alerts its group', () => {
+    const sim = new WorldSim(testRegion([spawn('a', 4, 0), spawn('b', 6, 6)]), hero(), kit(), 1);
     unit(sim.w, 'a').facing = 0;
     heroUnit(sim.w).facing = 0;
-    run(sim, SEC, { attack: true });
+    run(sim, 1, { focus: true });
+    expect(sim.w.b.focusTargetId).toBe('a');
+    run(sim, SEC * 3);
     expect(sim.w.groups.g1!.alerted).toBe(true);
   });
 });
@@ -161,7 +156,7 @@ describe('world sim: extraction, clock, hazards, death', () => {
 });
 
 describe('world sim: determinism and cost', () => {
-  const script = (i: number): HeroInput => ({ ...idleInput(), move: { x: Math.cos(i / 40), y: Math.sin(i / 55) }, attack: i % 7 === 0, skill1: i % 90 === 0 });
+  const script = (i: number): HeroInput => ({ ...idleInput(), move: { x: Math.cos(i / 40), y: Math.sin(i / 55) }, focus: i % 90 === 0 });
   it('the same inputs replay to the same sortie', () => {
     const play = () => { const s = new WorldSim(generateRegion(5), hero(), kit(), 5); for (let i = 0; i < 1200 && !s.w.outcome; i++) s.step(script(i)); return JSON.stringify(s.snapshot(200)); };
     expect(play()).toEqual(play());
@@ -169,7 +164,7 @@ describe('world sim: determinism and cost', () => {
   it('a minute on a full region runs headless in under 3 s', () => {
     const s = new WorldSim(generateRegion(9), hero(), kit(), 9);
     const t0 = performance.now();
-    for (let i = 0; i < 1200 && !s.w.outcome; i++) s.step({ ...script(i), auto: true });
+    for (let i = 0; i < 1200 && !s.w.outcome; i++) s.step(script(i));
     expect(performance.now() - t0).toBeLessThan(3000);
   });
 });

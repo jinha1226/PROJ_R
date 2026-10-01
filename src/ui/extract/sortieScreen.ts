@@ -43,7 +43,7 @@ export class SortieScreen implements Screen {
   private ended = false;
   private mouseAttack = false;
   private cursor = 0;
-  private latched: Pick<HeroInput, 'skill1' | 'skill2' | 'ult' | 'interact' | 'quick'> = { skill1: false, skill2: false, ult: false, interact: false, quick: null };
+  private latched: Pick<HeroInput, 'focus' | 'retreat' | 'regroup' | 'interact' | 'quick'> = { focus: false, retreat: false, regroup: false, interact: false, quick: null };
 
   constructor(private readonly api: SortieApi) {}
 
@@ -91,15 +91,15 @@ export class SortieScreen implements Screen {
     // one-shot presses wait for the next sim tick (a frame may run zero ticks)
     const p = this.latched;
     if (!looting) {
-      p.skill1 ||= s.skill1; p.skill2 ||= s.skill2; p.ult ||= s.ult; p.interact ||= s.pick;
+      // order keys are remapped in the party HUD task; for now the old skill keys carry the orders
+      p.focus ||= s.skill1 || s.attack; p.retreat ||= s.skill2; p.regroup ||= s.ult; p.interact ||= s.pick;
       if (s.quick !== null) p.quick = s.quick;
     }
     const move = looting ? { x: 0, y: 0 } : rt.worldMove(s.move.x, s.move.y);
-    const attack = !looting && (s.attackHeld || this.mouseAttack);
     rt.update(dt, () => {
       const once = this.latched;
-      this.latched = { skill1: false, skill2: false, ult: false, interact: false, quick: null };
-      return { ...idleInput(), ...once, move, attack, auto: this.auto };
+      this.latched = { focus: false, retreat: false, regroup: false, interact: false, quick: null };
+      return { ...idleInput(), ...once, move };
     }, this.paused);
     const w = rt.sim.w;
     const near = rt.sim.nearby();
@@ -139,7 +139,7 @@ export class SortieScreen implements Screen {
       teleport: (x: number, y: number) => { if (this.rt) heroUnit(this.rt.sim.w).pos = { x, y }; },
       finish: (o: 'extracted' | 'downed' | 'failed') => { if (this.rt) this.rt.sim.w.outcome = o === 'extracted' ? o : 'failed'; },
       /** debug/e2e: run the sim forward synchronously (slow software renderers in CI) */
-      advance: (ticks: number) => { for (let i = 0; i < ticks && this.rt && !this.rt.sim.w.outcome; i++) this.rt.sim.step({ ...idleInput(), auto: this.auto }); },
+      advance: (ticks: number) => { for (let i = 0; i < ticks && this.rt && !this.rt.sim.w.outcome; i++) this.rt.sim.step(idleInput()); },
       state: () => this.rt?.sim.w,
     };
   }

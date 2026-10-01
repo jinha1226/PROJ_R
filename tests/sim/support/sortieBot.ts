@@ -35,7 +35,6 @@ export function playSortie(seed: number, leaveAt: number, loadout: Loadout = sta
     if (h.hp < h.maxHp * 0.4 && w.hero.loadout.quick[0]) input.quick = 0;
     const leaving = minute >= leaveAt || (h.hp < h.maxHp * 0.35 && !w.hero.loadout.quick[0]);
     if (threat && !(leaving && w.hero.channel?.kind === 'extract')) {
-      input.auto = true;
       goal = null;
     } else {
       let target: Vec2 | null;

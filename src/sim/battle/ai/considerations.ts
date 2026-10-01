@@ -54,6 +54,10 @@ export const considerations: Consideration[] = [
       c.kind === 'skill' && c.target && !c.inRange ? -1.5 * Math.max(0, dist(u.pos, c.target.pos) - c.skill!.range) : 0,
   },
   {
+    id: 'commandFocus', reason: 'focusCommand',
+    score: (c, { u, s }) => (u.team === 'ally' && isEnemySkill(c) && !!c.target && c.target.id === s.focusTargetId ? 70 : 0),
+  },
+  {
     id: 'lowHp', reason: 'focusLow',
     score: (c) => (isEnemySkill(c) && c.target && !c.target.downed ? (1 - hpFrac(c.target)) * 15 : 0),
   },

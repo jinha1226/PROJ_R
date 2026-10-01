@@ -24,7 +24,7 @@ import { updatePerception } from './perception';
 import type { WorldState } from './types';
 import { createWorld, emitW, heroUnit } from './worldState';
 import { createPartyWorld, partyUnits, updateLeader, type Member } from './party';
-import { updateFollow } from './follow';
+import { applyCommand, steerParty, updatePartyMode } from './partyCombat';
 import type { Stack } from '../extract/inventory';
 
 export { idleInput, type HeroInput } from './heroControl';
@@ -49,7 +49,7 @@ export class WorldSim {
     if (w.outcome) return;
     const b = w.b;
     b.events = [];
-    applyHeroInput(w, input);
+    w.party.leaderSteered = Math.hypot(input.move.x, input.move.y) > 0.1;
     if (input.interact && !w.hero.channel) interact(w);
     updateRules(b);
     tickTags(b);
@@ -57,7 +57,10 @@ export class WorldSim {
     updateActivation(w);
     updatePerception(w, phaseOf(b.tick) !== 'day' && phaseOf(b.tick) !== 'dusk');
     updatePatrol(w);
-    updateFollow(w);
+    applyCommand(w, input);
+    updatePartyMode(w);
+    applyHeroInput(w, input);
+    steerParty(w);
     decide(b);
     this.chaseAroundWalls();
     advanceActions(b);
