@@ -10,6 +10,7 @@ export function makeSnapshot(s: BattleState): Snapshot {
         ? { skillId: u.action.skillId, phase: u.action.phase, progress: 1 - u.action.ticksLeft / u.action.totalTicks }
         : null,
       tags: u.tags.map((t) => t.tag),
+      emotions: u.emotions.map((e) => e.id),
       intent: u.intent,
       forced: u.forced?.kind ?? null,
     })),

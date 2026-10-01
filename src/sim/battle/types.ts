@@ -1,6 +1,6 @@
 import type { Vec2 } from '../../core/vec2';
 import type { Rng } from '../../core/rng';
-import type { AreaShape, BossPhase, GearVisual, ModelId, Relation, Role, Stats, TacticId, TagId, TraitId } from '../../data/types';
+import type { AreaShape, BossPhase, EmotionId, GearVisual, ModelId, Relation, Role, Stats, TacticId, TagId, TraitId } from '../../data/types';
 
 export type Team = 'ally' | 'enemy';
 export type Line = 'front' | 'mid' | 'back';
@@ -54,6 +54,13 @@ export interface TagInstance {
   srcId: string;
 }
 
+export interface EmotionInstance {
+  id: EmotionId;
+  ticksLeft: number;
+  targetId?: string;
+  used?: boolean;
+}
+
 export interface ActionState {
   skillId: string;
   targetId?: string;
@@ -101,6 +108,7 @@ export interface UnitState {
   action: ActionState | null;
   cooldowns: Record<string, number>;
   tags: TagInstance[];
+  emotions: EmotionInstance[];
   intent: Intent | null;
   decisionIn: number;
   forced: ForcedMove | null;
@@ -184,6 +192,7 @@ export interface UnitSnap {
   lifeline: number;
   action: { skillId: string; phase: string; progress: number } | null;
   tags: string[];
+  emotions: string[];
   intent: Intent | null;
   forced: string | null;
 }

@@ -81,7 +81,7 @@ export function makeUnitState(setup: UnitSetup, pos: Vec2, index: number, summon
     id: setup.id, setup, team: setup.team, line: lineOf(setup.slot.col), pos: { ...pos },
     facing: setup.team === 'ally' ? 0 : Math.PI, vel: v(0, 0),
     hp: setup.stats.maxHp, maxHp: setup.stats.maxHp, shield: 0, momentum: 0,
-    alive: true, downed: false, lifeline: 0, action: null, cooldowns: {}, tags: [], intent: null,
+    alive: true, downed: false, lifeline: 0, action: null, cooldowns: {}, tags: [], emotions: [], intent: null,
     decisionIn: index % DECISION_INTERVAL, forced: null, engagedWith: null, threat: {},
     rescueUsed: false, rescueProgress: 0, rescueTarget: null, phaseIndex: 0, summoned,
     stats: { kills: 0, damageDealt: 0, healingDone: 0, dodges: 0 },

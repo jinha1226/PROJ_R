@@ -3,7 +3,7 @@ import { lerpAngle, interpUnit } from '../../src/view/playback/interpolate';
 
 const snap = (x: number, facing: number) => ({
   id: 'a', x, y: 0, facing, hp: 1, maxHp: 1, shield: 0, momentum: 0, alive: true, downed: false, lifeline: 0,
-  action: null, tags: [], intent: null, forced: null,
+  action: null, tags: [], emotions: [], intent: null, forced: null,
 });
 
 describe('interpolate', () => {
