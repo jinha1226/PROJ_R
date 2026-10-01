@@ -1,6 +1,6 @@
 import { CRIT_MULT, LIFELINE_PCT, MOMENTUM_MAX } from './constants';
 import { emit } from './events';
-import { damageMultiplier, effectiveStats } from './stats';
+import { damageMultiplier, effectiveStats, lethalGuards, momentumModifiers } from './stats';
 import type { BattleState, UnitState } from './types';
 
 export interface HitOpts {
@@ -15,9 +15,12 @@ export function computeDamage(atk: number, mult: number, def: number, crit: bool
   return Math.max(1, Math.round(atk * mult * (100 / (100 + def)) * (crit ? CRIT_MULT : 1) * otherMult));
 }
 
-const gainMomentum = (u: UnitState, amount: number): void => {
-  if (u.alive && !u.downed) u.momentum = Math.min(MOMENTUM_MAX, u.momentum + amount);
-};
+export function gainMomentum(s: BattleState, u: UnitState, amount: number): void {
+  if (!u.alive || u.downed) return;
+  let m = 1;
+  for (const mod of momentumModifiers) m *= mod(u, s);
+  u.momentum = Math.min(MOMENTUM_MAX, u.momentum + amount * m);
+}
 
 export function killUnit(s: BattleState, u: UnitState, by: UnitState | null): void {
   if (!u.alive) return;
@@ -64,8 +67,8 @@ export function dealDamage(s: BattleState, src: UnitState, dst: UnitState, opts:
     dst.shield -= absorbed;
     rest -= absorbed;
   }
-  gainMomentum(src, (amount / dst.maxHp) * 40);
-  gainMomentum(dst, (amount / dst.maxHp) * 60);
+  gainMomentum(s, src, (amount / dst.maxHp) * 40);
+  gainMomentum(s, dst, (amount / dst.maxHp) * 60);
   dst.threat[src.id] = (dst.threat[src.id] ?? 0) + amount;
   src.stats.damageDealt += amount;
   emit(s, { type: 'damage', src: src.id, dst: dst.id, amount, crit, skillId: opts.skillId, reason: opts.reason });
@@ -75,6 +78,7 @@ export function dealDamage(s: BattleState, src: UnitState, dst: UnitState, opts:
     return amount;
   }
   dst.hp -= rest;
+  if (dst.hp <= 0 && lethalGuards.some((g) => g(dst, s))) dst.hp = 1;
   if (dst.hp <= 0) {
     if (dst.team === 'ally') downUnit(s, dst, src);
     else killUnit(s, dst, src);

@@ -166,6 +166,8 @@ export interface BattleState {
   pending: BattleCommand[];
   nextId: number;
   berserkMult: number;
+  /** pairKey → relation, only pairs where both allies are deployed */
+  relations: Map<string, Relation>;
 }
 
 export interface UnitSnap {

@@ -23,7 +23,22 @@ const bossPhase: StatModifier = (u) => {
   return mods;
 };
 
+/** Multiplicative momentum-gain multiplier. */
+export type MomentumModifier = (u: UnitState, s: BattleState) => number;
+/** Return true to keep a unit at 1 HP instead of going down/dying (consumes nothing by itself). */
+export type LethalGuard = (u: UnitState, s: BattleState) => boolean;
+
 export const statModifiers: StatModifier[] = [tagMove, bossPhase];
+export const momentumModifiers: MomentumModifier[] = [];
+export const lethalGuards: LethalGuard[] = [];
+
+export function registerMomentumModifier(m: MomentumModifier): void {
+  momentumModifiers.push(m);
+}
+
+export function registerLethalGuard(g: LethalGuard): void {
+  lethalGuards.push(g);
+}
 export const damageModifiers: DamageModifier[] = [(_src, _dst, s) => s.berserkMult];
 
 export function registerStatModifier(m: StatModifier): void {

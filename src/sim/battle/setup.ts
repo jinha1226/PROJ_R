@@ -3,7 +3,7 @@ import { v, type Vec2 } from '../../core/vec2';
 import { CLASSES } from '../../data/classes';
 import { ENEMIES } from '../../data/enemies';
 import { ALLY_PRESETS, ALLY_RELATIONS, ENEMY_PRESETS, type AllyPresetMember } from '../../data/presets';
-import type { Stats } from '../../data/types';
+import type { Relation, Stats } from '../../data/types';
 import { DECISION_INTERVAL, STAGE_SCALE } from './constants';
 import type { BattleSetup, BattleState, Line, Obstacle, Team, UnitSetup, UnitState } from './types';
 
@@ -88,6 +88,16 @@ export function makeUnitState(setup: UnitSetup, pos: Vec2, index: number, summon
   };
 }
 
+function buildRelations(setup: BattleSetup): Map<string, Relation> {
+  const ids = new Set(setup.allies.map((u) => u.id));
+  const map = new Map<string, Relation>();
+  for (const r of setup.relations ?? []) {
+    if (!ids.has(r.a) || !ids.has(r.b) || r.a === r.b) continue;
+    map.set(r.a < r.b ? `${r.a}|${r.b}` : `${r.b}|${r.a}`, { ...r });
+  }
+  return map;
+}
+
 export function createState(setup: BattleSetup): BattleState {
   const all = [...setup.allies, ...setup.enemies];
   return {
@@ -102,5 +112,6 @@ export function createState(setup: BattleSetup): BattleState {
     pending: [],
     nextId: 1,
     berserkMult: 1,
+    relations: buildRelations(setup),
   };
 }

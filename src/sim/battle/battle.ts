@@ -2,6 +2,7 @@ import { createState } from './setup';
 import { makeSnapshot } from './snapshot';
 import { checkOutcome, processCommands, updateRules } from './rules';
 import { updateRescue } from './rescue';
+import { runReactors } from './reactors';
 import { advanceActions, tickCooldowns } from './actions';
 import { decide } from './ai/decide';
 import { updateEngagement } from './engagement';
@@ -44,6 +45,7 @@ export class Battle {
     moveUnits(s);
     updateEngagement(s);
     updateRescue(s);
+    runReactors(s);
     checkOutcome(s);
     return this.finish();
   }
