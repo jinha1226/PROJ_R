@@ -23,6 +23,7 @@ import { updatePatrol, walkTo } from './patrol';
 import { updatePerception } from './perception';
 import type { WorldState } from './types';
 import { createWorld, emitW, heroUnit } from './worldState';
+import { partyUnits, updateLeader } from './party';
 
 export { idleInput, type HeroInput } from './heroControl';
 
@@ -64,10 +65,10 @@ export class WorldSim {
     updateRegen(w);
     updateChannel(w);
     updateClock(w);
-    const h = heroUnit(w);
-    if (!w.outcome && (!h.alive || h.downed)) {
-      w.outcome = 'downed';
-      emitW(w, 'downed_end');
+    updateLeader(w);
+    if (!w.outcome && !partyUnits(w).some((u) => !u.downed)) {
+      w.outcome = 'failed';
+      emitW(w, 'failed');
     }
     b.tick++;
   }
@@ -103,8 +104,8 @@ export class WorldSim {
   nearby(): Nearby { return this.w.outcome ? null : nearby(this.w); }
   lootTake(id: string, index: number): boolean { return !this.w.outcome && lootTake(this.w, id, index); }
   lootDrop(where: 'bag' | 'quick', index: number): void { if (!this.w.outcome) lootDrop(this.w, where, index); }
-  equip(index: number): void { if (!this.w.outcome) startEquip(this.w, index); }
-  unequip(slot: GearSlot): void { if (!this.w.outcome) unequip(this.w, slot); }
+  equip(index: number, member?: string): void { if (!this.w.outcome) startEquip(this.w, index, member); }
+  unequip(slot: GearSlot, member?: string): void { if (!this.w.outcome) unequip(this.w, slot, member); }
   toQuick(bagIndex: number, quickIndex: number): void { if (!this.w.outcome) toQuick(this.w, bagIndex, quickIndex); }
   toPouch(bagIndex: number): void { if (!this.w.outcome) toPouch(this.w, bagIndex); }
 

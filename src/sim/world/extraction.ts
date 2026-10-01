@@ -50,7 +50,7 @@ export function updateChannel(w: WorldState): void {
   if (c.ticks < c.total) return;
   w.hero.channel = undefined;
   if (c.kind === 'search') finishSearch(w, c.target!);
-  else if (c.kind === 'equip') finishEquip(w, c.target!);
+  else if (c.kind === 'equip') finishEquip(w, c.target!, c.member);
   else if (c.kind === 'recall' || c.kind === 'extract') {
     w.outcome = 'extracted';
     w.xp += EXTRACT_XP;

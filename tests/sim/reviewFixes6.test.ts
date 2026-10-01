@@ -24,13 +24,13 @@ describe('final review fixes (Plan 6)', () => {
 
   it('nothing can be moved once the sortie has ended', () => {
     const sim = new WorldSim(testRegion([]), hero(), addItem(kit(), 'x_crown').loadout, 1);
-    sim.w.outcome = 'downed';
+    sim.w.outcome = 'failed';
     sim.toPouch(0);
     sim.unequip('weapon');
     sim.lootDrop('bag', 0);
     expect(sim.w.hero.loadout.pouch).toBeNull();
     expect(sim.w.hero.loadout.bag).toEqual([{ id: 'x_crown', n: 1 }]);
-    expect(sim.w.hero.loadout.equipped.weapon).toBeTruthy();
+    expect(sim.w.party.gear[sim.w.heroId]!.equipped.weapon).toBeTruthy();
   });
 
   it('a dash in the region cannot pass through a wall', () => {
@@ -75,7 +75,7 @@ describe('final review fixes (Plan 6)', () => {
     sim.equip(1);
     sim.lootDrop('bag', 0);
     run(sim, SEC * 3);
-    expect(sim.w.hero.loadout.equipped.head).toBe('x_head_2');
+    expect(sim.w.party.gear[sim.w.heroId]!.equipped.head).toBe('x_head_2');
   });
 
   it('chasers can path to a hero hugging a wall', () => {

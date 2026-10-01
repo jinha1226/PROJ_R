@@ -155,8 +155,8 @@ describe('world sim: extraction, clock, hazards, death', () => {
     heroUnit(sim.w).hp = 1;
     heroUnit(sim.w).downed = true;
     run(sim, 3);
-    expect(sim.w.outcome).toBe('downed');
-    expect(sim.w.events.filter((e) => e.type === 'downed_end').length).toBe(1);
+    expect(sim.w.outcome).toBe('failed');
+    expect(sim.w.events.filter((e) => e.type === 'failed').length).toBe(1);
   });
 });
 

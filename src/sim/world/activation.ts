@@ -1,15 +1,15 @@
 import type { WorldState } from './types';
-import { heroUnit } from './worldState';
+import { partyUnits } from './party';
 
 export const ACTIVE_RADIUS = 25;
 export const MAX_ACTIVE = 20;
 
 /** Wakes enemies near the hero (and every member of an alerted group), nearest first, up to the cap. */
 export function updateActivation(w: WorldState): void {
-  const h = heroUnit(w).pos;
+  const party = partyUnits(w).map((u) => u.pos);
   const want = w.b.units
     .filter((u) => u.team === 'enemy' && u.alive)
-    .map((u) => ({ u, d: Math.hypot(u.pos.x - h.x, u.pos.y - h.y), group: w.groups[groupOf(w, u.id)] }))
+    .map((u) => ({ u, d: Math.min(...party.map((h) => Math.hypot(u.pos.x - h.x, u.pos.y - h.y))), group: w.groups[groupOf(w, u.id)] }))
     .filter((x) => x.d <= ACTIVE_RADIUS || x.group?.alerted)
     .sort((a, b) => a.d - b.d || (a.u.id < b.u.id ? -1 : 1))
     .slice(0, MAX_ACTIVE);

@@ -1,12 +1,10 @@
-import { heroSetup } from '../extract/heroSetup';
+import { refreshParty } from './party';
 import type { WorldState } from './types';
+import { dropAt } from './interact';
 import { heroUnit } from './worldState';
 
-/** Re-derives the hero's stats after the loadout changed (gear, weight). */
+/** Re-derives stats after gear or pack weight changed; pack overflow (a lost member's bag) lands at the leader's feet. */
 export function refreshHero(w: WorldState): void {
-  const u = heroUnit(w);
-  const next = { ...heroSetup(w.hero.merc, w.hero.loadout), id: u.id, controlled: u.setup.controlled, spawn: u.setup.spawn };
-  u.setup = next;
-  u.maxHp = next.stats.maxHp;
-  u.hp = Math.min(u.hp, u.maxHp);
+  const { dropped } = refreshParty(w);
+  if (dropped.length) dropAt(w, heroUnit(w).pos, dropped);
 }

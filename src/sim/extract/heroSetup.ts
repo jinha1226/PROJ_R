@@ -6,13 +6,13 @@ import type { Mercenary } from '../roster/types';
 import { speedMult, type Loadout } from './loadout';
 
 /** The hero's combat setup: class and level from the mercenary, gear from the extraction loadout. */
-export function heroSetup(hero: Mercenary, l: Loadout): UnitSetup {
+export function heroSetup(hero: Mercenary, l: Loadout, speed = speedMult(l)): UnitSetup {
   const base = mercToUnitSetup({ ...hero, gear: {} }, 0, { col: 2, row: 1 });
   const stats: Stats = { ...base.stats };
   const items = Object.values(l.equipped).filter((id): id is string => !!id).map(xitem);
   for (const it of items) for (const [k, v] of Object.entries(it.stats ?? {}) as [keyof Stats, number][]) stats[k] += v;
   stats.maxHp = Math.round(stats.maxHp);
-  stats.moveSpeed *= speedMult(l);
+  stats.moveSpeed *= speed;
   const weapon = l.equipped.weapon ? xitem(l.equipped.weapon) : undefined;
   const head = l.equipped.head ? xitem(l.equipped.head) : undefined;
   const chest = l.equipped.chest ? xitem(l.equipped.chest) : undefined;

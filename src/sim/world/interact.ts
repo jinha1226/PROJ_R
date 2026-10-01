@@ -1,6 +1,6 @@
 import type { Vec2 } from '../../core/vec2';
 import { xitem } from '../../data/extract';
-import { addItem, equipFromBag, moveToQuick, removeAt, unequipToBag } from '../extract/loadout';
+import { addItem, equipFromBag, moveToQuick, removeAt, unequipToBag, type Loadout } from '../extract/loadout';
 import { mergeAll, type Stack } from '../extract/inventory';
 import { rollContainer, rollDrop } from '../extract/loot';
 import type { GearSlot } from '../../data/extract';
@@ -91,31 +91,39 @@ export function lootDrop(w: WorldState, where: 'bag' | 'quick', index: number): 
   refreshHero(w);
 }
 
-export function startEquip(w: WorldState, index: number): void {
+export function startEquip(w: WorldState, index: number, member = w.heroId): void {
   const s = w.hero.loadout.bag[index];
-  if (!s || xitem(s.id).kind !== 'gear' || (w.hero.channel && w.hero.channel.kind !== 'search')) return;
-  w.hero.channel = { kind: 'equip', ticks: 0, total: EQUIP_TICKS, target: s.id };
+  if (!s || xitem(s.id).kind !== 'gear' || !w.party.gear[member] || (w.hero.channel && w.hero.channel.kind !== 'search')) return;
+  w.hero.channel = { kind: 'equip', ticks: 0, total: EQUIP_TICKS, target: s.id, member };
+}
+
+/** The pack seen as one member's loadout (their worn gear + the shared bag); quick slots stay out of it. */
+const asMember = (w: WorldState, member: string): Loadout => ({ ...w.hero.loadout, quick: [], equipped: { ...w.party.gear[member]!.equipped } });
+
+function applyMember(w: WorldState, member: string, l: Loadout, dropped: Stack[]): void {
+  w.party.gear[member] = { ...w.party.gear[member]!, equipped: l.equipped };
+  w.hero.loadout = { ...w.hero.loadout, bag: l.bag };
+  dropAt(w, heroUnit(w).pos, dropped);
+  refreshHero(w);
 }
 
 /** Puts on the item chosen when the equip began (the bag may have shifted meanwhile). */
-export function finishEquip(w: WorldState, itemId: string): void {
+export function finishEquip(w: WorldState, itemId: string, member = w.heroId): void {
   const index = w.hero.loadout.bag.findIndex((s) => s.id === itemId);
-  if (index < 0) return void emitW(w, 'equip_failed');
+  const merc = w.party.mercs[member];
+  if (index < 0 || !merc || !w.b.units.find((u) => u.id === member)?.alive) return void emitW(w, 'equip_failed');
   try {
-    const r = equipFromBag(w.hero.loadout, index, WEAPON_TYPE_OF_CLASS[w.hero.merc.classId]);
-    w.hero.loadout = r.loadout;
-    dropAt(w, heroUnit(w).pos, r.dropped);
-    refreshHero(w);
+    const r = equipFromBag(asMember(w, member), index, WEAPON_TYPE_OF_CLASS[merc.classId]);
+    applyMember(w, member, r.loadout, r.dropped);
   } catch {
     emitW(w, 'equip_failed');
   }
 }
 
-export function unequip(w: WorldState, slot: GearSlot): void {
-  const r = unequipToBag(w.hero.loadout, slot);
-  w.hero.loadout = r.loadout;
-  dropAt(w, heroUnit(w).pos, r.dropped);
-  refreshHero(w);
+export function unequip(w: WorldState, slot: GearSlot, member = w.heroId): void {
+  if (!w.party.gear[member]?.equipped[slot]) return;
+  const r = unequipToBag(asMember(w, member), slot);
+  applyMember(w, member, r.loadout, r.dropped);
 }
 
 export const toQuick = (w: WorldState, bagIndex: number, quickIndex: number): void => { w.hero.loadout = moveToQuick(w.hero.loadout, bagIndex, quickIndex); };

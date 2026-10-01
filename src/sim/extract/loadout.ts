@@ -125,9 +125,9 @@ export function moveToQuick(l: Loadout, bagIndex: number, quickIndex: number): L
 }
 
 /** The party's shared pack: every member's bag slots and carry limit added up; worn gear counts as weight. */
-export function partyPack(members: Loadout[], pack: Stack[], pouch: Stack | null): Loadout {
+export function partyPack(members: Loadout[], pack: Stack[], pouch: Stack | null, quick: (Stack | null)[] = []): Loadout {
   return {
-    equipped: {}, bag: pack, quick: [], pouch,
+    equipped: {}, bag: pack, quick, pouch,
     slots: members.reduce((a, m) => a + bagSlots(m), 0),
     carry: members.reduce((a, m) => a + carryLimit(m), 0),
     baseWeight: Math.round(members.reduce((a, m) => a + worn(m).reduce((b, id) => b + xitem(id).weight, 0), 0) * 100) / 100,

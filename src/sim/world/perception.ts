@@ -1,7 +1,8 @@
 import { segmentBlocked } from '../battle/geometry';
 import type { WorldState } from './types';
 import { groupOf } from './activation';
-import { emitW, heroUnit, setAware, unit } from './worldState';
+import { emitW, setAware, unit } from './worldState';
+import { partyUnits } from './party';
 
 export const SIGHT_DAY = 10;
 export const SIGHT_NIGHT = 7;
@@ -24,17 +25,23 @@ export function alertGroup(w: WorldState, g: string): void {
 
 /** Awake, unaware enemies look for the hero: a forward cone, or anything very close; walls block sight. */
 export function updatePerception(w: WorldState, night = false): void {
-  const hero = heroUnit(w);
-  if (!hero.alive || hero.downed || w.hero.hiddenUntil > w.b.tick) return;
+  if (w.hero.hiddenUntil > w.b.tick) return;
+  const party = partyUnits(w).filter((p) => !p.downed);
+  if (!party.length) return;
   const sight = night ? SIGHT_NIGHT : SIGHT_DAY;
   for (const u of w.b.units) {
     if (u.team !== 'enemy' || !u.alive || u.dormant || w.ai[u.id]?.mode === 'alert') continue;
-    const dx = hero.pos.x - u.pos.x;
-    const dy = hero.pos.y - u.pos.y;
-    const d = Math.hypot(dx, dy);
-    if (d > sight) continue;
-    let off = Math.abs(Math.atan2(dy, dx) - u.facing) % (Math.PI * 2);
-    if (off > Math.PI) off = Math.PI * 2 - off;
-    if ((d <= SENSE_CLOSE || off <= HALF_CONE) && !segmentBlocked(w.b, u.pos, hero.pos)) alertGroup(w, groupOf(w, u.id));
+    for (const hero of party) {
+      const dx = hero.pos.x - u.pos.x;
+      const dy = hero.pos.y - u.pos.y;
+      const d = Math.hypot(dx, dy);
+      if (d > sight) continue;
+      let off = Math.abs(Math.atan2(dy, dx) - u.facing) % (Math.PI * 2);
+      if (off > Math.PI) off = Math.PI * 2 - off;
+      if ((d <= SENSE_CLOSE || off <= HALF_CONE) && !segmentBlocked(w.b, u.pos, hero.pos)) {
+        alertGroup(w, groupOf(w, u.id));
+        break;
+      }
+    }
   }
 }

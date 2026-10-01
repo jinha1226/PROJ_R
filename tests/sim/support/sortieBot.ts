@@ -8,7 +8,7 @@ import { lootSource } from '../../../src/sim/world/interact';
 import { idleInput, WorldSim, type HeroInput } from '../../../src/sim/world/worldSim';
 import { heroUnit } from '../../../src/sim/world/worldState';
 
-export interface SortieOutcome { outcome: 'extracted' | 'downed' | 'timeout'; minutes: number; value: number; xp: number }
+export interface SortieOutcome { outcome: 'extracted' | 'failed' | 'timeout'; minutes: number; value: number; xp: number }
 
 /** The free kit plus the two small potions 50 starting gold buys. */
 export const starterLoadout = (): Loadout => ({ ...emptyLoadout(), equipped: { weapon: 'x_sword_shield_0', chest: 'x_chest_0' }, quick: [{ id: 'x_potion_s', n: 2 }] });

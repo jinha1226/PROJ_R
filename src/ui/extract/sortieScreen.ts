@@ -113,7 +113,7 @@ export class SortieScreen implements Screen {
     if (w.outcome && !this.ended) {
       this.ended = true;
       const out = w.outcome;
-      setTimeout(() => this.api.end(out, w.hero.loadout, w.xp), 900);
+      setTimeout(() => this.api.end(out === 'failed' ? 'downed' : out, w.hero.loadout, w.xp), 900);
     }
   }
 
@@ -137,7 +137,7 @@ export class SortieScreen implements Screen {
     (window as unknown as { __PROJR_WORLD__: unknown }).__PROJR_WORLD__ = {
       tick: () => this.rt?.sim.w.b.tick ?? 0,
       teleport: (x: number, y: number) => { if (this.rt) heroUnit(this.rt.sim.w).pos = { x, y }; },
-      finish: (o: 'extracted' | 'downed') => { if (this.rt) this.rt.sim.w.outcome = o; },
+      finish: (o: 'extracted' | 'downed' | 'failed') => { if (this.rt) this.rt.sim.w.outcome = o === 'extracted' ? o : 'failed'; },
       /** debug/e2e: run the sim forward synchronously (slow software renderers in CI) */
       advance: (ticks: number) => { for (let i = 0; i < ticks && this.rt && !this.rt.sim.w.outcome; i++) this.rt.sim.step({ ...idleInput(), auto: this.auto }); },
       state: () => this.rt?.sim.w,
