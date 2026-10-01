@@ -35,3 +35,5 @@
 .bark-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .bark { position: absolute; transform: translate(-50%, -100%); margin-top: -64px; background: #fdf8ec; color: #24201a; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 10px; white-space: nowrap; box-shadow: 0 2px 6px #0008; }
 .bark::after { content: ''; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #fdf8ec; border-bottom: 0; }
+.uo.hero .uo-name { color: #ffe08a !important; text-shadow: 0 0 6px #ffd060, 0 1px 2px #000; }
+.uo-name .icon-badge.injured { margin-right: 3px; vertical-align: -2px; }

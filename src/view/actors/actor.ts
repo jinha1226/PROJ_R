@@ -3,6 +3,7 @@ import type { AnimKey, GearVisual, ModelId } from '../../data/types';
 import { ANIM_CLIPS, LOOPING, type AnimSet } from './animMap';
 import type { AssetLibrary } from './assets';
 import { MODELS, propsFor, visibleMeshes } from './modelManifest';
+import { gearLook, type TierLook } from './gearLook';
 
 export interface ActorSpec {
   id: string;
@@ -12,6 +13,8 @@ export interface ActorSpec {
   tint?: string;
   scale?: number;
   team: 'ally' | 'enemy';
+  gearTiers?: { weapon?: number; armor?: number };
+  rank?: 'rookie' | 'skilled' | 'veteran' | 'hero';
 }
 
 const nodeVisible = (obj: THREE.Object3D, keep: Set<string>, stop: THREE.Object3D): boolean => {
@@ -32,13 +35,17 @@ export class Actor {
   private state: 'alive' | 'downed' | 'dead' = 'alive';
   private flashLeft = 0;
   private flashTotal = 1;
+  private aura: THREE.Mesh | null = null;
+  private auraT = 0;
 
   constructor(readonly spec: ActorSpec, private readonly lib: AssetLibrary) {
     this.set = MODELS[spec.model].animSet;
     this.model = lib.character(spec.model);
     this.model.scale.setScalar(lib.baseScale(spec.model) * (spec.scale ?? 1));
     this.applyGear(spec.gear);
-    this.prepareMaterials(spec.tint);
+    const look = gearLook({ model: spec.model, gear: spec.gear, gearTiers: spec.gearTiers, rank: spec.rank });
+    this.prepareMaterials(spec.tint, look.tints, look.propTint);
+    if (look.aura) this.aura = this.makeAura(spec.scale ?? 1);
     this.root.add(this.model);
     this.ring = this.makeRing(spec.team === 'ally' ? spec.color : '#d0533f', spec.scale ?? 1);
     this.root.add(this.ring);
@@ -52,19 +59,49 @@ export class Actor {
     this.model.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) o.visible = nodeVisible(o, keep, this.model);
     });
-    for (const p of propsFor(this.spec.model, gear)) this.model.getObjectByName(p.slot)?.add(this.lib.prop(p.file));
+    for (const p of propsFor(this.spec.model, gear)) {
+      const prop = this.lib.prop(p.file);
+      prop.userData.prop = true;
+      this.model.getObjectByName(p.slot)?.add(prop);
+    }
   }
 
-  private prepareMaterials(tint?: string): void {
+  private prepareMaterials(tint: string | undefined, tints: Record<string, TierLook>, propTint?: TierLook): void {
     this.model.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
       if (tint) mat.color.lerp(new THREE.Color(tint), 0.45);
+      const look = this.lookFor(mesh, tints) ?? (this.isProp(mesh) ? propTint : undefined);
+      if (look) {
+        mat.color.lerp(new THREE.Color(look.color), look.amount);
+        mat.metalness = look.metalness;
+        mat.roughness = Math.min(mat.roughness, 1 - look.metalness * 0.6);
+        if (look.emissive > 0) { mat.emissive.set(look.color); mat.userData.baseEmissive = look.emissive; mat.emissiveIntensity = look.emissive; }
+      }
       mesh.material = mat;
       this.materials.push(mat);
     });
+  }
+
+  private lookFor(mesh: THREE.Object3D, tints: Record<string, TierLook>): TierLook | undefined {
+    for (let o: THREE.Object3D | null = mesh; o && o !== this.model; o = o.parent) if (tints[o.name]) return tints[o.name];
+    return undefined;
+  }
+
+  private isProp(mesh: THREE.Object3D): boolean {
+    for (let o: THREE.Object3D | null = mesh; o && o !== this.model; o = o.parent) if (o.userData.prop) return true;
+    return false;
+  }
+
+  private makeAura(scale: number): THREE.Mesh {
+    const mat = new THREE.MeshBasicMaterial({ color: '#ffd060', transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
+    const aura = new THREE.Mesh(new THREE.RingGeometry(0.58 * scale, 0.85 * scale, 48), mat);
+    aura.rotation.x = -Math.PI / 2;
+    aura.position.y = 0.025;
+    this.root.add(aura);
+    return aura;
   }
 
   private makeRing(color: string, scale: number): THREE.Mesh {
@@ -136,7 +173,12 @@ export class Actor {
     if (this.flashLeft > 0) {
       this.flashLeft = Math.max(0, this.flashLeft - dt);
       const k = this.flashLeft / this.flashTotal;
-      for (const m of this.materials) m.emissiveIntensity = k * 1.2;
+      for (const m of this.materials) m.emissiveIntensity = Math.max(k * 1.2, (m.userData.baseEmissive as number | undefined) ?? 0);
+      if (this.flashLeft === 0) for (const m of this.materials) if (m.userData.baseEmissive) m.emissive.set('#ffd060');
+    }
+    if (this.aura) {
+      this.auraT += dt;
+      (this.aura.material as THREE.MeshBasicMaterial).opacity = 0.35 + 0.25 * Math.sin(this.auraT * 3);
     }
   }
 
@@ -145,5 +187,6 @@ export class Actor {
     for (const m of this.materials) m.dispose();
     this.ring.geometry.dispose();
     (this.ring.material as THREE.Material).dispose();
+    if (this.aura) { this.aura.geometry.dispose(); (this.aura.material as THREE.Material).dispose(); }
   }
 }

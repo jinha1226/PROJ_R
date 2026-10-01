@@ -1,14 +1,14 @@
 import {
   Angry, ArrowDownToLine, BicepsFlexed, Crown, Droplet, Droplets, Ellipsis, Flag, Flame, Footprints, Frown,
   HandHeart, HeartCrack, Laugh, Link, Medal, Megaphone, Rabbit, Shield, ShieldHalf, ShieldPlus, Skull, Snail,
-  Sparkles, Star, Sword, Target, Undo2, Wind, Handshake, type IconNode,
+  Sparkles, Star, Sword, Target, Undo2, Wind, Handshake, Bandage, type IconNode,
 } from 'lucide';
 import type { EmotionId, RelationTriggerKind, TagId } from '../../data/types';
 import type { IntentKind } from '../../sim/battle/types';
 import type { MomentKind } from '../../sim/roster/relationships';
 import { t } from '../../ui/i18n/ko';
 
-export type IconKey = TagId | `intent:${IntentKind}` | `emotion:${EmotionId}` | `relation:${RelationTriggerKind}` | `moment:${MomentKind}`;
+export type IconKey = 'status:injured' | TagId | `intent:${IntentKind}` | `emotion:${EmotionId}` | `relation:${RelationTriggerKind}` | `moment:${MomentKind}`;
 
 interface IconDef {
   icon: IconNode;
@@ -19,6 +19,7 @@ interface IconDef {
 const def = (icon: IconNode, color: string, label: string): IconDef => ({ icon, color, label });
 
 export const ICONS: Record<IconKey, IconDef> = {
+  'status:injured': def(Bandage, '#d8c8b0', '부상'),
   marked: def(Target, '#e8962e', t('tag.marked')),
   knockdown: def(ArrowDownToLine, '#9c8a74', t('tag.knockdown')),
   wet: def(Droplets, '#3d8fe6', t('tag.wet')),

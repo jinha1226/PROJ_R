@@ -35,10 +35,11 @@ export class UnitOverlay {
 
   add(u: UnitSetup): void {
     const el = document.createElement('div');
-    el.className = `uo ${u.team}${u.boss ? ' boss' : ''}`;
+    el.className = `uo ${u.team}${u.boss ? ' boss' : ''}${u.rank === 'hero' ? ' hero' : ''}`;
     el.innerHTML = `<div class="uo-intent"></div><div class="uo-tags"></div><div class="uo-name"></div><div class="uo-bar"><div class="uo-hp"></div><div class="uo-shield"></div></div><div class="uo-mom"><div></div></div>`;
     const name = el.querySelector<HTMLDivElement>('.uo-name')!;
     name.textContent = this.nameOf(u);
+    if (u.injured) name.insertAdjacentHTML('afterbegin', iconBadge('status:injured', 13, 'injured'));
     name.style.color = u.team === 'ally' ? u.color : '#ffb4a8';
     this.el.appendChild(el);
     this.rows.set(u.id, {
