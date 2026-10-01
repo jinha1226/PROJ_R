@@ -1,6 +1,7 @@
 import type { ClassId, TacticId, TagId } from '../../data/types';
 import { KO_PERSONALITY } from './koPersonality';
 import { KO_GROWTH } from './koGrowth';
+import { KO_EVENTS } from './koEvents';
 
 export const KO = {
   class: {
@@ -61,6 +62,7 @@ export const KO = {
   rank: KO_GROWTH.rank,
   role: KO_GROWTH.role,
   chronicle: KO_GROWTH.chronicle,
+  event: KO_EVENTS,
   reason: {
     ...KO_PERSONALITY.reason,
     attack: '공격 중', skill: '기술 사용', approach: '목표에게 접근 중', kite: '거리를 벌리는 중',
