@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { WorldSim, idleInput } from '../../src/sim/world/worldSim';
 import { partyUnits } from '../../src/sim/world/party';
 import { heroUnit } from '../../src/sim/world/worldState';
-import { SLOT_OFFSETS } from '../../src/sim/world/follow';
+import { SLOT_OFFSETS, followTarget } from '../../src/sim/world/follow';
 import type { Obstacle } from '../../src/sim/battle/types';
 import { testRegion, crew } from './support/worldKit';
 
@@ -64,5 +64,17 @@ describe('following the leader', () => {
   it('is deterministic', () => {
     const run = () => { const s = sim([box(10, -6, 0.4, 4), box(10, 6, 0.4, 4)]); step(s, SEC * 10, { x: 1, y: 0.2 }); return JSON.stringify(partyUnits(s.w).map((u) => u.pos)); };
     expect(run()).toEqual(run());
+  });
+  it('at a wall the back slots fold in close to the leader instead of queueing far behind', () => {
+    const s = WorldSim.party(testRegion([], { start: { x: 0, y: 0 } }, [box(-3.5, 0, 0.4, 8)]), crew(5), [], null, 1);
+    heroUnit(s.w).facing = 0;
+    step(s, SEC * 4);
+    expect(far(s)).toBeLessThan(4);
+  });
+  it('while holding an extraction point the formation draws in tight around the leader', () => {
+    const s = sim();
+    s.w.hero.channel = { kind: 'extract', ticks: 0, total: 160, target: 'x0' };
+    const h = heroUnit(s.w).pos;
+    for (let k = 0; k < 4; k++) { const t = followTarget(s.w, k); expect(Math.hypot(t.x - h.x, t.y - h.y)).toBeLessThanOrEqual(2); }
   });
 });

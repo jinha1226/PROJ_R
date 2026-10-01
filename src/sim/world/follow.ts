@@ -83,8 +83,10 @@ function crumb(w: WorldState, from: Vec2): Vec2 | null {
 /** Where follower k should stand: its V slot when open ground allows, else in line along the leader's footprints. */
 export function followTarget(w: WorldState, k: number): Vec2 {
   const lead = heroUnit(w);
-  const slot = SLOT_OFFSETS[k] ?? { x: -1.6 * (k + 1), y: 0 };
-  const p = rot(slot, lead.facing);
+  const base = SLOT_OFFSETS[k] ?? { x: -1.6 * (k + 1), y: 0 };
+  // holding an extraction point: everyone crowds in so the whole party stands inside it
+  const tight = w.hero.channel?.kind === 'extract' ? 0.5 : 1;
+  const p = rot({ x: base.x * tight, y: base.y * tight }, lead.facing);
   const want = { x: lead.pos.x + p.x, y: lead.pos.y + p.y };
   if (w.nav.walkable(want) && !segmentBlocked(w.b, lead.pos, want) && w.nav.lineClear(lead.pos, want)) return want;
   return trailPoint(w, QUEUE_GAP * (k + 1));

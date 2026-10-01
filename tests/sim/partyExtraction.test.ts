@@ -60,10 +60,9 @@ describe('party losses and extraction', () => {
     const [, b, c, d] = partyUnits(s.w);
     downUnit(s.w.b, b!, null);
     c!.pos = { x: 30, y: 0 };
-    s.w.party.follow = {};
-    c!.setup = { ...c!.setup, controlled: true };
+    downUnit(s.w.b, c!, null);
     killUnit(s.w.b, d!, null);
-    for (let i = 0; i < SEC * 15 && !s.w.outcome; i++) { c!.pos = { x: 30, y: 0 }; s.step(idleInput()); }
+    for (let i = 0; i < SEC * 15 && !s.w.outcome; i++) s.step(idleInput());
     expect(s.w.outcome).toBe('extracted');
     const end = s.end();
     expect(end.outcome).toBe('extracted');
@@ -96,5 +95,26 @@ describe('party losses and extraction', () => {
     go(s, SEC);
     expect(h.hp).toBeGreaterThan(h.maxHp / 2);
     expect(s.w.hero.loadout.bag).toEqual([{ id: 'x_potion_m', n: 1 }]);
+  });
+  it('the hold waits for every standing member to be inside the zone', () => {
+    const s = atExit(3);
+    const straggler = partyUnits(s.w)[2]!;
+    for (let i = 0; i < SEC * 3; i++) { straggler.pos = { x: 40, y: 0 }; s.step(idleInput()); }
+    expect(s.w.hero.channel?.ticks ?? 0).toBe(0);
+    go(s, SEC * 12);
+    expect(s.w.outcome).toBe('extracted');
+    expect(s.end().members.every((m) => m.state === 'home')).toBe(true);
+  });
+  it('a full party of five bunches up inside the zone and gets out', () => {
+    const s = WorldSim.party(testRegion([], { start: { x: 32, y: 0 } }), geared(5), [], null, 1);
+    for (let i = 0; i < SEC * 30 && !s.w.outcome; i++) {
+      const h = heroUnit(s.w).pos;
+      const dx = 50 - h.x;
+      const dy = 0 - h.y;
+      const l = Math.hypot(dx, dy);
+      s.step({ ...idleInput(), move: l > 0.3 ? { x: dx / l, y: dy / l } : { x: 0, y: 0 } });
+    }
+    expect(s.w.outcome).toBe('extracted');
+    expect(s.end().members.every((m) => m.state === 'home')).toBe(true);
   });
 });

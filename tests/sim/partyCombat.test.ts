@@ -74,4 +74,25 @@ describe('party auto combat', () => {
     go(s, SEC * 2);
     expect(spread()).toBeLessThan(before * 0.6);
   });
+  it('a member who can no longer be rescued does not hold the party in combat forever', () => {
+    const s = party([]);
+    const down = partyUnits(s.w)[2]!;
+    down.downed = true;
+    down.hp = 0;
+    down.rescueUsed = true;
+    go(s, SEC * 4);
+    expect(s.w.party.mode).toBe('explore');
+  });
+  it('members break off a fight to stay with a leader who moves away', () => {
+    const s = party([spawn('a', -3, 0, 'g1', 'skeleton_warrior'), spawn('b', -3, 2, 'g1', 'skeleton_warrior'), spawn('c', -3, -2, 'g1', 'skeleton_warrior')]);
+    alertGroup(s.w, 'g1');
+    go(s, SEC);
+    let worst = 0;
+    for (let i = 0; i < SEC * 16; i++) {
+      s.step({ ...idleInput(), move: { x: 1, y: 0 } });
+      const h = heroUnit(s.w).pos;
+      if (i > SEC * 4) for (const u of partyUnits(s.w)) if (!u.downed) worst = Math.max(worst, Math.hypot(u.pos.x - h.x, u.pos.y - h.y));
+    }
+    expect(worst).toBeLessThan(16);
+  });
 });

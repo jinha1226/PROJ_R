@@ -11,7 +11,7 @@ export interface AiState { mode: AiMode; wp: number; home: Vec2; path?: Vec2[]; 
 export interface Group { alerted: boolean; home: Vec2; members: string[]; hunter?: boolean }
 export interface Pile { id: string; pos: Vec2; items: Stack[] }
 export type ChannelKind = 'search' | 'extract' | 'recall' | 'equip';
-export interface Channel { kind: ChannelKind; ticks: number; total: number; target?: string; index?: number; member?: string }
+export interface Channel { kind: ChannelKind; ticks: number; total: number; target?: string; index?: number; member?: string; waiting?: boolean }
 
 export interface WorldEvent { tick: number; type: string; data?: Record<string, unknown> }
 
@@ -45,7 +45,7 @@ export interface PartyState {
   trail: Vec2[];
   dead: string[];
   /** per-follower route state */
-  follow: Record<string, { path?: Vec2[]; repathIn: number; crumb?: Vec2 }>;
+  follow: Record<string, { path?: Vec2[]; repathIn: number; crumb?: Vec2; leashed?: boolean }>;
   /** gear the fallen wore (kept for the record; it lies on their bodies) */
   lost?: Record<string, Loadout>;
   /** how the party got out: an extraction point id, or 'recall' */

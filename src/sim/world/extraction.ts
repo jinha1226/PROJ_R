@@ -59,8 +59,12 @@ export function updateChannel(w: WorldState): void {
   if (!zone && ch?.kind === 'extract') w.hero.channel = undefined;
   const c = w.hero.channel;
   if (!c) return;
-  // carrying someone who is down slows the hold
-  c.ticks += c.kind === 'extract' && partyUnits(w).some((u) => u.downed) ? DOWNED_PACE : 1;
+  if (c.kind === 'extract') {
+    // the hold waits until every member still on their feet is inside; carrying someone who is down slows it
+    const party = partyUnits(w);
+    c.waiting = party.some((u) => !u.downed && !inZone(zone!, u.pos));
+    if (!c.waiting) c.ticks += party.some((u) => u.downed) ? DOWNED_PACE : 1;
+  } else c.ticks++;
   if (c.ticks < c.total) return;
   w.hero.channel = undefined;
   if (c.kind === 'search') finishSearch(w, c.target!);

@@ -67,7 +67,7 @@ export class Hud {
     const ch = w.hero.channel ?? (dr ? { kind: 'drink', ticks: dr.ticks, total: dr.total } : undefined);
     q('.xhud-channel').hidden = !ch;
     if (ch) {
-      q('.xhud-channel span').textContent = CHANNEL_NAME[ch.kind] ?? '';
+      q('.xhud-channel span').textContent = 'waiting' in ch && ch.waiting ? '모두 탈출 지점 안으로 들어와야 한다' : CHANNEL_NAME[ch.kind] ?? '';
       q('.xhud-channel div div').style.width = `${(ch.ticks / ch.total) * 100}%`;
     }
     const prompt = !!nearby && !w.hero.channel;

@@ -10,6 +10,8 @@ import { emitW, heroUnit, setAware } from './worldState';
 
 export const COMBAT_RANGE = 10;
 export const CALM_TICKS = 3 * 20;
+const COMBAT_LEASH = 10;
+const REJOIN = 5;
 const RETREAT_TICKS = 3 * 20;
 const REGROUP_TICKS = 2 * 20;
 const RETREAT_DIST = 8;
@@ -25,7 +27,7 @@ export function updatePartyMode(w: WorldState): void {
   const foes = threats(w);
   const focus = w.b.focusTargetId ? w.b.units.find((u) => u.id === w.b.focusTargetId && u.alive && !u.downed) : undefined;
   if (w.b.focusTargetId && !focus) w.b.focusTargetId = undefined;
-  const hot = !!focus || party.some((p) => p.downed) || foes.some((f) => party.some((p) => !p.downed && d(f.pos, p.pos) <= COMBAT_RANGE));
+  const hot = !!focus || party.some((p) => p.downed && !p.rescueUsed) || foes.some((f) => party.some((p) => !p.downed && d(f.pos, p.pos) <= COMBAT_RANGE));
   if (hot) {
     w.party.calmTicks = 0;
     if (w.party.mode === 'explore') {
@@ -38,9 +40,14 @@ export function updatePartyMode(w: WorldState): void {
     emitW(w, 'calm');
   }
   const commanded = !!w.party.command && w.party.command.until > w.b.tick;
+  const lead = heroUnit(w);
   for (const u of party) {
     if (u.downed) continue;
-    const ai = w.party.mode === 'combat' && !commanded && !(u.id === w.heroId && w.party.leaderSteered);
+    // a member far from the leader breaks off and catches up, and only rejoins the fight once close again
+    const st = (w.party.follow[u.id] ??= { repathIn: 0 });
+    const gap = d(u.pos, lead.pos);
+    if (u.id !== lead.id) st.leashed = gap > COMBAT_LEASH || (!!st.leashed && gap > REJOIN);
+    const ai = w.party.mode === 'combat' && !commanded && !st.leashed && !(u.id === w.heroId && w.party.leaderSteered);
     setAware(u, ai);
     if (ai) u.speedScale = undefined;
   }
@@ -82,10 +89,8 @@ export function steerParty(w: WorldState): void {
   const cmd = w.party.command;
   const active = cmd && cmd.until > w.b.tick;
   if (cmd && !active) w.party.command = undefined;
-  if (!active) {
-    if (w.party.mode === 'explore') updateFollow(w);
-    return;
-  }
+  // followers under world control (exploring, or broken off from a fight) walk with the leader
+  if (!active) return updateFollow(w);
   const lead = heroUnit(w);
   const members = partyUnits(w).filter((u) => !u.downed);
   if (cmd.kind === 'regroup') return updateFollow(w, members);
