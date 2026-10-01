@@ -1,0 +1,22 @@
+export const TICK_RATE = 20;
+export const DT = 1 / TICK_RATE;
+export const DECISION_INTERVAL = 5;
+export const ARENA = { minX: -12, maxX: 12, minY: -7, maxY: 7 } as const;
+export const UNIT_RADIUS = 0.45;
+export const SEPARATION_RADIUS = 0.9;
+export const MELEE_ENGAGE = 1.2;
+export const DISENGAGE_DIST = 1.6;
+export const PROXIMITY = 4;
+export const RESCUE_RANGE = 1.0;
+export const RESCUE_TICKS = 40;
+export const RESCUE_HP = 0.25;
+export const LIFELINE_PCT = 0.5;
+export const BERSERK_TICK = 90 * TICK_RATE;
+export const BERSERK_STEP_TICKS = 10 * TICK_RATE;
+export const MAX_TICKS = 300 * TICK_RATE;
+export const MOMENTUM_MAX = 100;
+export const DODGE_CAP = 0.5;
+export const CRIT_MULT = 1.5;
+/** Enemy maxHp/atk scale: base × (1 + STAGE_SCALE × (stage - 1)). */
+export const STAGE_SCALE = 0.08;
+export const secToTicks = (s: number): number => Math.max(1, Math.round(s * TICK_RATE));
