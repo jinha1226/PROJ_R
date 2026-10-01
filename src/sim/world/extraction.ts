@@ -5,6 +5,8 @@ import { emitW, heroUnit } from './worldState';
 import { finishEquip, finishSearch } from './interact';
 
 const EXTRACT_TICKS = 8 * 20;
+/** getting out alive is worth experience */
+const EXTRACT_XP = 30;
 const POISON_EVERY = 20;
 const POISON_FRAC = 0.03;
 
@@ -47,6 +49,7 @@ export function updateChannel(w: WorldState): void {
     w.hero.lastHp = h.hp;
   } else if (c.kind === 'recall' || c.kind === 'extract') {
     w.outcome = 'extracted';
+    w.xp += EXTRACT_XP;
     emitW(w, 'extracted', { via: c.kind });
   }
 }

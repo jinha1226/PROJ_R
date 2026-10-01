@@ -88,6 +88,7 @@ describe('world sim: extraction, clock, hazards, death', () => {
     expect(sim.w.hero.channel!.ticks).toBeLessThanOrEqual(1);
     run(sim, SEC * 8 + 2);
     expect(sim.w.outcome).toBe('extracted');
+    expect(sim.w.xp).toBeGreaterThan(0); // getting out alive is worth experience too
   });
 
   it('a closed extraction point no longer works', () => {

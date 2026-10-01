@@ -39,6 +39,20 @@ describe('unit pool', () => {
     expect(made()).toBe(2);
   });
 
+  it('throws away actors that cannot be reused (a corpse) instead of pooling them', () => {
+    const dropped: Fake[] = [];
+    const pool = new UnitPool<{ id: string; kind: string }, Fake>({
+      keyOf: (s) => s.kind, create: (s) => ({ key: s.kind, n: 1, shown: true }), show: () => {}, hide: () => {},
+      reusable: (a) => a.n !== 99, drop: (a) => dropped.push(a),
+    });
+    pool.sync([{ id: 'a', kind: 'skel' }]);
+    pool.get('a')!.n = 99;
+    pool.sync([]);
+    expect(dropped.length).toBe(1);
+    pool.sync([{ id: 'b', kind: 'skel' }]);
+    expect(pool.get('b')!.n).toBe(1);
+  });
+
   it('lists every live actor', () => {
     const { pool } = make();
     pool.sync([{ id: 'a', kind: 'skel' }, { id: 'b', kind: 'skel' }]);

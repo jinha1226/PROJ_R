@@ -4,6 +4,9 @@ export interface PoolOps<S, A> {
   create(setup: S): A;
   show(a: A, setup: S): void;
   hide(a: A): void;
+  /** false → the actor is dropped instead of pooled (e.g. a dead body) */
+  reusable?(a: A): boolean;
+  drop?(a: A): void;
 }
 
 /** Actors only for units near the hero; released actors are kept per kind and reused. */
@@ -28,9 +31,12 @@ export class UnitPool<S extends { id: string }, A> {
     for (const [id, v] of this.inUse) {
       if (want.has(id)) continue;
       this.ops.hide(v.a);
-      const list = this.spare.get(v.key) ?? [];
-      list.push(v.a);
-      this.spare.set(v.key, list);
+      if (this.ops.reusable && !this.ops.reusable(v.a)) this.ops.drop?.(v.a);
+      else {
+        const list = this.spare.get(v.key) ?? [];
+        list.push(v.a);
+        this.spare.set(v.key, list);
+      }
       this.inUse.delete(id);
       removed.push(id);
     }
@@ -44,6 +50,11 @@ export class UnitPool<S extends { id: string }, A> {
       added.push(s.id);
     }
     return { added, removed };
+  }
+
+  /** Swaps the live actor of a unit (e.g. the hero after a gear change). */
+  replace(id: string, a: A, key: string): void {
+    this.inUse.set(id, { a, key });
   }
 
   /** Every actor ever built (live or spare), for disposal. */

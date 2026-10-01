@@ -11,6 +11,7 @@ import { CompanyFlow } from './companyFlow';
 import { showFatal } from './fatal';
 import { Router } from './router';
 import { WeekFlow } from './weekFlow';
+import { ExtractFlow } from './extractFlow';
 import { clearRun, loadHall, loadRun } from './save';
 
 const root = document.getElementById('app')!;
@@ -36,6 +37,7 @@ function title(): void {
     },
     hall: () => router.go(new HallScreen(loadHall(), title)),
     sandbox,
+    extract: () => new ExtractFlow(router, root, title).start(urlSeed || Math.floor(Math.random() * 99999) + 1),
   }, urlSeed || Math.floor(Math.random() * 99999) + 1));
 }
 

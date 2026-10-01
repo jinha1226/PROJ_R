@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  newProfile, claimStarterKit, canSortie, settleSortie, sell, buy, stashToLoadout, loadoutToStash, STASH_SLOTS, MERCHANT_STOCK,
+  newProfile, claimStarterKit, reconcileWeapon, canSortie, settleSortie, sell, buy, stashToLoadout, loadoutToStash, STASH_SLOTS, MERCHANT_STOCK,
 } from '../../src/sim/extract/profile';
 import { saveProfile, loadProfile, clearProfile } from '../../src/app/extractSave';
 import type { KV } from '../../src/app/save';
@@ -83,6 +83,15 @@ describe('extraction profile', () => {
     p = loadoutToStash(p, 'bag', 0);
     p = loadoutToStash(p, 'head', 0);
     expect(p.stash.map((s) => s.id).sort()).toEqual(['x_crown', 'x_head_1']);
+  });
+
+  it('after promotion an unusable weapon goes to the stash and the class starter weapon is worn', () => {
+    const p = newProfile(3);
+    const mage = { ...p, hero: { ...p.hero, classId: 'mage' as const }, loadout: { ...p.loadout, equipped: { ...p.loadout.equipped, weapon: 'x_sword_shield_2' } } };
+    const q = reconcileWeapon(mage);
+    expect(q.loadout.equipped.weapon).toBe('x_staff_0');
+    expect(q.stash).toEqual([{ id: 'x_sword_shield_2', n: 1 }]);
+    expect(reconcileWeapon(p)).toEqual(p);
   });
 
   it('saves and loads, rejecting broken saves', () => {

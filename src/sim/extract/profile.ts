@@ -26,6 +26,15 @@ export function claimStarterKit(p: XProfile): XProfile {
   return { ...p, loadout: { ...p.loadout, equipped: eq } };
 }
 
+/** A promotion can change the weapon family: an unusable weapon moves to the stash and the class starter weapon is worn. */
+export function reconcileWeapon(p: XProfile): XProfile {
+  const want = WEAPON_TYPE_OF_CLASS[p.hero.classId];
+  const w = p.loadout.equipped.weapon;
+  if (w && xitem(w).weaponType === want) return p;
+  const next = { ...p, loadout: { ...p.loadout, equipped: { ...p.loadout.equipped, weapon: STARTER_KIT.weapon[want] } } };
+  return w && xitem(w).tier > 0 ? bank(next, [{ id: w, n: 1 }]) : next;
+}
+
 export function canSortie(p: XProfile): { ok: boolean; reason?: string } {
   return p.stash.length > STASH_SLOTS ? { ok: false, reason: 'stashFull' } : { ok: true };
 }
