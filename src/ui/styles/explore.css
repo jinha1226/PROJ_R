@@ -1,0 +1,11 @@
+.screen.explore { background: #111; }
+.explore-stage { position: absolute; inset: 0; }
+.explore-hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; pointer-events: none; }
+.explore-hud .btn { pointer-events: auto; margin-left: auto; }
+.ex-title { background: #1b1a1fd0; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+.ex-help { background: #1b1a1fb0; border-radius: 6px; padding: 4px 8px; font-size: 12px; }
+.minimap { display: grid; grid-template-columns: repeat(4, 22px); grid-template-rows: repeat(3, 22px); gap: 3px; background: #1b1a1fd0; padding: 6px; border-radius: 8px; border: 1px solid var(--line); }
+.mm { border-radius: 4px; display: grid; place-items: center; }
+.mm.hidden { background: transparent; } .mm.seen { background: #ffffff14; } .mm.done { background: #ffffff30; }
+.mm.here { background: #e0a64a; box-shadow: 0 0 6px #e0a64a; }
+.explore-prompt { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); background: #1b1a1fe6; border: 1px solid var(--accent); border-radius: 10px; padding: 8px 14px; display: flex; gap: 8px; align-items: center; font-size: 15px; }

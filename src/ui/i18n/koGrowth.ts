@@ -39,6 +39,9 @@ export const KO_GROWTH = {
     guardian: '엄호·호위 중 방어 +15%', undying: '생명선 +25%', giantSlayer: '보스·정예에게 피해 +10%',
     hundredCuts: '처치할 때 기세 +10', shadow: '회피 +5%', healingHand: '치유량 +10%',
   } as Record<string, string>,
+  explore: {
+    act: { chest: '보물상자 열기', event: '살펴보기', campfire: '모닥불에서 쉬기', exit: '출구로 나가기' },
+  } as { act: Record<string, string> },
   role: { vanguard: '선봉', striker: '공격수', skirmisher: '유격', ranged: '원거리', caster: '술사', support: '지원' } as Record<string, string>,
   rank: { rookie: '신입', skilled: '숙련', veteran: '베테랑', hero: '영웅' } as Record<string, string>,
   chronicle: {

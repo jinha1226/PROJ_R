@@ -61,6 +61,7 @@ export const KO = {
   titleDesc: KO_GROWTH.titleDesc,
   rank: KO_GROWTH.rank,
   role: KO_GROWTH.role,
+  explore: KO_GROWTH.explore,
   chronicle: KO_GROWTH.chronicle,
   event: KO_EVENTS,
   reason: {

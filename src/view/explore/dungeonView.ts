@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import type { Dir, Exploration, Room } from '../../sim/explore/types';
+import { ROOM_PITCH } from '../../sim/explore/space';
+export { ROOM_PITCH };
 import type { EnvLibrary } from './envAssets';
 import { buildRoom } from './roomMesh';
 import { THEME_KITS } from './themeKit';
 
-export const ROOM_PITCH = { x: 30, z: 20 } as const;
 const DOOR_OFFSET: Record<Dir, [number, number]> = { n: [0, -7], s: [0, 7], e: [12, 0], w: [-12, 0] };
 
 export const roomOrigin = (r: Room): { x: number; z: number } => ({ x: r.gx * ROOM_PITCH.x, z: r.gy * ROOM_PITCH.z });
