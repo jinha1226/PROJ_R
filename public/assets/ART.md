@@ -16,6 +16,8 @@
   - 라이선스: `models/ual/LICENSE.txt`, `models/ual/LICENSE-UAL2.txt`
 - **Medieval Weapons Pack (Sept 2018)** — Quaternius, CC0 1.0 (OpenGameArt `lowpoly-medieval-weapons`)
   - `models/qpack/weapons.glb`: FBX 18종을 Blender 4.0으로 무기마다 메시 하나로 합쳐 GLB 하나로 묶음
+- **LowPoly Modular Dungeon Pack (May 2019)** — Quaternius, CC0 1.0 (OpenGameArt `lowpoly-modular-dungeon-pack`)
+  - `models/qpack/dungeon.glb`: FBX 30종(벽·바닥·기둥·아치 문·상자·통·횃불·깃발·거미줄·해골·계단·함정 등)을 조각마다 메시 하나로 합쳐 GLB 하나로 묶음
 - 라이선스 사본: `models/qpack/LICENSE.txt`
 
 ## 가공 내용

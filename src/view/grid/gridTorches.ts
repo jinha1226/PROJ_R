@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { idx, type GridMap, type GridState } from '../../sim/grid/types';
-import type { EnvLibrary } from '../explore/envAssets';
+import type { DungeonKit } from './dungeonKit';
 import { torchSpots, type WallFace } from './gridLayout';
 import { CELL, toWorld, yawFor } from './gridTerrain';
 
@@ -16,11 +16,11 @@ export class GridTorches {
   private readonly lights: THREE.PointLight[] = [];
   private t = 0;
 
-  constructor(m: GridMap, env: EnvLibrary, lightCount: number) {
+  constructor(m: GridMap, kit: DungeonKit, lightCount: number) {
     const flameGeo = new THREE.SphereGeometry(0.07, 8, 6);
     torchSpots(m).forEach((face, n) => {
       const base = toWorld(face.wall.x + face.dir.x * 0.5, face.wall.y + face.dir.y * 0.5);
-      const model = env.clone('dungeon/torch', { height: 0.55 });
+      const model = kit.clone('Torch', { height: 0.5 });
       model.position.set(base.x, TORCH_Y - 0.25, base.z);
       model.rotation.y = yawFor(face.dir);
       const flame = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));

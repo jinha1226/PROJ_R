@@ -4,7 +4,7 @@ import { archerCanShoot } from '../../sim/grid/ai';
 import { activeWeapon } from '../../sim/grid/gear';
 import { idx, type Cell, type GEvent } from '../../sim/grid/types';
 import type { UalLibrary } from './ualActor';
-import type { EnvLibrary } from '../explore/envAssets';
+import type { DungeonKit } from './dungeonKit';
 import { createScene, type SceneHandle } from '../scene/renderer';
 import { chase } from './chase';
 import { GridActors } from './gridActors';
@@ -40,7 +40,7 @@ export class GridRuntime {
   private height = 18;
   private clock = 0;
 
-  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, lib: UalLibrary, env: EnvLibrary, mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
+  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, lib: UalLibrary, kit: DungeonKit, mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     const scene = this.h.scene;
@@ -51,9 +51,9 @@ export class GridRuntime {
     sun.position.set(-10, 30, 14);
     scene.add(hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer);
-    this.terrain = new GridTerrain(sim.s.map, env);
+    this.terrain = new GridTerrain(sim.s.map, kit);
     this.actors = new GridActors(lib);
-    this.torches = new GridTorches(sim.s.map, env, mobile ? 3 : 6);
+    this.torches = new GridTorches(sim.s.map, kit, mobile ? 3 : 6);
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root);
     this.fx = new GridFx(scene, el, (p) => this.project(p));
     this.actors.sync(sim.s);

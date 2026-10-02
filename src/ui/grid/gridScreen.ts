@@ -10,7 +10,7 @@ import type { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
 import { dist, idx, same, tileAt, walkable, type Cell, type GAction } from '../../sim/grid/types';
 import type { UalLibrary } from '../../view/grid/ualActor';
-import type { EnvLibrary } from '../../view/explore/envAssets';
+import type { DungeonKit } from '../../view/grid/dungeonKit';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { watchLayout } from '../extract/orientation';
 import { isTouchDevice } from '../extract/touchControls';
@@ -21,7 +21,7 @@ import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import '../styles/grid.css';
 
-export interface GridApi { sim: GridSim; lib: UalLibrary; env: EnvLibrary; end(): void; fatal(e: unknown): void }
+export interface GridApi { sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; fatal(e: unknown): void }
 
 const WALK_EVERY = 0.14;
 const PIXEL_KEY = 'projr.grid.pixel';
@@ -66,7 +66,7 @@ export class GridScreen implements Screen {
     const stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     const mobile = isTouchDevice();
     try {
-      this.rt = new GridRuntime(stage, this.api.sim, this.api.lib, this.api.env, mobile, (e) => this.hud.cue(e));
+      this.rt = new GridRuntime(stage, this.api.sim, this.api.lib, this.api.kit, mobile, (e) => this.hud.cue(e));
     } catch (e) {
       return this.api.fatal(e);
     }
