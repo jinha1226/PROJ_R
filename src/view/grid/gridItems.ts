@@ -20,6 +20,9 @@ export class GridItems {
         const model = it.kind === 'weapon' ? weaponMesh(it.group) : new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), new THREE.MeshStandardMaterial({ color: '#8a8a92', metalness: 0.5 }));
         model.rotation.set(0, 0, Math.PI / 2);
         model.position.y = 0.08;
+        // fit within one cell (a spear lying down is otherwise longer than a tile)
+        const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+        model.scale.multiplyScalar(Math.min(1, 0.8 / Math.max(size.x, size.z, 0.01)));
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.36, 24), new THREE.MeshBasicMaterial({ color: '#ffd76a', transparent: true, opacity: 0.55, depthWrite: false }));
         ring.rotation.x = -Math.PI / 2;
         ring.position.y = 0.02;

@@ -15,6 +15,10 @@
   - 라이선스: CC0 1.0 (`models/ual/LICENSE.txt`)
   - `models/ual/ual.glb`: Godot용 GLB에서 격자 출격이 쓰는 18개 클립만 남김(Blender 4.0 재내보내기, 마네킹 메시·리그 유지)
 
+- **Medieval Weapons Pack (Sept 2018)** — Quaternius, CC0 1.0 (OpenGameArt `lowpoly-medieval-weapons`)
+  - `models/qpack/weapons.glb`: FBX 18종을 Blender 4.0으로 무기마다 메시 하나로 합쳐 GLB 하나로 묶음
+- 라이선스 사본: `models/qpack/LICENSE.txt`
+
 ## 가공 내용
 
 `npm run assets`(`scripts/prepare-assets.mjs`)가 원본을 내려받아 다음과 같이 가공합니다.

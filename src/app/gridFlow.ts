@@ -3,12 +3,15 @@ import { GridResult } from '../ui/grid/gridResult';
 import { GridScreen } from '../ui/grid/gridScreen';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
 import { UalLibrary } from '../view/grid/ualActor';
+import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
 import { getGridEnv } from './envCache';
 import { showFatal } from './fatal';
 import type { Router } from './router';
 
 const KEY = 'projr.grid.v1';
 let ual: Promise<UalLibrary> | null = null;
+let weaponsP: Promise<WeaponKit> | null = null;
+const getWeapons = (): Promise<WeaponKit> => (weaponsP ??= WeaponKit.load(import.meta.env.BASE_URL).catch((e: unknown) => { weaponsP = null; throw e; }));
 const getUal = (): Promise<UalLibrary> => (ual ??= UalLibrary.load(import.meta.env.BASE_URL).catch((e: unknown) => { ual = null; throw e; }));
 
 function loadGold(): number {
@@ -35,7 +38,8 @@ export class GridFlow {
   async start(seed: number): Promise<void> {
     this.router.go(new LoadingScreen());
     try {
-      const [lib, env] = await Promise.all([getUal(), getGridEnv()]);
+      const [lib, env, weapons] = await Promise.all([getUal(), getGridEnv(), getWeapons()]);
+      setWeaponKit(weapons);
       const sim = GridSim.create(seed);
       this.router.go(new GridScreen({ sim, lib, env, end: () => this.result(sim, seed), fatal: (e) => showFatal(this.root, e) }));
     } catch (e) {
