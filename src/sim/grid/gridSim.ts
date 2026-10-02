@@ -1,4 +1,5 @@
 import { autoTarget, heroAct } from './actions';
+import { noise, updateAwareness, updateDanger, updateExtraction } from './danger';
 import { runUntilHero } from './clock';
 import { hitChance } from './combat';
 import { generateMap } from './mapgen';
@@ -21,13 +22,24 @@ export class GridSim {
     const s = this.s;
     if (s.outcome) return [];
     s.events = [];
-    // foes hearing shots arrive with the AI task
-    const cost = heroAct(s, a, () => undefined);
+    const cost = heroAct(s, a, (at, r) => noise(s, at, r));
     if (cost === null) return [{ t: s.hero.nextAt, type: 'blocked', src: s.hero.id }];
     s.hero.nextAt += cost;
+    refreshSight(s);
+    updateAwareness(s);
     runUntilHero(s);
     s.time = s.hero.nextAt;
+    if (!s.hero.alive) {
+      s.outcome = 'dead';
+      s.hero.value = 0;
+      s.hero.loot = [];
+      s.events.push({ t: s.time, type: 'dead', src: s.hero.id });
+      return s.events;
+    }
     refreshSight(s);
+    updateAwareness(s);
+    updateExtraction(s, cost);
+    if (!s.outcome) updateDanger(s);
     return s.events;
   }
 
