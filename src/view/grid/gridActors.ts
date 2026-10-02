@@ -3,7 +3,7 @@ import type { ModelId, GearVisual } from '../../data/types';
 import type { Ent, GridState } from '../../sim/grid/types';
 import { Actor, type ActorSpec } from '../actors/actor';
 import type { AssetLibrary } from '../actors/assets';
-import { chase } from './chase';
+import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
 
 const LOOK: Record<Ent['kind'], { model: ModelId; gear: GearVisual; scale?: number; color: string }> = {
@@ -24,6 +24,10 @@ interface View {
   tx: number;
   tz: number;
   facing: number;
+  /** drawn yaw, easing toward `facing` */
+  yaw: number;
+  /** keeps the run cycle going briefly between steps so a held walk never flickers to idle */
+  runHold: number;
   /** a short offset (lunge toward a target, recoil, shove), decaying over `offT` */
   ox: number;
   oz: number;
@@ -49,7 +53,7 @@ export class GridActors {
       const z = e.pos.y * CELL;
       actor.root.position.set(x, 0, z);
       this.root.add(actor.root);
-      this.views.set(e.id, { actor, x, z, tx: x, tz: z, facing: Math.PI / 2, ox: 0, oz: 0, offT: 0, dead: !e.alive });
+      this.views.set(e.id, { actor, x, z, tx: x, tz: z, facing: Math.PI / 2, yaw: Math.PI / 2, runHold: 0, ox: 0, oz: 0, offT: 0, dead: !e.alive });
       if (!e.alive) actor.setDead();
     }
   }
@@ -131,15 +135,19 @@ export class GridActors {
       const step = frozen ? 0 : dt;
       const px = v.x;
       const pz = v.z;
-      v.x = chase(v.x, v.tx, step);
-      v.z = chase(v.z, v.tz, step);
+      const g = glide({ x: v.x / CELL, z: v.z / CELL }, { x: v.tx / CELL, z: v.tz / CELL }, step);
+      v.x = g.x * CELL;
+      v.z = g.z * CELL;
+      const moved = Math.hypot(v.x - px, v.z - pz);
+      v.runHold = moved > 1e-4 ? 0.16 : Math.max(0, v.runHold - step);
+      v.yaw = turnToward(v.yaw, v.facing, step);
       if (v.offT > 0) {
         v.offT -= step;
         const k = Math.max(0, v.offT / LUNGE_SEC);
         v.actor.root.position.set(v.x + v.ox * k, 0, v.z + v.oz * k);
       } else v.actor.root.position.set(v.x, 0, v.z);
-      v.actor.root.rotation.y = Math.PI / 2 - v.facing;
-      if (!v.dead) v.actor.setLocomotion(step > 0 ? Math.hypot(v.x - px, v.z - pz) / step : 0);
+      v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
+      if (!v.dead) v.actor.setLocomotion(v.runHold > 0 ? 1 : 0);
       v.actor.update(step);
     }
   }

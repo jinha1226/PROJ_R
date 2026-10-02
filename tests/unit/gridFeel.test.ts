@@ -98,3 +98,29 @@ describe('what interrupts movement', () => {
     expect(interruption(false, false)).toEqual({ walk: false, hold: false });
   });
 });
+
+describe('smooth stepping', () => {
+  it('a held walk glides at a steady speed: one cell per step interval, halfway at half time', async () => {
+    const { glide, WALK_SPEED } = await import('../../src/view/grid/chase');
+    expect(WALK_SPEED).toBeCloseTo(1 / 0.14, 1);
+    const half = glide({ x: 0, z: 0 }, { x: 1, z: 0 }, 0.07);
+    expect(half.x).toBeCloseTo(0.5, 1);
+    const end = glide({ x: 0, z: 0 }, { x: 1, z: 0 }, 0.2);
+    expect(end.x).toBe(1);
+  });
+
+  it('a model that fell behind catches up quickly instead of lagging', async () => {
+    const { glide } = await import('../../src/view/grid/chase');
+    const p = glide({ x: 0, z: 0 }, { x: 4, z: 0 }, 0.1);
+    expect(p.x).toBeGreaterThan(2);
+    expect(p.x).toBeLessThanOrEqual(4);
+  });
+
+  it('turning eases the facing over a few frames instead of snapping', async () => {
+    const { turnToward } = await import('../../src/view/grid/chase');
+    const a = turnToward(0, Math.PI / 2, 0.016);
+    expect(a).toBeGreaterThan(0);
+    expect(a).toBeLessThan(Math.PI / 2);
+    expect(turnToward(3, -3, 0.016)).toBeGreaterThan(3);
+  });
+});
