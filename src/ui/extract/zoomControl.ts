@@ -1,22 +1,25 @@
 import { clampZoom, loadZoom, pinchHeight, saveZoom, wheelHeight, type ZoomByLayout } from '../../app/input/zoom';
-import type { IsoCamera } from '../../view/explore/exploreCamera';
 import type { Layout } from './orientation';
 
 const STEP = 1.25;
 /** a second finger this soon after the first one landed on the stick pad means a pinch, not steering */
 const PINCH_GRACE_MS = 250;
 type Pt = { x: number; y: number };
+/** Anything with a view height (the sortie's IsoCamera, the grid runtime). */
+export interface Zoomable { setHeight(h: number): void }
+export interface ZoomOpts { key?: string; defaults?: ZoomByLayout; pad?: string; stage?: string }
 const gap = (a: Pt, b: Pt): number => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** Zoom for the sortie camera: +/− buttons, mouse wheel and a two-finger pinch on open ground; remembered per orientation. */
 export class ZoomControl {
   readonly el = document.createElement('div');
-  private readonly z: ZoomByLayout = loadZoom();
+  private readonly z: ZoomByLayout;
   private layout: Layout = 'landscape';
   private readonly touches = new Map<number, Pt & { pad: boolean; at: number }>();
   private pinch: { d0: number; h0: number } | null = null;
 
-  constructor(private readonly cam: IsoCamera, private readonly stage: HTMLElement, private readonly onPinch: () => void = () => undefined) {
+  constructor(private readonly cam: Zoomable, private readonly stage: HTMLElement, private readonly onPinch: () => void = () => undefined, private readonly opts: ZoomOpts = {}) {
+    this.z = loadZoom(undefined, opts.key, opts.defaults);
     this.el.className = 'xzoom';
     this.el.innerHTML = '<button class="btn" data-z="in" data-testid="zoom-in">＋</button><button class="btn" data-z="out" data-testid="zoom-out">−</button>';
     this.el.addEventListener('click', (e) => {
@@ -43,7 +46,7 @@ export class ZoomControl {
   private set(h: number, save = true): void {
     this.z[this.layout] = clampZoom(h);
     this.cam.setHeight(this.height);
-    if (save) saveZoom(this.z);
+    if (save) saveZoom(this.z, undefined, this.opts.key);
   }
 
   private readonly onWheel = (e: WheelEvent): void => {
@@ -55,9 +58,10 @@ export class ZoomControl {
   private readonly onDown = (e: PointerEvent): void => {
     if (e.pointerType !== 'touch') return;
     const t = e.target as Element | null;
-    if (!t?.closest?.('.tc-pad, .sortie-stage')) return;
+    const pad = this.opts.pad ?? '.tc-pad';
+    if (!t?.closest?.(`${pad}, ${this.opts.stage ?? '.sortie-stage'}`)) return;
     const now = performance.now();
-    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY, pad: !!t.closest('.tc-pad'), at: now });
+    this.touches.set(e.pointerId, { x: e.clientX, y: e.clientY, pad: !!t.closest(pad), at: now });
     const [a, b] = [...this.touches.values()];
     if (!a || !b || this.touches.size !== 2) return;
     const first = a.at <= b.at ? a : b;
@@ -80,7 +84,7 @@ export class ZoomControl {
     this.touches.delete(e.pointerId);
     if (this.touches.size < 2 && this.pinch) {
       this.pinch = null;
-      saveZoom(this.z);
+      saveZoom(this.z, undefined, this.opts.key);
     }
   };
 

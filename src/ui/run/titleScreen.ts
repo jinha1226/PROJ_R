@@ -8,6 +8,7 @@ export interface TitleApi {
   hall(): void;
   sandbox(): void;
   extract(): void;
+  grid(): void;
 }
 
 export class TitleScreen implements Screen {
@@ -25,6 +26,7 @@ export class TitleScreen implements Screen {
         <label>시드 <input type="number" data-testid="run-seed" value="${this.defaultSeed}" /></label></div>
       <button class="btn" data-act="hall" data-testid="hall">명예의 전당</button>
       <button class="btn primary" data-act="extract" data-testid="to-extract">출격 (시험)</button>
+      <button class="btn primary" data-act="grid" data-testid="to-grid">격자 출격 (시험)</button>
       <button class="btn" data-act="sandbox" data-testid="to-sandbox">전투 샌드박스</button></div>`;
     this.el.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;
@@ -34,6 +36,7 @@ export class TitleScreen implements Screen {
       else if (act === 'hall') this.api.hall();
       else if (act === 'sandbox') this.api.sandbox();
       else if (act === 'extract') this.api.extract();
+      else if (act === 'grid') this.api.grid();
     });
     root.appendChild(this.el);
   }

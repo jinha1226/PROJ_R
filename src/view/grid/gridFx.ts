@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TransientFx } from '../fx/transientFx';
 import { DamageNumbers, type NumberKind } from '../overlay/damageNumbers';
+import '../overlay/overlay.css';
 import { CELL } from './gridTerrain';
 
 const BOLT_SPEED = 4 / 0.08;   // cells per second

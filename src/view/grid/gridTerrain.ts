@@ -3,8 +3,8 @@ import { idx, type GridMap, type GridState } from '../../sim/grid/types';
 import type { EnvLibrary } from '../explore/envAssets';
 
 /** Metres per grid cell. */
-export const CELL = 1.4;
-const WALL_H = 2.2;
+export const CELL = 1.0;
+const WALL_H = 1.5;
 const FLOOR = new THREE.Color('#4a4640');
 const FLOOR_B = new THREE.Color('#423e39');
 const WALL = new THREE.Color('#6b645a');

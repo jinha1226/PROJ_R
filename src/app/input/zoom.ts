@@ -22,19 +22,19 @@ type Store = Pick<Storage, 'getItem' | 'setItem'>;
 const local = (): Store | null => (typeof localStorage === 'undefined' ? null : localStorage);
 
 /** The zoom remembered for each orientation (defaults when nothing usable is stored or storage is blocked). */
-export function loadZoom(store: Store | null = local()): ZoomByLayout {
+export function loadZoom(store: Store | null = local(), key = KEY, defaults: ZoomByLayout = ZOOM_DEFAULT): ZoomByLayout {
   try {
-    const v = JSON.parse(store?.getItem(KEY) ?? 'null') as Partial<ZoomByLayout> | null;
-    if (!v || typeof v.portrait !== 'number' || typeof v.landscape !== 'number') return { ...ZOOM_DEFAULT };
+    const v = JSON.parse(store?.getItem(key) ?? 'null') as Partial<ZoomByLayout> | null;
+    if (!v || typeof v.portrait !== 'number' || typeof v.landscape !== 'number') return { ...defaults };
     return { portrait: clampZoom(v.portrait), landscape: clampZoom(v.landscape) };
   } catch {
-    return { ...ZOOM_DEFAULT };
+    return { ...defaults };
   }
 }
 
-export function saveZoom(z: ZoomByLayout, store: Store | null = local()): void {
+export function saveZoom(z: ZoomByLayout, store: Store | null = local(), key = KEY): void {
   try {
-    store?.setItem(KEY, JSON.stringify(z));
+    store?.setItem(key, JSON.stringify(z));
   } catch {
     /* storage blocked: the zoom just isn't remembered */
   }

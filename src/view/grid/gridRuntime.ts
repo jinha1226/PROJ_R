@@ -22,10 +22,10 @@ export class GridRuntime {
   private readonly actors: GridActors;
   private readonly fx: GridFx;
   private readonly playback = new Playback();
-  private readonly light = new THREE.PointLight('#ffcf8a', 40, 14, 1.6);
+  private readonly light = new THREE.PointLight('#ffcf8a', 30, 11, 1.6);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
-  private height = 13;
+  private height = 18;
   private clock = 0;
 
   constructor(private readonly el: HTMLElement, private readonly sim: GridSim, lib: AssetLibrary, env: EnvLibrary, mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
