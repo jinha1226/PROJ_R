@@ -55,7 +55,7 @@ const ELEMENTS: Element[] = ['fire', 'frost', 'shock', 'poison'];
 const TIER2 = [0.1, 0.35, 0.6];
 
 export function makeWeapon(group: WeaponGroup, tier: 1 | 2, element?: Element): Weapon {
-  const w: Weapon = { kind: 'weapon', group, tier, name: NAMES[group][tier - 1] };
+  const w: Weapon = { kind: 'weapon', group, tier, name: NAMES[group][tier - 1]! };
   if (group === 'bow' || group === 'crossbow') w.loaded = true;
   if (group === 'staff') { w.element = element ?? 'fire'; w.charges = STAFF_CHARGES; w.name = `${STAFF_NAME[w.element]} ${w.name}`; }
   if (group === 'throwing') w.stack = THROW_STACK;
