@@ -61,6 +61,11 @@ export class GridParticles {
   }
 
   /** Keeps the dust box around the camera focus. */
+  /** Dust reads as noise once pixelated: it can be switched off. */
+  set dustOn(on: boolean) {
+    this.dust.visible = on;
+  }
+
   update(dt: number, focus: THREE.Vector3): void {
     let n = 0;
     for (const b of this.bits) {

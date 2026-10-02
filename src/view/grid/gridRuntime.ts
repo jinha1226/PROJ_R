@@ -12,6 +12,7 @@ import { GridParticles } from './gridParticles';
 import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
+import { PixelPass } from './pixelPass';
 
 const ELEVATION = (60 * Math.PI) / 180;
 const CAM_DIST = 40;
@@ -26,6 +27,9 @@ export class GridRuntime {
   private readonly torches: GridTorches;
   private readonly particles = new GridParticles();
   private punch = 0;
+  private readonly pixel: PixelPass;
+  /** rough pixel look on/off */
+  pixelated = true;
   private readonly playback = new Playback();
   private readonly light = new THREE.PointLight('#ffd9a0', 10, 8, 1.5);
   private readonly center = new THREE.Vector3();
@@ -43,6 +47,7 @@ export class GridRuntime {
     const sun = new THREE.DirectionalLight('#c8d0ff', 0.45);
     sun.position.set(-10, 30, 14);
     scene.add(hemi, sun, this.light);
+    this.pixel = new PixelPass(this.h.renderer);
     this.terrain = new GridTerrain(sim.s.map, env);
     this.actors = new GridActors(lib);
     this.torches = new GridTorches(sim.s.map, env, mobile ? 3 : 6);
@@ -159,7 +164,9 @@ export class GridRuntime {
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? new THREE.Vector3() })));
-    this.h.renderer.render(this.h.scene, this.h.camera);
+    this.particles.dustOn = !this.pixelated;
+    if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
+    else this.h.renderer.render(this.h.scene, this.h.camera);
   }
 
   private placeCamera(): void {
@@ -200,6 +207,7 @@ export class GridRuntime {
     this.fx.dispose();
     this.torches.dispose();
     this.particles.dispose();
+    this.pixel.dispose();
     this.terrain.dispose();
     this.h.dispose();
   }

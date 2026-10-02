@@ -58,6 +58,7 @@ export class UalActor {
   private current: THREE.AnimationAction | null = null;
   private loop: 'idle' | 'run' = 'idle';
   private busy = false;
+  private busyKind: UalAnim | null = null;
   private dead = false;
   private flashLeft = 0;
   private flashTotal = 1;
@@ -89,7 +90,13 @@ export class UalActor {
     }
     this.root.add(model);
     this.mixer = new THREE.AnimationMixer(model);
-    this.mixer.addEventListener('finished', () => { this.busy = false; if (!this.dead) this.start(this.loop === 'run' ? CLIP.run : this.look.idle, true, 1, 0.12); });
+    // only the action now playing may hand back to the loop (an interrupted one finishing late must not cut the new one)
+    this.mixer.addEventListener('finished', (e) => {
+      if ((e as unknown as { action: THREE.AnimationAction }).action !== this.current) return;
+      this.busy = false;
+      this.busyKind = null;
+      if (!this.dead) this.start(this.loop === 'run' ? CLIP.run : this.look.idle, true, 1, 0.12);
+    });
     this.start(look.idle, true, 1, 0);
   }
 
@@ -108,9 +115,12 @@ export class UalActor {
 
   play(anim: UalAnim, speed = 1.4): void {
     if (this.dead) return;
+    // a flinch never cuts off a swing or a shot already under way (the flash still shows the hit)
+    if (anim === 'hit' && this.busyKind && this.busyKind !== 'hit') return;
     const name = anim === 'hit' ? (Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head') : anim === 'idle' ? this.look.idle : CLIP[anim];
     const loop = anim === 'idle' || anim === 'run';
     this.busy = !loop;
+    this.busyKind = loop ? null : anim;
     this.start(name, loop, speed, 0.06);
   }
 

@@ -19,6 +19,9 @@ import '../styles/grid.css';
 export interface GridApi { sim: GridSim; lib: UalLibrary; env: EnvLibrary; end(): void; fatal(e: unknown): void }
 
 const WALK_EVERY = 0.14;
+const PIXEL_KEY = 'projr.grid.pixel';
+const loadPixel = (): boolean => { try { return localStorage.getItem(PIXEL_KEY) !== '0'; } catch { return true; } };
+const savePixel = (on: boolean): void => { try { localStorage.setItem(PIXEL_KEY, on ? '1' : '0'); } catch { /* not kept */ } };
 const TAP_PX = 12;
 const TAP_MS = 350;
 
@@ -70,6 +73,14 @@ export class GridScreen implements Screen {
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
       { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });
     this.el.appendChild(this.zoom.el);
+    const px = document.createElement('button');
+    px.className = 'btn grid-pixel';
+    px.dataset.testid = 'grid-pixel';
+    const showPx = () => { px.textContent = rt.pixelated ? '도트' : 'HD'; };
+    rt.pixelated = loadPixel();
+    showPx();
+    px.addEventListener('click', () => { rt.pixelated = !rt.pixelated; savePixel(rt.pixelated); showPx(); });
+    this.zoom.el.appendChild(px);
     this.cleanup.push(this.controls.attach(), watchLayout((l) => {
       this.el.classList.toggle('portrait', l === 'portrait');
       this.el.classList.toggle('landscape', l === 'landscape');
