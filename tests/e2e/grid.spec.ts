@@ -12,7 +12,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
   await waitGrid(page);
-  await expect(page.locator('[data-testid="grid-stats"]')).toContainText('볼트');
+  await expect(page.locator('[data-testid="grid-stats"]')).toContainText('화살');
   const moved = await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
     for (const dir of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 1 }]) if (w.act({ kind: 'move', dir })) return w.state().time;
