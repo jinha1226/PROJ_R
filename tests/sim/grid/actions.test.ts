@@ -69,9 +69,9 @@ describe('hero actions', () => {
     g.act({ kind: 'potion' });
     expect(g.s.hero.hp).toBe(22);
     expect(g.s.hero.potions).toBe(HERO.potions - 1);
-    g.s.hero.hp = 29;
+    g.s.hero.hp = g.s.hero.maxHp - 1;
     g.act({ kind: 'potion' });
-    expect(g.s.hero.hp).toBe(30);
+    expect(g.s.hero.hp).toBe(g.s.hero.maxHp);
   });
 
   it('doors open when entered and chests open when bumped', () => {

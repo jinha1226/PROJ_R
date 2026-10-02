@@ -1,4 +1,5 @@
 import type { Rng } from '../../core/rng';
+import type { Gear } from './gear';
 
 /** 'open' is a door that has been opened. */
 export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar';
@@ -51,6 +52,7 @@ export interface Hero extends Ent {
   target?: string;
   /** time spent standing on an open exit */
   exitTime: number;
+  gear: Gear;
 }
 export interface ChestState { pos: Cell; opened: boolean }
 export interface GridState {

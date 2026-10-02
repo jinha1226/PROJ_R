@@ -1,14 +1,16 @@
 import { createRng } from '../../core/rng';
 import { computeFov } from './fov';
+import { CLASS_BONUS, startGear, type ClassId } from './gear';
 import { HERO, FOES, type GridMap, type GridState } from './types';
 
 /** A fresh sortie on a map: the hero at the start, every spawn asleep, chests shut. */
-export function newState(map: GridMap, seed: number): GridState {
+export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior'): GridState {
+  const maxHp = HERO.hp + CLASS_BONUS[cls].maxHp;
   const s: GridState = {
     seed, time: 0, map: { ...map, tiles: [...map.tiles] },
     hero: {
-      id: 'hero', kind: 'hero', pos: { ...map.start }, hp: HERO.hp, maxHp: HERO.hp, nextAt: 0, alive: true, awake: true, group: 0,
-      loaded: true, bolts: HERO.bolts, potions: HERO.potions, value: 0, loot: [], exitTime: 0,
+      id: 'hero', kind: 'hero', pos: { ...map.start }, hp: maxHp, maxHp, nextAt: 0, alive: true, awake: true, group: 0,
+      loaded: true, bolts: HERO.bolts, potions: HERO.potions, value: 0, loot: [], exitTime: 0, gear: startGear(cls),
     },
     foes: map.spawns.map((sp, i) => ({ id: `f${i + 1}`, kind: sp.kind, pos: { ...sp.pos }, hp: FOES[sp.kind].hp, maxHp: FOES[sp.kind].hp, nextAt: 0, alive: true, awake: false, group: sp.group })),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
