@@ -1,6 +1,11 @@
 import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
 import { chestAt, shootable } from '../../sim/grid/actions';
+import { activeWeapon } from '../../sim/grid/gear';
+import { WEAPONS } from '../../sim/grid/items';
+import { canFire } from '../../sim/grid/weapons';
+import { GridBag } from './gridBag';
+import { weaponState } from './weaponInfo';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
 import { dist, idx, same, tileAt, walkable, type Cell, type GAction } from '../../sim/grid/types';
@@ -34,6 +39,7 @@ export class GridScreen implements Screen {
   private readonly hold = new HoldRepeat(WALK_EVERY);
   private touch: GridTouch | null = null;
   private zoom: ZoomControl | null = null;
+  private bag: GridBag | null = null;
   private cleanup: (() => void)[] = [];
   private walk: Cell[] | null = null;
   private walkTimer = 0;
@@ -65,6 +71,7 @@ export class GridScreen implements Screen {
       return this.api.fatal(e);
     }
     this.el.appendChild(this.hud.el);
+    this.hud.el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-swap]')) this.controls.push('swap'); });
     if (mobile) {
       this.touch = new GridTouch((c) => this.controls.push(c));
       this.el.appendChild(this.touch.el);
@@ -131,13 +138,26 @@ export class GridScreen implements Screen {
       s.hero.target = list[(at + (c === 'next' ? 1 : list.length - 1)) % list.length];
       return;
     }
+    if (c === 'bag') return this.toggleBag();
+    if (c === 'potion') { this.doAction({ kind: 'use', item: 'potion' }); return; }
+    if (c === 'swap') { this.doAction({ kind: 'swap' }); return; }
     if (c === 'shoot') {
-      if (!s.hero.loaded) { this.doAction({ kind: 'reload' }); return; }
+      const w = activeWeapon(s.hero.gear);
+      const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
+      // fire with a melee weapon in hand: switch to the ranged one in the other hand
+      if (!w || WEAPONS[w.group].melee) { if (other && !WEAPONS[other.group].melee) this.doAction({ kind: 'swap' }); return; }
+      if ((w.group === 'bow' || w.group === 'crossbow') && !w.loaded) { this.doAction({ kind: 'reload' }); return; }
       const target = this.api.sim.autoTarget();
       if (target) this.doAction({ kind: 'shoot', target });
       return;
     }
     this.doAction({ kind: c });
+  }
+
+  private toggleBag(): void {
+    if (this.bag) { this.bag.el.remove(); this.bag = null; return; }
+    this.bag = new GridBag(() => this.s.hero.gear, (a) => { this.doAction(a); }, () => this.toggleBag());
+    this.el.appendChild(this.bag.el);
   }
 
   private onTap(x: number, y: number): void {
@@ -159,6 +179,7 @@ export class GridScreen implements Screen {
 
   private input(dt: number): void {
     const cmd = this.controls.take();
+    if (this.bag && cmd !== 'bag') { this.bag.render(); return; }
     if (cmd) { this.walk = null; this.command(cmd); return; }
     const v = this.touch?.vector();
     this.stickDir = v ? quantize8(v.x, v.y, 0.35, this.stickDir) : null;
@@ -191,8 +212,11 @@ export class GridScreen implements Screen {
     const target = this.api.sim.autoTarget();
     const chance = target ? this.api.sim.shotChance(target) : null;
     this.hud.update(s, target && chance !== null ? { id: target, chance } : null, dt);
-    this.touch?.setFire(!s.hero.loaded ? '장전' : target ? '사격' : '사격', !s.hero.loaded ? `볼트 ${s.hero.bolts}` : chance !== null ? `${Math.round(chance * 100)}%` : '-');
-    this.touch?.setPotions(s.hero.potions);
+    const w = activeWeapon(s.hero.gear);
+    const melee = !w || WEAPONS[w.group].melee;
+    const needsReload = !!w && (w.group === 'bow' || w.group === 'crossbow') && !w.loaded;
+    this.touch?.setFire(melee ? '교체' : needsReload ? '장전' : '사격', melee ? '원거리로' : needsReload ? `화살 ${s.hero.gear.arrows}` : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
+    this.touch?.setPotions(s.hero.gear.belt.potion);
     if (s.outcome && !this.ended) {
       this.ended = true;
       this.endTimer = setTimeout(() => this.api.end(), 1200);

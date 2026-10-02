@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { archerCanShoot } from '../../sim/grid/ai';
+import { activeWeapon } from '../../sim/grid/gear';
 import { idx, type Cell, type GEvent } from '../../sim/grid/types';
 import type { UalLibrary } from './ualActor';
 import type { EnvLibrary } from '../explore/envAssets';
@@ -8,6 +9,7 @@ import { createScene, type SceneHandle } from '../scene/renderer';
 import { chase } from './chase';
 import { GridActors } from './gridActors';
 import { GridFx } from './gridFx';
+import { GridItems } from './gridItems';
 import { GridParticles } from './gridParticles';
 import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
@@ -26,6 +28,7 @@ export class GridRuntime {
   private readonly fx: GridFx;
   private readonly torches: GridTorches;
   private readonly particles = new GridParticles();
+  private readonly items = new GridItems();
   private punch = 0;
   private readonly pixel: PixelPass;
   /** rough pixel look on/off */
@@ -51,7 +54,7 @@ export class GridRuntime {
     this.terrain = new GridTerrain(sim.s.map, env);
     this.actors = new GridActors(lib);
     this.torches = new GridTorches(sim.s.map, env, mobile ? 3 : 6);
-    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root);
+    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root);
     this.fx = new GridFx(scene, el, (p) => this.project(p));
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
@@ -84,6 +87,8 @@ export class GridRuntime {
   private refresh(): void {
     const s = this.sim.s;
     this.terrain.shade(s);
+    this.items.sync(s);
+    this.actors.setWeapon('hero', activeWeapon(s.hero.gear)?.group ?? 'blade');
     this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));
     for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
     const hero = new THREE.Vector3(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
@@ -155,6 +160,7 @@ export class GridRuntime {
     this.fx.update(dt);
     this.actors.update(dt, this.fx.frozen);
     this.torches.update(dt);
+    this.items.update(dt);
     this.particles.update(this.fx.frozen ? 0 : dt, this.center);
     this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
@@ -207,6 +213,7 @@ export class GridRuntime {
     this.fx.dispose();
     this.torches.dispose();
     this.particles.dispose();
+    this.items.dispose();
     this.pixel.dispose();
     this.terrain.dispose();
     this.h.dispose();

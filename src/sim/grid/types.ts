@@ -1,5 +1,6 @@
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
+import type { BeltItem, Equipment } from './items';
 
 /** 'open' is a door that has been opened. */
 export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar';
@@ -41,12 +42,11 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell }
+export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number }
 export interface Hero extends Ent {
   kind: 'hero';
-  loaded: boolean;
-  bolts: number;
-  potions: number;
+  level: number;
+  xp: number;
   value: number;
   loot: { name: string; value: number }[];
   target?: string;
@@ -73,16 +73,24 @@ export interface GridState {
   /** danger steps already fired (0 none, 1 alarm, 2 reinforcements) */
   danger: number;
   nextFoeId: number;
+  floorItems: FloorItem[];
+  run: RunState;
 }
-export type GAction = { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string } | { kind: 'reload' } | { kind: 'wait' } | { kind: 'potion' };
+export interface RunState { floor: number; kills: number; won: boolean }
+export interface FloorItem { pos: Cell; item: Equipment }
+export type GAction =
+  | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string } | { kind: 'reload' } | { kind: 'wait' }
+  | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
+  | { kind: 'use'; item: BeltItem; at?: Cell };
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
-  | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead';
+  | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
+  | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
-export const COST = { move: 1, melee: 1, shoot: 1, reload: 1.5, wait: 1, potion: 1, open: 0.5 };
-export const HERO = { hp: 30, bolts: 12, potions: 2, sight: 8, range: 8, heal: 12, melee: [6, 9] as const, bolt: [5, 8] as const, meleeHit: 0.9, boltHit: 0.85 };
+export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1 };
+export const HERO = { hp: 30, sight: 8, heal: 12, bash: [2, 4] as const, bashHit: 0.9 };
 export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [number, number]; range: number; hit: number }> = {
   minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },
   archer: { hp: 8, move: 1, dmg: [3, 5], range: 7, hit: 0.85 },

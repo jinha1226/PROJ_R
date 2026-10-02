@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { weaponMesh, type WeaponLook } from './weaponMeshes';
 
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
 export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'shoot' | 'reload' | 'hit' | 'death' | 'interact';
-export interface UalLook { body: string; trim: string; scale: number; weapon: 'sword' | 'crossbow' | 'blade' | 'axe'; shield?: boolean; idle: 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' }
+export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit'>, string> = {
   run: 'Jog_Fwd_Loop', swing: 'Sword_Attack', jab: 'Punch_Jab', shoot: 'Pistol_Shoot', reload: 'Pistol_Reload', death: 'Death01', interact: 'Interact',
@@ -33,23 +34,6 @@ const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined =>
   return hit;
 };
 
-function weaponMesh(kind: UalLook['weapon']): THREE.Object3D {
-  const g = new THREE.Group();
-  const metal = new THREE.MeshStandardMaterial({ color: '#c8ccd4', metalness: 0.6, roughness: 0.35 });
-  const wood = new THREE.MeshStandardMaterial({ color: '#6a4a2a', roughness: 0.8 });
-  if (kind === 'crossbow') {
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.42), wood).translateZ(0.12));
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.03, 0.04), metal).translateZ(0.3));
-  } else {
-    const long = kind === 'sword' ? 0.75 : kind === 'axe' ? 0.6 : 0.5;
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.04, long, 0.09), metal).translateY(long / 2 + 0.06));
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.05), wood));
-    if (kind === 'axe') g.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.2), metal).translateY(long).translateZ(0.08));
-    else g.add(new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.22), metal).translateY(0.08));
-  }
-  return g;
-}
-
 /** One animated mannequin: tinted per kind, a block weapon in hand, Quaternius clips for every action. */
 export class UalActor {
   readonly root = new THREE.Group();
@@ -63,6 +47,9 @@ export class UalActor {
   private flashLeft = 0;
   private flashTotal = 1;
   private flashColor = new THREE.Color();
+  private hand: THREE.Object3D | undefined;
+  private held: THREE.Object3D | null = null;
+  private heldKind: WeaponLook | null = null;
 
   constructor(private readonly lib: UalLibrary, private readonly look: UalLook) {
     const model = lib.spawn();
@@ -81,9 +68,8 @@ export class UalActor {
       });
       m.material = Array.isArray(m.material) ? tinted : tinted[0]!;
     });
-    const w = weaponMesh(look.weapon);
-    w.rotation.set(Math.PI / 2, 0, 0);
-    bone(model, 'DEF-hand.R')?.add(w);
+    this.hand = bone(model, 'DEF-hand.R');
+    this.setWeapon(look.weapon);
     if (look.shield) {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.32), new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8 }));
       bone(model, 'DEF-forearm.L')?.add(s.translateY(0.15).translateX(-0.05));
@@ -111,6 +97,15 @@ export class UalActor {
     if (this.current && this.current !== a) a.crossFadeFrom(this.current, fade, false);
     a.play();
     this.current = a;
+  }
+
+  /** Puts a different block weapon in the right hand. */
+  setWeapon(kind: WeaponLook): void {
+    if (kind === this.heldKind || !this.hand) return;
+    if (this.held) this.hand.remove(this.held);
+    this.held = weaponMesh(kind);
+    this.heldKind = kind;
+    this.hand.add(this.held);
   }
 
   play(anim: UalAnim, speed = 1.4): void {

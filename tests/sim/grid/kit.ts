@@ -29,3 +29,8 @@ export function sim(rows: string[], hero: Cell, foes: { kind: FoeKind; pos: Cell
   s.foes.forEach((f, i) => { f.awake = foes[i]!.awake ?? true; });
   return GridSim.fromState(s);
 }
+
+/** Every roll hits and rolls the minimum (deterministic weapon tests). */
+export function sureHits(g: GridSim): void {
+  g.s.rng = { next: () => 0, int: (a: number) => a, chance: () => true, pick: <T>(arr: readonly T[]) => arr[0]!, shuffle: <T>(arr: T[]) => arr, getState: () => 0 };
+}

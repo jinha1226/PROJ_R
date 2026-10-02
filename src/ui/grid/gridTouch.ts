@@ -7,6 +7,8 @@ const BUTTONS: { cmd: GridCmd; label: string; cls: string }[] = [
   { cmd: 'potion', label: '물약', cls: 'gt-potion' },
   { cmd: 'prev', label: '◀', cls: 'gt-prev' },
   { cmd: 'next', label: '▶', cls: 'gt-next' },
+  { cmd: 'swap', label: '교체', cls: 'gt-swap' },
+  { cmd: 'bag', label: '가방', cls: 'gt-bag' },
 ];
 
 /** Phone controls: a floating stick on the lower left, fire / wait / potion / target buttons on the lower right. */

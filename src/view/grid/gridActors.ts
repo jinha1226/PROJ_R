@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Ent, GridState } from '../../sim/grid/types';
 import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActor';
+import type { WeaponLook } from './weaponMeshes';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
 
@@ -123,6 +124,11 @@ export class GridActors {
     v.actor.flash(0xffffff, 110);
     v.actor.play('hit', 1.8);
     if (from) this.nudge(v, from, -SHOVE);
+  }
+
+  /** Shows the weapon group a figure is holding. */
+  setWeapon(id: string, kind: WeaponLook): void {
+    this.v(id)?.actor.setWeapon(kind);
   }
 
   /** A one-off action (reload, opening a chest). */

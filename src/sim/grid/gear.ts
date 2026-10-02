@@ -11,6 +11,8 @@ export interface Gear {
   belt: Record<BeltItem, number>;
   arrows: number;
   cls: ClassId;
+  /** time banked toward the next staff charge */
+  staffClock?: number;
 }
 
 /** Leanings, not locks: every class can use every weapon. */

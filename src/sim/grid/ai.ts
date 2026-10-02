@@ -34,6 +34,8 @@ export function foeTurn(s: GridState, f: Ent): number {
   const t = f.nextAt;
   const def = FOES[f.kind as keyof typeof FOES];
   if (!f.awake) return 1;
+  // stunned (slammed by a mace): loses this turn
+  if ((f.stun ?? 0) > 0) { f.stun!--; return 1; }
   if (f.kind === 'archer') return archerTurn(s, f, t);
   if (canMelee(s, f)) {
     s.events.push({ t, type: 'bump', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...s.hero.pos } });

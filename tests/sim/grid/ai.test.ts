@@ -37,6 +37,7 @@ describe('waking', () => {
     const g = sim(closet, { x: 4, y: 3 }, [{ kind: 'minion', pos: { x: 1, y: 5 }, awake: false }, { kind: 'brute', pos: { x: 9, y: 3 }, awake: false }]);
     g.s.foes[0]!.group = 7;
     g.s.foes[1]!.group = 8;
+    g.s.hero.gear.active = 1;
     g.act({ kind: 'shoot', target: g.s.foes[1]!.id });
     expect(g.s.foes[0]!.awake).toBe(true);
   });

@@ -35,15 +35,18 @@ export function shotClear(s: GridState, from: Cell, to: Cell): boolean {
 }
 
 /** Rolls to hit and for damage; emits hit/miss (+die). Returns whether it hit. */
-export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: number, dmg: readonly [number, number]): boolean {
+/** mult: sneak-attack multiplier; the hero's armour takes its share off (never below 1). */
+export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: number, dmg: readonly [number, number], mult = 1): boolean {
   if (!s.rng.chance(chance)) {
     s.events.push({ t, type: 'miss', src: src.id, dst: dst.id, to: { ...dst.pos } });
     return false;
   }
-  const amount = s.rng.int(dmg[0], dmg[1]);
+  const roll = s.rng.int(dmg[0], dmg[1]);
+  const armour = dst.id === s.hero.id ? s.hero.gear.armor?.reduce ?? 0 : 0;
+  const amount = Math.max(1, Math.round(roll * mult) - armour);
   dst.hp -= amount;
   const ev: GEvent = { t, type: 'hit', src: src.id, dst: dst.id, amount, to: { ...dst.pos } };
-  if (amount === dmg[1]) ev.crit = true;
+  if (roll === dmg[1] || mult > 1) ev.crit = true;
   s.events.push(ev);
   if (dst.hp <= 0) {
     dst.hp = 0;

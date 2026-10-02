@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GridSim } from '../../../src/sim/grid/gridSim';
 import { hitChance } from '../../../src/sim/grid/combat';
-import { HERO } from '../../../src/sim/grid/types';
 import { OPEN, handMap, sim } from './kit';
 
 const types = (evs: { type: string }[]) => evs.map((e) => e.type);
@@ -35,15 +34,17 @@ describe('hero actions', () => {
 
   it('the crossbow fires once, then must be reloaded', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
+    g.act({ kind: 'swap' });
     const id = g.s.foes[0]!.id;
+    const arrows = g.s.hero.gear.arrows;
     expect(types(g.act({ kind: 'shoot', target: id }))[0]).toBe('shoot');
-    expect(g.s.hero.loaded).toBe(false);
-    expect(g.s.hero.bolts).toBe(HERO.bolts - 1);
+    expect(g.s.hero.gear.hands[1]!.loaded).toBe(false);
+    expect(g.s.hero.gear.arrows).toBe(arrows - 1);
     const t = g.s.time;
     expect(types(g.act({ kind: 'shoot', target: id }))).toEqual(['blocked']);
     expect(g.s.time).toBe(t);
     g.act({ kind: 'reload' });
-    expect(g.s.hero.loaded).toBe(true);
+    expect(g.s.hero.gear.hands[1]!.loaded).toBe(true);
     expect(g.s.time).toBe(t + 1.5);
   });
 
@@ -60,17 +61,19 @@ describe('hero actions', () => {
     const rows = [...OPEN];
     rows[7] = '#.....P.......#';
     const g = sim(rows, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
+    g.act({ kind: 'swap' });
     expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))).toEqual(['blocked']);
   });
 
   it('a potion heals 12, never past full', () => {
     const g = sim(OPEN, { x: 7, y: 7 });
+    const n = g.s.hero.gear.belt.potion;
     g.s.hero.hp = 10;
-    g.act({ kind: 'potion' });
+    g.act({ kind: 'use', item: 'potion' });
     expect(g.s.hero.hp).toBe(22);
-    expect(g.s.hero.potions).toBe(HERO.potions - 1);
+    expect(g.s.hero.gear.belt.potion).toBe(n - 1);
     g.s.hero.hp = g.s.hero.maxHp - 1;
-    g.act({ kind: 'potion' });
+    g.act({ kind: 'use', item: 'potion' });
     expect(g.s.hero.hp).toBe(g.s.hero.maxHp);
   });
 
@@ -80,12 +83,12 @@ describe('hero actions', () => {
     const g = sim(rows, { x: 5, y: 7 });
     expect(types(g.act({ kind: 'move', dir: { x: 1, y: 0 } }))).toContain('door');
     expect(g.s.map.tiles[7 * 15 + 6]).toBe('open');
-    const before = g.s.hero.value;
+    const before = g.s.hero.gear.arrows;
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
     expect(types(ev)).toContain('open');
     expect(g.s.hero.pos).toEqual({ x: 6, y: 7 });
     expect(g.s.chests[0]!.opened).toBe(true);
-    expect(g.s.hero.value).toBeGreaterThan(before);
+    expect(g.s.hero.gear.arrows).toBeGreaterThan(before);
   });
 });
 

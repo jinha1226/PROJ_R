@@ -49,3 +49,24 @@
 .grid-hurt.on { animation: grid-hurt 0.45s ease-out; }
 @keyframes grid-hurt { 0% { opacity: 1; } 100% { opacity: 0; } }
 .grid .xzoom .grid-pixel { font-size: 12px; font-weight: 700; }
+
+/* hands (two weapons, tap to swap) */
+.ghud-hands { position: absolute; left: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 230px); display: flex; align-items: center; gap: 4px; pointer-events: auto; }
+.ghand { font: inherit; color: #e8dcc0; background: #000b; border: 1px solid #ffffff33; border-radius: 8px; padding: 4px 8px; display: flex; flex-direction: column; align-items: flex-start; min-width: 96px; min-height: 48px; cursor: pointer; }
+.ghand b { font-size: 13px; } .ghand small { font-size: 11px; color: #b8ad98; }
+.ghand.on { border-color: #e0a64a; box-shadow: 0 0 0 1px #e0a64a; }
+.ghand-x { color: #e0a64a; font-weight: 900; }
+@media (pointer: fine) { .ghud-hands { bottom: 34px; } }
+.gt-swap { right: 108px; bottom: 148px; width: 56px; height: 56px; font-size: 13px; border-color: #e0a64a; }
+.gt-bag { right: 170px; bottom: 112px; width: 56px; height: 56px; font-size: 13px; }
+
+/* bag */
+.gbag { position: absolute; inset: 0; z-index: 30; background: #0008; display: grid; place-items: end center; }
+.gbag-panel { width: min(520px, 100vw); max-height: 70vh; overflow-y: auto; background: #1b1a1f; border: 1px solid #ffffff22; border-radius: 16px 16px 0 0; padding: 12px 14px calc(env(safe-area-inset-bottom, 0px) + 14px); color: #e8dcc0; }
+.gbag-panel header { display: flex; justify-content: space-between; align-items: center; } .gbag-panel h3 { margin: 0; }
+.gbag-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.gbag-cur { background: #0006; border-radius: 8px; padding: 6px; display: flex; flex-direction: column; font-size: 12px; } .gbag-cur small { color: #998; } .gbag-cur span { color: #b8ad98; font-size: 11px; }
+.gbag-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.gbag-slot { font: inherit; font-size: 12px; min-height: 52px; color: #e8dcc0; background: #2a2830; border: 1px solid #ffffff22; border-radius: 8px; }
+.gbag-slot.sel { border-color: #e0a64a; box-shadow: 0 0 0 1px #e0a64a; } .gbag-slot.empty { opacity: 0.35; }
+.gbag-detail { margin: 10px 0 6px; font-size: 13px; } .gbag-actions { display: flex; gap: 8px; flex-wrap: wrap; }
