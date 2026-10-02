@@ -36,6 +36,7 @@ export class GridScreen implements Screen {
   private walkTimer = 0;
   /** a held direction stops when something new shows up, until it is let go */
   private holdLock = false;
+  private stickDir: Cell | null = null;
   private tap: { id: number; x: number; y: number; at: number } | null = null;
   private raf = 0;
   private gone = false;
@@ -149,7 +150,8 @@ export class GridScreen implements Screen {
     const cmd = this.controls.take();
     if (cmd) { this.walk = null; this.command(cmd); return; }
     const v = this.touch?.vector();
-    const dir = this.controls.dir() ?? (v ? quantize8(v.x, v.y) : null);
+    this.stickDir = v ? quantize8(v.x, v.y, 0.35, this.stickDir) : null;
+    const dir = this.controls.dir() ?? this.stickDir;
     if (!dir) this.holdLock = false;
     if (dir) {
       this.walk = null;

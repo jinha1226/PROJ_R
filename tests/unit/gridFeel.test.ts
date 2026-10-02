@@ -13,17 +13,36 @@ describe('8-way input', () => {
     expect(quantize8(-0.5, -0.6)).toEqual({ x: -1, y: -1 });
   });
 
-  it('a held direction steps at once, then every 0.14 s; a new direction steps at once', () => {
+  it('a held direction steps after a short chord wait, then every 0.14 s', () => {
     const h = new HoldRepeat();
     const r = { x: 1, y: 0 };
-    expect(h.update(r, 0.016)).toEqual(r);
+    expect(h.update(r, 0.016)).toBeNull();
+    expect(h.update(r, 0.04)).toEqual(r);
     expect(h.update(r, 0.1)).toBeNull();
     expect(h.update(r, 0.05)).toEqual(r);
-    expect(h.update(r, 0.1)).toBeNull();
-    expect(h.update(r, 0.05)).toEqual(r);
-    expect(h.update({ x: 0, y: 1 }, 0.01)).toEqual({ x: 0, y: 1 });
     expect(h.update(null, 0.01)).toBeNull();
-    expect(h.update(r, 0.01)).toEqual(r);
+  });
+
+  it('two keys pressed a moment apart make one diagonal step, not a straight step first', () => {
+    const h = new HoldRepeat();
+    expect(h.update({ x: 0, y: -1 }, 0.016)).toBeNull();
+    expect(h.update({ x: 1, y: -1 }, 0.016)).toBeNull();
+    expect(h.update({ x: 1, y: -1 }, 0.04)).toEqual({ x: 1, y: -1 });
+  });
+
+  it('turning while held waits the chord time too, then steps the new way', () => {
+    const h = new HoldRepeat();
+    h.update({ x: 1, y: 0 }, 0.06);
+    expect(h.update({ x: 0, y: 1 }, 0.01)).toBeNull();
+    expect(h.update({ x: 0, y: 1 }, 0.05)).toEqual({ x: 0, y: 1 });
+  });
+
+  it('a stick near the 22.5° border keeps its direction instead of zig-zagging', () => {
+    const a = (deg: number) => [Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180)] as const;
+    expect(quantize8(...a(26))).toEqual({ x: 1, y: 1 });
+    expect(quantize8(...a(26), 0.35, { x: 1, y: 0 })).toEqual({ x: 1, y: 0 });
+    expect(quantize8(...a(19), 0.35, { x: 1, y: 1 })).toEqual({ x: 1, y: 1 });
+    expect(quantize8(...a(10), 0.35, { x: 1, y: 1 })).toEqual({ x: 1, y: 0 });
   });
 });
 
