@@ -104,17 +104,23 @@ export class GridActors {
     if (!v) return;
     this.face(id, at);
     this.nudge(v, at, LUNGE);
-    v.actor.play(LOOK[this.kindOf(id!)].weapon === 'blade' ? 'jab' : 'swing', 1.7);
+    v.actor.play(this.meleeAnim(id!), 1.7);
   }
 
   /** Ranged: aim, fire, kick back a little. */
-  shoot(id: string | undefined, at: THREE.Vector3, twoHanded: boolean): void {
+  /** Fires: the motion follows the weapon (bow draw, crossbow, staff spell, overhand throw). */
+  shoot(id: string | undefined, at: THREE.Vector3, group?: string): void {
     const v = this.v(id);
     if (!v) return;
     this.face(id, at);
     this.nudge(v, at, -0.1);
-    void twoHanded;
-    v.actor.play('shoot', 1.6);
+    const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'staff' ? 'cast' : group === 'throwing' ? 'throw' : 'shoot';
+    v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
+  }
+
+  /** Just the white flash (the knock-back motion carries the rest). */
+  flashOnly(id: string | undefined): void {
+    this.v(id)?.actor.flash(0xffffff, 110);
   }
 
   /** Took a hit: flash, flinch and get shoved away from the attacker. */
@@ -128,12 +134,29 @@ export class GridActors {
 
   /** Shows the weapon group a figure is holding. */
   setWeapon(id: string, kind: WeaponLook): void {
-    this.v(id)?.actor.setWeapon(kind);
+    const idle = kind === 'bow' || kind === 'crossbow' ? 'Pistol_Idle_Loop' : kind === 'staff' ? 'Spell_Simple_Idle_Loop' : kind === 'throwing' ? 'Idle_Loop' : 'Sword_Idle';
+    if (id === 'hero') this.heroWeapon = kind;
+    this.v(id)?.actor.setWeapon(kind, idle);
   }
 
   /** A one-off action (reload, opening a chest). */
   anim(id: string | undefined, a: UalAnim): void {
     this.v(id)?.actor.play(a, 1.6);
+  }
+
+  /** Which close-quarters motion: daggers and skeleton blades jab, ranged weapons in hand bash, the rest swing. */
+  private meleeAnim(id: string): UalAnim {
+    const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
+    if (w === 'dagger' || w === 'blade') return 'jab';
+    if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'throwing') return 'bash';
+    return 'swing';
+  }
+
+  private heroWeapon: WeaponLook | null = null;
+
+  /** Hard hits throw the figure back instead of a flinch. */
+  knock(id: string | undefined): void {
+    this.v(id)?.actor.play('knockback', 1.6);
   }
 
   private kindOf(id: string): Ent['kind'] {

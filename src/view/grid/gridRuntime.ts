@@ -117,7 +117,7 @@ export class GridRuntime {
         const p = at(e.dst);
         const from = at(e.src);
         if (!p || !from) break;
-        a.shoot(e.src, p, e.src !== 'hero');
+        a.shoot(e.src, p, e.text);
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
         this.fx.bolt(from, p, () => { entry.ready = true; this.pending.delete(key); for (const q of entry.queue) this.cue(q); });
@@ -125,7 +125,8 @@ export class GridRuntime {
       }
       case 'hit': {
         const p = at(e.dst);
-        a.hurt(e.dst, at(e.src));
+        if (e.crit) a.knock(e.dst); else a.hurt(e.dst, at(e.src));
+        if (e.crit) a.flashOnly(e.dst);
         if (p) {
           this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : e.dst === 'hero' ? 'ally-hurt' : 'dmg', p);
           this.particles.spray(p, e.dst === 'hero' ? '#ff4a30' : '#ffe6a8', e.crit ? 18 : 10);
@@ -147,7 +148,9 @@ export class GridRuntime {
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'loot': if (e.to) this.fx.number(e.text === '볼트' || e.text === '물약' ? `+${e.text} ${e.amount}` : `+${e.text} ${e.amount}G`, 'combo', cellVec(e.to)); break;
-      case 'heal': { const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
+      case 'stun': a.knock(e.dst); break;
+      case 'heal': {
+        a.anim(e.dst, 'drink'); const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
       case 'wake': { const p = at(e.src); if (p) this.fx.number('!', 'crit', p); break; }
       default: break;
     }

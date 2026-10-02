@@ -6,12 +6,16 @@ import { weaponMesh, type WeaponLook } from './weaponMeshes';
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
-export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'shoot' | 'reload' | 'hit' | 'death' | 'interact';
-export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' }
+export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
+export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
+export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string }
 
-const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit'>, string> = {
-  run: 'Jog_Fwd_Loop', swing: 'Sword_Attack', jab: 'Punch_Jab', shoot: 'Pistol_Shoot', reload: 'Pistol_Reload', death: 'Death01', interact: 'Interact',
+const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
+  run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
+  reload: 'Pistol_Reload', knockback: 'Hit_Knockback', death: 'Death01', interact: 'Chest_Open', drink: 'Consume',
 };
+/** melee swings rotate through these so a fight does not repeat one motion */
+const SWINGS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'];
 
 /** The Quaternius mannequin and its animation clips, loaded once. */
 export class UalLibrary {
@@ -41,6 +45,8 @@ export class UalActor {
   private readonly mats: THREE.MeshStandardMaterial[] = [];
   private current: THREE.AnimationAction | null = null;
   private loop: 'idle' | 'run' = 'idle';
+  private swing = 0;
+  private idleClip: string;
   private busy = false;
   private busyKind: UalAnim | null = null;
   private dead = false;
@@ -52,6 +58,7 @@ export class UalActor {
   private heldKind: WeaponLook | null = null;
 
   constructor(private readonly lib: UalLibrary, private readonly look: UalLook) {
+    this.idleClip = look.idle;
     const model = lib.spawn();
     const k = lib.scale * look.scale;
     model.scale.set(k * BULK, k, k * BULK);
@@ -68,11 +75,11 @@ export class UalActor {
       });
       m.material = Array.isArray(m.material) ? tinted : tinted[0]!;
     });
-    this.hand = bone(model, 'DEF-hand.R');
+    this.hand = bone(model, 'hand_r');
     this.setWeapon(look.weapon);
     if (look.shield) {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.32), new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8 }));
-      bone(model, 'DEF-forearm.L')?.add(s.translateY(0.15).translateX(-0.05));
+      bone(model, 'lowerarm_l')?.add(s.translateY(0.15).translateX(-0.05));
     }
     this.root.add(model);
     this.mixer = new THREE.AnimationMixer(model);
@@ -81,9 +88,9 @@ export class UalActor {
       if ((e as unknown as { action: THREE.AnimationAction }).action !== this.current) return;
       this.busy = false;
       this.busyKind = null;
-      if (!this.dead) this.start(this.loop === 'run' ? CLIP.run : this.look.idle, true, 1, 0.12);
+      if (!this.dead) this.start(this.loop === 'run' ? this.runClip : this.idleClip, true, 1, 0.12);
     });
-    this.start(look.idle, true, 1, 0);
+    this.start(this.idleClip, true, 1, 0);
   }
 
   private start(name: string, loop: boolean, speed: number, fade: number): void {
@@ -99,8 +106,16 @@ export class UalActor {
     this.current = a;
   }
 
-  /** Puts a different block weapon in the right hand. */
-  setWeapon(kind: WeaponLook): void {
+  private get runClip(): string {
+    return this.look.run ?? CLIP.run;
+  }
+
+  /** Puts a different weapon in the right hand (and, with `idle`, the stance that goes with it). */
+  setWeapon(kind: WeaponLook, idle?: UalIdle): void {
+    if (idle && idle !== this.idleClip) {
+      this.idleClip = idle;
+      if (!this.busy && this.loop === 'idle' && !this.dead) this.start(idle, true, 1, 0.15);
+    }
     if (kind === this.heldKind || !this.hand) return;
     if (this.held) this.hand.remove(this.held);
     this.held = weaponMesh(kind);
@@ -111,8 +126,10 @@ export class UalActor {
   play(anim: UalAnim, speed = 1.4): void {
     if (this.dead) return;
     // a flinch never cuts off a swing or a shot already under way (the flash still shows the hit)
-    if (anim === 'hit' && this.busyKind && this.busyKind !== 'hit') return;
-    const name = anim === 'hit' ? (Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head') : anim === 'idle' ? this.look.idle : CLIP[anim];
+    if ((anim === 'hit' || anim === 'knockback') && this.busyKind && this.busyKind !== 'hit' && this.busyKind !== 'knockback') return;
+    const name = anim === 'hit' ? (Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head')
+      : anim === 'swing' ? SWINGS[this.swing++ % SWINGS.length]!
+      : anim === 'idle' ? this.idleClip : anim === 'run' ? this.runClip : CLIP[anim];
     const loop = anim === 'idle' || anim === 'run';
     this.busy = !loop;
     this.busyKind = loop ? null : anim;
@@ -123,7 +140,7 @@ export class UalActor {
     const want = running ? 'run' : 'idle';
     if (this.dead || want === this.loop) return;
     this.loop = want;
-    if (!this.busy) this.start(running ? CLIP.run : this.look.idle, true, running ? 1.5 : 1, 0.12);
+    if (!this.busy) this.start(running ? this.runClip : this.idleClip, true, running ? 1.5 : 1, 0.12);
   }
 
   flash(color: number, ms: number): void {
