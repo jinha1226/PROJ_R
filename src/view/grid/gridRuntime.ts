@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { archerCanShoot } from '../../sim/grid/ai';
 import { idx, type Cell, type GEvent } from '../../sim/grid/types';
-import type { AssetLibrary } from '../actors/assets';
+import type { UalLibrary } from './ualActor';
 import type { EnvLibrary } from '../explore/envAssets';
 import { createScene, type SceneHandle } from '../scene/renderer';
 import { chase } from './chase';
@@ -33,7 +33,7 @@ export class GridRuntime {
   private height = 18;
   private clock = 0;
 
-  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, lib: AssetLibrary, env: EnvLibrary, mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
+  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, lib: UalLibrary, env: EnvLibrary, mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     const scene = this.h.scene;
@@ -132,9 +132,10 @@ export class GridRuntime {
         if (p) { this.fx.number('빗나감', 'miss', p); this.fx.transient.burst(p.x, p.z, '#b8a890', 0.35, 0.3); }
         break;
       }
+      case 'reload': a.anim(e.src, 'reload'); break;
       case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.particles.bones(p, 16, at(e.src)); break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
-      case 'open': if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
+      case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'loot': if (e.to) this.fx.number(e.text === '볼트' || e.text === '물약' ? `+${e.text} ${e.amount}` : `+${e.text} ${e.amount}G`, 'combo', cellVec(e.to)); break;
       case 'heal': { const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
       case 'wake': { const p = at(e.src); if (p) this.fx.number('!', 'crit', p); break; }

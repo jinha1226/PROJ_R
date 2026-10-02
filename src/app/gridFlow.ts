@@ -2,12 +2,14 @@ import { GridSim } from '../sim/grid/gridSim';
 import { GridResult } from '../ui/grid/gridResult';
 import { GridScreen } from '../ui/grid/gridScreen';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
-import { getAssets } from './assetCache';
+import { UalLibrary } from '../view/grid/ualActor';
 import { getGridEnv } from './envCache';
 import { showFatal } from './fatal';
 import type { Router } from './router';
 
 const KEY = 'projr.grid.v1';
+let ual: Promise<UalLibrary> | null = null;
+const getUal = (): Promise<UalLibrary> => (ual ??= UalLibrary.load(import.meta.env.BASE_URL).catch((e: unknown) => { ual = null; throw e; }));
 
 function loadGold(): number {
   try {
@@ -33,7 +35,7 @@ export class GridFlow {
   async start(seed: number): Promise<void> {
     this.router.go(new LoadingScreen());
     try {
-      const [lib, env] = await Promise.all([getAssets(), getGridEnv()]);
+      const [lib, env] = await Promise.all([getUal(), getGridEnv()]);
       const sim = GridSim.create(seed);
       this.router.go(new GridScreen({ sim, lib, env, end: () => this.result(sim, seed), fatal: (e) => showFatal(this.root, e) }));
     } catch (e) {

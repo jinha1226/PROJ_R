@@ -4,7 +4,7 @@ import { chestAt, shootable } from '../../sim/grid/actions';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
 import { dist, idx, same, tileAt, walkable, type Cell, type GAction } from '../../sim/grid/types';
-import type { AssetLibrary } from '../../view/actors/assets';
+import type { UalLibrary } from '../../view/grid/ualActor';
 import type { EnvLibrary } from '../../view/explore/envAssets';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { watchLayout } from '../extract/orientation';
@@ -16,7 +16,7 @@ import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import '../styles/grid.css';
 
-export interface GridApi { sim: GridSim; lib: AssetLibrary; env: EnvLibrary; end(): void; fatal(e: unknown): void }
+export interface GridApi { sim: GridSim; lib: UalLibrary; env: EnvLibrary; end(): void; fatal(e: unknown): void }
 
 const WALK_EVERY = 0.14;
 const TAP_PX = 12;

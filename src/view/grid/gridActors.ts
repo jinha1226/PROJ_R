@@ -1,23 +1,30 @@
 import * as THREE from 'three';
-import type { ModelId, GearVisual } from '../../data/types';
 import type { Ent, GridState } from '../../sim/grid/types';
-import { Actor, type ActorSpec } from '../actors/actor';
-import type { AssetLibrary } from '../actors/assets';
+import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActor';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
 
-const LOOK: Record<Ent['kind'], { model: ModelId; gear: GearVisual; scale?: number; color: string }> = {
-  hero: { model: 'Knight', gear: { weapon: '1H_Sword', helmet: false, cape: true }, color: '#e0a64a' },
-  minion: { model: 'Skeleton_Minion', gear: { weapon: 'Blade', helmet: false, cape: false }, color: '#c8c8c8' },
-  archer: { model: 'Skeleton_Rogue', gear: { weapon: 'Crossbow', helmet: true, cape: false }, color: '#c8c8c8' },
-  brute: { model: 'Skeleton_Warrior', gear: { weapon: 'Axe', offhand: 'Shield_Small', helmet: true, cape: false }, color: '#c8c8c8', scale: 1.15 },
+/** Every kind is the same mannequin: colour, size and the block weapon tell them apart. */
+const LOOK: Record<Ent['kind'], UalLook> = {
+  hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle' },
+  minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' },
+  archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Pistol_Idle_Loop' },
+  brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
 };
 const LUNGE = 0.3;
+
+/** The coloured ring under each figure (gold hero, red foes). */
+function ring(color: string, scale: number): THREE.Mesh {
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.32 * scale, 0.4 * scale, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = 0.03;
+  return m;
+}
 const LUNGE_SEC = 0.12;
 const SHOVE = 0.15;
 
 interface View {
-  actor: Actor;
+  actor: UalActor;
   /** visual position (metres) chasing the logical cell */
   x: number;
   z: number;
@@ -39,16 +46,17 @@ interface View {
 export class GridActors {
   readonly root = new THREE.Group();
   private readonly views = new Map<string, View>();
+  private readonly kinds = new Map<string, Ent['kind']>();
 
-  constructor(private readonly lib: AssetLibrary) {}
+  constructor(private readonly lib: UalLibrary) {}
 
   /** Creates models for entities that do not have one yet (reinforcements appear mid-run). */
   sync(s: GridState): void {
     for (const e of [s.hero, ...s.foes]) {
       if (this.views.has(e.id)) continue;
-      const look = LOOK[e.kind];
-      const spec: ActorSpec = { id: e.id, model: look.model, gear: look.gear, color: look.color, scale: look.scale, team: e.kind === 'hero' ? 'ally' : 'enemy' };
-      const actor = new Actor(spec, this.lib);
+      this.kinds.set(e.id, e.kind);
+      const actor = new UalActor(this.lib, LOOK[e.kind]);
+      actor.root.add(ring(e.kind === 'hero' ? '#e0a64a' : '#d0533f', LOOK[e.kind].scale));
       const x = e.pos.x * CELL;
       const z = e.pos.y * CELL;
       actor.root.position.set(x, 0, z);
@@ -95,7 +103,7 @@ export class GridActors {
     if (!v) return;
     this.face(id, at);
     this.nudge(v, at, LUNGE);
-    v.actor.play(Math.random() < 0.5 ? 'attack1h' : 'attack1hStab', { once: true, fade: 0.05, speed: 1.6 });
+    v.actor.play(LOOK[this.kindOf(id!)].weapon === 'blade' ? 'jab' : 'swing', 1.7);
   }
 
   /** Ranged: aim, fire, kick back a little. */
@@ -104,7 +112,8 @@ export class GridActors {
     if (!v) return;
     this.face(id, at);
     this.nudge(v, at, -0.1);
-    v.actor.play(twoHanded ? 'shoot2h' : 'shoot1h', { once: true, fade: 0.05, speed: 1.8 });
+    void twoHanded;
+    v.actor.play('shoot', 1.6);
   }
 
   /** Took a hit: flash, flinch and get shoved away from the attacker. */
@@ -112,8 +121,17 @@ export class GridActors {
     const v = this.v(id);
     if (!v || v.dead) return;
     v.actor.flash(0xffffff, 110);
-    v.actor.play('hit', { once: true, fade: 0.04, speed: 1.6 });
+    v.actor.play('hit', 1.8);
     if (from) this.nudge(v, from, -SHOVE);
+  }
+
+  /** A one-off action (reload, opening a chest). */
+  anim(id: string | undefined, a: UalAnim): void {
+    this.v(id)?.actor.play(a, 1.6);
+  }
+
+  private kindOf(id: string): Ent['kind'] {
+    return this.kinds.get(id) ?? 'minion';
   }
 
   die(id: string | undefined): void {
@@ -147,7 +165,7 @@ export class GridActors {
         v.actor.root.position.set(v.x + v.ox * k, 0, v.z + v.oz * k);
       } else v.actor.root.position.set(v.x, 0, v.z);
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
-      if (!v.dead) v.actor.setLocomotion(v.runHold > 0 ? 1 : 0);
+      if (!v.dead) v.actor.setLocomotion(v.runHold > 0);
       v.actor.update(step);
     }
   }

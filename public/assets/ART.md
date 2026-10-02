@@ -10,6 +10,11 @@
   - 고정 리비전 `15b62b9bad122f72926c10fb14d622c73819fa54`
 - 라이선스: CC0 1.0 (`KAYKIT-LICENSE.txt`)
 
+- **Universal Animation Library (Standard)** — Quaternius
+  - https://quaternius.com/packs/universalanimationlibrary.html (OpenGameArt 배포본 `universal_animation_librarystandard.zip`)
+  - 라이선스: CC0 1.0 (`models/ual/LICENSE.txt`)
+  - `models/ual/ual.glb`: Godot용 GLB에서 격자 출격이 쓰는 18개 클립만 남김(Blender 4.0 재내보내기, 마네킹 메시·리그 유지)
+
 ## 가공 내용
 
 `npm run assets`(`scripts/prepare-assets.mjs`)가 원본을 내려받아 다음과 같이 가공합니다.
