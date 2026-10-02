@@ -10,6 +10,11 @@ export function quantize8(x: number, y: number, dead = 0.35): Cell | null {
   return { x: Math.round(Math.cos(a)), y: Math.round(Math.sin(a)) };
 }
 
+/** What stops movement after an action: a new foe in sight stops everything; a hit only stops tap-walking (holding into a fight keeps swinging). */
+export function interruption(newFoe: boolean, hit: boolean): { walk: boolean; hold: boolean } {
+  return { walk: newFoe || hit, hold: newFoe };
+}
+
 /** Held direction → steps: one at once, then one every `every` seconds; a new direction steps at once. */
 export class HoldRepeat {
   private dir: Cell | null = null;

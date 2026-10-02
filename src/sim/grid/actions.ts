@@ -53,7 +53,8 @@ export function heroAct(s: GridState, a: GAction, onNoise: (at: Cell, r: number)
     }
     const ch = chestAt(s, to);
     if (ch && !ch.opened && canStep(s.map, h.pos, a.dir)) { openChest(s, t, to); return COST.open; }
-    if (ch || !canStep(s.map, h.pos, a.dir) || bodyAt(s, to)) return null;
+    // an opened chest can be stepped over (a chest in a doorway must never seal the way)
+    if (!canStep(s.map, h.pos, a.dir) || bodyAt(s, to)) return null;
     if (tileAt(s.map, to) === 'door') {
       s.map.tiles[idx(s.map, to)] = 'open';
       s.events.push({ t, type: 'door', src: h.id, to: { ...to } });

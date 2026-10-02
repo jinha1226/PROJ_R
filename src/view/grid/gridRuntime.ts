@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { shotClear } from '../../sim/grid/combat';
 import type { GridSim } from '../../sim/grid/gridSim';
-import { dist, FOES, idx, type Cell, type GEvent } from '../../sim/grid/types';
+import { archerCanShoot } from '../../sim/grid/ai';
+import { idx, type Cell, type GEvent } from '../../sim/grid/types';
 import type { AssetLibrary } from '../actors/assets';
 import type { EnvLibrary } from '../explore/envAssets';
 import { createScene, type SceneHandle } from '../scene/renderer';
@@ -76,7 +76,7 @@ export class GridRuntime {
     for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
     const hero = new THREE.Vector3(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
     const shown = s.foes.filter((f) => f.alive && f.awake && s.visible.has(idx(s.map, f.pos)));
-    const aiming = shown.filter((f) => f.kind === 'archer' && dist(f.pos, s.hero.pos) <= FOES.archer.range && dist(f.pos, s.hero.pos) > 2 && shotClear(s, f.pos, s.hero.pos));
+    const aiming = shown.filter((f) => f.kind === 'archer' && archerCanShoot(s, f));
     this.fx.setAim(aiming.map((f) => [new THREE.Vector3(f.pos.x * CELL, 0, f.pos.y * CELL), hero]));
     this.icons = shown.map((f) => ({ id: f.id, icon: aiming.includes(f) ? '◎' : '!' }));
   }

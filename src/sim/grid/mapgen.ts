@@ -79,8 +79,10 @@ export function generateMap(seed: number): GridMap {
   m.exits = far.slice(0, 2).map((x) => centre(x.r));
   rooms.slice(1).forEach((r, i) => {
     const cells = rng.shuffle(freeCells(m, r, taken, 0));
-    if (rng.chance(0.6) && cells.length) {
-      const c = cells.pop()!;
+    const byDoor = (c: Cell) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tileAt(m, { x: c.x + dx!, y: c.y + dy! }) === 'door');
+    const spot = cells.findIndex((c) => !byDoor(c));
+    if (rng.chance(0.6) && spot >= 0) {
+      const c = cells.splice(spot, 1)[0]!;
       m.chests.push(c);
       taken.add(idx(m, c));
     }

@@ -1,5 +1,5 @@
 import type { Screen } from '../../app/router';
-import { HoldRepeat, quantize8 } from '../../app/input/gridInput';
+import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
 import { chestAt, shootable } from '../../sim/grid/actions';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
@@ -104,11 +104,9 @@ export class GridScreen implements Screen {
     const ev = this.api.sim.act(a);
     if (!ev.length || (ev.length === 1 && ev[0]!.type === 'blocked')) return false;
     this.rt?.apply(ev, t0);
-    if (s.hero.hp < hp || [...this.visibleFoes()].some((id) => !before.has(id))) {
-      this.walk = null;
-      this.hold.reset();
-      this.holdLock = true;
-    }
+    const stop = interruption([...this.visibleFoes()].some((id) => !before.has(id)), s.hero.hp < hp);
+    if (stop.walk) this.walk = null;
+    if (stop.hold) { this.hold.reset(); this.holdLock = true; }
     return true;
   }
 
@@ -143,7 +141,7 @@ export class GridScreen implements Screen {
   private walkTo(c: Cell): void {
     const s = this.s;
     if (!walkable(tileAt(s.map, c))) return;
-    this.walk = findPath(s.map, s.hero.pos, c, (p) => !!chestAt(s, p) || s.foes.some((f) => f.alive && same(f.pos, p)));
+    this.walk = findPath(s.map, s.hero.pos, c, (p) => chestAt(s, p)?.opened === false || s.foes.some((f) => f.alive && same(f.pos, p)));
     this.walkTimer = 0;
   }
 

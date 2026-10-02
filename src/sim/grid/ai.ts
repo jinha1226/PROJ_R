@@ -1,22 +1,26 @@
 import { hitChance, shotClear, strike } from './combat';
 import { chestAt } from './actions';
 import { findPath } from './path';
-import { add, canStep, DIRS, dist, FOES, same, type Cell, type Ent, type GridState } from './types';
+import { add, canStep, DIRS, dist, FOES, idx, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
 export { DANGER, EXIT_TIME } from './danger';
 
 /** Cells a foe may not walk into: other bodies and chests. */
 export const blockedFor = (s: GridState, self: Ent) => (c: Cell): boolean =>
-  !!chestAt(s, c) || s.foes.some((f) => f !== self && f.alive && same(f.pos, c)) || (s.hero.alive && same(s.hero.pos, c));
+  chestAt(s, c)?.opened === false || s.foes.some((f) => f !== self && f.alive && same(f.pos, c)) || (s.hero.alive && same(s.hero.pos, c));
 
 /** Steps one cell along a path toward `to`; false if there is no way. */
 export function stepToward(s: GridState, f: Ent, to: Cell, t: number): boolean {
   const path = findPath(s.map, f.pos, to, blockedFor(s, f), 60);
   const next = path?.[0];
   if (!next || same(next, s.hero.pos) || blockedFor(s, f)(next)) return false;
-  s.events.push({ t, type: 'move', src: f.id, from: { ...f.pos }, to: { ...next } });
-  f.pos = next;
+  moveTo(s, f, next, t);
   return true;
+}
+
+/** Archers only shoot from where the hero can see them (so every shot comes with a visible aim line). */
+export function archerCanShoot(s: GridState, f: Ent): boolean {
+  return f.alive && f.awake && dist(f.pos, s.hero.pos) <= FOES.archer.range && s.visible.has(idx(s.map, f.pos)) && shotClear(s, f.pos, s.hero.pos);
 }
 
 /** Adjacent, and not across a wall corner. */
@@ -46,6 +50,10 @@ function steps(s: GridState, f: Ent): Cell[] {
 }
 
 function moveTo(s: GridState, f: Ent, to: Cell, t: number): void {
+  if (tileAt(s.map, to) === 'door') {
+    s.map.tiles[idx(s.map, to)] = 'open';
+    s.events.push({ t, type: 'door', src: f.id, to: { ...to } });
+  }
   s.events.push({ t, type: 'move', src: f.id, from: { ...f.pos }, to: { ...to } });
   f.pos = to;
 }
@@ -64,7 +72,7 @@ function archerTurn(s: GridState, f: Ent, t: number): number {
       return 1;
     }
   }
-  if (d <= def.range && shotClear(s, f.pos, h)) {
+  if (archerCanShoot(s, f)) {
     s.events.push({ t, type: 'shoot', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...h } });
     strike(s, t, f, s.hero, hitChance(s.map, f.pos, h, def.hit), def.dmg);
     return 1;

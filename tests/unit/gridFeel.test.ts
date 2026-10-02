@@ -70,3 +70,12 @@ describe('event playback', () => {
     expect(p.update(TURN_SEC + 0.001).map((e) => e.src)).toEqual(['f1', 'hero']);
   });
 });
+
+describe('what interrupts movement', () => {
+  it('a new foe in sight stops both a held direction and a walk; a hit only stops a walk', async () => {
+    const { interruption } = await import('../../src/app/input/gridInput');
+    expect(interruption(true, false)).toEqual({ walk: true, hold: true });
+    expect(interruption(false, true)).toEqual({ walk: true, hold: false });
+    expect(interruption(false, false)).toEqual({ walk: false, hold: false });
+  });
+});

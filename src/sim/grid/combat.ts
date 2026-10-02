@@ -28,8 +28,10 @@ export function bodyAt(s: GridState, c: Cell): Ent | undefined {
   return s.foes.find((f) => f.alive && same(f.pos, c));
 }
 
+/** A shot line, the same both ways (a line traced from either end counts), bodies in between block it. */
 export function shotClear(s: GridState, from: Cell, to: Cell): boolean {
-  return losClear(s.map, from, to, (c) => !!bodyAt(s, c));
+  const bodies = (c: Cell) => !!bodyAt(s, c);
+  return losClear(s.map, from, to, bodies) || losClear(s.map, to, from, bodies);
 }
 
 /** Rolls to hit and for damage; emits hit/miss (+die). Returns whether it hit. */
