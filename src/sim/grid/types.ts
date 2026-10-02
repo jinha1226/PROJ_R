@@ -39,3 +39,50 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 }
 
 export type { Rng };
+
+export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell }
+export interface Hero extends Ent {
+  kind: 'hero';
+  loaded: boolean;
+  bolts: number;
+  potions: number;
+  value: number;
+  loot: { name: string; value: number }[];
+  target?: string;
+  /** time spent standing on an open exit */
+  exitTime: number;
+}
+export interface ChestState { pos: Cell; opened: boolean }
+export interface GridState {
+  seed: number;
+  time: number;
+  map: GridMap;
+  hero: Hero;
+  foes: Ent[];
+  chests: ChestState[];
+  /** 1 = seen at some point */
+  seen: Uint8Array;
+  visible: Set<number>;
+  rng: Rng;
+  events: GEvent[];
+  outcome?: 'extracted' | 'dead';
+  /** indices into map.exits that have closed */
+  closedExits: number[];
+  /** danger steps already fired (0 none, 1 alarm, 2 reinforcements) */
+  danger: number;
+  nextFoeId: number;
+}
+export type GAction = { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string } | { kind: 'reload' } | { kind: 'wait' } | { kind: 'potion' };
+export type GEventType =
+  | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
+  | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead';
+/** t: the game time the acting entity started this action (the view plays events in this order). */
+export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
+
+export const COST = { move: 1, melee: 1, shoot: 1, reload: 1.5, wait: 1, potion: 1, open: 0.5 };
+export const HERO = { hp: 30, bolts: 12, potions: 2, sight: 8, range: 8, heal: 12, melee: [6, 9] as const, bolt: [5, 8] as const, meleeHit: 0.9, boltHit: 0.85 };
+export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [number, number]; range: number; hit: number }> = {
+  minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },
+  archer: { hp: 8, move: 1, dmg: [3, 5], range: 7, hit: 0.85 },
+  brute: { hp: 20, move: 1.4, dmg: [6, 9], range: 1, hit: 0.8 },
+};
