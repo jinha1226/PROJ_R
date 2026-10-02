@@ -44,3 +44,7 @@
 .grid-result h2.ok { color: #5fe08a; } .grid-result h2.lost { color: #e0664a; }
 .grid-result ul { padding-left: 18px; } .grid-result small { color: var(--muted, #998); }
 .grid-result .row { display: flex; gap: 8px; margin-top: 12px; }
+
+.grid-hurt { position: absolute; inset: 0; pointer-events: none; opacity: 0; box-shadow: inset 0 0 90px 30px #c0101aa0; }
+.grid-hurt.on { animation: grid-hurt 0.45s ease-out; }
+@keyframes grid-hurt { 0% { opacity: 1; } 100% { opacity: 0; } }

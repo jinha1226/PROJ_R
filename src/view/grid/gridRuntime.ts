@@ -8,6 +8,8 @@ import { createScene, type SceneHandle } from '../scene/renderer';
 import { chase } from './chase';
 import { GridActors } from './gridActors';
 import { GridFx } from './gridFx';
+import { GridParticles } from './gridParticles';
+import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
 
@@ -21,8 +23,11 @@ export class GridRuntime {
   private readonly terrain: GridTerrain;
   private readonly actors: GridActors;
   private readonly fx: GridFx;
+  private readonly torches: GridTorches;
+  private readonly particles = new GridParticles();
+  private punch = 0;
   private readonly playback = new Playback();
-  private readonly light = new THREE.PointLight('#ffcf8a', 30, 11, 1.6);
+  private readonly light = new THREE.PointLight('#ffd9a0', 10, 8, 1.5);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;
@@ -34,13 +39,14 @@ export class GridRuntime {
     const scene = this.h.scene;
     scene.background = new THREE.Color('#0b0b0e');
     scene.fog = null;
-    const hemi = new THREE.HemisphereLight('#c8c0b0', '#201c18', 1.1);
-    const sun = new THREE.DirectionalLight('#fff0d8', 1.2);
+    const hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
+    const sun = new THREE.DirectionalLight('#c8d0ff', 0.45);
     sun.position.set(-10, 30, 14);
     scene.add(hemi, sun, this.light);
     this.terrain = new GridTerrain(sim.s.map, env);
     this.actors = new GridActors(lib);
-    scene.add(this.terrain.root, this.actors.root);
+    this.torches = new GridTorches(sim.s.map, env, mobile ? 3 : 6);
+    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root);
     this.fx = new GridFx(scene, el, (p) => this.project(p));
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
@@ -73,6 +79,7 @@ export class GridRuntime {
   private refresh(): void {
     const s = this.sim.s;
     this.terrain.shade(s);
+    this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));
     for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
     const hero = new THREE.Vector3(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
     const shown = s.foes.filter((f) => f.alive && f.awake && s.visible.has(idx(s.map, f.pos)));
@@ -109,8 +116,14 @@ export class GridRuntime {
       case 'hit': {
         const p = at(e.dst);
         a.hurt(e.dst, at(e.src));
-        if (p) this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : e.dst === 'hero' ? 'ally-hurt' : 'dmg', p);
+        if (p) {
+          this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : e.dst === 'hero' ? 'ally-hurt' : 'dmg', p);
+          this.particles.spray(p, e.dst === 'hero' ? '#ff4a30' : '#ffe6a8', e.crit ? 18 : 10);
+          if (e.dst !== 'hero') this.particles.bones(p, e.crit ? 6 : 3, at(e.src));
+        }
         this.fx.hitStop();
+        if (e.dst === 'hero') this.fx.hurt();
+        if (e.crit) this.punch = 0.16;
         if (e.crit || e.dst === 'hero') this.fx.shake(e.crit ? 0.14 : 0.1, e.crit ? 0.22 : 0.14);
         break;
       }
@@ -119,7 +132,7 @@ export class GridRuntime {
         if (p) { this.fx.number('빗나감', 'miss', p); this.fx.transient.burst(p.x, p.z, '#b8a890', 0.35, 0.3); }
         break;
       }
-      case 'die': a.die(e.dst); break;
+      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.particles.bones(p, 16, at(e.src)); break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'loot': if (e.to) this.fx.number(e.text === '볼트' || e.text === '물약' ? `+${e.text} ${e.amount}` : `+${e.text} ${e.amount}G`, 'combo', cellVec(e.to)); break;
@@ -135,6 +148,9 @@ export class GridRuntime {
     for (const e of this.playback.update(this.fx.frozen ? 0 : dt)) this.cue(e);
     this.fx.update(dt);
     this.actors.update(dt, this.fx.frozen);
+    this.torches.update(dt);
+    this.particles.update(this.fx.frozen ? 0 : dt, this.center);
+    this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
     this.center.x = chase(this.center.x, hero.x, dt, CAM_K);
     this.center.z = chase(this.center.z, hero.z, dt, CAM_K);
@@ -148,7 +164,8 @@ export class GridRuntime {
   private placeCamera(): void {
     const cam = this.h.camera;
     const aspect = (cam.userData.aspect as number | undefined) ?? 9 / 16;
-    const half = this.height / 2;
+    // a heavy hit punches the camera in for a moment
+    const half = (this.height * (1 - 0.07 * Math.sin((this.punch / 0.16) * Math.PI))) / 2;
     Object.assign(cam, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
     cam.updateProjectionMatrix();
     const c = this.center.clone().add(this.fx.jolt());
@@ -180,6 +197,8 @@ export class GridRuntime {
   dispose(): void {
     this.actors.dispose();
     this.fx.dispose();
+    this.torches.dispose();
+    this.particles.dispose();
     this.terrain.dispose();
     this.h.dispose();
   }

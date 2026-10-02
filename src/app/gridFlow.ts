@@ -3,7 +3,7 @@ import { GridResult } from '../ui/grid/gridResult';
 import { GridScreen } from '../ui/grid/gridScreen';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
 import { getAssets } from './assetCache';
-import { getWorldEnv } from './envCache';
+import { getGridEnv } from './envCache';
 import { showFatal } from './fatal';
 import type { Router } from './router';
 
@@ -33,7 +33,7 @@ export class GridFlow {
   async start(seed: number): Promise<void> {
     this.router.go(new LoadingScreen());
     try {
-      const [lib, env] = await Promise.all([getAssets(), getWorldEnv()]);
+      const [lib, env] = await Promise.all([getAssets(), getGridEnv()]);
       const sim = GridSim.create(seed);
       this.router.go(new GridScreen({ sim, lib, env, end: () => this.result(sim, seed), fatal: (e) => showFatal(this.root, e) }));
     } catch (e) {

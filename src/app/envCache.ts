@@ -24,3 +24,12 @@ export function getWorldEnv(): Promise<EnvLibrary> {
   world ??= EnvLibrary.loadRefs(import.meta.env.BASE_URL, WORLD_REFS).catch((e: unknown) => { world = null; throw e; });
   return world;
 }
+
+/** The crypt kit the grid sortie draws with. */
+export const GRID_REFS = ['dungeon/floor', 'dungeon/wall', 'dungeon/torch', 'dungeon/pillar', 'dungeon/chest', 'dungeon/barrel', 'dungeon/crates'];
+let grid: Promise<EnvLibrary> | null = null;
+
+export function getGridEnv(): Promise<EnvLibrary> {
+  grid ??= EnvLibrary.loadRefs(import.meta.env.BASE_URL, GRID_REFS).catch((e: unknown) => { grid = null; throw e; });
+  return grid;
+}
