@@ -210,3 +210,24 @@ describe('ship guns and suit charge', () => {
   });
 
 });
+
+describe('suit self-charge', () => {
+  it('the suit slowly recharges on its own: +1 every 3 turns, never above max', () => {
+    const g = sim(OPEN, { x: 5, y: 7 });
+    g.s.hero.charge = 0;
+    g.act({ kind: 'wait' });
+    g.act({ kind: 'wait' });
+    expect(g.s.hero.charge).toBe(0);
+    g.act({ kind: 'wait' });
+    expect(g.s.hero.charge).toBe(1);
+    for (let i = 0; i < 60; i++) g.act({ kind: 'wait' });
+    expect(g.s.hero.charge).toBe(g.s.hero.maxCharge);
+  });
+
+  it('it counts game time: six one-turn searches give two charge', () => {
+    const g = sim(OPEN, { x: 5, y: 7 });
+    g.s.hero.charge = 0;
+    for (let i = 0; i < 6; i++) g.act({ kind: 'search' });
+    expect(g.s.hero.charge).toBe(2);
+  });
+});

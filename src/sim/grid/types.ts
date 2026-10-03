@@ -62,6 +62,8 @@ export interface Hero extends Ent {
   suit: EngraveId[];
   charge: number;
   maxCharge: number;
+  /** game time banked toward the next self-charge */
+  chargeClock?: number;
   kind: 'hero';
   level: number;
   xp: number;
