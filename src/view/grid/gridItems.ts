@@ -17,7 +17,10 @@ export class GridItems {
       for (const f of s.floorItems) {
         const g = new THREE.Group();
         const it = f.item;
-        const model = it.kind === 'weapon' ? weaponMesh(it.group) : new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), new THREE.MeshStandardMaterial({ color: '#8a8a92', metalness: 0.5 }));
+        // a rune stone glows violet; armour is a grey plate
+        const model = it.kind === 'weapon' ? weaponMesh(it.group)
+          : it.kind === 'rune' ? new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshStandardMaterial({ color: '#8a6cff', emissive: '#5a3cff', emissiveIntensity: 0.9 }))
+          : new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), new THREE.MeshStandardMaterial({ color: '#8a8a92', metalness: 0.5 }));
         model.rotation.set(0, 0, Math.PI / 2);
         model.position.y = 0.08;
         // fit within one cell (a spear lying down is otherwise longer than a tile)

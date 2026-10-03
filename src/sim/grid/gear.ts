@@ -1,3 +1,4 @@
+import type { EngraveId } from './engraveCore';
 import { armorOf, makeWeapon, type Armor, type BeltItem, type Equipment, type Weapon } from './items';
 
 export type ClassId = 'warrior' | 'hunter' | 'mage';
@@ -25,20 +26,23 @@ export const CLASS_NAME: Record<ClassId, string> = { warrior: '전사', hunter: 
 
 const emptyBelt = (): Record<BeltItem, number> => ({ potion: 0, bomb: 0, fireFlask: 0, frostFlask: 0, shockFlask: 0, poisonFlask: 0 });
 
+/** Each class starts with one engraving on its first weapon. */
+const first = (w: Weapon, id: EngraveId): Weapon => ({ ...w, engraves: [{ id, lvl: 1 }] });
+
 export function startGear(cls: ClassId): Gear {
   const belt = emptyBelt();
   if (cls === 'warrior') {
     belt.potion = 2;
-    return { hands: [makeWeapon('sword', 1), makeWeapon('crossbow', 1)], active: 0, bag: [], armor: armorOf(1), belt, arrows: 10, cls };
+    return { hands: [first(makeWeapon('sword', 1), 'dash'), makeWeapon('crossbow', 1)], active: 0, bag: [], armor: armorOf(1), belt, arrows: 10, cls };
   }
   if (cls === 'hunter') {
     belt.potion = 1;
-    return { hands: [makeWeapon('bow', 1), makeWeapon('dagger', 1)], active: 0, bag: [], armor: null, belt, arrows: 20, cls };
+    return { hands: [first(makeWeapon('bow', 1), 'rapid'), makeWeapon('dagger', 1)], active: 0, bag: [], armor: null, belt, arrows: 20, cls };
   }
   belt.potion = 1;
   belt.fireFlask = 1;
   belt.frostFlask = 1;
-  const staff = makeWeapon('staff', 1, 'fire');
+  const staff = first(makeWeapon('staff', 1, 'fire'), 'echo');
   staff.charges = (staff.charges ?? 0) + CLASS_BONUS.mage.charges;
   return { hands: [staff, makeWeapon('dagger', 1)], active: 0, bag: [], armor: null, belt, arrows: 0, cls };
 }

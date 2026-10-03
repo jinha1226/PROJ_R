@@ -2,12 +2,12 @@ import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
 import { shootable, walkBlocked } from '../../sim/grid/actions';
 import { activeWeapon } from '../../sim/grid/gear';
-import { WEAPONS } from '../../sim/grid/items';
+import { WEAPONS, type BeltItem } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
 import { GridBag } from './gridBag';
+import { LevelUpPanel } from './levelUp';
 import { GridAim } from './gridAim';
 import { GridBelt, ITEM_NAME, THROWN } from './gridBelt';
-import type { BeltItem } from '../../sim/grid/items';
 import { weaponState } from './weaponInfo';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
@@ -43,6 +43,7 @@ export class GridScreen implements Screen {
   private touch: GridTouch | null = null;
   private zoom: ZoomControl | null = null;
   private bag: GridBag | null = null;
+  private levelUp: { panel: LevelUpPanel; offer: unknown } | null = null;
   private readonly belt = new GridBelt((it) => this.controls.push(it));
   private aim: GridAim | null = null;
   private aimKey = '';
@@ -193,10 +194,25 @@ export class GridScreen implements Screen {
     this.el.appendChild(this.bag.el);
   }
 
+  /** A pending level-up choice holds the game until it is made (or passed up); true while it is open. */
+  private showLevelUp(): boolean {
+    const offer = this.s.offers[0];
+    if (this.levelUp && this.levelUp.offer === offer) return true;
+    this.levelUp?.panel.el.remove();
+    this.levelUp = null;
+    if (!offer) return false;
+    this.walk = null;
+    const panel = new LevelUpPanel(offer, activeWeapon(this.s.hero.gear), this.s.hero.level, (a) => { this.doAction(a); });
+    this.levelUp = { panel, offer };
+    this.el.appendChild(panel.el);
+    return true;
+  }
+
   private onTap(x: number, y: number): void {
     const s = this.s;
     const c = this.rt?.cellAt(x, y);
     if (!c) return;
+    if (this.levelUp) return;
     if (this.aim) { if (this.aim.tap(c)) this.throwAim(); return; }
     const foe = s.foes.find((f) => f.alive && same(f.pos, c) && s.visible.has(idx(s.map, c)));
     if (foe) { s.hero.target = foe.id; return; }
@@ -216,6 +232,7 @@ export class GridScreen implements Screen {
 
   private input(dt: number): void {
     const cmd = this.controls.take();
+    if (this.showLevelUp()) return;
     if (this.bag && cmd !== 'bag') { this.bag.render(); return; }
     if (cmd) { this.walk = null; this.command(cmd); return; }
     const v = this.touch?.vector();

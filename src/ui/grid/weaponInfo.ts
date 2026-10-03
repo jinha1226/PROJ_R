@@ -1,3 +1,4 @@
+import { ENGRAVES } from '../../sim/grid/engraveCore';
 import { WEAPONS, type Equipment, type Weapon, type WeaponGroup } from '../../sim/grid/items';
 
 /** One line on what makes each weapon group different. */
@@ -23,6 +24,7 @@ export function weaponState(w: Weapon, arrows: number): string {
 /** "6~9 피해 · 명중 90%" style stats for a weapon or armour. */
 export function statLine(e: Equipment): string {
   if (e.kind === 'armor') return `피해 −${e.reduce}`;
+  if (e.kind === 'rune') return ENGRAVES[e.id].note;
   const d = WEAPONS[e.group];
   const [lo, hi] = d.dmg[e.tier - 1]!;
   return `${lo}~${hi} 피해 · 명중 ${Math.round(d.hit * 100)}%${d.range ? ` · 사거리 ${d.range}` : ''}`;

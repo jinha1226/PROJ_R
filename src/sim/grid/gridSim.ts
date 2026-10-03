@@ -52,7 +52,8 @@ export class GridSim {
     if (fx.acted !== 'shot') fx.rapid = { n: 0 };
     passMarks(s, t0);
     if (s.foes.some((f) => alive.has(f.id) && !f.alive) && has(s, 'momentum') && fire(s, t0, 'momentum')) fx.momentum = true;
-    tickStatuses(s, s.hero, t0);
+    // a free action (quick swap, a level-up pick) takes no time, so nothing ticks
+    if (cost > 0) tickStatuses(s, s.hero, t0);
     s.hero.nextAt += cost;
     settleKills(s, alive);
     if (s.outcome) { s.time = s.hero.nextAt; return s.events; }

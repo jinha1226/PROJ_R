@@ -1,7 +1,9 @@
 import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
 import { lunge, swapCombo } from './combos';
-import { rollEquipment } from './items';
+import { rollEquipment, type Equipment } from './items';
+import { ENGRAVE_IDS } from './engraveCore';
+import { inscribe, RUNE_CHANCE, runeStone } from './engrave';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
@@ -19,11 +21,13 @@ function openChest(s: GridState, t: number, c: Cell): void {
   ch.opened = true;
   const g = s.hero.gear;
   s.events.push({ t, type: 'open', src: 'hero', to: { ...c } });
-  if (s.rng.chance(0.6)) {
-    const e = rollEquipment(s.rng, s.run.floor);
+  // with the bag full a find is left at the hero's feet, never lost
+  const stash = (e: Equipment) => {
     if (addToBag(g, e)) s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: e.name });
     else { s.floorItems.push({ pos: { ...s.hero.pos }, item: e }); s.events.push({ t, type: 'full', src: 'hero', text: e.name }); }
-  }
+  };
+  if (s.rng.chance(0.6)) stash(rollEquipment(s.rng, s.run.floor));
+  if (s.rng.chance(RUNE_CHANCE)) stash(runeStone(s.rng.pick(ENGRAVE_IDS)));
   const arrows = s.rng.int(2, 5);
   g.arrows += arrows;
   s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: '화살', amount: arrows });
@@ -106,6 +110,25 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       s.floorItems.push({ pos: { ...h.pos }, item: e });
       s.events.push({ t, type: 'drop', src: h.id, text: e.name, to: { ...h.pos } });
       return COST.drop;
+    }
+    case 'inscribe': {
+      const r = g.bag[a.bag];
+      const w = activeWeapon(g);
+      if (r?.kind !== 'rune' || !w) return null;
+      g.bag.splice(a.bag, 1);
+      inscribe(w, r.id);
+      s.events.push({ t, type: 'inscribe', src: h.id, text: r.id });
+      return COST.inscribe;
+    }
+    case 'choose': {
+      // a level-up pick: inscribed on the weapon in hand at once (no time); null passes it up
+      const offer = s.offers[0];
+      const id = a.i === null ? undefined : offer?.[a.i];
+      const w = activeWeapon(g);
+      if (!offer || (a.i !== null && !id) || (id && !w)) return null;
+      s.offers.shift();
+      if (id) { inscribe(w!, id); s.events.push({ t, type: 'inscribe', src: h.id, text: id }); }
+      return 0;
     }
     case 'use':
       if (a.item === 'potion') {

@@ -1,5 +1,5 @@
 import type { Rng } from '../../core/rng';
-import type { Engraving } from './engraveCore';
+import type { EngraveId, Engraving } from './engraveCore';
 
 export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'bow' | 'crossbow' | 'throwing' | 'staff';
 export type Element = 'fire' | 'frost' | 'shock' | 'poison';
@@ -17,7 +17,9 @@ export interface Weapon {
   engraves?: Engraving[];
 }
 export interface Armor { kind: 'armor'; tier: 1 | 2 | 3; name: string; reduce: number }
-export type Equipment = Weapon | Armor;
+/** A rune stone: one engraving, waiting in the bag to be inscribed on a weapon. */
+export interface RuneStone { kind: 'rune'; id: EngraveId; name: string }
+export type Equipment = Weapon | Armor | RuneStone;
 export type BeltItem = 'potion' | 'bomb' | 'fireFlask' | 'frostFlask' | 'shockFlask' | 'poisonFlask';
 export const BELT_ITEMS: BeltItem[] = ['potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask'];
 
@@ -66,7 +68,7 @@ export function armorOf(tier: 1 | 2 | 3): Armor {
 }
 
 /** A random find: one in five is armour; weapons are an even split between melee and ranged groups. */
-export function rollEquipment(rng: Rng, floor: number): Equipment {
+export function rollEquipment(rng: Rng, floor: number): Weapon | Armor {
   const t2 = TIER2[Math.min(TIER2.length, Math.max(1, floor)) - 1]!;
   if (rng.chance(0.2)) return armorOf(rng.chance(t2) ? (rng.chance(0.3) ? 3 : 2) : 1);
   const group = rng.pick(rng.chance(0.5) ? MELEE : RANGED);

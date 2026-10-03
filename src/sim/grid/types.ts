@@ -1,7 +1,7 @@
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
 import type { BeltItem, Equipment } from './items';
-import type { HeroFx } from './engraveCore';
+import type { EngraveId, HeroFx } from './engraveCore';
 
 /** 'open' is a door that has been opened. */
 export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar';
@@ -89,6 +89,8 @@ export interface GridState {
   telegraphs: Telegraph[];
   /** engravings already fired during the current hero action */
   fired: Set<string>;
+  /** level-up engraving choices waiting for the player (first one is shown) */
+  offers: EngraveId[][];
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
@@ -97,16 +99,16 @@ export interface FloorItem { pos: Cell; item: Equipment }
 export type GAction =
   | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
-  | { kind: 'use'; item: BeltItem; at?: Cell };
+  | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'inscribe'; bag: number } | { kind: 'choose'; i: number | null };
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo';
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
-export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1 };
+export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1, inscribe: 1 };
 export const HERO = { hp: 30, sight: 8, heal: 12, bash: [2, 4] as const, bashHit: 0.9 };
 export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [number, number]; range: number; hit: number }> = {
   minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },

@@ -1,10 +1,10 @@
 import { createRng } from '../../core/rng';
 import { computeFov } from './fov';
 import { CLASS_BONUS, startGear, type ClassId } from './gear';
-import { makeWeapon, type Element, type WeaponGroup } from './items';
+import { makeWeapon, type Element, type Weapon, type WeaponGroup } from './items';
 import { add, DIRS, same, tileAt, type Cell, type FloorItem } from './types';
 import { makeFoe } from './foes';
-import { freshFx } from './engraveCore';
+import { freshFx, type EngraveId } from './engraveCore';
 import { HERO, type GridMap, type GridState } from './types';
 
 /** A fresh sortie on a map: the hero at the start, every spawn asleep, chests shut. */
@@ -18,7 +18,7 @@ export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior', f
     },
     foes: map.spawns.map((sp, i) => makeFoe(`f${i + 1}`, sp.kind, sp.pos, sp.group, floor, 0)),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
-    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], fired: new Set(), barrels: (map.barrels ?? []).map((b) => ({ ...b })),
+    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], fired: new Set(), offers: [], barrels: (map.barrels ?? []).map((b) => ({ ...b })),
   };
   refreshSight(s);
   return s;
@@ -32,6 +32,12 @@ export function refreshSight(s: GridState): void {
 
 const RACK: WeaponGroup[] = ['dagger', 'sword', 'axe', 'spear', 'mace', 'bow', 'crossbow', 'throwing', 'staff'];
 const RACK_STAFF: Element[] = ['frost', 'shock', 'poison'];
+/** prototype: the rack shows off the combos, two engravings per weapon */
+const RACK_ENGRAVES: Record<WeaponGroup, [EngraveId, EngraveId]> = {
+  dagger: ['counter', 'momentum'], sword: ['dash', 'riposte'], axe: ['leap', 'momentum'], spear: ['quickswap', 'laststand'], mace: ['wallslam', 'finisher'],
+  bow: ['rapid', 'kite'], crossbow: ['mark', 'ricochet'], throwing: ['volley', 'swapstrike'], staff: ['echo', 'elemArrow'],
+};
+const engraved = (w: Weapon): Weapon => ({ ...w, engraves: RACK_ENGRAVES[w.group].map((id) => ({ id, lvl: 1 as const })) });
 
 /** Prototype aid: one of every weapon group the hero is not already holding, laid on the floor around the start. */
 export function weaponRack(s: GridState): FloorItem[] {
@@ -41,5 +47,5 @@ export function weaponRack(s: GridState): FloorItem[] {
     const c = add(s.hero.pos, { x: d.x * r, y: d.y * r });
     if (tileAt(s.map, c) === 'floor' && !s.chests.some((ch) => same(ch.pos, c)) && !s.foes.some((f) => same(f.pos, c)) && !spots.some((p) => same(p, c))) spots.push(c);
   }
-  return RACK.filter((gp) => !held.has(gp)).slice(0, spots.length).map((gp, i) => ({ pos: spots[i]!, item: makeWeapon(gp, 1, gp === 'staff' ? RACK_STAFF[s.seed % 3] : undefined) }));
+  return RACK.filter((gp) => !held.has(gp)).slice(0, spots.length).map((gp, i) => ({ pos: spots[i]!, item: engraved(makeWeapon(gp, 1, gp === 'staff' ? RACK_STAFF[s.seed % 3] : undefined)) }));
 }

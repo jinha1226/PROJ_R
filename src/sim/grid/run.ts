@@ -1,3 +1,4 @@
+import { offerFor } from './engrave';
 import { FOE_XP, makeFoe, spawnFoe } from './foes';
 import { generateMap } from './mapgen';
 import { refreshSight } from './state';
@@ -49,6 +50,7 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     s.hero.maxHp += LEVEL_HP;
     s.hero.hp = Math.min(s.hero.maxHp, s.hero.hp + LEVEL_HP);
     s.events.push({ t: s.time, type: 'levelUp', src: s.hero.id, amount: s.hero.level });
+    s.offers.push(offerFor(s));
   }
 }
 
