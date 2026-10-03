@@ -20,8 +20,8 @@ it('preserves the existing floor layout, spawns and contents apart from elite fl
   expect(hashes).toMatchInlineSnapshot(`
     [
       "c7b60efdf41b3fd9ae73b50c8ce5ccff46f673583632c54481223a3aecc9ec9c",
-      "0efb5e8c419372eeebac707837b077ea3fd79f1d26173e9bdc1b2308464820a0",
-      "7b0e93120c0dbf5fc180759e896a0c2d51a10a0c36473cbd3ab0afed0a3c3361",
+      "48adbc2090613c742f31151732827d3e849b0ade7a4e31cc5d50748dc59c1250",
+      "6a0bc2cca906bbe24b189fc5533adefcedf8899376eeb5a5d4274f74faf32a6b",
     ]
   `);
 });

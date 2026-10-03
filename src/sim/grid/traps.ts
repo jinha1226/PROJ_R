@@ -80,5 +80,5 @@ export function placeTraps(m: { w: number; h: number; tiles: string[]; start: Ce
     if (at(x, y) !== 'floor' || byDoor || taken.has(idx(m, c)) || dist(c, m.start) <= 3 || (m.stairs && dist(c, m.stairs) <= 1)) continue;
     cells.push(c);
   }
-  return rng.shuffle(cells).slice(0, 3 + floor).map((pos) => ({ pos, kind: rng.pick(KINDS), found: false }));
+  return rng.shuffle(cells).slice(0, Math.min(9, 3 + Math.ceil(floor / 2))).map((pos) => ({ pos, kind: rng.pick(KINDS), found: false }));
 }

@@ -2,6 +2,8 @@ import type { WeaponGroup } from '../../sim/grid/items';
 
 /** Small line icons (24×24, stroke = currentColor) for the grid HUD. */
 const P: Record<string, string> = {
+  search: 'M10 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14Z M15 15l6 6',
+  stairs: 'M3 20h6v-6h6V8h6V3',
   sword: 'M14.5 3.5 20.5 3.5 20.5 9.5 9 21 6 21 6 18Z M5 15 9 19 M3.5 20.5 6 18',
   dagger: 'M16 4 20 4 20 8 11 17 8 17 8 14Z M6 13 11 18 M4 20 7 17',
   axe: 'M6 21 15 9 M12 4c4 0 8 4 8 8-3 0-5-1-6.5-2.5S11 7 12 4Z',

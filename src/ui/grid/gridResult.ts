@@ -1,8 +1,14 @@
+import { deathLine } from './deathRecap';
+import { zoneOf } from '../../sim/grid/zones';
+import { ENGRAVES, type EngraveId } from '../../sim/grid/engraveCore';
+import type { RunState } from '../../sim/grid/types';
 import { FLOORS } from '../../sim/grid/run';
 import type { Screen } from '../../app/router';
 
 export interface GridResultData {
   won: boolean;
+  killedBy?: RunState['killedBy'];
+  suit?: EngraveId[];
   floor: number;
   kills: number;
   level: number;
@@ -25,6 +31,9 @@ export class GridResult implements Screen {
     this.el.dataset.testid = 'grid-result';
     this.el.innerHTML = `<div class="panel">
       <h2 class="${d.won ? 'ok' : 'lost'}">${d.won ? '에너지원을 손에 넣었다' : '쓰러졌다'}</h2>
+      ${d.won ? '' : `<p>${deathLine(d.killedBy)}</p>`}
+      <p>${d.floor}층 · ${zoneOf(d.floor).name}</p>
+      <div class="gres-engravings">${(d.suit ?? []).map((id) => `<span>${ENGRAVES[id].name}</span>`).join('')}</div>
       <ul class="gres-stats">
         <li><span>도달한 층</span><b>${d.floor}층 / ${FLOORS}</b></li>
         <li><span>처치</span><b>${d.kills}</b></li>

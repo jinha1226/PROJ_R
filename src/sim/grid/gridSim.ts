@@ -1,3 +1,4 @@
+import { recordDeath } from './deathRecap';
 import { autoTarget, heroAct } from './actions';
 import { noise, updateAwareness } from './danger';
 import { nextFloor, settleKills, updateWanderers } from './run';
@@ -6,6 +7,7 @@ import { hitChance } from './combat';
 import { activeWeapon } from './gear';
 import { WEAPONS, type GunGroup, type Weapon } from './items';
 import { heroDmg, rechargeStaffs } from './weapons';
+import { canRegenerate, regenerate } from './regen';
 import { selfCharge } from './suitCharge';
 import { castSpell, passMarks } from './shotCombos';
 import { discover } from './traps';
@@ -42,6 +44,7 @@ export class GridSim {
     s.events = [];
     s.fired = new Set();
     const t0 = s.hero.nextAt;
+    const safeAtStart = canRegenerate(s);
     const fx = s.hero.fx;
     fx.acted = null;
     const boosted = fx.momentum;
@@ -72,6 +75,7 @@ export class GridSim {
     // a free action (quick swap, a level-up pick) takes no time, so nothing ticks
     if (cost > 0) tickStatuses(s, s.hero, t0);
     s.hero.nextAt += cost;
+    recordDeath(s);
     settleKills(s, alive);
     if (s.outcome) { s.time = s.hero.nextAt; return s.events; }
     if (s.map.stairs && same(s.hero.pos, s.map.stairs) && s.hero.alive) {
@@ -83,10 +87,12 @@ export class GridSim {
     selfCharge(s, cost);
     refreshSight(s);
     updateAwareness(s);
+    regenerate(s, cost, safeAtStart);
     runUntilHero(s);
     s.time = s.hero.nextAt;
     s.tiles = s.tiles.filter((x) => x.until > s.time);
     s.telegraphs = s.telegraphs.filter((x) => s.foes.some((f) => f.id === x.src && f.alive));
+    recordDeath(s);
     settleKills(s, alive);
     // a core collected in the same action still counts: the run is won
     if (!s.hero.alive && s.outcome !== 'won') {

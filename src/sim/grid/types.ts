@@ -66,6 +66,7 @@ export interface Hero extends Ent {
   maxCharge: number;
   /** game time banked toward the next self-charge */
   chargeClock?: number;
+  regenClock?: number;
   kind: 'hero';
   level: number;
   xp: number;
@@ -118,7 +119,7 @@ export interface GridState {
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
-export interface RunState { floor: number; kills: number; won: boolean; floorStart: number; waves: number }
+export interface RunState { killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
 export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | Echo }
 export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }

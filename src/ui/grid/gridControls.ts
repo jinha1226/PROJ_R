@@ -1,7 +1,7 @@
 import { quantize8 } from '../../app/input/gridInput';
 import type { Cell } from '../../sim/grid/types';
 
-export type GridCmd = 'shoot' | 'wait' | 'potion' | 'next' | 'prev' | 'swap' | 'bag' | 'confirm' | 'cancel' | 'bomb' | 'fireFlask' | 'frostFlask' | 'shockFlask' | 'poisonFlask' | 'search';
+export type GridCmd = 'shoot' | 'wait' | 'potion' | 'next' | 'prev' | 'swap' | 'bag' | 'confirm' | 'cancel' | 'bomb' | 'fireFlask' | 'frostFlask' | 'shockFlask' | 'poisonFlask' | 'search' | 'explore' | 'stairs';
 
 const DIR_KEYS: Record<string, Cell> = {
   KeyW: { x: 0, y: -1 }, ArrowUp: { x: 0, y: -1 }, Numpad8: { x: 0, y: -1 },
@@ -12,7 +12,7 @@ const DIR_KEYS: Record<string, Cell> = {
   KeyZ: { x: -1, y: 1 }, Numpad1: { x: -1, y: 1 }, KeyC: { x: 1, y: 1 }, Numpad3: { x: 1, y: 1 },
 };
 const CMD_KEYS: Record<string, GridCmd> = {
-  KeyF: 'shoot', KeyR: 'swap', Space: 'wait', Numpad5: 'wait', Period: 'wait', Digit1: 'potion', Digit2: 'bomb', Digit3: 'fireFlask', Digit4: 'frostFlask', Digit5: 'shockFlask', Digit6: 'poisonFlask', Enter: 'confirm', Escape: 'cancel', Tab: 'next', Backquote: 'prev', KeyX: 'swap', KeyI: 'bag', KeyB: 'bag', KeyV: 'search',
+  KeyO: 'explore', KeyG: 'stairs', KeyF: 'shoot', KeyR: 'swap', Space: 'wait', Numpad5: 'wait', Period: 'wait', Digit1: 'potion', Digit2: 'bomb', Digit3: 'fireFlask', Digit4: 'frostFlask', Digit5: 'shockFlask', Digit6: 'poisonFlask', Enter: 'confirm', Escape: 'cancel', Tab: 'next', Backquote: 'prev', KeyX: 'swap', KeyI: 'bag', KeyB: 'bag', KeyV: 'search',
 };
 /** pad buttons (standard mapping): A shoot, B wait, X swap, Y potion, LB/RB target, Start bag */
 const PAD_CMDS: [number, GridCmd][] = [[0, 'shoot'], [1, 'wait'], [2, 'swap'], [3, 'potion'], [4, 'prev'], [5, 'next'], [8, 'swap'], [9, 'bag']];

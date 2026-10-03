@@ -70,6 +70,11 @@ export class GridHud {
       <div class="ghud-help muted">WASD·QEZC 이동(꾹 누르면 연속) · F 사격 · X 교체 · I 가방 · Tab 표적 · Space 쉬기 · V 살피기(자신 탭) · 1 물약 · 클릭 이동 · 휠 확대</div>`;
   }
 
+  message(text: string): void {
+    this.lines = pushLog(this.lines, text, performance.now() / 1000, false);
+    this.drawLog();
+  }
+
   cue(e: GEvent): void {
     if (e.type === 'engrave' && e.text) this.flashes.set(e.text, performance.now() / 1000 + 0.4);
     const text = e.type === 'pickup' ? `${e.text} 획득` : e.type === 'full' ? `가방이 가득 찼다 — ${e.text}은(는) 바닥에` : e.type === 'equip' || e.type === 'swap' ? `${e.text} 듦` : e.type === 'loot' && e.text && !e.amount ? `${e.text} 획득` : eventLine(e) ?? LOG[e.type];
