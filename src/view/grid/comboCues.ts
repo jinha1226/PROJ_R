@@ -81,6 +81,7 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'search': { const p = k.at(e.src); if (p) k.fx.transient.burst(p.x, p.z, '#b8d0ff', 2.2, 0.6); a.anim(e.src, 'interact'); return true; }
     case 'root': { const p = k.at(e.src); if (p) k.fx.number('그물', 'miss', p); return true; }
     case 'stumble': { const p = k.at(e.src); if (p) k.fx.number('비틀', 'miss', p); return true; }
+    case 'suit': { const p = k.at('hero'); if (p) { k.fx.transient.glow(p.x, p.z, '#5ae0ff'); k.fx.flash(p, '#5ae0ff', 26, 0.4); k.fx.number('슈트 회수!', 'combo', p); } return true; }
     case 'drink': a.anim(e.src, 'drink'); return true;
     case 'read': { a.anim(e.src, 'interact'); const p = k.at(e.src); if (p) k.particles.spray(p, '#f3e6b0', 14); return true; }
     case 'buff': { const p = k.at(e.dst); const label = BUFF_LABEL[e.text ?? '']; if (p && label) k.fx.number(label, 'combo', p); return true; }

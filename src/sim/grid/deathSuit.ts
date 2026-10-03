@@ -28,6 +28,7 @@ export function placeDeathSuit(s: GridState): void {
       s.floorItems.push({ pos, item: { kind: 'suit', ids: [...suit.ids], name: '남겨진 슈트' } });
       s.foes.push(makeFoe(`f${s.nextFoeId++}`, kind, add(pos, dir), -1, s.run.floor, s.hero.nextAt, true));
       s.run.suitPlaced = true;
+      s.events.push({ t: s.time, type: 'suitHere', to: { ...pos } });
       return;
     }
   }

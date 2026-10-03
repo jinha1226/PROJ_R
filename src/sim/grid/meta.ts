@@ -59,7 +59,7 @@ export function settleRun(meta: MetaState, s: GridState): MetaState {
     m.startCandidates = [...s.run.recovered];
     delete m.suit;
   }
-  if (s.outcome === 'dead') delete m.suit;
+  // an empty-handed death (say after a shortcut start) leaves the older suit where it lies
   if (s.outcome === 'dead' && s.hero.suit.length) {
     m.suit = { floor: s.run.floor, ids: [...s.hero.suit], killer: { ...(s.run.killedBy ?? { kind: 'self' }) } };
   }

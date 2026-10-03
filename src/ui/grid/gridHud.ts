@@ -34,6 +34,8 @@ function eventLine(e: GEvent): string | undefined {
   if (e.type === 'absorb') return '잔향을 흡수했다';
   if (e.type === 'record') return `새 각인 기록 — ${ENGRAVES[e.text as EngraveId]?.name ?? e.text ?? ''}`;
   if (e.type === 'stairs') return '계단이 열렸다';
+  if (e.type === 'suitHere') return '이 층에 남겨진 슈트가 있다 — 지키는 적을 조심';
+  if (e.type === 'suit') return `남겨진 슈트 회수 — 각인 ${(e.text ?? '').split(',').filter(Boolean).length}개가 기지로 전송됐다`;
   if (e.type === 'core') return '에너지원을 손에 넣었다';
   if (e.type === 'identify') return identifyLine(e.text ?? '|');
   if (e.type === 'trap' && e.src === 'hero') return `함정 작동 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;

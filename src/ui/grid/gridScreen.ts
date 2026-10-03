@@ -1,4 +1,5 @@
 import type { ShipDeck } from './ship/shipDeck';
+import { shipZoom } from '../../view/grid/shipFrame';
 import { loadPixel, savePixel } from '../../app/gridPreferences';
 import { exploreTarget } from '../../sim/grid/explore';
 import type { Screen } from '../../app/router';
@@ -87,8 +88,6 @@ export class GridScreen implements Screen {
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
       { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });
     this.el.appendChild(this.zoom.el);
-    // the whole deck fits on screen
-    if (this.api.ship) rt.setZoom(12);
     const px = document.createElement('button');
     px.className = 'btn grid-pixel';
     px.dataset.testid = 'grid-pixel';
@@ -101,6 +100,8 @@ export class GridScreen implements Screen {
       this.el.classList.toggle('portrait', l === 'portrait');
       this.el.classList.toggle('landscape', l === 'landscape');
       this.zoom?.setLayout(l);
+      // the whole deck fits on screen in either orientation
+      if (this.api.ship) rt.setZoom(shipZoom(this.s.map.w, this.s.map.h, stage.clientWidth / Math.max(1, stage.clientHeight)));
     }));
     stage.addEventListener('pointerdown', (e) => { this.tap = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now() }; });
     stage.addEventListener('pointerup', (e) => {

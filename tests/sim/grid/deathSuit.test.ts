@@ -72,11 +72,21 @@ it('walking onto the suit takes a turn, transmits it, and settlement clears the 
   s.outcome = 'dead'; s.hero.suit = ['chain'];
   expect(settleRun(m, s).suit?.ids).toEqual(['chain']);
 });
-it('a new death replaces the old suit; an empty death removes the old one', () => {
+it('a new death replaces the old suit; an empty-handed death keeps the old one (it may lie where this run never went)', () => {
   const m = meta(8);
   const s = newRunState(5, m, { gun: 'pistol', start: 1, startSuit: [] });
   s.hero.suit = ['chain']; s.outcome = 'dead';
   expect(settleRun(m, s).suit).toEqual({ floor: 1, ids: ['chain'], killer: { kind: 'self' } });
   s.hero.suit = [];
-  expect(settleRun(m, s).suit).toBeUndefined();
+  const old = { ...m, suit: { floor: 3, ids: ['leap' as const], killer: { kind: 'minion' } } };
+  expect(settleRun(old, s).suit).toEqual(old.suit);
+});
+
+it('arriving on the suit\'s floor says so', () => {
+  const m = meta(8);
+  m.suit = { floor: 2, ids: ['dash'], killer: { kind: 'minion' } };
+  const s = newRunState(5, m, { gun: 'pistol', start: 1, startSuit: [] });
+  s.events = [];
+  nextFloor(s);
+  expect(s.events.some((e) => e.type === 'suitHere')).toBe(true);
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { clearRun, loadRun, saveRun, startGridRun, continueGridRun } from '../../src/app/gridRun';
+import { abandonRun, clearRun, loadRun, saveRun, startGridRun, continueGridRun } from '../../src/app/gridRun';
 import { loadMeta } from '../../src/app/gridMeta';
 import { GridSim } from '../../src/sim/grid/gridSim';
 import { toSave } from '../../src/sim/grid/save';
@@ -49,4 +49,21 @@ it('keeps the settled result available when storage is blocked', () => {
   expect(session.meta.best).toBe(6);
   expect(session.meta.wins).toBe(1);
   expect(session.meta.energy).toBe(20);
+});
+
+it('a saved run can be given up from the ship: it settles as a death (energy kept) and the save goes', () => {
+  const run = startGridRun(11);
+  run.sim.s.run.energy = 37;
+  run.checkpoint();
+  expect(loadRun()).not.toBeNull();
+  const meta = abandonRun();
+  expect(meta.energy).toBe(37);
+  expect(loadRun()).toBeNull();
+  expect(loadMeta().energy).toBe(37);
+});
+
+it('a save that cannot be continued is dropped instead of blocking new runs', () => {
+  data.set('projr.grid.run.v1', JSON.stringify({ seed: 1, time: 0, map: {}, hero: {}, foes: [], run: {} }));
+  expect(continueGridRun()).toBeNull();
+  expect(data.has('projr.grid.run.v1')).toBe(false);
 });

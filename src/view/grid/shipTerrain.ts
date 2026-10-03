@@ -1,14 +1,13 @@
 import * as THREE from 'three';
 import type { GridMap } from '../../sim/grid/types';
 import type { MetaState } from '../../sim/grid/meta';
-import { STATIONS, type StationId } from '../../sim/grid/ship';
+import type { StationId } from '../../sim/grid/ship';
 import { stationLit } from './stationLit';
 import type { ShipKit } from './shipKit';
 export class ShipTerrain {
   readonly root = new THREE.Group();
   private readonly lights = new Map<StationId, THREE.PointLight>();
   private readonly owned: THREE.Mesh[] = [];
-  private readonly labels: THREE.Sprite[] = [];
   constructor(map: GridMap, kit: ShipKit, meta: MetaState) {
     const material = (name: 'floor' | 'wall' | 'red') => new THREE.MeshStandardMaterial({ map: kit.textures[name], roughness: 0.7 });
     const floor = material('floor'), wall = material('wall'), red = material('red');
@@ -39,20 +38,11 @@ export class ShipTerrain {
       }
       const light = new THREE.PointLight('#b7eaff', 0, 4, 1.5);
       light.position.set(x, 2.5, z); this.root.add(light); this.lights.set(id, light);
-      this.label(STATIONS[id], x, z);
     }
     // Small wall-top dressing never blocks a traversable cell.
     prop('Prop_Crate', 0, 3, 0.45, 0.5, 1.2);
     prop('Prop_Barrel2_Closed', 14, 7, 0.55, 0.5, 1.2);
     this.power(meta);
-  }
-  private label(text: string, x: number, z: number): void {
-    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 64;
-    const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#091722dd'; ctx.fillRect(0, 0, 256, 64);
-    ctx.fillStyle = '#d4f5ff'; ctx.font = 'bold 28px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(text, 128, 42);
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), depthTest: false }));
-    sprite.position.set(x, 2.3, z); sprite.scale.set(1.8, 0.45, 1); this.root.add(sprite); this.labels.push(sprite);
   }
   power(meta: MetaState): void { for (const [id, light] of this.lights) light.intensity = stationLit(meta, id) ? 9 : 0; }
   shade(): void { /* Ship visibility is permanent. */ }
@@ -63,7 +53,6 @@ export class ShipTerrain {
     const materials = new Set<THREE.Material>();
     for (const mesh of this.owned) { mesh.geometry.dispose(); materials.add(mesh.material as THREE.Material); }
     for (const mat of materials) mat.dispose();
-    for (const s of this.labels) { s.material.map?.dispose(); s.material.dispose(); }
     for (const light of this.lights.values()) light.dispose();
   }
 }

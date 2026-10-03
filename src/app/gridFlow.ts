@@ -14,7 +14,7 @@ import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
 import { showFatal } from './fatal';
 import type { Router } from './router';
 
-import { startGridRun, continueGridRun, type GridRunSession } from './gridRun';
+import { abandonRun, startGridRun, continueGridRun, type GridRunSession } from './gridRun';
 let ual: Promise<UalLibrary> | null = null;
 let dungeonP: Promise<DungeonKit> | null = null;
 const getDungeon = (): Promise<DungeonKit> => (dungeonP ??= DungeonKit.load(import.meta.env.BASE_URL).catch((e: unknown) => { dungeonP = null; throw e; }));
@@ -43,7 +43,7 @@ export class GridFlow {
       const [lib, kit, weapons, shipKit] = await Promise.all([getUal(), getDungeon(), getWeapons(), ShipKit.load(import.meta.env.BASE_URL)]);
       setWeaponKit(weapons);
       const ship = new ShipDeck({ meta: this.meta, kit: shipKit, lastEnergy: this.lastEnergy, wake, saved: !!loadRun(),
-        save: saveMeta, launch: options => { void this.launch(seed, undefined, options); }, resume: () => this.continue(), quit: this.toTitle });
+        save: saveMeta, launch: options => { void this.launch(seed, undefined, options); }, resume: () => this.continue(), abandon: () => { this.meta = abandonRun(); void this.ship(seed); }, quit: this.toTitle });
       this.router.go(new GridScreen({ sim: GridSim.fromState(shipState(this.meta)), lib, kit, ship, end: () => undefined, fatal: e => showFatal(this.root, e) }));
     } catch (e) { showFatal(this.root, e); }
   }

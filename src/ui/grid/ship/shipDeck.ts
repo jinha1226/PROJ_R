@@ -10,15 +10,18 @@ import { launchOptions, panelContents, toggleStartSuit } from './panelContents';
 import '../../styles/ship.css';
 export interface ShipDeckApi {
   meta: MetaState; kit: ShipKit; lastEnergy: number; wake: boolean; saved: boolean;
-  save(meta: MetaState): void; launch(options: RunOptions): void; resume(): void; quit(): void;
+  save(meta: MetaState): void; launch(options: RunOptions): void; resume(): void; abandon(): void; quit(): void;
 }
+let remembered: RunOptions | null = null;
+
 /** Ship UI layered over GridScreen: it owns no walking input or animation loop. */
 export class ShipDeck {
   readonly el = document.createElement('div');
   private readonly hud = document.createElement('div');
   private readonly panel = document.createElement('div');
   private selected: StationId | null = null;
-  private options: RunOptions = { gun: 'pistol', start: 1, startSuit: [] };
+  /** the loadout picked last time (kept while the game is open) */
+  private options: RunOptions = remembered ?? { gun: 'pistol', start: 1, startSuit: [] };
   private runtime?: GridRuntime;
   get blocked(): boolean { return this.selected !== null; }
   constructor(readonly api: ShipDeckApi) {
@@ -62,12 +65,13 @@ export class ShipDeck {
         if (id === 'armory') this.options.gun = choice.id as GunGroup;
         if (id === 'nav') this.options = launchOptions(this.api.meta, { ...this.options, start: Number(choice.id) as 1 | 6 | 11 });
         if (id === 'hatch') this.options = toggleStartSuit(this.api.meta, this.options, choice.id as EngraveId);
+        remembered = this.options;
         this.drawPanel();
       }, `ship-choice-${choice.id}`);
       b.disabled = !choice.enabled; b.setAttribute('aria-pressed', String(choice.selected));
     }
     if (id === 'hatch') {
-      if (this.api.saved) { const p = document.createElement('p'); p.textContent = '진행 중인 출격이 있다. 이어하기로 돌아갈 수 있다.'; body.append(p); this.button(body, '이어하기', () => this.api.resume()); }
+      if (this.api.saved) { const p = document.createElement('p'); p.textContent = '진행 중인 출격이 있다. 이어하기로 돌아갈 수 있다.'; body.append(p); this.button(body, '이어하기', () => this.api.resume()); this.button(body, '출격 포기 (에너지는 남음)', () => this.api.abandon(), 'ship-abandon'); }
       const launch = this.button(body, '출격', () => this.api.launch(launchOptions(this.api.meta, this.options)), 'ship-launch');
       launch.disabled = this.api.saved;
     }

@@ -11,7 +11,7 @@ export function loadRun(): GridState | null {
     if (text === null) return null;
     const s = fromSave(text);
     return s.outcome ? null : s;
-  } catch { return null; }
+  } catch { clearRun(); return null; }
 }
 export function saveRun(s: GridState): void {
   try { localStorage.setItem(KEY, toSave(s)); } catch { /* storage unavailable */ }
@@ -37,7 +37,20 @@ export function startGridRun(seed: number, opts: RunOptions = { gun: 'pistol', s
   run.checkpoint();
   return run;
 }
-/** Run B can offer this from the ship without changing run creation or serialization. */
+/** Gives up a saved run from the ship: it settles as a death (energy and records kept, the suit stays on its floor). */
+export function abandonRun(): MetaState {
+  const s = loadRun();
+  const meta = loadMeta();
+  if (!s) return meta;
+  s.outcome = 'dead';
+  s.hero.alive = false;
+  s.run.killedBy ??= { kind: 'abandon' };
+  const settled = settleRun(meta, s);
+  saveMeta(settled);
+  clearRun();
+  return settled;
+}
+
 export function continueGridRun(): GridRunSession | null {
   const s = loadRun();
   return s ? session(GridSim.fromState(s)) : null;

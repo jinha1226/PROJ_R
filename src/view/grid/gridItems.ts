@@ -24,6 +24,7 @@ export class GridItems {
           : it.kind === 'potion' ? new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.3, 8), new THREE.MeshStandardMaterial({ color: POTION_HEX[s.lore.colors[it.p]] ?? '#d0d0d0', emissive: POTION_HEX[s.lore.colors[it.p]] ?? '#d0d0d0', emissiveIntensity: 0.4 }))
           : it.kind === 'scroll' ? new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 8), new THREE.MeshStandardMaterial({ color: '#efe0b0', emissive: '#6a5a30', emissiveIntensity: 0.3 }))
           : it.kind === 'echo' ? new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), new THREE.MeshStandardMaterial({ color: '#b48aff', emissive: '#b48aff', emissiveIntensity: 1.4, transparent: true, opacity: 0.8 }))
+          : it.kind === 'suit' ? new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.34, 4, 8), new THREE.MeshStandardMaterial({ color: '#7fd8ff', emissive: '#2a9ad8', emissiveIntensity: 1.1 }))
           : it.kind === 'core' ? new THREE.Mesh(new THREE.OctahedronGeometry(0.3), new THREE.MeshStandardMaterial({ color: '#5ae0ff', emissive: '#5ae0ff', emissiveIntensity: 1.4 }))
           : new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), new THREE.MeshStandardMaterial({ color: '#8a8a92', metalness: 0.5 }));
         model.rotation.set(0, 0, Math.PI / 2);
@@ -33,7 +34,7 @@ export class GridItems {
         // fit within one cell (a spear lying down is otherwise longer than a tile)
         const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
         model.scale.multiplyScalar(Math.min(1, 0.8 / Math.max(size.x, size.z, 0.01)));
-        const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.36, 24), new THREE.MeshBasicMaterial({ color: it.kind === 'echo' ? '#b48aff' : it.kind === 'core' ? '#5ae0ff' : '#ffd76a', transparent: true, opacity: 0.55, depthWrite: false }));
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.36, 24), new THREE.MeshBasicMaterial({ color: it.kind === 'echo' ? '#b48aff' : it.kind === 'core' || it.kind === 'suit' ? '#5ae0ff' : '#ffd76a', transparent: true, opacity: 0.55, depthWrite: false }));
         ring.rotation.x = -Math.PI / 2;
         ring.position.y = 0.02;
         g.add(model, ring);
