@@ -125,3 +125,38 @@ test('engravings: inscribe a rune stone from the bag, pick one on level-up, and 
   await page.screenshot({ path: 'test-artifacts/grid-dash.png' });
   expect(errors).toEqual([]);
 });
+
+test('roguelike basics: drink an unknown potion from the bag, read a map scroll, search out a trap', async ({ page }) => {
+  type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('./?seed=21');
+  await page.click('[data-testid="to-grid"]');
+  await page.click('[data-testid="class-warrior"]');
+  await waitGrid(page);
+  const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
+  await page.evaluate(() => {
+    const s = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any;
+    s.hero.gear.potions = { haste: 1 };
+    s.hero.gear.scrolls = { map: 1 };
+    s.traps.push({ pos: { x: s.hero.pos.x + 1, y: s.hero.pos.y + 1 }, kind: 'net', found: false });
+  });
+  const colour = (await st()).lore.colors.haste as string;
+  await page.keyboard.press('i');
+  await expect(page.locator('[data-testid="grid-pack-potion-haste"]')).toContainText(`${colour} 물약`);
+  await page.click('[data-testid="grid-drink-haste"]');
+  await expect.poll(async () => (await st()).lore.known).toContain('potion:haste');
+  await expect(page.locator('[data-testid="grid-pack-potion-haste"]')).toHaveCount(0);
+  await page.click('[data-testid="grid-read-map"]');
+  await expect.poll(async () => (await st()).lore.known).toContain('scroll:map');
+  await page.click('[data-testid="grid-bag-close"]');
+  // the map scroll already shows every trap; plant another hidden one and search for it
+  await page.evaluate(() => {
+    const s = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any;
+    s.traps.push({ pos: { x: s.hero.pos.x - 1, y: s.hero.pos.y }, kind: 'spike', found: false });
+  });
+  await page.keyboard.press('v');
+  await expect.poll(async () => (await st()).traps.every((t: Any) => t.found)).toBe(true);
+  expect(errors).toEqual([]);
+});
