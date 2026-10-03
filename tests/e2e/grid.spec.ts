@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 type Cell = { x: number; y: number };
 type S = { time: number; outcome?: string; hero: { pos: Cell; hp: number; loaded: boolean }; foes: { pos: Cell; alive: boolean; kind: string }[]; map: { tiles: string[]; w: number } };
-type G = { state(): S; act(a: unknown): boolean; walkTo(c: Cell): void; walking(): boolean };
+type G = { state(): S; act(a: unknown): boolean; walkTo(c: Cell): void; walking(): boolean; toStairs(): void };
 const waitGrid = (page: Page) => page.waitForFunction(() => !!(window as unknown as { __PROJR_GRID__?: G }).__PROJR_GRID__, null, { timeout: 60_000 });
 
 test('a grid sortie: step, fight, fall, see the result and go again', async ({ page }) => {
@@ -33,6 +33,17 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
     for (let i = 0; i < 4; i++) if (!w.act({ kind: 'shoot' })) w.act({ kind: w.state().hero.loaded ? 'wait' : 'reload' });
   });
   await page.screenshot({ path: 'test-artifacts/grid-fight.png' });
+  // down the stairs: the banner shows and the HUD says floor 2
+  await page.evaluate(() => {
+    const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
+    const s = w.state() as S & { map: { stairs: Cell } };
+    s.hero.pos = { x: s.map.stairs.x - 1, y: s.map.stairs.y };
+    for (const f of s.foes) f.alive = false;
+    w.act({ kind: 'move', dir: { x: 1, y: 0 } });
+  });
+  await expect(page.locator('.grid-banner')).toHaveText('2층');
+  await expect(page.locator('.gh-danger')).toContainText('2층 / 3');
+  await page.screenshot({ path: 'test-artifacts/grid-floor2.png' });
   // fall: the haul is lost and the result screen comes up once
   await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; const h = w.state().hero as { hp: number; alive?: boolean }; h.hp = 0; h.alive = false; w.act({ kind: 'wait' }); });
   await expect(page.locator('[data-testid="grid-result"]')).toBeVisible({ timeout: 10_000 });
@@ -52,6 +63,11 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
   await expect(page.locator('.screen.grid.portrait')).toBeVisible();
+  await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; Object.assign((w.state() as unknown as { hero: { gear: { belt: Record<string, number> } } }).hero.gear.belt, { bomb: 1, fireFlask: 1 }); w.act({ kind: 'wait' }); });
+  for (const b of ['use-bomb', 'use-fireFlask']) {
+    const box = (await page.locator(`[data-testid="grid-${b}"]`).boundingBox())!;
+    expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(48);
+  }
   for (const b of ['shoot', 'wait', 'potion', 'prev', 'next']) {
     const box = (await page.locator(`[data-testid="grid-${b}"]`).boundingBox())!;
     expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(56);

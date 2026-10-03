@@ -126,3 +126,6 @@
 .gcl-card { font: inherit; color: inherit; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: 14px; background: linear-gradient(180deg, #241e26, #141117); border: 1px solid #ffffff22; box-shadow: 0 4px 12px #000a; cursor: pointer; }
 .gcl-card:hover, .gcl-card:active { border-color: #e8b45a; }
 .gcl-ic { font-size: 34px; color: #e8b45a; } .gcl-card b { font-size: 18px; } .gcl-card small { color: #cbbf9f; font-size: 12px; } .gcl-card em { font-style: normal; color: #9fd09a; font-size: 12px; }
+
+.gh-xp { height: 4px; border-radius: 2px; background: #0009; overflow: hidden; max-width: 260px; } .gh-xp div { height: 100%; background: linear-gradient(90deg, #8ad0ff, #e8f4ff); transition: width 0.3s; }
+.gh-st { font-size: 12px; font-weight: 700; } .gh-st.burn { color: #ffa060; border-color: #ff7a2a66 !important; } .gh-st.frost { color: #8ad0ff; border-color: #5ab4ff66 !important; } .gh-st.poison { color: #9ae070; border-color: #7ad04a66 !important; }

@@ -1,4 +1,5 @@
 import { activeWeapon, CLASS_NAME } from '../../sim/grid/gear';
+import { XP_STEPS } from '../../sim/grid/run';
 import type { GEvent, GridState } from '../../sim/grid/types';
 import { icon, weaponIcon } from './icons';
 import { weaponState } from './weaponInfo';
@@ -21,6 +22,7 @@ export class GridHud {
         <div class="gh-main">
           <div class="gh-hp">${icon('heart', 'gh-hp-ic')}<div class="gh-hp-bar"><div class="gh-hp-fill"></div><div class="gh-hp-lag"></div></div><span class="gh-hp-num"></span></div>
           <div class="gh-res" data-testid="grid-stats"></div>
+          <div class="gh-xp"><div></div></div>
         </div>
         <div class="gh-weapon"></div>
       </div>
@@ -45,7 +47,7 @@ export class GridHud {
     const g = h.gear;
     const w = activeWeapon(g);
     const t = target ? s.foes.find((f) => f.id === target.id) : undefined;
-    const key = JSON.stringify([h.hp, h.maxHp, h.level, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), target, t?.hp, s.run]);
+    const key = JSON.stringify([h.hp, h.maxHp, h.level, h.xp, h.status, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), target, t?.hp, s.run]);
     if (key !== this.key) {
       this.key = key;
       const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
@@ -56,7 +58,12 @@ export class GridHud {
       q('.gh-hp-fill').classList.toggle('low', frac < 0.35);
       q('.gh-hp-lag').style.width = `${frac * 100}%`;
       q('.gh-hp-num').textContent = `${h.hp} / ${h.maxHp}`;
-      q('.gh-res').innerHTML = `<span title="화살">${icon('arrow')}<b>${g.arrows}</b><i>화살</i></span><span title="물약">${icon('potion')}<b>${g.belt.potion}</b><i>물약</i></span><span title="턴">${icon('hourglass')}<b>${Math.floor(s.time)}</b><i>턴</i></span>`;
+      const st = h.status;
+      const chips = st ? [st.burn > 0 ? `<span class="gh-st burn">화상 ${st.burn}</span>` : '', st.freeze > 0 ? `<span class="gh-st frost">빙결 ${st.freeze}</span>` : '', st.poison > 0 ? `<span class="gh-st poison">중독 ${st.poison}</span>` : ''].join('') : '';
+      q('.gh-res').innerHTML = `<span title="화살">${icon('arrow')}<b>${g.arrows}</b><i>화살</i></span><span title="물약">${icon('potion')}<b>${g.belt.potion}</b><i>물약</i></span><span title="턴">${icon('hourglass')}<b>${Math.floor(s.time)}</b><i>턴</i></span>${chips}`;
+      const lo = XP_STEPS[h.level - 2] ?? 0;
+      const hi = XP_STEPS[h.level - 1] ?? lo + 1;
+      q('.gh-xp div').style.width = `${Math.min(1, (h.xp - lo) / Math.max(1, hi - lo)) * 100}%`;
       q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, g.arrows) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
       const card = q('.gh-target');
       card.hidden = !t;

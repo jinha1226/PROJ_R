@@ -53,7 +53,8 @@ export class GridSim {
     s.tiles = s.tiles.filter((x) => x.until > s.time);
     s.telegraphs = s.telegraphs.filter((x) => s.foes.some((f) => f.id === x.src && f.alive));
     settleKills(s, alive);
-    if (!s.hero.alive) {
+    // a champion felled in the same moment still counts: the run is won
+    if (!s.hero.alive && s.outcome !== 'won') {
       s.outcome = 'dead';
       s.events.push({ t: s.time, type: 'dead', src: s.hero.id });
       return s.events;
@@ -82,7 +83,8 @@ export class GridSim {
     const s = this.s;
     const el = w.element ?? 'fire';
     const t = s.hero.nextAt;
-    applyElement(s, t, el, at, el === 'fire' || el === 'poison' ? 1 : 0, heroDmg(s, w), s.hero.id, (c) => explodeBarrels(s, t, c, s.hero.id));
+    // the caster stands clear of their own spell
+    applyElement(s, t, el, at, el === 'fire' || el === 'poison' ? 1 : 0, heroDmg(s, w), s.hero.id, (c) => explodeBarrels(s, t, c, s.hero.id), s.hero.id);
     for (const f of s.foes) if (f.alive && same(f.pos, at)) f.awake = true;
   }
 }

@@ -13,6 +13,13 @@ const FLASK: Record<Exclude<BeltItem, 'potion' | 'bomb'>, { el: Element; dmg: [n
   poisonFlask: { el: 'poison', dmg: null, radius: 1 },
 };
 
+const THROWN_ORDER: Exclude<BeltItem, 'potion'>[] = ['bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask'];
+
+/** Throwables you carry, each with its fixed number key (2 bomb, 3 fire, 4 frost, 5 shock, 6 poison). */
+export function beltSlots(belt: Record<BeltItem, number>): { item: Exclude<BeltItem, 'potion'>; key: number; n: number }[] {
+  return THROWN_ORDER.map((item, i) => ({ item, key: i + 2, n: belt[item] })).filter((x) => x.n > 0);
+}
+
 /** Barrels going off, one after another: each explodes once (3×3 damage, fire on the floor), neighbours catch. */
 export function explodeBarrels(s: GridState, t: number, first: Cell, src: string): void {
   const queue = [first];

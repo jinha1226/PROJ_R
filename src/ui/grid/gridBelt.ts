@@ -1,4 +1,5 @@
 import type { BeltItem } from '../../sim/grid/items';
+import { beltSlots } from '../../sim/grid/explosives';
 import type { GridState } from '../../sim/grid/types';
 import { icon } from './icons';
 
@@ -29,7 +30,7 @@ export class GridBelt {
     const key = JSON.stringify([THROWN.map((i) => b[i]), aiming]);
     if (key === this.key) return;
     this.key = key;
-    this.el.innerHTML = THROWN.filter((i) => b[i] > 0).map((i, n) => `<button class="gbelt-b ${aiming === i ? 'on' : ''}" data-item="${i}" data-testid="grid-use-${i}" style="--c:${ITEM_ICON[i][1]}">
-      ${icon(ITEM_ICON[i][0])}<small>${b[i]}</small><i>${n + 2}</i></button>`).join('');
+    this.el.innerHTML = beltSlots(b).map(({ item: i, key, n }) => `<button class="gbelt-b ${aiming === i ? 'on' : ''}" data-item="${i}" data-testid="grid-use-${i}" style="--c:${ITEM_ICON[i][1]}">
+      ${icon(ITEM_ICON[i][0])}<small>${n}</small><i>${key}</i></button>`).join('');
   }
 }

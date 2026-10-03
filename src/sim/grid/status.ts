@@ -19,6 +19,8 @@ export function entsAt(s: GridState, c: Cell): Ent[] {
 /** Direct damage (elements, explosions, status ticks): no roll, emits hit and maybe die. */
 export function hurt(s: GridState, t: number, src: string, dst: Ent, amount: number, text?: string): void {
   if (!dst.alive || amount <= 0) return;
+  // anything that hurts a sleeper wakes it
+  dst.awake = true;
   dst.hp -= amount;
   s.events.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...dst.pos }, text });
   if (dst.hp <= 0) {
@@ -57,7 +59,7 @@ export function areaCells(s: GridState, at: Cell, radius: number): Cell[] {
  * An element landing on a cell (radius 0) or an area. Fire leaves burning ground and sets off barrels;
  * poison over an area leaves a cloud; lightning hits the target and half again to foes beside it.
  */
-export function applyElement(s: GridState, t: number, el: Element, at: Cell, radius: number, dmg: readonly [number, number] | null, src: string, onBarrel?: (c: Cell) => void): void {
+export function applyElement(s: GridState, t: number, el: Element, at: Cell, radius: number, dmg: readonly [number, number] | null, src: string, onBarrel?: (c: Cell) => void, spare?: string): void {
   if (el === 'shock') {
     const target = entsAt(s, at)[0];
     if (!target) return;
@@ -67,12 +69,13 @@ export function applyElement(s: GridState, t: number, el: Element, at: Cell, rad
     return;
   }
   for (const c of areaCells(s, at, radius)) {
-    const here = entsAt(s, c);
+    const occupants = entsAt(s, c);
+    const here = occupants.filter((e) => e.id !== spare);
     for (const e of here) {
       if (dmg) hurt(s, t, src, e, s.rng.int(dmg[0], dmg[1]), el);
       if (e.alive) addStatus(s, t, e, el, src);
     }
-    if (el === 'fire' && !here.length) setTile(s, c, 'fire', FIRE_TILE);
+    if (el === 'fire' && !occupants.length) setTile(s, c, 'fire', FIRE_TILE);
     if (el === 'poison' && radius > 0) setTile(s, c, 'poison', CLOUD_TILE);
     if (el === 'fire' && s.barrels.some((b) => same(b, c))) onBarrel?.(c);
   }

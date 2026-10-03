@@ -17,7 +17,7 @@ export function heroDmg(s: GridState, w: Weapon): [number, number] {
 }
 
 const foeAt = (s: GridState, c: Cell): Ent | undefined => s.foes.find((f) => f.alive && same(f.pos, c));
-const free = (s: GridState, c: Cell) => walkable(tileAt(s.map, c)) && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c)) && !s.barrels.some((b) => same(b, c));
+const free = (s: GridState, c: Cell) => walkable(tileAt(s.map, c)) && tileAt(s.map, c) !== 'door' && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c)) && !s.barrels.some((b) => same(b, c));
 
 /** Cells beside the bump direction an axe also sweeps (front-left and front-right). */
 function sweepCells(from: Cell, d: Cell): Cell[] {
@@ -53,7 +53,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent): number 
   if (w.group === 'spear') {
     const beyond = add(foe.pos, d);
     const f = foeAt(s, beyond);
-    if (f && canStep(s.map, foe.pos, d)) blow(f);
+    if (f && canStep(s.map, foe.pos, d) && tileAt(s.map, beyond) !== 'door') blow(f);
   }
   if (w.group === 'mace' && landed && foe.alive) {
     const to = add(foe.pos, d);
@@ -76,7 +76,8 @@ export function reachTarget(s: GridState, d: Cell): Ent | undefined {
   const h = s.hero;
   if (activeWeapon(h.gear)?.group !== 'spear') return undefined;
   const mid = add(h.pos, d);
-  if (!canStep(s.map, h.pos, d) || bodyAt(s, mid) || !canStep(s.map, mid, d)) return undefined;
+  // a closed door between stops the reach
+  if (!canStep(s.map, h.pos, d) || tileAt(s.map, mid) === 'door' || bodyAt(s, mid) || !canStep(s.map, mid, d)) return undefined;
   return foeAt(s, add(mid, d));
 }
 

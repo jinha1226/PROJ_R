@@ -1,6 +1,6 @@
 import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
-import { chestAt, shootable } from '../../sim/grid/actions';
+import { shootable, walkBlocked } from '../../sim/grid/actions';
 import { activeWeapon } from '../../sim/grid/gear';
 import { WEAPONS } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
@@ -145,10 +145,10 @@ export class GridScreen implements Screen {
     const item = (THROWN as string[]).includes(c) ? (c as Exclude<BeltItem, 'potion'>) : null;
     if (this.aim) {
       if (c === 'confirm' || c === 'shoot' || item === this.aim.item) this.throwAim();
-      else if (c === 'cancel' || item) { this.aim = null; if (item) this.aim = new GridAim(s, item); }
+      else if (c === 'cancel' || item) { this.aim = null; if (item && s.hero.gear.belt[item] > 0) this.aim = new GridAim(s, item); }
       return;
     }
-    if (item) { this.aim = new GridAim(s, item); return; }
+    if (item) { if (s.hero.gear.belt[item] > 0) this.aim = new GridAim(s, item); return; }
     if (c === 'next' || c === 'prev') {
       const list = shootable(s).sort((a, b) => dist(s.hero.pos, s.foes.find((f) => f.id === a)!.pos) - dist(s.hero.pos, s.foes.find((f) => f.id === b)!.pos));
       if (!list.length) return;
@@ -210,7 +210,7 @@ export class GridScreen implements Screen {
   private walkTo(c: Cell): void {
     const s = this.s;
     if (!walkable(tileAt(s.map, c))) return;
-    this.walk = findPath(s.map, s.hero.pos, c, (p) => chestAt(s, p)?.opened === false || s.foes.some((f) => f.alive && same(f.pos, p)));
+    this.walk = findPath(s.map, s.hero.pos, c, (p) => walkBlocked(s, p));
     this.walkTimer = 0;
   }
 
@@ -241,7 +241,7 @@ export class GridScreen implements Screen {
     this.walkTimer = WALK_EVERY;
     const next = this.walk.shift();
     const h = this.s.hero.pos;
-    if (!next || dist(next, h) !== 1 || this.s.foes.some((f) => f.alive && same(f.pos, next))) { this.walk = null; return; }
+    if (!next || dist(next, h) !== 1 || walkBlocked(this.s, next)) { this.walk = null; return; }
     if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y } })) this.walk = null;
     if (this.walk && !this.walk.length) this.walk = null;
   }
