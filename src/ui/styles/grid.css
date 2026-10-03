@@ -137,3 +137,11 @@
 .glvl-card { font: inherit; display: flex; flex-direction: column; gap: 4px; padding: 10px 8px; color: #e8dcc0; background: #2a2830; border: 1px solid #ffffff22; border-radius: 10px; cursor: pointer; }
 .glvl-card:hover { border-color: #e0a64a; } .glvl-card small { color: #998; font-size: 10px; } .glvl-card b { color: #f3d38a; } .glvl-card span { font-size: 11px; color: #b8ad98; }
 .grid.portrait .glvl-cards { grid-template-columns: 1fr; }
+.gpops { position: absolute; top: 22%; left: 50%; transform: translateX(-50%); z-index: 12; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gpops-list { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.gpop { font-weight: 800; font-size: 15px; color: #f3d38a; text-shadow: 0 2px 0 #000, 0 0 10px #e0a64a88; letter-spacing: 0.04em; animation: gpop-in 0.18s ease-out; }
+.gpops-combo { font-weight: 900; font-size: 22px; color: #fff; text-shadow: 0 2px 0 #000, 0 0 12px #ffb04a; }
+.gpops-combo.fin { color: #ffd23a; font-size: 28px; }
+.gpops-combo.bump { animation: gpop-bump 0.22s ease-out; }
+@keyframes gpop-in { from { transform: translateY(8px) scale(0.85); opacity: 0; } }
+@keyframes gpop-bump { from { transform: scale(1.4); } }

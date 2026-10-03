@@ -139,6 +139,11 @@ export class UalActor {
     else this.hand.add(this.held);
   }
 
+  /** The one-off action now playing (null while idling or running). */
+  get busyWith(): UalAnim | null {
+    return this.busyKind;
+  }
+
   play(anim: UalAnim, speed = 1.4): void {
     if (this.dead) return;
     // a flinch never cuts off a swing or a shot already under way (the flash still shows the hit)

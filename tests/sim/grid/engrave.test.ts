@@ -47,6 +47,8 @@ describe('melee combo engravings', () => {
     const ev = g.act({ kind: 'move', dir: R });
     expect(fired(ev, 'finisher')).toBe(1);
     expect(ev.some((e) => e.type === 'push')).toBe(true);
+    // the view plays the finisher swing from the bump itself
+    expect(ev.find((e) => e.type === 'bump')!.text).toBe('finisher');
   });
 
   it('shove-shot: a blow shoves the foe away and the ranged weapon in the other hand fires', () => {

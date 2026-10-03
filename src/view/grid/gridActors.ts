@@ -5,6 +5,10 @@ import type { WeaponLook } from './weaponMeshes';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
 
+/** a two-cell leap takes as long as the glide over two cells */
+const LEAP_SEC = 0.28;
+const LEAP_HEIGHT = 0.9;
+
 /** Every kind is the same mannequin: colour, size and the block weapon tell them apart. */
 const LOOK: Record<Ent['kind'], UalLook> = {
   hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle',
@@ -50,6 +54,8 @@ interface View {
   ox: number;
   oz: number;
   offT: number;
+  /** time left in a leap (the figure arcs up and lands when it runs out) */
+  air: number;
   dead: boolean;
 }
 
@@ -72,7 +78,7 @@ export class GridActors {
       const z = e.pos.y * CELL;
       actor.root.position.set(x, 0, z);
       this.root.add(actor.root);
-      this.views.set(e.id, { actor, x, z, tx: x, tz: z, facing: Math.PI / 2, yaw: Math.PI / 2, runHold: 0, ox: 0, oz: 0, offT: 0, dead: !e.alive });
+      this.views.set(e.id, { actor, x, z, tx: x, tz: z, facing: Math.PI / 2, yaw: Math.PI / 2, runHold: 0, ox: 0, oz: 0, offT: 0, air: 0, dead: !e.alive });
       if (!e.alive) actor.setDead();
     }
   }
@@ -108,13 +114,28 @@ export class GridActors {
     v.offT = LUNGE_SEC;
   }
 
-  /** Melee: step into the target and back, swinging. */
-  lunge(id: string | undefined, at: THREE.Vector3): void {
+  /** Melee: step into the target and back, swinging (a dash's own slash is not cut off). */
+  lunge(id: string | undefined, at: THREE.Vector3, anim?: UalAnim): void {
     const v = this.v(id);
     if (!v) return;
     this.face(id, at);
     this.nudge(v, at, LUNGE);
-    v.actor.play(this.meleeAnim(id!), 1.7);
+    if (v.actor.busyWith !== 'dash') v.actor.play(anim ?? this.meleeAnim(id!), anim === 'finisher' ? 1.5 : 1.7);
+  }
+
+  /** Dash: a slashing lunge one cell forward. */
+  dash(id: string | undefined, cx: number, cy: number): void {
+    this.moveTo(id, cx, cy);
+    this.v(id)?.actor.play('dash', 2.2);
+  }
+
+  /** Leap: up, two cells through the air, down on the landing cell. */
+  leap(id: string | undefined, cx: number, cy: number): void {
+    const v = this.v(id);
+    if (!v) return;
+    this.moveTo(id, cx, cy);
+    v.air = LEAP_SEC;
+    v.actor.play('leapUp', 2);
   }
 
   /** Ranged: aim, fire, kick back a little. */
@@ -212,6 +233,11 @@ export class GridActors {
         const k = Math.max(0, v.offT / LUNGE_SEC);
         v.actor.root.position.set(v.x + v.ox * k, 0, v.z + v.oz * k);
       } else v.actor.root.position.set(v.x, 0, v.z);
+      if (v.air > 0) {
+        v.air = Math.max(0, v.air - step);
+        v.actor.root.position.y = Math.sin((1 - v.air / LEAP_SEC) * Math.PI) * LEAP_HEIGHT;
+        if (v.air === 0) v.actor.play('leapLand', 2);
+      }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
       if (!v.dead) v.actor.setLocomotion(v.runHold > 0);
       v.actor.update(step);

@@ -9,6 +9,16 @@ export const CATCHUP = 3;
 
 interface Cue { at: number; ev: GEvent }
 
+/**
+ * Moments the rest of a show waits for, so a combo reads in order: the dash step lands before its blow, a leap
+ * lands before its strikes, a weave or parry shows before the counter, a shove before the shot that follows.
+ */
+function holdAfter(ev: GEvent): number {
+  if (ev.type === 'move') return ev.text === 'leap' ? 0.26 : ev.text === 'dash' ? 0.1 : 0;
+  if (ev.type === 'dodge' || ev.type === 'parry') return 0.14;
+  return ev.type === 'push' ? 0.12 : 0;
+}
+
 /** Turns a batch of time-stamped sim events into a short, overlapping show. */
 export class Playback {
   private cues: Cue[] = [];
@@ -37,7 +47,12 @@ export class Playback {
   update(dt: number): GEvent[] {
     this.now += dt * this.rate;
     const out: GEvent[] = [];
-    while (this.cues.length && this.cues[0]!.at <= this.now + 1e-9) out.push(this.cues.shift()!.ev);
+    while (this.cues.length && this.cues[0]!.at <= this.now + 1e-9) {
+      const ev = this.cues.shift()!.ev;
+      out.push(ev);
+      const hold = holdAfter(ev);
+      if (hold) { for (const c of this.cues) c.at += hold; break; }
+    }
     if (!this.cues.length) this.rate = 1;
     return out;
   }

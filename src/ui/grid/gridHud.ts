@@ -1,3 +1,4 @@
+import { ENGRAVES, type EngraveId } from '../../sim/grid/engraveCore';
 import { activeWeapon, CLASS_NAME } from '../../sim/grid/gear';
 import { XP_STEPS } from '../../sim/grid/run';
 import type { GEvent, GridState } from '../../sim/grid/types';
@@ -33,7 +34,7 @@ export class GridHud {
   }
 
   cue(e: GEvent): void {
-    const text = e.type === 'pickup' ? `${e.text} 획득` : e.type === 'full' ? `가방이 가득 찼다 — ${e.text}은(는) 바닥에` : e.type === 'equip' || e.type === 'swap' ? `${e.text} 듦` : e.type === 'loot' && e.text && !e.amount ? `${e.text} 획득` : LOG[e.type];
+    const text = e.type === 'pickup' ? `${e.text} 획득` : e.type === 'full' ? `가방이 가득 찼다 — ${e.text}은(는) 바닥에` : e.type === 'equip' || e.type === 'swap' ? `${e.text} 듦` : e.type === 'loot' && e.text && !e.amount ? `${e.text} 획득` : e.type === 'inscribe' ? `각인을 새겼다 — ${ENGRAVES[e.text as EngraveId]?.name ?? ''}` : LOG[e.type];
     if (!text) return;
     const el = this.el.querySelector<HTMLElement>('.ghud-log')!;
     el.textContent = text;

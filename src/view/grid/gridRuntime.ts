@@ -10,6 +10,8 @@ import { chase } from './chase';
 import { GridActors } from './gridActors';
 import { GridFx } from './gridFx';
 import { GridItems } from './gridItems';
+import { EngravePops } from './engravePops';
+import { comboCue, type CueKit } from './comboCues';
 import { GridElements } from './gridElements';
 import { GridParticles } from './gridParticles';
 import { GridTorches } from './gridTorches';
@@ -33,6 +35,8 @@ export class GridRuntime {
   private torches: GridTorches;
   private readonly particles = new GridParticles();
   private readonly items = new GridItems();
+  private readonly pops: EngravePops;
+  private readonly kit2: CueKit;
   private punch = 0;
   private readonly pixel: PixelPass;
   /** rough pixel look on/off */
@@ -64,6 +68,8 @@ export class GridRuntime {
     this.banner.className = 'grid-banner';
     el.appendChild(this.banner);
     this.fx = new GridFx(scene, el, (p) => this.project(p));
+    this.pops = new EngravePops(el);
+    this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; } };
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
@@ -143,18 +149,21 @@ export class GridRuntime {
     const key = `${e.src}>${e.dst}`;
     const shot = this.pending.get(key);
     if (shot && !shot.ready && (e.type === 'hit' || e.type === 'miss' || e.type === 'die')) { shot.queue.push(e); return; }
+    if (comboCue({ ...this.kit2, actors: a }, e)) { this.onCue(e); return; }
     switch (e.type) {
       case 'move': if (e.to) a.moveTo(e.src, e.to.x, e.to.y); break;
       case 'bump': {
         const p = at(e.dst);
-        if (p) { a.lunge(e.src, p); const from = at(e.src)!; this.fx.transient.slash(p.x, p.z, Math.atan2(p.z - from.z, p.x - from.x)); }
+        if (p) { a.lunge(e.src, p, e.text === 'finisher' ? 'finisher' : undefined); const from = at(e.src)!; this.fx.transient.slash(p.x, p.z, Math.atan2(p.z - from.z, p.x - from.x)); }
         break;
       }
       case 'shoot': {
         const p = at(e.dst) ?? (e.to ? cellVec(e.to) : undefined);
-        const from = at(e.src);
+        // a bounce, a chain jump or a volley's extra arrows fly on their own; the shooter does not draw again
+        const quiet = e.text === 'ricochet' || e.text === 'chain' || e.text === 'volley';
+        const from = quiet && e.from ? cellVec(e.from) : at(e.src);
         if (!p || !from) break;
-        a.shoot(e.src, p, e.text === 'spell' ? 'staff' : e.text);
+        if (!quiet) a.shoot(e.src, p, e.text === 'spell' || e.text === 'echo' ? 'staff' : e.text);
         if (!e.dst) break;
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
@@ -204,6 +213,7 @@ export class GridRuntime {
     this.clock += dt;
     for (const e of this.playback.update(this.fx.frozen ? 0 : dt)) this.cue(e);
     this.fx.update(dt);
+    this.pops.update(dt);
     this.actors.update(dt, this.fx.frozen);
     this.torches.update(dt);
     this.items.update(dt);
@@ -263,6 +273,7 @@ export class GridRuntime {
     this.items.dispose();
     this.elements.dispose();
     this.banner.remove();
+    this.pops.dispose();
     this.pixel.dispose();
     this.terrain.dispose();
     this.h.dispose();

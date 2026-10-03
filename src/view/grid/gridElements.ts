@@ -5,6 +5,7 @@ import { CELL, toWorld } from './gridTerrain';
 
 const FLAME = new THREE.MeshBasicMaterial({ color: '#ff8a2a', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
 const CLOUD = new THREE.MeshBasicMaterial({ color: '#7ad04a', transparent: true, opacity: 0.32, depthWrite: false });
+const STEAM = new THREE.MeshBasicMaterial({ color: '#e8eef4', transparent: true, opacity: 0.55, depthWrite: false });
 const MARK: Record<string, string> = { fire: '#ff4a2a', frost: '#5ab4ff', whirl: '#ff2a2a' };
 
 /** Things on the floor that come and go: burning ground, poison clouds, marked spell areas, barrels and the stairs. */
@@ -68,8 +69,10 @@ export class GridElements {
             g.add(f);
           }
         } else {
-          const c = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.95, 0.5, CELL * 0.95), CLOUD);
-          c.position.y = 0.25;
+          // steam is a tall white wall of vapour (it blocks sight); poison a low green cloud
+          const steam = x.kind === 'steam';
+          const c = new THREE.Mesh(new THREE.BoxGeometry(CELL * 0.95, steam ? 1.6 : 0.5, CELL * 0.95), steam ? STEAM : CLOUD);
+          c.position.y = steam ? 0.8 : 0.25;
           g.add(c);
         }
         g.position.copy(toWorld(x.pos.x, x.pos.y));

@@ -81,6 +81,22 @@ describe('event playback', () => {
     expect(p.update(TURN_SEC / CATCHUP + 0.001).map((e) => e.src)).toEqual(['f1']);
   });
 
+  it('a dash step, a leap, a weave or a shove holds the rest of the show so the combo reads in order', () => {
+    for (const [first, hold] of [[{ ...ev(0, 'hero'), text: 'dash' }, 0.1], [{ ...ev(0, 'hero'), text: 'leap' }, 0.26], [ev(0, 'hero', 'parry'), 0.14], [ev(0, 'f1', 'push'), 0.12]] as const) {
+      const p = new Playback();
+      p.push([first, ev(0, first.src!, 'bump')], 0);
+      expect(p.update(0)).toHaveLength(1);
+      expect(p.update(hold - 0.01)).toEqual([]);
+      expect(p.update(0.02).map((e) => e.type)).toEqual(['bump']);
+    }
+  });
+
+  it('a plain step holds nothing', () => {
+    const p = new Playback();
+    p.push([ev(0, 'hero'), ev(0, 'hero', 'bump')], 0);
+    expect(p.update(0)).toHaveLength(2);
+  });
+
   it('a batch pushed while another is playing queues after it', () => {
     const p = new Playback();
     p.push([ev(0, 'hero'), ev(1, 'f1')], 0);

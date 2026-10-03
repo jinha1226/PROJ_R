@@ -58,17 +58,18 @@ function comboStep(s: GridState, foe: Ent): { next: number; finisher: boolean } 
 export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: ShotHooks): number {
   const h = s.hero;
   const w = activeWeapon(h.gear);
-  s.events.push({ t, type: 'bump', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos } });
+  const armed = !!w && WEAPONS[w.group].melee;
+  const combo = comboStep(s, foe);
+  s.events.push({ t, type: 'bump', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: armed && combo.finisher ? 'finisher' : undefined });
   h.target = foe.id;
   h.fx.acted = 'melee';
-  if (!w || !WEAPONS[w.group].melee) {
+  if (!w || !armed) {
     foe.awake = true;
     strike(s, t, h, foe, HERO.bashHit, HERO.bash);
     return COST.bash;
   }
   const def = WEAPONS[w.group];
   const dmg = heroDmg(s, w);
-  const combo = comboStep(s, foe);
   const blow = (f: Ent, k = 1) => {
     const mult = (f.awake ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
     f.awake = true;
