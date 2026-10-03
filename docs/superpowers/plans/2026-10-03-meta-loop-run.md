@@ -139,9 +139,52 @@ GridSim.create(seed, gun: GunGroup = 'pistol')
 
 **Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
-### Task 3: Engravings on the suit (outline)
-- `Hero.suit: EngraveId[]` (6 slots) replaces `Weapon.engraves`; `has(s, id)` checks the suit and the fit of the weapon in hand (melee/ranged=gun/magic=staff/any).
-- Full suit: the absorb/level choice asks which slot to replace (or pass). Remove rune stones, `inscribe`, engraving levels.
+### Task 3: Engravings on the suit
+
+**Why:** Engravings move from weapons to the agent's suit (6 slots). Each fires only when the weapon in hand fits it. Rune stones, inscribing and engraving levels go away. (Absorbing engravings from elites comes in Task 4; until then level-ups still offer engravings.)
+
+**Scope:** `src/sim/grid/**`, `src/ui/grid/**`, `src/view/grid/**` (only if needed), `tests/sim/grid/**`, grid unit tests. **Do not edit `tests/e2e/**`** (the reviewer updates e2e at the end of the plan). Other game modes are off limits as before.
+
+**Interfaces — Produces:**
+```ts
+// engraveCore.ts
+export const SUIT_SLOTS = 6;
+export type Fit = 'melee' | 'ranged' | 'magic' | 'any';      // ENGRAVES[id].fits keeps these values
+export function fitsHand(s: GridState, id: EngraveId): boolean; // melee → melee weapon in hand; ranged → a gun in hand; magic → a staff in hand; any → always
+export function has(s: GridState, id: EngraveId): boolean;      // id is on the suit AND fitsHand
+// types.ts — Hero gains
+suit: EngraveId[];   // at most SUIT_SLOTS, starts empty
+// engrave.ts
+export function putOnSuit(s: GridState, id: EngraveId, slot?: number): boolean;  // free slot → append; full → needs `slot` (0..5) to replace, else false; an id already on the suit → false
+// GAction 'choose' gains an optional slot:
+{ kind: 'choose'; i: number | null; slot?: number }
+```
+
+**Behaviour:**
+1. Remove `Weapon.engraves`, the `Engraving` type's `lvl` (and the type itself if nothing needs it), `engravingOn`, rune stones (`RuneStone`, `runeStone`, `RUNE_CHANCE` and the chest roll), the `inscribe` action and event, `inscribe()`, `canInscribe`, `wouldErase`, `ENGRAVE_SLOTS`. `Equipment` becomes `Weapon | Armor`. Starting gear has no engravings; `Hero.suit` starts `[]`.
+2. `has(s, id)` returns a boolean: on the suit and `fitsHand`. Fix every caller that compared it with `> 0` or used its number.
+3. Engravings tied to swapping now read the suit:
+   - `quickswap`: a swap is free (cost 0) and the next blow +50% **only when the swap changes the kind of weapon in hand** (melee ↔ gun ↔ staff, or to/from an empty hand). Same-kind swaps cost the normal half turn and give nothing.
+   - `swapstrike`: after any swap, if the weapon now in hand can strike (melee foe adjacent / gun or staff with a target in range), it strikes at ×0.5 — and that swap always costs the normal half turn (keep the existing rule).
+   - Both are `fits: 'any'`.
+4. `shoveShot` (melee): unchanged — the other hand's gun fires if it can.
+5. Level-up choice (`choose`): the picked engraving goes on the suit via `putOnSuit`. With a free slot, `slot` is ignored. With a full suit, `slot` is required (0..5) and replaces that engraving; without it the action is refused (`null` → `blocked`), and the offer stays. `i: null` still passes the offer up. Offers (`offerFor`) never include engravings already on the suit; weighting by the weapon in hand stays.
+6. **UI**:
+   - Level-up panel (`levelUp.ts`): with a full suit, picking a card switches the panel to "어느 칸을 바꿀까요?" showing the 6 suit engravings as buttons (`data-testid="grid-suit-slot-${n}"`) plus 취소; clicking one sends `{ kind: 'choose', i, slot: n }`. Remove the old "가장 오래된 … 지워집니다" warning.
+   - Bag (`gridBag.ts`): remove the rune/inscribe UI and the weapon engraving chips; add a **슈트 각인** row listing the suit's engravings (name + note on hover; dim the ones that do not fit the weapon in hand, e.g. class `off`) — `data-testid="grid-suit"`.
+   - HUD: nothing required.
+7. Keep the engraving effects themselves unchanged (dash, finisher, leap, counter, riposte, momentum, wallslam, laststand, rapid, mark, ricochet, kite, volley, alternate, echo, chain, elemArrow/원소 탄).
+
+**Tests to write first** (new `tests/sim/grid/suit.test.ts`):
+- `has`: `dash` on the suit fires with a sword in hand and does not with a pistol in hand; `rapid` fires with a pistol, not with a sword; `momentum` (any) fires with either; `chain` (magic) only with a staff.
+- `putOnSuit`: fills up to 6; a 7th without a slot is refused; with `slot: 2` replaces the third; a duplicate is refused.
+- `choose` with a full suit and no slot → `blocked` and the offer is still there; with a slot → replaced, offer consumed, no time spent.
+- `quickswap`: pistol ↔ sword swap costs 0 and the next blow ×1.5; sword ↔ axe swap costs 0.5 and gives nothing.
+- Chests never give rune stones; there is no `inscribe` action.
+
+**Update existing tests**: `engrave.test.ts` (its `arm()` helper should put the ids on `s.hero.suit` and set up the hands), `review3.test.ts`, `review4.test.ts`, `acquire.test.ts` (rune/inscribe tests deleted; level-up tests converted to the suit), and any others referring to `engraves`, `inscribe`, `runeStone`, `ENGRAVE_SLOTS`. Keep each engraving's behaviour test.
+
+**Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
 ### Task 4: Elites, echoes and absorption (outline)
 - 1–2 elites per non-boss floor (×1.6 hp/damage, flag `elite`), an echo left on death; stepping in (1 turn) offers 3 engravings of the foe's family: 2 recorded + 1 unrecorded; records live in `s.records` (seeded per run for now: one per family) — persisted by the next plan.
