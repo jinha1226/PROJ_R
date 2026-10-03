@@ -3,6 +3,7 @@ import type { GridCmd } from './gridControls';
 import { icon, weaponIcon } from './icons';
 
 const RADIUS = 56;
+const KEYS: Partial<Record<GridCmd, string>> = { shoot: 'F', swap: 'X', potion: '1', bag: 'I', wait: 'Space', prev: '⇧Tab', next: 'Tab' };
 const BUTTONS: { cmd: GridCmd; label: string; ic: string; cls: string }[] = [
   { cmd: 'shoot', label: '사격', ic: 'pistol', cls: 'gt-fire' },
   { cmd: 'wait', label: '쉬기', ic: 'wait', cls: 'gt-wait' },
@@ -20,8 +21,8 @@ export class GridTouch {
   private readonly knob = document.createElement('div');
   private stick: { id: number; ox: number; oy: number; x: number; y: number } | null = null;
 
-  constructor(private readonly onCmd: (c: GridCmd) => void) {
-    this.el.className = 'gt';
+  constructor(private readonly onCmd: (c: GridCmd) => void, mobile = true) {
+    this.el.className = `gt ${mobile ? 'gt-touch' : 'gt-desktop'}`;
     const pad = document.createElement('div');
     pad.className = 'gt-pad';
     this.base.className = 'gt-stick';
@@ -31,11 +32,14 @@ export class GridTouch {
     const box = document.createElement('div');
     box.className = 'gt-buttons';
     for (const b of BUTTONS) {
-      const el = document.createElement('div');
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.setAttribute('aria-label', b.label || (b.cmd === 'prev' ? '이전 표적' : '다음 표적'));
       el.className = `gt-btn ${b.cls}`;
       el.dataset.testid = `grid-${b.cmd}`;
-      el.innerHTML = `<span class="gt-ic">${icon(b.ic)}</span>${b.label ? `<em>${b.label}</em>` : ''}<small></small>`;
+      el.innerHTML = `<span class="gt-ic">${icon(b.ic)}</span>${b.label ? `<em>${b.label}</em>` : ''}<small></small><kbd>${KEYS[b.cmd] ?? ''}</kbd>`;
       el.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); this.onCmd(b.cmd); });
+      el.addEventListener('click', (e) => { if (e.detail === 0) this.onCmd(b.cmd); });
       box.appendChild(el);
     }
     this.el.append(pad, this.base, box);
@@ -94,10 +98,10 @@ export class GridTouch {
   }
 
   /** The swap button shows the weapon waiting in the other hand. */
-  setSwap(group: WeaponGroup | undefined): void {
+  setSwap(group: WeaponGroup | undefined, name?: string): void {
     const s = this.el.querySelector('.gt-swap small')!;
-    const html = group ? weaponIcon(group) : '';
-    if (s.innerHTML !== html) s.innerHTML = html;
+    const text = name ?? (group ? '무기' : '빈손');
+    if (s.textContent !== text) s.textContent = text;
   }
 
   dispose(): void {
