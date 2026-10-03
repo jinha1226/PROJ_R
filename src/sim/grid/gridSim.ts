@@ -7,6 +7,7 @@ import { activeWeapon, CLASS_BONUS, type ClassId } from './gear';
 import { WEAPONS, type Weapon } from './items';
 import { heroDmg, rechargeStaffs } from './weapons';
 import { castSpell, passMarks } from './shotCombos';
+import { discover } from './traps';
 import { fire, has } from './engraveCore';
 import { explodeBarrels, useThrown } from './explosives';
 import { tickStatuses } from './status';
@@ -49,6 +50,7 @@ export class GridSim {
     // momentum halves the action after a kill (a free swap does not use it up)
     if (boosted && cost > 0) cost *= MOMENTUM;
     else if (boosted) fx.momentum = true;
+    if (cost > 0) discover(s, t0);
     if (fx.acted !== 'melee') fx.combo = { hits: 0 };
     if (fx.acted !== 'shot') fx.rapid = { n: 0 };
     passMarks(s, t0);

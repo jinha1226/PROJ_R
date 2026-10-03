@@ -2,6 +2,7 @@ import { losClear } from './fov';
 import { reactOn, reactOnTile, type ReactionKit } from './reactions';
 import type { Element } from './items';
 import { CLASS_BONUS } from './gear';
+import { springTrap } from './traps';
 import { dist, same, tileAt, walkable, type Cell, type Ent, type GridState, type Statuses } from './types';
 
 export const STATUS_TURNS = { burn: 3, freeze: 2, poison: 6 };
@@ -92,6 +93,8 @@ export function applyElement(s: GridState, t: number, el: Element, at: Cell, rad
 
 /** Ground under an entity: burning ground sets it alight, a cloud poisons it. */
 export function onEnter(s: GridState, e: Ent, t: number): void {
+  springTrap(s, e, t);
+  if (!e.alive) return;
   const tile = s.tiles.find((x) => same(x.pos, e.pos) && x.until > s.time);
   if (!tile) return;
   const x = st(e);

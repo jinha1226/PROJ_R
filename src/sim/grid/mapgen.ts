@@ -1,3 +1,4 @@
+import { placeTraps } from './traps';
 import { createRng, type Rng } from '../../core/rng';
 import { spawnKind } from './foes';
 import { distanceMap } from './path';
@@ -108,5 +109,7 @@ export function generateMap(seed: number, floor = 1): GridMap {
       taken.add(idx(m, c));
     }
   });
+  // traps roll on their own stream so the rest of the floor stays as it was
+  m.traps = placeTraps(m, taken, createRng((seed ^ 0x51ed27) + floor * 104729), floor);
   return m;
 }

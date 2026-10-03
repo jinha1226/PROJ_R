@@ -24,6 +24,7 @@ export function nextFloor(s: GridState): void {
   s.nextFoeId += map.spawns.length;
   s.chests = map.chests.map((c) => ({ pos: { ...c }, opened: false }));
   s.barrels = (map.barrels ?? []).map((b) => ({ ...b }));
+  s.traps = (map.traps ?? []).map((t) => ({ ...t, pos: { ...t.pos } }));
   s.tiles = [];
   s.telegraphs = [];
   s.floorItems = [];

@@ -1,10 +1,12 @@
 import { losClear } from './fov';
+import { noise } from './danger';
 import type { BeltItem, Element } from './items';
 import { applyElement, areaCells, entsAt, hurt } from './status';
 import { dist, idx, same, type Cell, type GridState } from './types';
 
 const BLAST: [number, number] = [6, 9];
 const BOMB: [number, number] = [8, 12];
+const BLAST_NOISE = 6;
 export const THROW_RANGE = 6;
 const FLASK: Record<Exclude<BeltItem, 'potion' | 'bomb'>, { el: Element; dmg: [number, number] | null; radius: number }> = {
   fireFlask: { el: 'fire', dmg: [4, 7], radius: 1 },
@@ -29,6 +31,7 @@ export function explodeBarrels(s: GridState, t: number, first: Cell, src: string
     if (i < 0) continue;
     s.barrels.splice(i, 1);
     s.events.push({ t, type: 'explode', src, to: { ...c } });
+    noise(s, c, BLAST_NOISE);
     for (const cell of areaCells(s, c, 1)) for (const e of entsAt(s, cell)) hurt(s, t, src, e, s.rng.int(BLAST[0], BLAST[1]), 'fire');
     applyElement(s, t, 'fire', c, 1, null, src, (b) => queue.push(b));
     for (const b of s.barrels) if (dist(b, c) === 1) queue.push(b);
@@ -50,6 +53,7 @@ export function useThrown(s: GridState, t: number, item: Exclude<BeltItem, 'poti
   const boom = (c: Cell) => explodeBarrels(s, t, c, s.hero.id);
   if (item === 'bomb') {
     s.events.push({ t, type: 'explode', src: s.hero.id, to: { ...at } });
+    noise(s, at, BLAST_NOISE);
     for (const cell of areaCells(s, at, 1)) {
       for (const e of entsAt(s, cell)) hurt(s, t, s.hero.id, e, s.rng.int(BOMB[0], BOMB[1]), 'blast');
       if (s.barrels.some((b) => same(b, cell))) boom(cell);

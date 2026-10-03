@@ -7,13 +7,19 @@ import { canInscribe, inscribe, RUNE_CHANCE, runeStone } from './engrave';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
+import { buffOn } from './buffs';
+import { search } from './traps';
+
+const STEP_NOISE = 1;
+const DOOR_NOISE = 2;
+const BLOW_NOISE = 3;
 import { meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange, type ShotHooks } from './weapons';
 
 export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.pos, c));
 
 /** Cells tap-walking must route around: a shut chest, a barrel (walking into one sets it off), a living foe. */
 export const walkBlocked = (s: GridState, c: Cell): boolean =>
-  chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f.alive && same(f.pos, c));
+  chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f.alive && same(f.pos, c)) || s.traps.some((tr) => tr.found && same(tr.pos, c));
 
 /** A chest holds maybe a piece of equipment (bag, or the floor when full) and some supplies. */
 function openChest(s: GridState, t: number, c: Cell): void {
@@ -61,8 +67,10 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
   switch (a.kind) {
     case 'move': {
       const to = add(h.pos, a.dir);
+      // a blow is heard around (radius 3)
+      const melee = (cost: number) => { hooks.noise(h.pos, BLOW_NOISE); return cost; };
       const foe = s.foes.find((f) => f.alive && same(f.pos, to));
-      if (foe && (Math.abs(a.dir.x) + Math.abs(a.dir.y) === 1 || canStep(s.map, h.pos, a.dir))) return meleeAttack(s, t, a.dir, foe, hooks);
+      if (foe && (Math.abs(a.dir.x) + Math.abs(a.dir.y) === 1 || canStep(s.map, h.pos, a.dir))) return melee(meleeAttack(s, t, a.dir, foe, hooks));
       if (s.barrels.some((b) => same(b, to)) && canStep(s.map, h.pos, a.dir)) {
         s.events.push({ t, type: 'bump', src: h.id, from: { ...h.pos }, to: { ...to } });
         explodeBarrels(s, t, to, h.id);
@@ -71,18 +79,22 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       const ch = chestAt(s, to);
       if (ch && !ch.opened && canStep(s.map, h.pos, a.dir)) { openChest(s, t, to); return COST.open; }
       const far = reachTarget(s, a.dir);
-      if (far) return meleeAttack(s, t, a.dir, far, hooks);
+      if (far) return melee(meleeAttack(s, t, a.dir, far, hooks));
+      // caught in a net: struggling costs the turn
+      if (buffOn(h, 'root', t)) { s.events.push({ t, type: 'root', src: h.id, to: { ...h.pos } }); return COST.move; }
       // tap-walking (plain steps) never turns into a dash or a leap
       const lunged = a.plain ? null : lunge(s, t, a.dir, hooks);
-      if (lunged !== null) return lunged;
+      if (lunged !== null) return melee(lunged);
       // an opened chest can be stepped over (a chest in a doorway must never seal the way)
       if (!canStep(s.map, h.pos, a.dir) || bodyAt(s, to)) return null;
       if (tileAt(s.map, to) === 'door') {
         s.map.tiles[idx(s.map, to)] = 'open';
         s.events.push({ t, type: 'door', src: h.id, to: { ...to } });
+        hooks.noise(to, DOOR_NOISE);
       }
       s.events.push({ t, type: 'move', src: h.id, from: { ...h.pos }, to: { ...to } });
       h.pos = to;
+      hooks.noise(to, STEP_NOISE);
       pickUp(s, t);
       onEnter(s, h, t);
       return COST.move;
@@ -112,6 +124,10 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       s.events.push({ t, type: 'drop', src: h.id, text: e.name, to: { ...h.pos } });
       return COST.drop;
     }
+    case 'search':
+      s.events.push({ t, type: 'search', src: h.id, to: { ...h.pos } });
+      search(s, t);
+      return COST.search;
     case 'inscribe': {
       const r = g.bag[a.bag];
       const w = activeWeapon(g);

@@ -21,7 +21,13 @@ export interface GridMap {
   barrels?: Cell[];
   /** the way down (floors 1–2) */
   stairs?: Cell;
+  /** hidden traps */
+  traps?: Trap[];
 }
+export type TrapKind = 'spike' | 'alarm' | 'poison' | 'fire' | 'teleport' | 'net';
+export interface Trap { pos: Cell; kind: TrapKind; found: boolean }
+/** timed effects, kept as the game time each runs out */
+export type BuffKind = 'haste' | 'invis' | 'confuse' | 'root' | 'fear';
 
 export const idx = (m: { w: number }, c: Cell): number => c.y * m.w + c.x;
 export const inBounds = (m: GridMap, c: Cell): boolean => c.x >= 0 && c.y >= 0 && c.x < m.w && c.y < m.h;
@@ -47,7 +53,7 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean; marked?: boolean }
+export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
@@ -91,6 +97,8 @@ export interface GridState {
   fired: Set<string>;
   /** level-up engraving choices waiting for the player (first one is shown) */
   offers: EngraveId[][];
+  /** traps on this floor (found ones are shown) */
+  traps: Trap[];
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
@@ -99,16 +107,16 @@ export interface FloorItem { pos: Cell; item: Equipment }
 export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
-  | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'inscribe'; bag: number } | { kind: 'choose'; i: number | null };
+  | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'inscribe'; bag: number } | { kind: 'choose'; i: number | null } | { kind: 'search' };
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe';
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
-export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1, inscribe: 1 };
+export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1, inscribe: 1, search: 1 };
 export const HERO = { hp: 30, sight: 8, heal: 12, bash: [2, 4] as const, bashHit: 0.9 };
 export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [number, number]; range: number; hit: number }> = {
   minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },
