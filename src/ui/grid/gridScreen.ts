@@ -23,6 +23,7 @@ import { guardFrame } from '../screens/loopGuard';
 import { GridControls, type GridCmd } from './gridControls';
 import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
+import { attachFoePress } from './foePress';
 import '../styles/grid.css';
 
 export interface GridApi { sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; fatal(e: unknown): void }
@@ -79,11 +80,12 @@ export class GridScreen implements Screen {
     }
     this.el.appendChild(this.hud.el);
     this.el.append(this.belt.el, this.throwing.bar);
-    if (mobile) {
-      this.touch = new GridTouch((c) => this.controls.push(c));
-      this.el.appendChild(this.touch.el);
-    }
+    this.touch = new GridTouch((c) => this.controls.push(c), mobile);
+    this.el.appendChild(this.touch.el);
     const rt = this.rt;
+    this.cleanup.push(attachFoePress(this.el, () => this.s, (x, y) => rt.cellAt(x, y), (id) => {
+      if (!this.levelUp && !this.bag && !this.s.outcome) { this.walk = null; this.s.hero.target = id; }
+    }));
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
       { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });
     this.el.appendChild(this.zoom.el);
@@ -249,12 +251,13 @@ export class GridScreen implements Screen {
     this.rt!.update(dt);
     const target = this.api.sim.autoTarget();
     const chance = target ? this.api.sim.shotChance(target) : null;
-    this.hud.update(s, target && chance !== null ? { id: target, chance } : null, dt);
+    const inspected = s.foes.find((f) => f.id === s.hero.target && f.alive && s.visible.has(idx(s.map, f.pos)))?.id ?? target;
+    this.hud.update(s, inspected ? { id: inspected, chance: this.api.sim.shotChance(inspected) } : null);
     const w = activeWeapon(s.hero.gear);
     const melee = !w || WEAPONS[w.group].melee;
     const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
-    this.touch?.setSwap(other?.group);
-    this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : '사격', melee ? '원거리로' : w ? `${weaponState(w, s.hero)}${canFire(s) && chance !== null ? ` · ${Math.round(chance * 100)}%` : ''}` : '-');
+    this.touch?.setSwap(other?.group, other?.name);
+    this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : `사격 ${w?.name ?? ''}`, melee ? '원거리로' : w ? `${weaponState(w, s.hero)}${canFire(s) && chance !== null ? ` · ${Math.round(chance * 100)}%` : ''}` : '-');
     this.touch?.setPotions(s.hero.gear.belt.potion);
     if (this.throwing.aim) this.touch?.setFire(undefined, '던지기', this.throwing.label());
     this.belt.update(s, this.throwing.item);
