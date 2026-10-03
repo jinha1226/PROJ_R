@@ -6,8 +6,8 @@ import { WEAPONS, type BeltItem } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
 import { GridBag } from './gridBag';
 import { LevelUpPanel } from './levelUp';
-import { GridAim } from './gridAim';
-import { GridBelt, ITEM_NAME, THROWN } from './gridBelt';
+import { GridBelt, THROWN } from './gridBelt';
+import { ThrowAim } from './throwAim';
 import { weaponState } from './weaponInfo';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
@@ -45,9 +45,7 @@ export class GridScreen implements Screen {
   private bag: GridBag | null = null;
   private levelUp: { panel: LevelUpPanel; offer: unknown } | null = null;
   private readonly belt = new GridBelt((it) => this.controls.push(it));
-  private aim: GridAim | null = null;
-  private aimKey = '';
-  private readonly aimBar = document.createElement('div');
+  private readonly throwing = new ThrowAim(() => this.s, (c) => this.controls.push(c), (a) => this.doAction(a), (cells, ok) => this.rt?.showAim(cells, ok));
   private cleanup: (() => void)[] = [];
   private walk: Cell[] | null = null;
   private walkTimer = 0;
@@ -79,11 +77,7 @@ export class GridScreen implements Screen {
       return this.api.fatal(e);
     }
     this.el.appendChild(this.hud.el);
-    this.aimBar.className = 'gaim';
-    this.aimBar.hidden = true;
-    this.aimBar.innerHTML = '<span></span><button class="btn primary" data-a="go" data-testid="grid-aim-go">던지기</button><button class="btn" data-a="no">취소</button>';
-    this.aimBar.addEventListener('click', (e) => { const a = (e.target as HTMLElement).closest<HTMLElement>('[data-a]')?.dataset.a; if (a) this.controls.push(a === 'go' ? 'confirm' : 'cancel'); });
-    this.el.append(this.belt.el, this.aimBar);
+    this.el.append(this.belt.el, this.throwing.bar);
     if (mobile) {
       this.touch = new GridTouch((c) => this.controls.push(c));
       this.el.appendChild(this.touch.el);
@@ -144,12 +138,7 @@ export class GridScreen implements Screen {
   private command(c: GridCmd): void {
     const s = this.s;
     const item = (THROWN as string[]).includes(c) ? (c as Exclude<BeltItem, 'potion'>) : null;
-    if (this.aim) {
-      if (c === 'confirm' || c === 'shoot' || item === this.aim.item) this.throwAim();
-      else if (c === 'cancel' || item) { this.aim = null; if (item && s.hero.gear.belt[item] > 0) this.aim = new GridAim(s, item); }
-      return;
-    }
-    if (item) { if (s.hero.gear.belt[item] > 0) this.aim = new GridAim(s, item); return; }
+    if (this.throwing.command(c, item)) return;
     if (c === 'next' || c === 'prev') {
       const list = shootable(s).sort((a, b) => dist(s.hero.pos, s.foes.find((f) => f.id === a)!.pos) - dist(s.hero.pos, s.foes.find((f) => f.id === b)!.pos));
       if (!list.length) return;
@@ -170,27 +159,12 @@ export class GridScreen implements Screen {
       return;
     }
     if (c === 'wait') this.doAction({ kind: 'wait' });
-  }
-
-  private throwAim(): void {
-    const a = this.aim;
-    if (a && a.ok && this.doAction({ kind: 'use', item: a.item, at: a.cell })) this.aim = null;
-  }
-
-  /** Throw preview and the aim bar follow the reticle. */
-  private drawAim(): void {
-    const a = this.aim;
-    const key = a ? JSON.stringify([a.item, a.cell, a.ok]) : '';
-    if (key === this.aimKey) return;
-    this.aimKey = key;
-    this.rt?.showAim(a ? a.area() : null, !!a?.ok);
-    this.aimBar.hidden = !a;
-    if (a) this.aimBar.querySelector('span')!.textContent = `${ITEM_NAME[a.item]} — ${a.ok ? '칸을 다시 탭하거나 던지기' : '닿지 않는 곳'}`;
+    if (c === 'search') this.doAction({ kind: 'search' });
   }
 
   private toggleBag(): void {
     if (this.bag) { this.bag.el.remove(); this.bag = null; return; }
-    this.bag = new GridBag(() => this.s.hero.gear, (a) => { this.doAction(a); }, () => this.toggleBag());
+    this.bag = new GridBag(() => this.s.hero.gear, (a) => { this.doAction(a); }, () => this.toggleBag(), { state: () => this.s, throwPotion: (p) => { this.toggleBag(); this.throwing.start(`potion:${p}`); } });
     this.el.appendChild(this.bag.el);
   }
 
@@ -212,7 +186,9 @@ export class GridScreen implements Screen {
     const s = this.s;
     const c = this.rt?.cellAt(x, y);
     if (!c || this.levelUp) return;
-    if (this.aim) { if (this.aim.tap(c)) this.throwAim(); return; }
+    if (this.throwing.aim) { this.throwing.tap(c); return; }
+    // a tap on the hero searches around
+    if (same(c, s.hero.pos)) { this.doAction({ kind: 'search' }); return; }
     const foe = s.foes.find((f) => f.alive && same(f.pos, c) && s.visible.has(idx(s.map, c)));
     if (foe) { s.hero.target = foe.id; return; }
     // a barrel in sight with a ranged weapon in hand: shoot it
@@ -238,9 +214,9 @@ export class GridScreen implements Screen {
     this.stickDir = v ? quantize8(v.x, v.y, 0.35, this.stickDir) : null;
     const dir = this.controls.dir() ?? this.stickDir;
     if (!dir) this.holdLock = false;
-    if (dir && this.aim) {
+    if (dir && this.throwing.aim) {
       const step = this.hold.update(dir, dt);
-      if (step) this.aim.move(step);
+      if (step) this.throwing.aim.move(step);
       return;
     }
     if (dir) {
@@ -276,9 +252,9 @@ export class GridScreen implements Screen {
     this.touch?.setSwap(other?.group);
     this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : '사격', melee ? '원거리로' : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
     this.touch?.setPotions(s.hero.gear.belt.potion);
-    if (this.aim) this.touch?.setFire(undefined, '던지기', ITEM_NAME[this.aim.item]);
-    this.belt.update(s, this.aim?.item ?? null);
-    this.drawAim();
+    if (this.throwing.aim) this.touch?.setFire(undefined, '던지기', this.throwing.label());
+    this.belt.update(s, this.throwing.item);
+    this.throwing.draw();
     if (s.outcome && !this.ended) {
       this.ended = true;
       this.endTimer = setTimeout(() => this.api.end(), 1200);

@@ -169,6 +169,17 @@ export class UalActor {
     this.flashLeft = this.flashTotal = ms / 1000;
   }
 
+  /** See-through while invisible. */
+  setGhost(on: boolean): void {
+    for (const m of this.mats) {
+      if (m.transparent === on) continue;
+      m.transparent = on;
+      m.opacity = on ? 0.3 : 1;
+      m.depthWrite = !on;
+      m.needsUpdate = true;
+    }
+  }
+
   /** A steady glow for a status (frozen blue, poisoned green, burning orange); null clears it. */
   setTint(color: string | null): void {
     this.tint.set(color ?? '#000000');

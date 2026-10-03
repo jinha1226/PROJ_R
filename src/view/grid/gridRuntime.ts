@@ -11,6 +11,7 @@ import { GridActors } from './gridActors';
 import { GridFx } from './gridFx';
 import { GridItems } from './gridItems';
 import { EngravePops } from './engravePops';
+import { buffOn } from '../../sim/grid/buffs';
 import { comboCue, type CueKit } from './comboCues';
 import { GridElements } from './gridElements';
 import { GridParticles } from './gridParticles';
@@ -132,6 +133,7 @@ export class GridRuntime {
     this.elements.sync(s);
     for (const e of [s.hero, ...s.foes]) this.actors.setStatus(e.id, e.status);
     this.actors.setWeapon('hero', activeWeapon(s.hero.gear)?.group ?? 'blade');
+    this.actors.setGhost('hero', buffOn(s.hero, 'invis', s.time));
     this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));
     for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
     const hero = new THREE.Vector3(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);

@@ -6,6 +6,12 @@ import { CELL, toWorld } from './gridTerrain';
 const FLAME = new THREE.MeshBasicMaterial({ color: '#ff8a2a', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
 const CLOUD = new THREE.MeshBasicMaterial({ color: '#7ad04a', transparent: true, opacity: 0.32, depthWrite: false });
 const STEAM = new THREE.MeshBasicMaterial({ color: '#e8eef4', transparent: true, opacity: 0.55, depthWrite: false });
+const TRAP_HEX: Record<string, string> = { alarm: '#ffd23a', poison: '#7ad04a', fire: '#ff6a2a', net: '#c8b090' };
+const plate = (color: string): THREE.Object3D => {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.6, CELL * 0.6), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.55, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2;
+  return m;
+};
 const MARK: Record<string, string> = { fire: '#ff4a2a', frost: '#5ab4ff', whirl: '#ff2a2a' };
 
 /** Things on the floor that come and go: burning ground, poison clouds, marked spell areas, barrels and the stairs. */
@@ -16,12 +22,14 @@ export class GridElements {
   private readonly aim = new THREE.Group();
   private readonly barrels = new Map<string, THREE.Object3D>();
   private stairs: THREE.Object3D | null = null;
+  private readonly traps = new THREE.Group();
+  private trapKey = '';
   private tileKey = '';
   private markKey = '';
   private t = 0;
 
   constructor(private readonly kit: DungeonKit, s: GridState) {
-    this.root.add(this.tiles, this.marks, this.aim);
+    this.root.add(this.tiles, this.marks, this.aim, this.traps);
     for (const b of s.barrels) {
       const o = kit.clone('Barrel', { width: CELL * 0.6 });
       o.position.copy(toWorld(b.x, b.y));
@@ -56,6 +64,7 @@ export class GridElements {
       o.visible = s.seen[idx(s.map, { x, y })] === 1;
     }
     if (this.stairs && s.map.stairs) this.stairs.visible = s.seen[idx(s.map, s.map.stairs)] === 1;
+    this.syncTraps(s);
     const tileKey = JSON.stringify(s.tiles.map((x) => [x.pos, x.kind]));
     if (tileKey !== this.tileKey) {
       this.tileKey = tileKey;
@@ -108,6 +117,21 @@ export class GridElements {
   }
 
   /** Is there a barrel at a grid cell (for tap-to-shoot)? */
+  /** Traps once found: spikes and a trapdoor from the kit, the rest a coloured plate. */
+  private syncTraps(s: GridState): void {
+    const found = s.traps.filter((t) => t.found);
+    const key = JSON.stringify(found.map((t) => [t.pos, t.kind]));
+    if (key === this.trapKey) return;
+    this.trapKey = key;
+    this.traps.clear();
+    for (const t of found) {
+      const o = t.kind === 'spike' ? this.kit.clone('Trap_spikes', { width: CELL * 0.8 }) : t.kind === 'teleport' ? this.kit.clone('Trapdoor', { width: CELL * 0.8 }) : plate(TRAP_HEX[t.kind]!);
+      o.position.copy(toWorld(t.pos.x, t.pos.y));
+      o.position.y += 0.02;
+      this.traps.add(o);
+    }
+  }
+
   barrelAt(s: GridState, x: number, y: number): boolean {
     return s.barrels.some((b) => same(b, { x, y }));
   }

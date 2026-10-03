@@ -149,6 +149,18 @@ export class GridActors {
     v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
   }
 
+  setGhost(id: string, on: boolean): void {
+    this.v(id)?.actor.setGhost(on);
+  }
+
+  /** Jumps straight to a cell (a teleport): no glide across the map. */
+  snap(id: string | undefined, cx: number, cy: number): void {
+    const v = this.v(id);
+    if (!v) return;
+    v.x = v.tx = cx * CELL;
+    v.z = v.tz = cy * CELL;
+  }
+
   /** Status glow from the sim: frozen, poisoned, burning. */
   setStatus(id: string, st: { burn: number; freeze: number; poison: number } | undefined): void {
     const v = this.views.get(id);

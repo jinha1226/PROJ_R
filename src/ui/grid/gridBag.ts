@@ -1,7 +1,9 @@
 import type { Gear } from '../../sim/grid/gear';
 import type { Equipment } from '../../sim/grid/items';
 import type { EngraveId } from '../../sim/grid/engraveCore';
-import type { GAction } from '../../sim/grid/types';
+import type { GAction, GridState } from '../../sim/grid/types';
+import type { PotionKind, ScrollKind } from '../../sim/grid/lore';
+import { packHtml } from './packPanel';
 import { GROUP_NOTE, statLine } from './weaponInfo';
 import { engraveChips, eraseNote } from './levelUp';
 import { activeWeapon } from '../../sim/grid/gear';
@@ -20,13 +22,17 @@ export class GridBag {
   private sel = -1;
   private key = '';
 
-  constructor(private readonly gear: () => Gear, private readonly act: (a: GAction) => void, private readonly close: () => void) {
+  constructor(private readonly gear: () => Gear, private readonly act: (a: GAction) => void, private readonly close: () => void, private readonly pack: { state: () => GridState; throwPotion(p: PotionKind): void }) {
     this.el.className = 'gbag';
     this.el.dataset.testid = 'grid-bag-panel';
     this.el.addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest<HTMLElement>('[data-i],[data-do]');
       if (!t) return;
       if (t.dataset.do === 'close') return this.close();
+      const k = t.dataset.k;
+      if (k && t.dataset.do === 'drink') { this.act({ kind: 'drink', p: k as PotionKind }); this.render(); return; }
+      if (k && t.dataset.do === 'read') { this.act({ kind: 'read', sc: k as ScrollKind }); this.render(); return; }
+      if (k && t.dataset.do === 'throw') return this.pack.throwPotion(k as PotionKind);
       if (t.dataset.i !== undefined) { this.sel = Number(t.dataset.i); this.render(); return; }
       const kind = t.dataset.do as 'equip' | 'wear' | 'drop' | 'inscribe';
       if (this.sel >= 0) { this.act({ kind, bag: this.sel }); this.sel = -1; }
@@ -51,7 +57,7 @@ export class GridBag {
 
   render(): void {
     const g = this.gear();
-    const key = JSON.stringify([g, this.sel]);
+    const key = JSON.stringify([g, this.sel, this.pack.state().lore.known]);
     if (key === this.key) return;
     this.key = key;
     const cell = (e: Equipment | null | undefined, label: string) => `<div class="gbag-cur"><small>${label}</small><b>${e ? esc(e.name) : '없음'}</b>${e ? `<span>${statLine(e)}</span>` : ''}${e?.kind === 'weapon' ? engraveChips(e.engraves) : ''}</div>`;
@@ -64,6 +70,7 @@ export class GridBag {
       <header><h3>가방</h3><button class="btn" data-do="close" data-testid="grid-bag-close">닫기</button></header>
       <div class="gbag-row">${cell(g.hands[0], g.active === 0 ? '손 1 (사용 중)' : '손 1')}${cell(g.hands[1], g.active === 1 ? '손 2 (사용 중)' : '손 2')}${cell(g.armor, '갑옷')}</div>
       <div class="gbag-grid">${slots}</div>
+      ${packHtml(this.pack.state())}
       ${chosen ? `<div class="gbag-detail"><b>${esc(chosen.name)}</b> ${statLine(chosen)}${chosen.kind === 'weapon' ? ` · ${GROUP_NOTE[chosen.group]}${engraveChips(chosen.engraves)}` : ''}</div>
         ${chosen.kind === 'rune' ? this.runeNote(g, chosen.id) : ''}
         <div class="gbag-actions">${chosen.kind === 'rune' && !this.runeOk(g, chosen.id) ? '' : ACTION[chosen.kind]}

@@ -145,3 +145,9 @@
 .gpops-combo.bump { animation: gpop-bump 0.22s ease-out; }
 @keyframes gpop-in { from { transform: translateY(8px) scale(0.85); opacity: 0; } }
 @keyframes gpop-bump { from { transform: scale(1.4); } }
+
+.gh-st.haste { color: #ffe27a; border-color: #ffd23a66 !important; } .gh-st.invis { color: #c8d4ff; border-color: #a0b0ff66 !important; } .gh-st.confuse { color: #f0a0e0; border-color: #d070c066 !important; } .gh-st.root { color: #d8c090; border-color: #c8b09066 !important; }
+.gpack { margin-top: 10px; } .gpack h4 { margin: 0 0 6px; font-size: 13px; color: #c8bba0; }
+.gpack-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-top: 1px solid #ffffff12; font-size: 13px; }
+.gpack-row b { flex: 1; } .gpack-row b i { font-style: normal; color: #e0a64a; } .gpack-row small { color: #998; }
+.gpack-row .btn { padding: 4px 10px; font-size: 12px; }

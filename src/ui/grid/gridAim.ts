@@ -1,5 +1,9 @@
 import { canThrow, THROW_RANGE } from '../../sim/grid/explosives';
 import type { BeltItem } from '../../sim/grid/items';
+import type { PotionKind } from '../../sim/grid/lore';
+
+/** Something thrown at a cell: a bomb or flask from the belt, or a potion from the pack. */
+export type ThrowItem = Exclude<BeltItem, 'potion'> | `potion:${PotionKind}`;
 import { areaCells } from '../../sim/grid/status';
 import { add, DIRS, dist, idx, type Cell, type GridState } from '../../sim/grid/types';
 
@@ -7,7 +11,7 @@ import { add, DIRS, dist, idx, type Cell, type GridState } from '../../sim/grid/
 export class GridAim {
   cell: Cell;
 
-  constructor(private readonly s: GridState, readonly item: Exclude<BeltItem, 'potion'>) {
+  constructor(private readonly s: GridState, readonly item: ThrowItem) {
     const foes = s.foes.filter((f) => f.alive && s.visible.has(idx(s.map, f.pos)) && dist(f.pos, s.hero.pos) <= THROW_RANGE)
       .sort((a, b) => dist(a.pos, s.hero.pos) - dist(b.pos, s.hero.pos));
     // nearest foe in reach, else the first spot three cells out that a throw could land on (never your own feet)
