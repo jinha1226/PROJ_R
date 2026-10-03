@@ -1,3 +1,4 @@
+import { exploreTarget } from '../../sim/grid/explore';
 import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
 import { shootable, walkBlocked } from '../../sim/grid/actions';
@@ -25,16 +26,13 @@ import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import { attachFoePress } from './foePress';
 import '../styles/grid.css';
-
 export interface GridApi { sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; fatal(e: unknown): void }
-
 const WALK_EVERY = 0.14;
 const PIXEL_KEY = 'projr.grid.pixel';
 const loadPixel = (): boolean => { try { return localStorage.getItem(PIXEL_KEY) !== '0'; } catch { return true; } };
 const savePixel = (on: boolean): void => { try { localStorage.setItem(PIXEL_KEY, on ? '1' : '0'); } catch { /* not kept */ } };
 const TAP_PX = 12;
 const TAP_MS = 350;
-
 /** The grid sortie: input → one sim action → the runtime replays it; the world only moves when the hero does. */
 export class GridScreen implements Screen {
   private readonly el = document.createElement('div');
@@ -51,6 +49,7 @@ export class GridScreen implements Screen {
   private cleanup: (() => void)[] = [];
   private walk: Cell[] | null = null;
   private walkTimer = 0;
+  private exploring = false;
   /** a held direction stops when something new shows up, until it is let go */
   private holdLock = false;
   private stickDir: Cell | null = null;
@@ -59,18 +58,19 @@ export class GridScreen implements Screen {
   private gone = false;
   private ended = false;
   private endTimer: ReturnType<typeof setTimeout> | undefined;
-
   constructor(private readonly api: GridApi) {}
-
   private get s() {
     return this.api.sim.s;
   }
-
   mount(root: HTMLElement): void {
     this.el.className = 'screen grid';
     this.el.dataset.testid = 'grid-sortie';
     this.el.innerHTML = '<div class="grid-stage"></div>';
     root.appendChild(this.el);
+    const cancelWalk = () => this.stopWalk();
+    this.el.addEventListener('pointerdown', cancelWalk, true);
+    window.addEventListener('keydown', cancelWalk);
+    this.cleanup.push(() => window.removeEventListener('keydown', cancelWalk));
     const stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     const mobile = isTouchDevice();
     try {
@@ -84,7 +84,7 @@ export class GridScreen implements Screen {
     this.el.appendChild(this.touch.el);
     const rt = this.rt;
     this.cleanup.push(attachFoePress(this.el, () => this.s, (x, y) => rt.cellAt(x, y), (id) => {
-      if (!this.levelUp && !this.bag && !this.s.outcome) { this.walk = null; this.s.hero.target = id; }
+      if (!this.levelUp && !this.bag && !this.s.outcome) { this.stopWalk(); this.s.hero.target = id; }
     }));
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
       { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });
@@ -117,12 +117,11 @@ export class GridScreen implements Screen {
     };
     this.raf = requestAnimationFrame(loop);
   }
-
+  private stopWalk(): void { this.walk = null; this.exploring = false; }
   private visibleFoes(): Set<string> {
     const s = this.s;
     return new Set(s.foes.filter((f) => f.alive && s.visible.has(idx(s.map, f.pos))).map((f) => f.id));
   }
-
   /** Runs one action; false if it could not be done. Something new in sight or a hit stops held/auto walking. */
   private doAction(a: GAction): boolean {
     const s = this.s;
@@ -133,13 +132,18 @@ export class GridScreen implements Screen {
     if (!ev.length || (ev.length === 1 && ev[0]!.type === 'blocked')) return false;
     this.rt?.apply(ev, t0);
     const stop = interruption([...this.visibleFoes()].some((id) => !before.has(id)), s.hero.hp < hp);
-    if (stop.walk) this.walk = null;
+    if (stop.walk) this.stopWalk();
     if (stop.hold) { this.hold.reset(); this.holdLock = true; }
     return true;
   }
-
   private command(c: GridCmd): void {
     const s = this.s;
+    if (c === 'explore') { this.throwing.command('cancel', null); this.exploring = true; return; }
+    if (c === 'stairs') {
+      this.throwing.command('cancel', null);
+      if (s.map.stairs && s.seen[idx(s.map, s.map.stairs)]) { this.walkTo(s.map.stairs); this.walk?.pop(); }
+      return;
+    }
     const item = (THROWN as string[]).includes(c) ? (c as Exclude<BeltItem, 'potion'>) : null;
     if (this.throwing.command(c, item)) return;
     if (c === 'next' || c === 'prev') {
@@ -164,13 +168,11 @@ export class GridScreen implements Screen {
     if (c === 'wait') this.doAction({ kind: 'wait' });
     if (c === 'search') this.doAction({ kind: 'search' });
   }
-
   private toggleBag(): void {
     if (this.bag) { this.bag.el.remove(); this.bag = null; return; }
     this.bag = new GridBag(() => this.s.hero.gear, (a) => { this.doAction(a); }, () => this.toggleBag(), { state: () => this.s, throwPotion: (p) => { this.toggleBag(); this.throwing.start(`potion:${p}`); } });
     this.el.appendChild(this.bag.el);
   }
-
   /** A pending upgrade or engraving choice holds the game until it is made (or passed up); true while it is open. */
   private showLevelUp(): boolean {
     const upgrade = this.s.upgrades[0];
@@ -179,7 +181,7 @@ export class GridScreen implements Screen {
     this.levelUp?.panel.el.remove();
     this.levelUp = null;
     if (!offer) return false;
-    this.walk = null;
+    this.stopWalk();
     const act = (a: GAction) => { this.doAction(a); };
     const panel = upgrade ? new UpgradePanel(upgrade, this.s.hero.level, act)
       : new LevelUpPanel(this.s.offers[0]!, this.s.hero.suit, this.s.hero.level, act);
@@ -187,8 +189,8 @@ export class GridScreen implements Screen {
     this.el.appendChild(panel.el);
     return true;
   }
-
   private onTap(x: number, y: number): void {
+    this.stopWalk();
     const s = this.s;
     const c = this.rt?.cellAt(x, y);
     if (!c || this.levelUp) return;
@@ -202,20 +204,18 @@ export class GridScreen implements Screen {
     if (w && !WEAPONS[w.group].melee && s.barrels.some((b) => same(b, c)) && s.visible.has(idx(s.map, c))) { this.doAction({ kind: 'shoot', at: c }); return; }
     if (s.seen[idx(s.map, c)]) this.walkTo(c);
   }
-
   /** Walks along a path to a cell (tap on the floor); stops when something shows up. */
   private walkTo(c: Cell): void {
     const s = this.s;
     if (!walkable(tileAt(s.map, c))) return;
-    this.walk = findPath(s.map, s.hero.pos, c, (p) => walkBlocked(s, p));
+    this.walk = findPath(s.map, s.hero.pos, c, (p) => walkBlocked(s, p) || (this.exploring && !s.seen[idx(s.map, p)]));
     this.walkTimer = 0;
   }
-
   private input(dt: number): void {
     const cmd = this.controls.take();
     if (this.showLevelUp()) return;
     if (this.bag && cmd !== 'bag') { this.bag.render(); return; }
-    if (cmd) { this.walk = null; this.command(cmd); return; }
+    if (cmd) { this.stopWalk(); this.command(cmd); return; }
     const v = this.touch?.vector();
     this.stickDir = v ? quantize8(v.x, v.y, 0.35, this.stickDir) : null;
     const dir = this.controls.dir() ?? this.stickDir;
@@ -226,24 +226,29 @@ export class GridScreen implements Screen {
       return;
     }
     if (dir) {
-      this.walk = null;
+      this.stopWalk();
       if (this.holdLock) return;
       const step = this.hold.update(dir, dt);
       if (step) this.doAction({ kind: 'move', dir: step });
       return;
     }
     this.hold.update(null, dt);
+    if (!this.walk && this.exploring) {
+      const target = exploreTarget(this.s);
+      if (!target || same(target, this.s.hero.pos)) { this.stopWalk(); this.hud.message('더 갈 곳이 없다'); }
+      else this.walkTo(target);
+    }
     if (!this.walk) return;
     this.walkTimer -= dt;
     if (this.walkTimer > 0) return;
     this.walkTimer = WALK_EVERY;
     const next = this.walk.shift();
     const h = this.s.hero.pos;
-    if (!next || dist(next, h) !== 1 || walkBlocked(this.s, next)) { this.walk = null; return; }
-    if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y }, plain: true })) this.walk = null;
+    if (this.exploring && next && this.s.map.stairs && same(next, this.s.map.stairs)) { this.stopWalk(); return; }
+    if (!next || dist(next, h) !== 1 || walkBlocked(this.s, next)) { this.stopWalk(); return; }
+    if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y }, plain: true })) this.stopWalk();
     if (this.walk && !this.walk.length) this.walk = null;
   }
-
   private frame(dt: number): void {
     const s = this.s;
     this.controls.pollPad();
@@ -258,6 +263,7 @@ export class GridScreen implements Screen {
     const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
     this.touch?.setSwap(other?.group, other?.name);
     this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : `사격 ${w?.name ?? ''}`, melee ? '원거리로' : w ? `${weaponState(w, s.hero)}${canFire(s) && chance !== null ? ` · ${Math.round(chance * 100)}%` : ''}` : '-');
+    this.touch?.setStairs(!!s.map.stairs && !!s.seen[idx(s.map, s.map.stairs)]);
     this.touch?.setPotions(s.hero.gear.belt.potion);
     if (this.throwing.aim) this.touch?.setFire(undefined, '던지기', this.throwing.label());
     this.belt.update(s, this.throwing.item);
@@ -267,7 +273,6 @@ export class GridScreen implements Screen {
       this.endTimer = setTimeout(() => this.api.end(), 1200);
     }
   }
-
   unmount(): void {
     this.gone = true;
     clearTimeout(this.endTimer);

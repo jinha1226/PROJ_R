@@ -3,8 +3,10 @@ import type { GridCmd } from './gridControls';
 import { icon, weaponIcon } from './icons';
 
 const RADIUS = 56;
-const KEYS: Partial<Record<GridCmd, string>> = { shoot: 'F', swap: 'X', potion: '1', bag: 'I', wait: 'Space', prev: '⇧Tab', next: 'Tab' };
+const KEYS: Partial<Record<GridCmd, string>> = { explore: 'O', stairs: 'G', shoot: 'F', swap: 'X', potion: '1', bag: 'I', wait: 'Space', prev: '⇧Tab', next: 'Tab' };
 const BUTTONS: { cmd: GridCmd; label: string; ic: string; cls: string }[] = [
+  { cmd: 'explore', label: '탐색', ic: 'search', cls: 'gt-explore' },
+  { cmd: 'stairs', label: '계단', ic: 'stairs', cls: 'gt-stairs' },
   { cmd: 'shoot', label: '사격', ic: 'pistol', cls: 'gt-fire' },
   { cmd: 'wait', label: '쉬기', ic: 'wait', cls: 'gt-wait' },
   { cmd: 'potion', label: '물약', ic: 'potion', cls: 'gt-potion' },
@@ -89,6 +91,10 @@ export class GridTouch {
     f.querySelector('.gt-ic')!.innerHTML = weaponIcon(group);
     f.querySelector('em')!.textContent = label;
     f.querySelector('small')!.textContent = sub;
+  }
+
+  setStairs(seen: boolean): void {
+    (this.el.querySelector('.gt-stairs') as HTMLElement).hidden = !seen;
   }
 
   setPotions(n: number): void {

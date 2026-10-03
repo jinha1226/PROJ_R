@@ -15,7 +15,6 @@ const CONFUSE_TURNS = 5;
 const FEAR_TURNS = 5;
 const FEAR_RANGE = 8;
 const LURE_RANGE = 15;
-const LOOT_PER_FLOOR = 2;
 const POTION_SHARE = 0.6;
 const THROWN: Partial<Record<PotionKind, { el: Element; dmg: [number, number] | null }>> = {
   fire: { el: 'fire', dmg: [3, 6] }, poison: { el: 'poison', dmg: null }, frost: { el: 'frost', dmg: [2, 4] },
@@ -112,5 +111,5 @@ export function scatterLoot(s: GridState): FloorItem[] {
     if (s.foes.some((f) => same(f.pos, c)) || (s.map.stairs && same(c, s.map.stairs)) || s.floorItems.some((f) => same(f.pos, c))) continue;
     cells.push(c);
   }
-  return rng.shuffle(cells).slice(0, LOOT_PER_FLOOR).map((pos) => ({ pos, item: rollConsumable(rng) }));
+  return rng.shuffle(cells).slice(0, 2 + Math.floor((s.run.floor - 1) / 5)).map((pos) => ({ pos, item: rollConsumable(rng) }));
 }

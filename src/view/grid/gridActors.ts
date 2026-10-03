@@ -1,3 +1,4 @@
+import { HpBars } from './hpBars';
 import * as THREE from 'three';
 import type { Ent, GridState } from '../../sim/grid/types';
 import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActor';
@@ -33,6 +34,7 @@ const SHOVE = 0.15;
 
 interface View {
   actor: UalActor;
+  bar: THREE.Group;
   /** visual position (metres) chasing the logical cell */
   x: number;
   z: number;
@@ -54,6 +56,7 @@ interface View {
 
 /** One model per entity: chases its cell, faces where it goes, lunges, recoils and flinches on cue. */
 export class GridActors {
+  private readonly bars = new HpBars();
   readonly root = new THREE.Group();
   private readonly views = new Map<string, View>();
   private readonly kinds = new Map<string, Ent['kind']>();
@@ -63,16 +66,20 @@ export class GridActors {
   /** Creates models for entities that do not have one yet (reinforcements appear mid-run). */
   sync(s: GridState): void {
     for (const e of [s.hero, ...s.foes]) {
-      if (this.views.has(e.id)) continue;
+      const existing = this.views.get(e.id);
+      if (existing) { this.bars.update(existing.bar, e.kind === 'hero' ? { ...e, alive: false } : e); continue; }
       this.kinds.set(e.id, e.kind);
       const look = { ...LOOK[e.kind], scale: LOOK[e.kind].scale * (e.elite ? 1.12 : 1) };
       const actor = new UalActor(this.lib, look);
       actor.root.add(ring(e.kind === 'hero' || e.elite ? '#e0a64a' : '#d0533f', look.scale));
+      const bar = this.bars.create(2.35 * look.scale);
+      actor.root.add(bar);
+      this.bars.update(bar, e.kind === 'hero' ? { ...e, alive: false } : e);
       const x = e.pos.x * CELL;
       const z = e.pos.y * CELL;
       actor.root.position.set(x, 0, z);
       this.root.add(actor.root);
-      this.views.set(e.id, { actor, x, z, tx: x, tz: z, facing: Math.PI / 2, yaw: Math.PI / 2, runHold: 0, ox: 0, oz: 0, offT: 0, air: 0, dead: !e.alive });
+      this.views.set(e.id, { actor, bar, x, z, tx: x, tz: z, facing: Math.PI / 2, yaw: Math.PI / 2, runHold: 0, ox: 0, oz: 0, offT: 0, air: 0, dead: !e.alive });
       if (!e.alive) actor.setDead();
     }
   }
@@ -252,6 +259,7 @@ export class GridActors {
 
   dispose(): void {
     for (const v of this.views.values()) v.actor.dispose();
+    this.bars.dispose();
     this.views.clear();
     this.root.clear();
   }

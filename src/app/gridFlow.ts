@@ -62,6 +62,7 @@ export class GridFlow {
     const rec = { best: Math.max(before.best, s.run.floor), wins: before.wins + (won ? 1 : 0) };
     saveRecord(rec);
     this.router.go(new GridResult({
+      killedBy: s.run.killedBy, suit: [...s.hero.suit],
       won, floor: s.run.floor, kills: s.run.kills, level: s.hero.level, turns: Math.floor(s.time), best: rec.best, wins: rec.wins,
       again: () => this.start((seed * 7919 + 104729) % 999983 + 1), quit: () => this.toTitle(),
     }));

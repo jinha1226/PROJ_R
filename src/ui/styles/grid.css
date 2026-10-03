@@ -229,3 +229,13 @@
 
 /* a dark vignette pulls the eye to the lit middle */
 .screen.grid .grid-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, #0008 85%, #000c 100%); }
+
+.gt-explore { right: 124px; bottom: 180px; width: 60px; height: 52px; }
+.gt-stairs { right: 56px; bottom: 180px; width: 60px; height: 52px; }
+.gt-stairs[hidden] { display: none; }
+.landscape .gt-buttons { height: 236px; grid-template-rows: repeat(4, 56px); }
+.landscape .gt-explore { grid-column: 1 / 3; grid-row: 4; }
+.landscape .gt-stairs { grid-column: 3 / 5; grid-row: 4; }
+
+.gres-engravings { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 12px 0; }
+.gres-engravings span { font-size: 12px; padding: 3px 8px; border: 1px solid #e0a64a66; border-radius: 12px; background: #211d28; }
