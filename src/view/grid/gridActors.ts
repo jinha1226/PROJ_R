@@ -7,10 +7,14 @@ import { CELL } from './gridTerrain';
 
 /** Every kind is the same mannequin: colour, size and the block weapon tell them apart. */
 const LOOK: Record<Ent['kind'], UalLook> = {
-  hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle' },
-  minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' },
-  archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Pistol_Idle_Loop' },
-  brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
+  hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle',
+    block: { skin: '#e8b890', hair: '#5a3a1c', shirt: '#3a62a8', trim: '#5a3a1c', pants: '#3a3a52', boots: '#4a2e1a', face: 'human' } },
+  minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop',
+    block: { skin: '#e8e2d0', hair: '#d8d2c0', shirt: '#e0dac8', trim: '#8a8270', pants: '#d0cab8', boots: '#b8b2a0', face: 'skull', ribs: true, bulk: 0.8 } },
+  archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Idle_Loop',
+    block: { skin: '#e8e2d0', hair: '#3e5a2e', shirt: '#4e6a3a', trim: '#2e3a22', pants: '#3e4a2e', boots: '#2a2a1e', face: 'hood', bulk: 0.85 } },
+  brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle',
+    block: { skin: '#e8e2d0', hair: '#6a6e78', shirt: '#7a2e28', trim: '#2a2420', pants: '#4a2a24', boots: '#2a2420', face: 'helmet', bulk: 1.15 } },
 };
 const LUNGE = 0.3;
 

@@ -2,13 +2,14 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { weaponMesh, type WeaponLook } from './weaponMeshes';
+import { buildBlockBody, type BlockLook } from './blockBody';
 
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
 export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
-export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string }
+export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
@@ -64,8 +65,10 @@ export class UalActor {
     this.idleClip = look.idle;
     const model = lib.spawn();
     const k = lib.scale * look.scale;
-    model.scale.set(k * BULK, k, k * BULK);
-    model.traverse((o) => {
+    // a block body is built on the bones in the rest pose; the slim mannequin is widened instead
+    if (look.block) { model.scale.setScalar(k); this.mats.push(...buildBlockBody(model, look.block)); }
+    else model.scale.set(k * BULK, k, k * BULK);
+    if (!look.block) model.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
       m.castShadow = true;
