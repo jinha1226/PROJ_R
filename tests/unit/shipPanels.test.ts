@@ -1,0 +1,53 @@
+import { expect, it } from 'vitest';
+import { freshMeta, buy } from '../../src/sim/grid/meta';
+import { stationLit } from '../../src/view/grid/stationLit';
+import { panelContents, launchOptions, toggleStartSuit } from '../../src/ui/grid/ship/panelContents';
+const setup = { gun: 'pistol', start: 1, startSuit: [] } as const;
+const opts = () => ({ ...setup, startSuit: [] });
+it('lights basic facilities and powers purchased areas', () => {
+  const m = freshMeta();
+  for (const id of ['pod', 'core', 'hatch', 'records'] as const) expect(stationLit(m, id)).toBe(true);
+  for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(false);
+  m.energy = 1000; m.bossesKilled = [5];
+  for (const id of ['armoryShotgun', 'chargePlus1', 'navCrypt']) buy(m, id);
+  for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(true);
+});
+it('lists purchases with affordability, prerequisite and ownership gates', () => {
+  const m = freshMeta();
+  expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['pistol']);
+  expect(panelContents(m, 'armory', opts()).shop.every(c => !c.enabled)).toBe(true);
+  m.energy = 1000;
+  expect(panelContents(m, 'armory', opts()).shop.every(c => c.enabled)).toBe(true);
+  expect(panelContents(m, 'nav', opts()).shop.every(c => !c.enabled)).toBe(true);
+  m.bossesKilled = [5];
+  expect(panelContents(m, 'nav', opts()).shop.map(c => c.enabled)).toEqual([true, false]);
+  buy(m, 'navCrypt'); buy(m, 'armoryShotgun');
+  expect(panelContents(m, 'nav', opts()).choices.map(c => c.id)).toEqual(['1', '6']);
+  expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['pistol', 'shotgun']);
+  expect(panelContents(m, 'armory', opts()).shop[0]?.enabled).toBe(false);
+  expect(panelContents(m, 'suitlab', opts()).shop.map(c => c.enabled)).toEqual([true, false, true, false]);
+});
+it('describes records, candidates, energy, pod and hatch in Korean', () => {
+  const m = freshMeta(); m.energy = 42; m.startCandidates = ['rapid'];
+  expect(panelContents(m, 'records', opts()).lines).toHaveLength(4);
+  expect(panelContents(m, 'records', opts()).lines[0]).toContain('돌진 베기');
+  expect(panelContents(m, 'records', opts()).lines[0]).toContain('2칸');
+  expect(panelContents(m, 'suitlab', opts()).lines.join()).toContain('연사');
+  expect(panelContents(m, 'core', opts(), 12).lines.join()).toContain('42');
+  expect(panelContents(m, 'core', opts(), 12).lines.join()).toContain('12');
+  expect(panelContents(m, 'pod', opts()).lines.join()).toContain('복제');
+  expect(panelContents(m, 'hatch', opts()).lines.join()).toContain('권총');
+  expect(panelContents(m, 'hatch', opts()).choices[0]?.enabled).toBe(true);
+});
+it('limits and sanitizes starting choices, clears shortcut engravings, and permits deselection at capacity', () => {
+  const m = freshMeta(); m.startCandidates = ['dash', 'rapid'];
+  const o = { gun: 'rifle', start: 11, startSuit: ['dash', 'dash', 'chain', 'rapid'] } as const;
+  expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] })).toEqual({ gun: 'pistol', start: 1, startSuit: ['dash'] });
+  const selected = { ...opts(), startSuit: ['dash'] as ('dash' | 'rapid')[] };
+  expect(panelContents(m, 'hatch', selected).choices.map(c => c.enabled)).toEqual([true, false]);
+  expect(toggleStartSuit(m, selected, 'rapid').startSuit).toEqual(['dash']);
+  expect(toggleStartSuit(m, selected, 'dash').startSuit).toEqual([]);
+  m.facilities.navRuins = true;
+  expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] }).startSuit).toEqual([]);
+  expect(panelContents(m, 'hatch', { ...opts(), start: 11 }).choices).toEqual([]);
+});

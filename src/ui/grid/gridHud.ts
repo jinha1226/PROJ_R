@@ -116,7 +116,7 @@ export class GridHud {
       const card = q('.gh-target');
       card.hidden = !t;
       if (t) card.innerHTML = `${icon('skull')}<b>${t.elite ? '정예 ' : ''}${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${target!.chance === null ? '근접 무기' : `${Math.round(target!.chance * 100)}% 명중`}</span><small class="gh-intent">${intent}</small>`;
-      q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 에너지원을 지키는 수호자' : ' · 구간 수호자가 기다린다' : ''}`;
+      q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills} · ⚡전송 ${s.run.energy}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 에너지원을 지키는 수호자' : ' · 구간 수호자가 기다린다' : ''}`;
     }
     this.drawLog();
     const now = performance.now() / 1000;

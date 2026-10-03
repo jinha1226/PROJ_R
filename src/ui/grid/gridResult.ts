@@ -6,6 +6,7 @@ import { FLOORS } from '../../sim/grid/run';
 import type { Screen } from '../../app/router';
 
 export interface GridResultData {
+  energy?: number;
   won: boolean;
   killedBy?: RunState['killedBy'];
   suit?: EngraveId[];
@@ -36,12 +37,13 @@ export class GridResult implements Screen {
       <div class="gres-engravings">${(d.suit ?? []).map((id) => `<span>${ENGRAVES[id].name}</span>`).join('')}</div>
       <ul class="gres-stats">
         <li><span>도달한 층</span><b>${d.floor}층 / ${FLOORS}</b></li>
+        <li><span>전송 에너지</span><b>⚡${d.energy ?? 0}</b></li>
         <li><span>처치</span><b>${d.kills}</b></li>
         <li><span>레벨</span><b>${d.level}</b></li>
         <li><span>턴</span><b>${d.turns}</b></li>
       </ul>
       <p class="muted">최고 기록 ${d.best}층 · 승리 ${d.wins}회</p>
-      <div class="row"><button class="btn primary" data-act="again" data-testid="grid-again">다시</button><button class="btn" data-act="quit" data-testid="grid-quit">타이틀</button></div>
+      <div class="row"><button class="btn primary" data-act="again" data-testid="grid-again">우주선으로</button><button class="btn" data-act="quit" data-testid="grid-quit">타이틀</button></div>
     </div>`;
     this.el.addEventListener('click', (e) => {
       const act = (e.target as HTMLElement).closest<HTMLElement>('[data-act]')?.dataset.act;

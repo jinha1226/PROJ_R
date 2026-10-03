@@ -1,3 +1,4 @@
+import { shipAct } from './ship';
 import { newRunState, type RunOptions } from './runSetup';
 import type { MetaState } from './meta';
 import { recordDeath } from './deathRecap';
@@ -47,6 +48,7 @@ export class GridSim {
   act(a: GAction): GEvent[] {
     const s = this.s;
     if (s.outcome) return [];
+    if (s.mode === 'ship') return shipAct(s, a);
     s.events = [];
     s.fired = new Set();
     const t0 = s.hero.nextAt;

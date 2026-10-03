@@ -1,3 +1,4 @@
+import type { StationId } from './ship';
 import type { MetaState } from './meta';
 import type { UpgradeId } from './upgrades';
 import type { Rng } from '../../core/rng';
@@ -12,6 +13,7 @@ export interface Cell { x: number; y: number }
 export type FoeKind = 'minion' | 'brute' | 'ghoul' | 'archer' | 'mage' | 'champion';
 export interface Room { x: number; y: number; w: number; h: number }
 export interface GridMap {
+  stations?: { pos: Cell; id: StationId }[];
   w: number;
   h: number;
   tiles: Tile[];
@@ -83,6 +85,7 @@ export interface Hero extends Ent {
 }
 export interface ChestState { pos: Cell; opened: boolean }
 export interface GridState {
+  mode?: 'ship';
   seed: number;
   time: number;
   map: GridMap;
@@ -132,7 +135,7 @@ export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'suit' | 'energy' | 'upgrade' | 'absorb' | 'record' | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
+  | 'station' | 'suit' | 'energy' | 'upgrade' | 'absorb' | 'record' | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

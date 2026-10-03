@@ -1,3 +1,4 @@
+import type { RunOptions } from '../sim/grid/runSetup';
 import { GridSim } from '../sim/grid/gridSim';
 import { settleRun, type MetaState } from '../sim/grid/meta';
 import { fromSave, toSave } from '../sim/grid/save';
@@ -31,9 +32,8 @@ function session(sim: GridSim, meta = loadMeta()): GridRunSession {
     } else saveRun(sim.s);
   } };
 }
-export function startGridRun(seed: number): GridRunSession {
-  const meta = loadMeta();
-  const run = session(GridSim.createRun(seed, meta, { gun: 'pistol', start: 1, startSuit: [] }), meta);
+export function startGridRun(seed: number, opts: RunOptions = { gun: 'pistol', start: 1, startSuit: [] }, meta = loadMeta()): GridRunSession {
+  const run = session(GridSim.createRun(seed, meta, opts), meta);
   run.checkpoint();
   return run;
 }

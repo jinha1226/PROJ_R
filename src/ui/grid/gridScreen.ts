@@ -1,3 +1,4 @@
+import type { ShipDeck } from './ship/shipDeck';
 import { loadPixel, savePixel } from '../../app/gridPreferences';
 import { exploreTarget } from '../../sim/grid/explore';
 import type { Screen } from '../../app/router';
@@ -27,11 +28,10 @@ import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import { attachFoePress } from './foePress';
 import '../styles/grid.css';
-export interface GridApi { sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; afterAction?(): void; fatal(e: unknown): void }
+export interface GridApi { ship?: ShipDeck; sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; afterAction?(): void; fatal(e: unknown): void }
 const WALK_EVERY = 0.14;
 const TAP_PX = 12;
 const TAP_MS = 350;
-/** The grid sortie: input → one sim action → the runtime replays it; the world only moves when the hero does. */
 export class GridScreen implements Screen {
   private readonly el = document.createElement('div');
   private rt: GridRuntime | null = null;
@@ -48,7 +48,6 @@ export class GridScreen implements Screen {
   private walk: Cell[] | null = null;
   private walkTimer = 0;
   private exploring = false;
-  /** a held direction stops when something new shows up, until it is let go */
   private holdLock = false;
   private stickDir: Cell | null = null;
   private tap: { id: number; x: number; y: number; at: number } | null = null;
@@ -72,22 +71,24 @@ export class GridScreen implements Screen {
     const stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     const mobile = isTouchDevice();
     try {
-      this.rt = new GridRuntime(stage, this.api.sim, this.api.lib, this.api.kit, mobile, (e) => this.hud.cue(e));
+      this.rt = new GridRuntime(stage, this.api.sim, this.api.lib, this.api.kit, mobile, (e) => this.hud.cue(e), this.api.ship ? { theme: 'ship', kit: this.api.ship.api.kit, meta: this.api.ship.api.meta } : undefined);
     } catch (e) {
       return this.api.fatal(e);
     }
+    this.api.ship?.mount(this.el, this.rt);
     this.el.appendChild(this.hud.el);
     this.el.append(this.belt.el, this.throwing.bar);
     this.touch = new GridTouch((c) => this.controls.push(c), mobile);
     this.el.appendChild(this.touch.el);
     const rt = this.rt;
     this.cleanup.push(attachFoePress(this.el, () => this.s, (x, y) => rt.cellAt(x, y), (id) => {
-      // a long press only inspects: the held stick under the thumb lets go so the hero does not walk off
       if (!this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim) { this.stopWalk(); this.touch?.releaseStick(); this.s.hero.target = id; }
     }));
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
       { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });
     this.el.appendChild(this.zoom.el);
+    // the whole deck fits on screen
+    if (this.api.ship) rt.setZoom(12);
     const px = document.createElement('button');
     px.className = 'btn grid-pixel';
     px.dataset.testid = 'grid-pixel';
@@ -121,7 +122,6 @@ export class GridScreen implements Screen {
     const s = this.s;
     return new Set(s.foes.filter((f) => f.alive && s.visible.has(idx(s.map, f.pos))).map((f) => f.id));
   }
-  /** Runs one action; false if it could not be done. Something new in sight or a hit stops held/auto walking. */
   private doAction(a: GAction): boolean {
     const s = this.s;
     const before = this.visibleFoes();
@@ -131,6 +131,7 @@ export class GridScreen implements Screen {
     this.api.afterAction?.();
     if (!ev.length || (ev.length === 1 && ev[0]!.type === 'blocked')) return false;
     this.rt?.apply(ev, t0);
+    for (const e of ev) if (e.type === 'station') { this.stopWalk(); this.holdLock = true; this.touch?.releaseStick(); this.api.ship?.event(e); }
     const stop = interruption([...this.visibleFoes()].some((id) => !before.has(id)), s.hero.hp < hp);
     if (stop.walk) this.stopWalk();
     if (stop.hold) { this.hold.reset(); this.holdLock = true; }
@@ -138,6 +139,7 @@ export class GridScreen implements Screen {
   }
   private command(c: GridCmd): void {
     const s = this.s;
+    if (this.api.ship) return;
     if (c === 'explore') { this.throwing.command('cancel', null); this.exploring = true; return; }
     if (c === 'stairs') {
       this.throwing.command('cancel', null);
@@ -159,7 +161,6 @@ export class GridScreen implements Screen {
     if (c === 'shoot') {
       const w = activeWeapon(s.hero.gear);
       const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
-      // fire with a melee weapon in hand: switch to the ranged one in the other hand
       if (!w || WEAPONS[w.group].melee) { if (other && !WEAPONS[other.group].melee) this.doAction({ kind: 'swap' }); return; }
       const target = this.api.sim.autoTarget();
       if (target) this.doAction({ kind: 'shoot', target });
@@ -173,7 +174,6 @@ export class GridScreen implements Screen {
     this.bag = new GridBag(() => this.s.hero.gear, (a) => { this.doAction(a); }, () => this.toggleBag(), { state: () => this.s, throwPotion: (p) => { this.toggleBag(); this.throwing.start(`potion:${p}`); } });
     this.el.appendChild(this.bag.el);
   }
-  /** A pending upgrade or engraving choice holds the game until it is made (or passed up); true while it is open. */
   private showLevelUp(): boolean {
     const upgrade = this.s.upgrades[0];
     const offer = upgrade ?? this.s.offers[0];
@@ -193,18 +193,15 @@ export class GridScreen implements Screen {
     this.stopWalk();
     const s = this.s;
     const c = this.rt?.cellAt(x, y);
-    if (!c || this.levelUp) return;
+    if (!c || this.levelUp || this.api.ship?.blocked) return;
     if (this.throwing.aim) { this.throwing.tap(c); return; }
-    // a tap on the hero searches around
     if (same(c, s.hero.pos)) { this.doAction({ kind: 'search' }); return; }
     const foe = s.foes.find((f) => f.alive && same(f.pos, c) && s.visible.has(idx(s.map, c)));
     if (foe) { s.hero.target = foe.id; return; }
-    // a barrel in sight with a ranged weapon in hand: shoot it
     const w = activeWeapon(s.hero.gear);
     if (w && !WEAPONS[w.group].melee && s.barrels.some((b) => same(b, c)) && s.visible.has(idx(s.map, c))) { this.doAction({ kind: 'shoot', at: c }); return; }
     if (s.seen[idx(s.map, c)]) this.walkTo(c);
   }
-  /** Walks along a path to a cell (tap on the floor); stops when something shows up. */
   private walkTo(c: Cell): void {
     const s = this.s;
     if (!walkable(tileAt(s.map, c))) return;
@@ -213,6 +210,7 @@ export class GridScreen implements Screen {
   }
   private input(dt: number): void {
     const cmd = this.controls.take();
+    if (this.api.ship?.blocked) { if (cmd === 'cancel') this.api.ship.close(); this.hold.reset(); return; }
     if (this.showLevelUp()) return;
     if (this.bag && cmd !== 'bag') { this.bag.render(); return; }
     if (cmd) { this.stopWalk(); this.command(cmd); return; }
@@ -245,7 +243,7 @@ export class GridScreen implements Screen {
     const next = this.walk.shift();
     const h = this.s.hero.pos;
     if (this.exploring && next && this.s.map.stairs && same(next, this.s.map.stairs)) { this.stopWalk(); return; }
-    if (!next || dist(next, h) !== 1 || walkBlocked(this.s, next)) { this.stopWalk(); return; }
+    if (!next || dist(next, h) !== 1 || (walkBlocked(this.s, next) && !(this.s.map.stations?.some(p => same(p.pos, next)) && this.walk.length === 0))) { this.stopWalk(); return; }
     if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y }, plain: true })) this.stopWalk();
     if (this.walk && !this.walk.length) this.walk = null;
   }
@@ -285,3 +283,4 @@ export class GridScreen implements Screen {
     this.el.remove();
   }
 }
+

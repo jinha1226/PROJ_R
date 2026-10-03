@@ -1,3 +1,7 @@
+import { ShipTerrain } from './shipTerrain';
+import type { ShipKit } from './shipKit';
+import type { MetaState } from '../../sim/grid/meta';
+import { STATIONS } from '../../sim/grid/ship';
 import * as THREE from 'three';
 import { zoneOf } from '../../sim/grid/zones';
 import { applyZoneLook } from './zoneLook';
@@ -22,15 +26,13 @@ import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
 import { PixelPass } from './pixelPass';
-
 const ELEVATION = (60 * Math.PI) / 180;
 const CAM_DIST = 40;
 const CAM_K = 8;
-
 /** Draws a grid sortie: the map, models chasing their cells, and each turn's events replayed as a quick overlapping show. */
 export class GridRuntime {
   private readonly h: SceneHandle;
-  private terrain: GridTerrain;
+  private terrain: GridTerrain | ShipTerrain;
   private actors: GridActors;
   private elements: GridElements;
   private mapRef: GridSim['s']['map'];
@@ -52,8 +54,7 @@ export class GridRuntime {
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;
   private clock = 0;
-
-  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
+  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, theme?: { theme: 'ship'; kit: ShipKit; meta: MetaState }) {
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     const scene = this.h.scene;
@@ -64,9 +65,11 @@ export class GridRuntime {
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer);
-    this.terrain = new GridTerrain(sim.s.map, kit);
+    this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit);
+    for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
+    if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.45; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
     this.actors = new GridActors(lib);
-    this.torches = new GridTorches(sim.s.map, kit, look.lights, look.density);
+    this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density);
     this.elements = new GridElements(kit, sim.s);
     this.mapRef = sim.s.map;
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
@@ -80,12 +83,10 @@ export class GridRuntime {
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
     this.refresh();
   }
-
   private project(p: THREE.Vector3): { left: number; top: number } {
     const v = p.clone().project(this.h.camera);
     return { left: ((v.x + 1) / 2) * this.el.clientWidth, top: ((1 - v.y) / 2) * this.el.clientHeight };
   }
-
   /** A new turn's events: hurry the last show, queue this one, and update what is seen. */
   apply(events: GEvent[], startTime: number): void {
     if (this.sim.s.map !== this.mapRef) { this.newFloor(); return; }
@@ -94,7 +95,6 @@ export class GridRuntime {
     this.actors.sync(this.sim.s);
     this.refresh();
   }
-
   /** Down the stairs: rebuild the floor, the figures and the lights; drop what was left of the last show. */
   private newFloor(): void {
     const s = this.sim.s;
@@ -117,19 +117,16 @@ export class GridRuntime {
     this.banner.classList.add('on');
     this.refresh();
   }
-
+  powerShip(meta: MetaState): void { if (this.terrain instanceof ShipTerrain) this.terrain.power(meta); }
   showAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
     this.elements.setAim(cells, ok);
   }
-
   hurry(): void {
     this.playback.hurry();
   }
-
   get busy(): boolean {
     return this.playback.busy;
   }
-
   /** Sight shading, which foes show, aim lines and intent marks. */
   private refresh(): void {
     const s = this.sim.s;
@@ -145,11 +142,11 @@ export class GridRuntime {
     const shown = s.foes.filter((f) => f.alive && f.awake && s.visible.has(idx(s.map, f.pos)));
     const aiming = shown.filter((f) => f.kind === 'archer' && archerCanShoot(s, f));
     this.fx.setAim(aiming.map((f) => [new THREE.Vector3(f.pos.x * CELL, 0, f.pos.y * CELL), hero]));
-    this.icons = shown.map((f) => ({ id: f.id, icon: aiming.includes(f) ? '◎' : '!' }));
+    // on the ship deck the floating labels name the stations instead
+    this.icons = this.stationAt.size ? (s.map.stations ?? []).map((st) => ({ id: `st-${st.id}`, icon: STATIONS[st.id] })) : shown.map((f) => ({ id: f.id, icon: aiming.includes(f) ? '◎' : '!' }));
   }
-
   private icons: { id: string; icon: string }[] = [];
-
+  private readonly stationAt = new Map<string, THREE.Vector3>();
   private cue(e: GEvent): void {
     const a = this.actors;
     const at = (id?: string) => (id ? a.pos(id) : undefined);
@@ -202,6 +199,7 @@ export class GridRuntime {
       case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.particles.bones(p, 16, at(e.src)); break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
+      case 'energy': if (e.to) this.fx.energy(cellVec(e.to), e.amount ?? 0); break;
       case 'loot': if (e.to) this.fx.number(lootText(e), 'combo', cellVec(e.to)); break;
       case 'stun': a.knock(e.dst); break;
       case 'dodge': a.anim('hero', e.text === 'L' ? 'weaveL' : 'weaveR'); { const p = at('hero'); if (p) this.fx.number('회피', 'miss', p); } break;
@@ -216,7 +214,6 @@ export class GridRuntime {
     }
     this.onCue(e);
   }
-
   update(dt: number): void {
     this.clock += dt;
     for (const e of this.playback.update(this.fx.frozen ? 0 : dt)) this.cue(e);
@@ -229,17 +226,18 @@ export class GridRuntime {
     this.particles.update(this.fx.frozen ? 0 : dt, this.center);
     this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
-    this.center.x = chase(this.center.x, hero.x, dt, CAM_K);
-    this.center.z = chase(this.center.z, hero.z, dt, CAM_K);
+    // the small ship deck stays framed in the middle; in the dungeon the camera follows the hero
+    const aim = this.stationAt.size ? new THREE.Vector3(((this.sim.s.map.w - 1) / 2) * CELL, 0, ((this.sim.s.map.h - 1) / 2) * CELL) : hero;
+    this.center.x = chase(this.center.x, aim.x, dt, CAM_K);
+    this.center.z = chase(this.center.z, aim.z, dt, CAM_K);
     this.light.position.set(hero.x, 2.6, hero.z);
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
-    this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? new THREE.Vector3() })));
+    this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));
     this.particles.dustOn = !this.pixelated;
     if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
     else this.h.renderer.render(this.h.scene, this.h.camera);
   }
-
   private placeCamera(): void {
     const cam = this.h.camera;
     const aspect = (cam.userData.aspect as number | undefined) ?? 9 / 16;
@@ -251,15 +249,12 @@ export class GridRuntime {
     cam.position.set(c.x, Math.sin(ELEVATION) * CAM_DIST, c.z + Math.cos(ELEVATION) * CAM_DIST);
     cam.lookAt(c);
   }
-
   setZoom(h: number): void {
     this.height = h;
   }
-
   get zoom(): number {
     return this.height;
   }
-
   /** The grid cell under a screen point (null off the map). */
   cellAt(clientX: number, clientY: number): Cell | null {
     const r = this.el.getBoundingClientRect();
@@ -272,7 +267,6 @@ export class GridRuntime {
     const m = this.sim.s.map;
     return c.x >= 0 && c.y >= 0 && c.x < m.w && c.y < m.h ? c : null;
   }
-
   dispose(): void {
     this.actors.dispose();
     this.fx.dispose();
@@ -287,5 +281,4 @@ export class GridRuntime {
     this.h.dispose();
   }
 }
-
 const cellVec = (c: Cell): THREE.Vector3 => new THREE.Vector3(c.x * CELL, 0, c.y * CELL);

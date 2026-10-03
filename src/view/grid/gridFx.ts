@@ -15,6 +15,7 @@ export class GridFx {
   readonly transient: TransientFx;
   private readonly numbers: DamageNumbers;
   private readonly bolts: Bolt[] = [];
+  private readonly beams: { mesh: THREE.Mesh; life: number }[] = [];
   private readonly aim: THREE.LineSegments;
   private readonly icons = new Map<string, HTMLDivElement>();
   private readonly iconLayer = document.createElement('div');
@@ -45,6 +46,12 @@ export class GridFx {
     for (const m of [mesh, trail]) { m.rotation.order = 'YXZ'; m.rotation.y = yaw; m.rotation.x = Math.PI / 2; this.scene.add(m); }
     const cells = from.distanceTo(to) / CELL;
     this.bolts.push({ mesh, trail, from: from.clone().setY(1.1), to: to.clone().setY(1.0), t: 0, total: Math.max(0.05, cells / BOLT_SPEED), done });
+  }
+
+  energy(at: THREE.Vector3, amount: number): void {
+    this.number(`⚡+${amount}`, 'combo', at);
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.16, 1, 8), new THREE.MeshBasicMaterial({ color: '#69eaff', transparent: true, opacity: 0.8, depthWrite: false }));
+    mesh.position.copy(at); this.scene.add(mesh); this.beams.push({ mesh, life: 0.5 });
   }
 
   number(text: string, kind: NumberKind, at: THREE.Vector3): void {
@@ -95,6 +102,7 @@ export class GridFx {
       if (!el) { el = document.createElement('div'); el.className = 'grid-icon'; this.iconLayer.appendChild(el); this.icons.set(l.id, el); }
       el.textContent = l.icon;
       el.classList.toggle('aim', l.icon === '◎');
+      el.classList.toggle('label', l.icon.length > 1);
       const p = this.project(l.at.clone().setY(2.3));
       el.style.transform = `translate(${p.left}px, ${p.top}px)`;
     }
@@ -107,6 +115,12 @@ export class GridFx {
 
   update(dt: number): void {
     this.flashes.update(dt);
+    for (let i = this.beams.length - 1; i >= 0; i--) {
+      const b = this.beams[i]!; b.life -= dt;
+      b.mesh.scale.y = 1 + (0.5 - b.life) * 10; b.mesh.position.y = b.mesh.scale.y / 2;
+      const mat = b.mesh.material as THREE.MeshBasicMaterial; mat.opacity = Math.max(0, b.life * 1.6);
+      if (b.life <= 0) { this.scene.remove(b.mesh); b.mesh.geometry.dispose(); mat.dispose(); this.beams.splice(i, 1); }
+    }
     this.stop = Math.max(0, this.stop - dt);
     this.shakeT = Math.max(0, this.shakeT - dt);
     const step = this.stop > 0 ? 0 : dt;
@@ -127,6 +141,7 @@ export class GridFx {
   }
 
   dispose(): void {
+    for (const b of this.beams) { this.scene.remove(b.mesh); b.mesh.geometry.dispose(); (b.mesh.material as THREE.Material).dispose(); }
     this.flashes.dispose();
     this.transient.dispose();
     this.numbers.dispose();

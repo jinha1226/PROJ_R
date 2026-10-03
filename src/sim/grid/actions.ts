@@ -24,7 +24,7 @@ export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.
 
 /** Cells tap-walking must route around: a shut chest, a barrel (walking into one sets it off), a living foe. */
 export const walkBlocked = (s: GridState, c: Cell): boolean =>
-  chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f.alive && same(f.pos, c)) || s.traps.some((tr) => tr.found && same(tr.pos, c));
+  !!s.map.stations?.some(p => same(p.pos, c)) || chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f.alive && same(f.pos, c)) || s.traps.some((tr) => tr.found && same(tr.pos, c));
 
 /** A chest holds maybe a piece of equipment (bag, or the floor when full) and some supplies. */
 function openChest(s: GridState, t: number, c: Cell): void {

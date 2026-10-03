@@ -4,6 +4,20 @@ type Cell = { x: number; y: number };
 type S = { time: number; outcome?: string; hero: { pos: Cell; hp: number; charge: number }; foes: { pos: Cell; alive: boolean; kind: string }[]; map: { tiles: string[]; w: number } };
 type G = { state(): S; act(a: unknown): boolean; walkTo(c: Cell): void; walking(): boolean; toStairs(): void };
 const waitGrid = (page: Page) => page.waitForFunction(() => !!(window as unknown as { __PROJR_GRID__?: G }).__PROJR_GRID__, null, { timeout: 60_000 });
+/** From the ship deck: walk into the hatch, launch, and wait for the dungeon run. */
+async function launch(page: Page): Promise<void> {
+  await expect(page.locator('[data-testid="ship-deck"]')).toBeVisible({ timeout: 60_000 });
+  await waitGrid(page);
+  await page.evaluate(() => {
+    const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
+    const s = w.state() as unknown as { hero: { pos: Cell }; map: { stations: { id: string; pos: Cell }[] } };
+    const hatch = s.map.stations.find((st) => st.id === 'hatch')!;
+    s.hero.pos = { x: hatch.pos.x, y: hatch.pos.y - 1 };
+    w.act({ kind: 'move', dir: { x: 0, y: 1 } });
+  });
+  await page.click('[data-testid="ship-launch"]');
+  await page.waitForFunction(() => (window as unknown as { __PROJR_GRID__?: { state(): { mode?: string } } }).__PROJR_GRID__?.state().mode !== 'ship', null, { timeout: 60_000 });
+}
 
 test('a grid sortie: step, fight, fall, see the result and go again', async ({ page }) => {
   const errors: string[] = [];
@@ -11,7 +25,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await waitGrid(page);
+  await launch(page);
   await expect(page.locator('[data-testid="grid-stats"]')).toContainText('충전');
   const moved = await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
@@ -47,8 +61,9 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; const h = w.state().hero as { hp: number; alive?: boolean }; h.hp = 0; h.alive = false; w.act({ kind: 'wait' }); });
   await expect(page.locator('[data-testid="grid-result"]')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('[data-testid="grid-result"] h2')).toHaveText('쓰러졌다');
+  // back to the ship: the pod wakes the agent, the hatch launches again
   await page.click('[data-testid="grid-again"]');
-  await waitGrid(page);
+  await launch(page);
   await expect(page.locator('[data-testid="grid-sortie"]')).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -58,7 +73,7 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   const page = await ctx.newPage();
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await waitGrid(page);
+  await launch(page);
   await expect(page.locator('.screen.grid.portrait')).toBeVisible();
   await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; Object.assign((w.state() as unknown as { hero: { gear: { belt: Record<string, number> } } }).hero.gear.belt, { bomb: 1, fireFlask: 1 }); w.act({ kind: 'wait' }); });
   for (const b of ['use-bomb', 'use-fireFlask']) {
@@ -83,7 +98,7 @@ test('engravings: absorb an echo onto the suit, pick a suit upgrade on level-up,
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await waitGrid(page);
+  await launch(page);
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
   expect((await st()).hero.suit).toEqual([]);
   // an echo at the hero's feet-to-be: stepping in offers three engravings of that family; pick one onto the suit
@@ -149,7 +164,7 @@ test('roguelike basics: drink an unknown potion from the bag, read a map scroll,
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await waitGrid(page);
+  await launch(page);
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
   await page.evaluate(() => {
     const s = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any;
@@ -175,5 +190,35 @@ test('roguelike basics: drink an unknown potion from the bag, read a map scroll,
   });
   await page.keyboard.press('v');
   await expect.poll(async () => (await st()).traps.every((t: Any) => t.found)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('the ship deck: bump the armory, buy the shotgun with energy, it is saved and can be picked to launch with', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.addInitScript(() => {
+    try { if (!localStorage.getItem('projr.grid.meta.v1.seeded')) { localStorage.setItem('projr.grid.meta.v1', JSON.stringify({ energy: 200, facilities: { armoryShotgun: false, armoryRifle: false, suitSlots: 1, chargePlus: 0, navCrypt: false, navRuins: false }, records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0 })); localStorage.setItem('projr.grid.meta.v1.seeded', '1'); } } catch { /* ignore */ }
+  });
+  await page.goto('./?seed=21');
+  await page.click('[data-testid="to-grid"]');
+  await expect(page.locator('[data-testid="ship-deck"]')).toBeVisible({ timeout: 60_000 });
+  await waitGrid(page);
+  await expect(page.locator('.ship-hud')).toContainText('⚡200');
+  await page.evaluate(() => {
+    const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
+    const s = w.state() as unknown as { hero: { pos: Cell }; map: { stations: { id: string; pos: Cell }[] } };
+    const armory = s.map.stations.find((st) => st.id === 'armory')!;
+    s.hero.pos = { x: armory.pos.x, y: armory.pos.y + 1 };
+    w.act({ kind: 'move', dir: { x: 0, y: -1 } });
+  });
+  await expect(page.locator('[data-testid="ship-panel-armory"]')).toBeVisible();
+  await page.click('[data-testid="ship-buy-armoryShotgun"]');
+  await expect(page.locator('.ship-hud')).toContainText('⚡120');
+  await page.click('[data-testid="ship-choice-shotgun"]');
+  await expect(page.locator('[data-testid="ship-choice-shotgun"]')).toHaveAttribute('aria-pressed', 'true');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('projr.grid.meta.v1') ?? '{}') as { energy: number; facilities: { armoryShotgun: boolean } });
+  expect(saved.energy).toBe(120);
+  expect(saved.facilities.armoryShotgun).toBe(true);
   expect(errors).toEqual([]);
 });
