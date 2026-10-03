@@ -47,8 +47,10 @@ export interface HeroFx {
   momentum: boolean;
   /** what the current hero action was (a blow keeps the melee combo, a shot the rapid chain) */
   acted: 'melee' | 'shot' | null;
+  /** quick swap pays out once per attack (a blow or a shot re-arms it) */
+  swapReady: boolean;
 }
-export const freshFx = (): HeroFx => ({ combo: { hits: 0 }, rapid: { n: 0 }, shots: 0, spells: 0, nextMult: 1, momentum: false, acted: null });
+export const freshFx = (): HeroFx => ({ combo: { hits: 0 }, rapid: { n: 0 }, shots: 0, spells: 0, nextMult: 1, momentum: false, acted: null, swapReady: true });
 
 /** Whether the active hand fits this engraving's family. */
 export function fitsHand(s: GridState, id: EngraveId): boolean {

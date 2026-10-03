@@ -14,13 +14,17 @@ describe('touch foe inspection', () => {
   let win: EventTarget;
   let surface: Surface;
   const select = vi.fn();
+  let stopped = 0;
   function pointer(type: string, id = 1, x = 10, pointerType = 'touch') {
     const event = new Event(type, { cancelable: true });
     Object.defineProperties(event, {
       target: { value: surface }, pointerId: { value: id }, pointerType: { value: pointerType },
       clientX: { value: x }, clientY: { value: 10 },
     });
+    const stop = event.stopPropagation.bind(event);
+    event.stopPropagation = () => { stopped++; stop(); };
     win.dispatchEvent(event);
+    return event;
   }
   beforeEach(() => {
     vi.useFakeTimers(); select.mockClear();
@@ -41,9 +45,18 @@ describe('touch foe inspection', () => {
     expect(select).toHaveBeenCalledTimes(1);
     pointer('pointerup'); expect(select).toHaveBeenCalledTimes(1);
   });
-  it('keeps short foe taps working', () => {
+  it('never swallows the touch: the stick, taps and pinches still get it', () => {
+    stopped = 0;
+    const down = pointer('pointerdown');
+    vi.advanceTimersByTime(500);
+    const up = pointer('pointerup');
+    expect(down.defaultPrevented).toBe(false);
+    expect(up.defaultPrevented).toBe(false);
+    expect(stopped).toBe(0);
+  });
+  it('a short tap is left to the screen\'s own tap handling (no select here)', () => {
     pointer('pointerdown'); pointer('pointerup');
-    expect(select).toHaveBeenCalledTimes(1);
+    expect(select).not.toHaveBeenCalled();
   });
   it.each(['move', 'second finger', 'cancel', 'blur', 'dispose'])('cancels on %s', (reason) => {
     pointer('pointerdown');

@@ -84,7 +84,8 @@ export class GridScreen implements Screen {
     this.el.appendChild(this.touch.el);
     const rt = this.rt;
     this.cleanup.push(attachFoePress(this.el, () => this.s, (x, y) => rt.cellAt(x, y), (id) => {
-      if (!this.levelUp && !this.bag && !this.s.outcome) { this.walk = null; this.s.hero.target = id; }
+      // a long press only inspects: the held stick under the thumb lets go so the hero does not walk off
+      if (!this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim) { this.walk = null; this.touch?.releaseStick(); this.s.hero.target = id; }
     }));
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
       { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });

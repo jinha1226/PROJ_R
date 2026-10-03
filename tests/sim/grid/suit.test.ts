@@ -68,7 +68,7 @@ describe('suit engravings', () => {
 
   it.each([
     ['sword', 'pistol', 0], ['staff', 'pistol', 0], ['pistol', 'staff', 0],
-    ['staff', 'staff', 0.5], ['pistol', 'rifle', 0.5], [null, 'sword', 0], ['sword', null, 0],
+    ['staff', 'staff', 0.5], ['pistol', 'rifle', 0.5], [null, 'sword', 0.5], ['sword', null, 0.5],
   ] as [WeaponGroup | null, WeaponGroup | null, number][])('quickswap %s to %s costs %s', (from, to, cost) => {
     const g = sim(OPEN, { x: 3, y: 3 });
     g.s.hero.suit = ['quickswap'];
@@ -78,14 +78,15 @@ describe('suit engravings', () => {
     expect(g.s.hero.fx.nextMult).toBe(cost === 0 ? 1.5 : 1);
   });
 
-  it('can choose while empty-handed, rejects duplicate queued choices, and can skip a full suit', () => {
+  it('can choose while empty-handed, drops duplicate queued choices, and can skip a full suit', () => {
     const g = sim(OPEN, { x: 3, y: 3 });
     g.s.hero.gear.hands = [null, null];
     g.s.offers = [['dash'], ['dash']];
     g.act({ kind: 'choose', i: 0, slot: 99 });
     expect(g.s.hero.suit).toEqual(['dash']);
-    expect(g.act({ kind: 'choose', i: 0 })[0]!.type).toBe('blocked');
-    expect(g.s.offers).toEqual([['dash']]);
+    // the second offer held only the card just taken: it is gone
+    expect(g.s.offers).toEqual([]);
+    g.s.offers = [['leap']];
     g.s.hero.suit = ENGRAVE_IDS.slice(0, 6);
     g.act({ kind: 'choose', i: null });
     expect(g.s.offers).toEqual([]);

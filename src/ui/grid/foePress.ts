@@ -1,6 +1,9 @@
 import { idx, same, type Cell, type GridState } from '../../sim/grid/types';
 
-/** Capture foe touches even over the stick pad. Never issues a simulation action. */
+/**
+ * Long-press a foe (400 ms, under 12 px of movement) to inspect it. It only listens: the touch still reaches the stick,
+ * the screen's tap handling (targeting, throw aiming) and pinch zoom. Never issues a simulation action.
+ */
 export function attachFoePress(root: HTMLElement, state: () => GridState, cellAt: (x: number, y: number) => Cell | null | undefined, select: (id: string) => void): () => void {
   let press: { pointer: number; x: number; y: number; foe: string; selected: boolean } | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -22,8 +25,6 @@ export function attachFoePress(root: HTMLElement, state: () => GridState, cellAt
     const foe = cell && s.foes.find((f) => f.alive && same(f.pos, cell) && s.visible.has(idx(s.map, cell)));
     if (!foe) return;
     press = { pointer: e.pointerId, x: e.clientX, y: e.clientY, foe: foe.id, selected: false };
-    e.stopPropagation();
-    e.preventDefault();
     timer = setTimeout(choose, 400);
   };
   const move = (e: PointerEvent) => {
@@ -32,8 +33,6 @@ export function attachFoePress(root: HTMLElement, state: () => GridState, cellAt
   const up = (e: PointerEvent) => {
     touches.delete(e.pointerId);
     if (press?.pointer !== e.pointerId) return;
-    e.stopPropagation();
-    if (e.type === 'pointerup' && !press.selected) choose();
     cancel();
   };
   const blur = () => { cancel(); touches.clear(); };

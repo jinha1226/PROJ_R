@@ -156,6 +156,12 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       if (!offer || (a.i !== null && !id) || (id && !putOnSuit(s, id, a.slot))) return null;
       if (id) record(s, t, id);
       s.offers.shift();
+      // offers still waiting lose cards that are now on the suit; an emptied one goes away
+      while (s.offers[0]) {
+        const left = s.offers[0].filter((x) => !s.hero.suit.includes(x));
+        if (left.length) { s.offers[0] = left; break; }
+        s.offers.shift();
+      }
       return 0;
     }
     case 'use':

@@ -13,5 +13,6 @@ export function applyZoneLook(hemi: HemisphereLight, floor: number, mobile: bool
   const look = LOOKS[zoneOf(floor).id];
   hemi.color.set(look.color);
   hemi.intensity = look.intensity;
-  return { density: look.density, lights: Math.round((mobile ? 3 : 6) * look.density) };
+  // the light count never changes between zones (three.js recompiles every material when it does); only torch models thin out
+  return { density: look.density, lights: mobile ? 3 : 6 };
 }

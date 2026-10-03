@@ -64,6 +64,7 @@ export class GridSim {
     if (boosted && cost > 0) cost *= MOMENTUM;
     else if (boosted) fx.momentum = true;
     if (cost > 0) discover(s, t0);
+    if (fx.acted) fx.swapReady = true;
     if (fx.acted !== 'melee') fx.combo = { hits: 0 };
     if (fx.acted !== 'shot') fx.rapid = { n: 0 };
     passMarks(s, t0);

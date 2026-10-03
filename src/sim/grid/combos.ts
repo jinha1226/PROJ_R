@@ -82,7 +82,14 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   swapHands(g);
   s.events.push({ t, type: 'swap', src: h.id, text: activeWeapon(g)?.name });
   let cost = COST.swap;
-  if (has(s, 'quickswap') && before !== handKind(activeWeapon(g))) { fire(s, t, 'quickswap'); h.fx.nextMult = QUICK_MULT; cost = 0; }
+  const after = handKind(activeWeapon(g));
+  // free and charged only between two real weapons of different kinds, once per attack (no empty-hand or back-and-forth loops)
+  if (has(s, 'quickswap') && h.fx.swapReady && before !== after && before !== 'empty' && after !== 'empty') {
+    fire(s, t, 'quickswap');
+    h.fx.nextMult = QUICK_MULT;
+    h.fx.swapReady = false;
+    cost = 0;
+  }
   if (!has(s, 'swapstrike')) return cost;
   // a swap that strikes is never free (else quick swap + swap strike would land endless blows in no time)
   cost = COST.swap;

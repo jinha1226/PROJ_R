@@ -96,6 +96,7 @@ export function readScroll(s: GridState, t: number, sc: ScrollKind): number | nu
       for (const f of s.foes) if (f.alive && f.awake) f.lastSeen = { ...h.pos };
       break;
     case 'recharge':
+      h.charge = h.maxCharge;
       for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.max(w.charges ?? 0, STAFF_CHARGES);
       break;
   }

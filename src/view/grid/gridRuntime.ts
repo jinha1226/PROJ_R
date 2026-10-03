@@ -72,7 +72,7 @@ export class GridRuntime {
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
     this.banner.className = 'grid-banner';
     el.appendChild(this.banner);
-    this.fx = new GridFx(scene, el, (p) => this.project(p), mobile ? 2 : 4);
+    this.fx = new GridFx(scene, el, (p) => this.project(p), mobile ? 1 : 4);
     this.pops = new EngravePops(el);
     this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; } };
     this.actors.sync(sim.s);
