@@ -47,7 +47,7 @@ export class GridRuntime {
   pixelated = true;
   private playback = new Playback();
   private readonly hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
-  private readonly light = new THREE.PointLight('#ffd9a0', 10, 8, 1.5);
+  private readonly light = new THREE.PointLight('#ffd9a0', 16, 9, 1.4);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;
@@ -60,7 +60,7 @@ export class GridRuntime {
     scene.background = new THREE.Color('#0b0b0e');
     scene.fog = null;
     const look = applyZoneLook(this.hemi, sim.s.run.floor, mobile);
-    const sun = new THREE.DirectionalLight('#c8d0ff', 0.45);
+    const sun = new THREE.DirectionalLight('#9fb0ff', 0.16);
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer);
@@ -72,7 +72,7 @@ export class GridRuntime {
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
     this.banner.className = 'grid-banner';
     el.appendChild(this.banner);
-    this.fx = new GridFx(scene, el, (p) => this.project(p));
+    this.fx = new GridFx(scene, el, (p) => this.project(p), mobile ? 2 : 4);
     this.pops = new EngravePops(el);
     this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; } };
     this.actors.sync(sim.s);
@@ -174,6 +174,7 @@ export class GridRuntime {
         if (!e.dst) break;
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
+        this.fx.flash(from, e.text === 'staff' || e.text === 'spell' || e.text === 'echo' ? '#b48aff' : '#ffd890', 22, 0.12);
         this.fx.bolt(from, p, () => { entry.ready = true; this.pending.delete(key); for (const q of entry.queue) this.cue(q); });
         break;
       }
@@ -205,7 +206,7 @@ export class GridRuntime {
       case 'stun': a.knock(e.dst); break;
       case 'dodge': a.anim('hero', e.text === 'L' ? 'weaveL' : 'weaveR'); { const p = at('hero'); if (p) this.fx.number('회피', 'miss', p); } break;
       case 'parry': a.anim('hero', 'parry'); { const p = at('hero'); if (p) { this.fx.number('패링!', 'combo', p); this.particles.spray(p, '#e8f0ff', 12); } } break;
-      case 'explode': if (e.to) { const p = cellVec(e.to); this.fx.transient.burst(p.x, p.z, '#ffb04a', 1.4, 0.5); this.particles.spray(p, '#ff8a2a', 30); this.fx.shake(0.25, 0.35); this.fx.hitStop(); } break;
+      case 'explode': if (e.to) { const p = cellVec(e.to); this.fx.transient.burst(p.x, p.z, '#ffb04a', 1.4, 0.5); this.fx.flash(p, '#ff8a2a', 40, 0.45, 9); this.particles.spray(p, '#ff8a2a', 30); this.fx.shake(0.25, 0.35); this.fx.hitStop(); } break;
       case 'telegraph': { const p = at(e.src); if (p) this.fx.transient.burst(p.x, p.z, e.text === 'frost' ? '#5ab4ff' : '#ff5a3a', 0.6, 0.4); break; }
       case 'levelUp': { const p = at('hero'); if (p) { this.fx.number(`레벨 ${e.amount}!`, 'combo', p); this.fx.transient.glow(p.x, p.z, '#ffd76a'); } break; }
       case 'heal': {

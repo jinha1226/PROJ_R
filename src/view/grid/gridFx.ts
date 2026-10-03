@@ -3,6 +3,7 @@ import { TransientFx } from '../fx/transientFx';
 import { DamageNumbers, type NumberKind } from '../overlay/damageNumbers';
 import '../overlay/overlay.css';
 import { CELL } from './gridTerrain';
+import { FlashLights } from './flashLights';
 
 const BOLT_SPEED = 4 / 0.08;   // cells per second
 const HITSTOP = 0.06;
@@ -22,8 +23,11 @@ export class GridFx {
   private shakeT = 0;
   private shakeAmp = 0;
 
-  constructor(private readonly scene: THREE.Scene, private readonly overlay: HTMLElement, private readonly project: (p: THREE.Vector3) => { left: number; top: number }) {
+  private readonly flashes: FlashLights;
+
+  constructor(private readonly scene: THREE.Scene, private readonly overlay: HTMLElement, private readonly project: (p: THREE.Vector3) => { left: number; top: number }, flashCount = 4) {
     this.transient = new TransientFx(scene);
+    this.flashes = new FlashLights(scene, flashCount);
     this.numbers = new DamageNumbers(overlay);
     this.iconLayer.className = 'grid-icons';
     this.hurtEl.className = 'grid-hurt';
@@ -96,7 +100,13 @@ export class GridFx {
     }
   }
 
+  /** A brief light at `at` (muzzle flash, blast, spell). */
+  flash(at: THREE.Vector3, color: string, power?: number, sec?: number, range?: number): void {
+    this.flashes.flash(at, color, power, sec, range);
+  }
+
   update(dt: number): void {
+    this.flashes.update(dt);
     this.stop = Math.max(0, this.stop - dt);
     this.shakeT = Math.max(0, this.shakeT - dt);
     const step = this.stop > 0 ? 0 : dt;
@@ -117,6 +127,7 @@ export class GridFx {
   }
 
   dispose(): void {
+    this.flashes.dispose();
     this.transient.dispose();
     this.numbers.dispose();
     this.iconLayer.remove();

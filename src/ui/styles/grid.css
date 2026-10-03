@@ -226,3 +226,6 @@
   .landscape .gh-target { height: 42px; padding: 3px 6px; gap: 1px; line-height: 10px; }
   .grid.landscape .xzoom { top: calc(var(--hud-top) + 46px); }
 }
+
+/* a dark vignette pulls the eye to the lit middle */
+.screen.grid .grid-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, #0008 85%, #000c 100%); }

@@ -10,6 +10,23 @@ const LIGHT_RANGE = 6.5;
 interface Torch { face: WallFace; model: THREE.Object3D; flame: THREE.Mesh; at: THREE.Vector3; cell: number; phase: number }
 
 /** Wall torches: a model and a flickering flame each; only the few nearest seen torches get a real light (phones stay fast). */
+let halo: THREE.SpriteMaterial | null = null;
+/** A shared warm radial glow for torch flames. */
+function haloMaterial(): THREE.SpriteMaterial {
+  if (halo) return halo;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,190,110,0.55)');
+  grad.addColorStop(0.4, 'rgba(255,140,60,0.18)');
+  grad.addColorStop(1, 'rgba(255,120,40,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  halo = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  return halo;
+}
+
 export class GridTorches {
   readonly root = new THREE.Group();
   private readonly torches: Torch[] = [];
@@ -27,6 +44,10 @@ export class GridTorches {
       const flame = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: '#ffb347', transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
       const at = new THREE.Vector3(base.x + face.dir.x * 0.28 * CELL, TORCH_Y + 0.22, base.z + face.dir.y * 0.28 * CELL);
       flame.position.copy(at);
+      // a soft additive halo stands in for bloom (cheap on phones)
+      const halo = new THREE.Sprite(haloMaterial());
+      halo.scale.setScalar(1.1);
+      flame.add(halo);
       model.visible = flame.visible = false;
       this.root.add(model, flame);
       this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7 });
@@ -60,7 +81,7 @@ export class GridTorches {
     for (const l of this.lights) {
       const t = l.userData.torch as Torch | undefined;
       if (!t) continue;
-      l.intensity = 9 * (1 + Math.sin(this.t * 9 + t.phase) * 0.1 + Math.sin(this.t * 17 + t.phase) * 0.06);
+      l.intensity = 12 * (1 + Math.sin(this.t * 9 + t.phase) * 0.1 + Math.sin(this.t * 17 + t.phase) * 0.06);
     }
   }
 

@@ -9,7 +9,7 @@ export const CELL = 1.0;
 export const WALL_H = 1.5;
 const PANEL_DEPTH = 0.25;
 const CAP = new THREE.Color('#5a5048');
-const SEEN = 0.42;
+const SEEN = 0.3;
 
 export const toWorld = (x: number, y: number): THREE.Vector3 => new THREE.Vector3(x * CELL, 0, y * CELL);
 /** Yaw that turns a model's +z toward `dir` (grid y = world z). */

@@ -9,22 +9,15 @@ import { CELL } from './gridTerrain';
 const LEAP_SEC = 0.28;
 const LEAP_HEIGHT = 0.9;
 
-/** Every kind is the same mannequin: colour, size and the block weapon tell them apart. */
+/** Every kind is the same mannequin: colour, size and the weapon tell them apart. */
 const LOOK: Record<Ent['kind'], UalLook> = {
-  hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle',
-    block: { skin: '#e8b890', hair: '#5a3a1c', shirt: '#3a62a8', trim: '#5a3a1c', pants: '#3a3a52', boots: '#4a2e1a', face: 'human' } },
-  minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop',
-    block: { skin: '#e8e2d0', hair: '#d8d2c0', shirt: '#e0dac8', trim: '#8a8270', pants: '#d0cab8', boots: '#b8b2a0', face: 'skull', ribs: true, bulk: 0.8 } },
-  archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Idle_Loop',
-    block: { skin: '#e8e2d0', hair: '#3e5a2e', shirt: '#4e6a3a', trim: '#2e3a22', pants: '#3e4a2e', boots: '#2a2a1e', face: 'hood', bulk: 0.85 } },
-  brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle',
-    block: { skin: '#e8e2d0', hair: '#6a6e78', shirt: '#7a2e28', trim: '#2a2420', pants: '#4a2a24', boots: '#2a2420', face: 'helmet', bulk: 1.15 } },
-  ghoul: { body: '#6a8a4a', trim: '#3a2a1a', scale: 0.95, weapon: 'none', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop',
-    block: { skin: '#7a9a5a', hair: '#4a5a32', shirt: '#5a4a32', trim: '#3a2a1a', pants: '#4a3a28', boots: '#3a2e20', face: 'ghoul' } },
-  mage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'staff', idle: 'Spell_Simple_Idle_Loop',
-    block: { skin: '#e8e2d0', hair: '#4a2a6a', shirt: '#5a3a8a', trim: '#d8b040', pants: '#4a2a6a', boots: '#2a1a3a', face: 'hood', bulk: 0.85 } },
-  champion: { body: '#3a3a44', trim: '#d8b040', scale: 1.45, weapon: 'sword', shield: true, idle: 'Sword_Idle',
-    block: { skin: '#e8e2d0', hair: '#c8a040', shirt: '#4a4a56', trim: '#d8b040', pants: '#2e2e36', boots: '#1e1e24', face: 'helmet', bulk: 1.2 } },
+  hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle' },
+  minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' },
+  archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Idle_Loop' },
+  brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
+  ghoul: { body: '#6a8a4a', trim: '#3a2a1a', scale: 0.95, weapon: 'none', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop' },
+  mage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'staff', idle: 'Spell_Simple_Idle_Loop' },
+  champion: { body: '#3a3a44', trim: '#d8b040', scale: 1.45, weapon: 'sword', shield: true, idle: 'Sword_Idle' },
 };
 const LUNGE = 0.3;
 

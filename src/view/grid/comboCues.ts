@@ -47,6 +47,7 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
       if (!r || !e.to) return true;
       const cell = new THREE.Vector3(e.to.x * CELL, 0, e.to.y * CELL);
       k.fx.transient.burst(cell.x, cell.z, r.color, r.size, 0.5);
+      k.fx.flash(cell, r.color, 30, 0.35, 8);
       k.particles.spray(cell, r.color, e.text === 'shatter' ? 26 : 18);
       k.fx.number(r.label, 'combo', cell);
       if (e.text === 'ignite' || e.text === 'shatter') { k.fx.shake(0.2, 0.25); k.fx.hitStop(); }
@@ -57,6 +58,7 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
       const p = new THREE.Vector3(e.to.x * CELL, 0, e.to.y * CELL);
       const color = TRAP_COLOR[e.text ?? ''] ?? '#ffffff';
       k.fx.transient.burst(p.x, p.z, color, 0.9, 0.45);
+      k.fx.flash(p, color, 24, 0.3);
       k.particles.spray(p, color, 16);
       k.fx.number(TRAP_LABEL[e.text ?? ''] ?? '함정!', 'crit', p);
       k.fx.shake(0.14, 0.18);
