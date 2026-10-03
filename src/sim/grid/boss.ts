@@ -29,7 +29,7 @@ export function championTurn(s: GridState, f: Ent, t: number): number {
   }
   if (canMelee(s, f)) {
     s.events.push({ t, type: 'bump', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...s.hero.pos } });
-    strike(s, t, f, s.hero, FOES.champion.hit, foeDmg(f));
+    strike(s, t, f, s.hero, FOES.champion.hit, foeDmg(f), 1, 'melee');
     return 1;
   }
   return stepToward(s, f, f.lastSeen ?? s.hero.pos, t) ? FOES.champion.move : 1;

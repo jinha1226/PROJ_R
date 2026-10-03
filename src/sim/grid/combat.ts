@@ -1,4 +1,5 @@
 import { losClear } from './fov';
+import { defend } from './defense';
 import { dist, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridMap, type GridState } from './types';
 
 const PER_TILE = 0.04;
@@ -36,7 +37,9 @@ export function shotClear(s: GridState, from: Cell, to: Cell): boolean {
 
 /** Rolls to hit and for damage; emits hit/miss (+die). Returns whether it hit. */
 /** mult: sneak-attack multiplier; the hero's armour takes its share off (never below 1). */
-export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: number, dmg: readonly [number, number], mult = 1): boolean {
+export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: number, dmg: readonly [number, number], mult = 1, kind?: 'melee' | 'shot'): boolean {
+  // a foe's blow or shot at the hero may be parried or dodged first
+  if (kind && dst.id === s.hero.id && defend(s, t, src.id, kind)) return false;
   if (!s.rng.chance(chance)) {
     s.events.push({ t, type: 'miss', src: src.id, dst: dst.id, to: { ...dst.pos } });
     return false;

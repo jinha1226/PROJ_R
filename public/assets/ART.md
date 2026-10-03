@@ -12,7 +12,7 @@
 
 - **Universal Animation Library (Standard)** + **Universal Animation Library 2 (Standard)** — Quaternius, CC0 1.0
   - https://quaternius.com/packs/universalanimationlibrary.html · https://quaternius.com/packs/universalanimationlibrary2.html (OpenGameArt 무료판)
-  - `models/ual/ual.glb`: 2편 GLB의 마네킹·리그(Unreal식 65본)에 1편 Unreal FBX의 클립을 합치고(두 리그 동일), 쓰는 클립만 남김. `Bow_Shoot`은 무료판에 활 동작이 없어 같은 리그 위에 Blender 4.0 조준 제약(Damped Track)으로 만들어 구운 자체 제작 클립(CC0로 함께 배포)
+  - `models/ual/ual.glb`: 2편 GLB의 마네킹·리그(Unreal식 65본)에 1편 Unreal FBX의 클립을 합치고(두 리그 동일), 쓰는 클립만 남김. `Bow_Shoot`·`Weave_L`·`Weave_R`은 무료판에 없는 동작이라 같은 리그 위에 Blender 4.0 조준 제약(Damped Track)으로 만들어 구운 자체 제작 클립(CC0로 함께 배포)
   - 라이선스: `models/ual/LICENSE.txt`, `models/ual/LICENSE-UAL2.txt`
 - **Medieval Weapons Pack (Sept 2018)** — Quaternius, CC0 1.0 (OpenGameArt `lowpoly-medieval-weapons`)
   - `models/qpack/weapons.glb`: FBX 18종을 Blender 4.0으로 무기마다 메시 하나로 합쳐 GLB 하나로 묶음

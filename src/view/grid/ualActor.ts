@@ -7,12 +7,13 @@ import { buildBlockBody, type BlockLook } from './blockBody';
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
-export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'scratch' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
+export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
 export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
-  run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
+  run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
+  dash: 'Sword_Dash_RM', leapUp: 'NinjaJump_Start', leapLand: 'NinjaJump_Land', finisher: 'Sword_Regular_C', shove: 'Shield_OneShot', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
   reload: 'Pistol_Reload', knockback: 'Hit_Knockback', death: 'Death01', interact: 'Chest_Open', drink: 'Consume',
 };
 /** melee swings rotate through these so a fight does not repeat one motion */
@@ -26,7 +27,12 @@ export class UalLibrary {
     const g = await new GLTFLoader().loadAsync(`${baseUrl}assets/models/ual/ual.glb`);
     const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
     // some clips carry root motion (a swing lunges 0.8 m forward): figures stay on their cell, so the root never travels
-    for (const a of g.animations) a.tracks = a.tracks.filter((t) => t.name !== 'root.position');
+    for (const a of g.animations) for (const t of a.tracks) {
+      if (t.name !== 'root.position') continue;
+      // keep the height (jumps), drop the travel (x, z): the figure's cell decides where it stands
+      const v = t.values;
+      for (let i = 0; i < v.length; i += 3) { v[i] = 0; v[i + 2] = 0; }
+    }
     return new UalLibrary(g.scene, new Map(g.animations.map((a) => [a.name, a])), HEIGHT / Math.max(0.01, size.y));
   }
 

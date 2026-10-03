@@ -187,6 +187,8 @@ export class GridRuntime {
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'loot': if (e.to) this.fx.number(e.text === '볼트' || e.text === '물약' ? `+${e.text} ${e.amount}` : `+${e.text} ${e.amount}G`, 'combo', cellVec(e.to)); break;
       case 'stun': a.knock(e.dst); break;
+      case 'dodge': a.anim('hero', e.text === 'L' ? 'weaveL' : 'weaveR'); { const p = at('hero'); if (p) this.fx.number('회피', 'miss', p); } break;
+      case 'parry': a.anim('hero', 'parry'); { const p = at('hero'); if (p) { this.fx.number('패링!', 'combo', p); this.particles.spray(p, '#e8f0ff', 12); } } break;
       case 'explode': if (e.to) { const p = cellVec(e.to); this.fx.transient.burst(p.x, p.z, '#ffb04a', 1.4, 0.5); this.particles.spray(p, '#ff8a2a', 30); this.fx.shake(0.25, 0.35); this.fx.hitStop(); } break;
       case 'telegraph': { const p = at(e.src); if (p) this.fx.transient.burst(p.x, p.z, e.text === 'frost' ? '#5ab4ff' : '#ff5a3a', 0.6, 0.4); break; }
       case 'levelUp': { const p = at('hero'); if (p) { this.fx.number(`레벨 ${e.amount}!`, 'combo', p); this.fx.transient.glow(p.x, p.z, '#ffd76a'); } break; }

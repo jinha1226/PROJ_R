@@ -45,7 +45,7 @@ export function foeTurn(s: GridState, f: Ent): number {
   if (f.kind === 'champion') return championTurn(s, f, t);
   if (canMelee(s, f)) {
     s.events.push({ t, type: 'bump', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...s.hero.pos } });
-    strike(s, t, f, s.hero, def.hit, foeDmg(f));
+    strike(s, t, f, s.hero, def.hit, foeDmg(f), 1, 'melee');
     return 1;
   }
   if (!stepToward(s, f, f.lastSeen ?? s.hero.pos, t)) return 1;
@@ -77,13 +77,13 @@ function archerTurn(s: GridState, f: Ent, t: number): number {
     if (away && dist(away, h) > d) { moveTo(s, f, away, t); return def.move; }
     if (canMelee(s, f)) {
       s.events.push({ t, type: 'bump', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...h } });
-      strike(s, t, f, s.hero, def.hit, [1, 2]);
+      strike(s, t, f, s.hero, def.hit, [1, 2], 1, 'melee');
       return 1;
     }
   }
   if (archerCanShoot(s, f)) {
     s.events.push({ t, type: 'shoot', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...h } });
-    strike(s, t, f, s.hero, hitChance(s.map, f.pos, h, def.hit), foeDmg(f));
+    strike(s, t, f, s.hero, hitChance(s.map, f.pos, h, def.hit), foeDmg(f), 1, 'shot');
     return 1;
   }
   return takeRange(s, f, t, def.move);
