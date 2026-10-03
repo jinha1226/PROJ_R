@@ -104,3 +104,25 @@
 .grid-banner { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: 44px; font-weight: 900; color: #ffe2a0; text-shadow: 0 0 18px #000, 0 2px 0 #7a4a1a; letter-spacing: 0.1em; opacity: 0; pointer-events: none; }
 .grid-banner.on { animation: grid-banner 1.6s ease-out; }
 @keyframes grid-banner { 0% { opacity: 0; transform: translate(-50%, -40%); } 15% { opacity: 1; transform: translate(-50%, -50%); } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* belt (throwables) and the aim bar */
+.gbelt { position: absolute; left: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 200px); display: flex; gap: 6px; z-index: 16; pointer-events: auto; }
+@media (pointer: fine) { .gbelt { bottom: 30px; } }
+.gbelt-b { position: relative; width: 50px; height: 50px; border-radius: 12px; display: grid; place-items: center; color: var(--c); font-size: 22px; background: radial-gradient(circle at 35% 28%, #3a3440, #17141b 70%); border: 2px solid #ffffff2a; box-shadow: 0 3px 8px #000b; cursor: pointer; }
+.gbelt-b.on { border-color: var(--gold); box-shadow: 0 0 12px #e8b45a88; }
+.gbelt-b small { position: absolute; right: 2px; bottom: 1px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000; }
+.gbelt-b i { position: absolute; left: 4px; top: 1px; font-style: normal; font-size: 9px; color: #998; }
+@media (pointer: coarse) { .gbelt-b i { display: none; } }
+.gaim { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 96px); transform: translateX(-50%); z-index: 17; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--gold); box-shadow: 0 4px 14px #000a; pointer-events: auto; white-space: nowrap; }
+.gaim[hidden] { display: none; }
+.gaim span { font-size: 13px; }
+
+/* class select */
+.grid-classes { display: grid; place-items: center; background: radial-gradient(circle at 50% 30%, #2a2018, #0b0b0e 70%); }
+.gcl-panel { width: min(560px, 94vw); text-align: center; color: #efe4cc; }
+.gcl-panel h2 { color: #ffe2a0; letter-spacing: 0.1em; }
+.gcl-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+@media (max-width: 560px) { .gcl-cards { grid-template-columns: 1fr; } }
+.gcl-card { font: inherit; color: inherit; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 10px; border-radius: 14px; background: linear-gradient(180deg, #241e26, #141117); border: 1px solid #ffffff22; box-shadow: 0 4px 12px #000a; cursor: pointer; }
+.gcl-card:hover, .gcl-card:active { border-color: #e8b45a; }
+.gcl-ic { font-size: 34px; color: #e8b45a; } .gcl-card b { font-size: 18px; } .gcl-card small { color: #cbbf9f; font-size: 12px; } .gcl-card em { font-style: normal; color: #9fd09a; font-size: 12px; }

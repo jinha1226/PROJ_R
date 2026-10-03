@@ -106,6 +106,10 @@ export class GridRuntime {
     this.refresh();
   }
 
+  showAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
+    this.elements.setAim(cells, ok);
+  }
+
   hurry(): void {
     this.playback.hurry();
   }

@@ -138,3 +138,11 @@ describe('explosives', () => {
     expect(g.s.tiles.filter((x) => x.kind === 'fire').length).toBeGreaterThan(1);
   });
 });
+
+describe('throwing', () => {
+  it('you cannot throw at your own feet', () => {
+    const g = sim(OPEN, { x: 7, y: 7 });
+    g.s.hero.gear.belt.bomb = 1;
+    expect(g.act({ kind: 'use', item: 'bomb', at: { x: 7, y: 7 } }).map((e) => e.type)).toEqual(['blocked']);
+  });
+});

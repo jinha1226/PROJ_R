@@ -39,7 +39,7 @@ function title(): void {
     hall: () => router.go(new HallScreen(loadHall(), title)),
     sandbox,
     extract: () => new ExtractFlow(router, root, title).start(urlSeed || Math.floor(Math.random() * 99999) + 1),
-    grid: () => void new GridFlow(router, root, title).start(urlSeed || Math.floor(Math.random() * 99999) + 1),
+    grid: () => new GridFlow(router, root, title).start(urlSeed || Math.floor(Math.random() * 99999) + 1),
   }, urlSeed || Math.floor(Math.random() * 99999) + 1));
 }
 

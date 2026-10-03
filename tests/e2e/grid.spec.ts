@@ -11,6 +11,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
+  await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
   await expect(page.locator('[data-testid="grid-stats"]')).toContainText('화살');
   const moved = await page.evaluate(() => {
@@ -32,6 +33,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   await expect(page.locator('[data-testid="grid-result"]')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('[data-testid="grid-result"] h2')).toHaveText('쓰러졌다');
   await page.click('[data-testid="grid-again"]');
+  await page.click('[data-testid="class-hunter"]');
   await waitGrid(page);
   await expect(page.locator('[data-testid="grid-sortie"]')).toBeVisible();
   expect(errors).toEqual([]);
@@ -42,6 +44,7 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   const page = await ctx.newPage();
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
+  await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
   await expect(page.locator('.screen.grid.portrait')).toBeVisible();
   for (const b of ['shoot', 'wait', 'potion', 'prev', 'next']) {

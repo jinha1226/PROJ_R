@@ -1,6 +1,8 @@
 import { GridSim } from '../sim/grid/gridSim';
 import { GridResult } from '../ui/grid/gridResult';
 import { GridScreen } from '../ui/grid/gridScreen';
+import { ClassSelect } from '../ui/grid/classSelect';
+import type { ClassId } from '../sim/grid/gear';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
 import { DungeonKit } from '../view/grid/dungeonKit';
 import { UalLibrary } from '../view/grid/ualActor';
@@ -39,12 +41,16 @@ function saveRecord(r: Record): void {
 export class GridFlow {
   constructor(private readonly router: Router, private readonly root: HTMLElement, private readonly toTitle: () => void) {}
 
-  async start(seed: number): Promise<void> {
+  start(seed: number): void {
+    this.router.go(new ClassSelect((cls) => void this.launch(seed, cls), () => this.toTitle()));
+  }
+
+  private async launch(seed: number, cls: ClassId): Promise<void> {
     this.router.go(new LoadingScreen());
     try {
       const [lib, kit, weapons] = await Promise.all([getUal(), getDungeon(), getWeapons()]);
       setWeaponKit(weapons);
-      const sim = GridSim.create(seed);
+      const sim = GridSim.create(seed, cls);
       this.router.go(new GridScreen({ sim, lib, kit, end: () => this.result(sim, seed), fatal: (e) => showFatal(this.root, e) }));
     } catch (e) {
       showFatal(this.root, e);
@@ -59,7 +65,7 @@ export class GridFlow {
     saveRecord(rec);
     this.router.go(new GridResult({
       won, floor: s.run.floor, kills: s.run.kills, level: s.hero.level, turns: Math.floor(s.time), best: rec.best, wins: rec.wins,
-      again: () => void this.start((seed * 7919 + 104729) % 999983 + 1), quit: () => this.toTitle(),
+      again: () => this.start((seed * 7919 + 104729) % 999983 + 1), quit: () => this.toTitle(),
     }));
   }
 }

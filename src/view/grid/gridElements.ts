@@ -12,6 +12,7 @@ export class GridElements {
   readonly root = new THREE.Group();
   private readonly tiles = new THREE.Group();
   private readonly marks = new THREE.Group();
+  private readonly aim = new THREE.Group();
   private readonly barrels = new Map<string, THREE.Object3D>();
   private stairs: THREE.Object3D | null = null;
   private tileKey = '';
@@ -19,7 +20,7 @@ export class GridElements {
   private t = 0;
 
   constructor(private readonly kit: DungeonKit, s: GridState) {
-    this.root.add(this.tiles, this.marks);
+    this.root.add(this.tiles, this.marks, this.aim);
     for (const b of s.barrels) {
       const o = kit.clone('Barrel', { width: CELL * 0.6 });
       o.position.copy(toWorld(b.x, b.y));
@@ -90,6 +91,17 @@ export class GridElements {
       }
     }
     for (const m of this.marks.children) m.visible = s.seen[m.userData.cell as number] === 1;
+  }
+
+  /** Throw preview: the covered cells, green when it can land there, red when not; null clears it. */
+  setAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
+    this.aim.clear();
+    for (const c of cells ?? []) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.9, CELL * 0.9), new THREE.MeshBasicMaterial({ color: ok ? '#7ae08a' : '#e05a4a', transparent: true, opacity: 0.45, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2;
+      m.position.copy(toWorld(c.x, c.y)).setY(0.05);
+      this.aim.add(m);
+    }
   }
 
   /** Is there a barrel at a grid cell (for tap-to-shoot)? */
