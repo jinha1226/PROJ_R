@@ -258,7 +258,7 @@ GAction: { kind: 'upgrade'; i: number | null }   // free action like 'choose'; n
 New event: `'upgrade'` (`text` = id).
 
 **Behaviour:**
-1. On level up (`settleKills` in `run.ts`): push `upgradeOffer(s)` onto `s.upgrades` instead of an engraving offer onto `s.offers`. `s.offers` now only receives absorb offers. Remove `offerFor` if nothing else uses it (and its tests), or keep it unused-free — no dead code.
+1. On level up (`settleKills` in `run.ts`): push `upgradeOffer(s)` onto `s.upgrades` instead of an engraving offer onto `s.offers`. `s.offers` now only receives absorb offers. Keep `offerFor` — the 엔그레이브(각인) scroll still uses it to offer engravings onto `s.offers`.
 2. `applyUpgrade`: charge → `maxCharge += 2` and `charge += 2` (capped at max); hp → `maxHp += 5`, `hp += 5`; killCharge → `bonus.killCharge += 1`; evasion → `bonus.evasion += 0.03`; gunDmg → `bonus.gunDmg += 1`; meleeDmg → `bonus.meleeDmg += 1`. Upgrades stack if picked again later.
 3. Effects: melee kills refill `2 + bonus.killCharge` each (`suitCharge.ts`); `evasionOf` adds `bonus.evasion` (`defense.ts`); `heroDmg` adds `bonus.gunDmg` to guns and `bonus.meleeDmg` to melee weapons (staffs get neither).
 4. `upgrade` action: costs no time (and, like `choose`, works while frozen — mirror how `choose` bypasses the frozen check in `gridSim.ts`; it must not tick statuses).
