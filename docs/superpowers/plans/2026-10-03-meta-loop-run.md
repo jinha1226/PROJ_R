@@ -80,10 +80,64 @@ export const BOSS_POWER: Record<5 | 10 | 15, number>;  // champion power: 1, 1.6
 
 ---
 
-### Task 2: Ship guns and suit charge (outline — detailed before hand-off)
-- New weapon groups `pistol | shotgun | rifle` (spec §2 table); `Hero.charge`, `Hero.maxCharge` (10); shooting costs charge; melee hit +1, melee kill +2; shotgun cone 3 cells + push; rifle halves cover penalty.
-- Remove bow, crossbow, throwing daggers, arrows (items, gear, weapons, chest loot, UI, belt/HUD) and the classes (`ClassId`, `CLASS_BONUS`, class select) — the run starts with a pistol in hand 1 and hand 2 empty; remove the weapon rack.
-- Engravings that read ranged weapons now read guns; "원소 화살" becomes "원소 탄".
+### Task 2: Ship guns and suit charge; bows, throwing daggers and classes removed
+
+**Why:** The agent carries ship guns that draw on the suit's charge; local ranged weapons other than staffs go away, and so do classes (the starting gun replaces them; the ship screen that picks it comes in the next plan).
+
+**Scope — only these areas:** `src/sim/grid/**`, `src/ui/grid/**`, `src/view/grid/**`, `src/app/gridFlow.ts`, `tests/sim/grid/**`, grid tests in `tests/unit/**` (`gridFeel`, `gridLook`, `gridPack`), `tests/e2e/grid.spec.ts`. **Other game modes also use names like `bow`, `crossbow`, `ClassId` (`src/data/**`, `src/sim/roster/**`, `src/sim/extract/**`, `src/ui/hud/**`, `src/ui/i18n/**`) — do not touch them.**
+
+**Interfaces — Produces:**
+```ts
+// items.ts
+export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'staff' | 'pistol' | 'shotgun' | 'rifle';
+export type GunGroup = 'pistol' | 'shotgun' | 'rifle';
+export const GUNS: GunGroup[];
+export const GUN_COST: Record<GunGroup, number>;   // pistol 1, shotgun 2, rifle 2
+export const isGun = (g: WeaponGroup): g is GunGroup;
+// types.ts — Hero gains
+charge: number;      // starts full
+maxCharge: number;   // 10
+// gear.ts
+export function startGear(gun: GunGroup = 'pistol'): Gear;   // hand 1 = that gun, hand 2 = null, leather armour, 2 potions
+// state.ts / gridSim.ts
+newState(map, seed, gun: GunGroup = 'pistol', floor = 1)
+GridSim.create(seed, gun: GunGroup = 'pistol')
+```
+
+**Behaviour:**
+1. **Weapon table** (`WEAPONS` in `items.ts`): remove `bow`, `crossbow`, `throwing` (and `THROW_STACK`, `stack`). Add guns (both tier rows equal; guns are always tier 1):
+   - pistol: melee false, dmg [4, 6], hit 0.85, time 0.8, range 7
+   - shotgun: melee false, dmg [5, 8], hit 0.9, time 1.0, range 4
+   - rifle: melee false, dmg [8, 12], hit 0.85, time 1.2, range 9
+   Names: 권총 / 산탄총 / 소총. `makeWeapon('pistol', 1)` etc. work as for other groups.
+2. **Drops**: guns never drop (no chest, no floor). `rollEquipment`: one in five is armour as now; weapons are picked from the 5 melee groups and `staff` with equal weight (so melee ≈ 5/6 of weapon finds) — update the old "half melee" test accordingly.
+3. **Suit charge**: `Hero.charge`/`maxCharge` (10, full at the start of a run; `nextFloor` does not refill it).
+   - `canFire` for a gun: `charge >= GUN_COST[group]`. Staffs keep their own charges.
+   - Firing a gun (`rangedAttack`, and `shootCell` at a barrel) spends `GUN_COST`. Noise: pistol 4, shotgun 6, rifle 6.
+   - Melee refills: a hero melee action whose main blow lands gives **+1** (once per action, not per sweep target); every foe killed by the hero's melee in that action gives **+2**. Counter/riposte blows count as melee. Never above `maxCharge`. Bashing with a gun in hand (no melee weapon) refills nothing.
+4. **Shotgun**: hits the target cell and the two cells flanking it, perpendicular to the line from the hero (like the axe's sweep cells but around the target; diagonals: the two orthogonal neighbours of the target that are not farther from the hero). Each foe on those cells gets its own hit roll and damage; every foe hit and still alive is pushed one cell away from the hero (reuse `pushFoe` from `weapons.ts`, direction = sign of (foe − hero)). One charge cost for the whole blast.
+5. **Rifle**: the cover penalty in its hit chance is halved (add an optional cover factor to `hitChance(m, from, to, base, coverMul = 1)` in `combat.ts`; rifle passes 0.5).
+6. **Arrows removed**: delete `Gear.arrows` and every use — chest loot no longer gives arrows, HUD/touch/belt/weapon info stop showing them. `weaponState` shows `충전 ${charge}/${maxCharge}` for guns (it now needs the hero's charge — change its signature as needed), `충전 n` for staffs, '' for melee.
+7. **Classes removed**: delete `ClassId`, `CLASS_BONUS`, `CLASS_NAME` and every use in grid code; use the neutral values (melee damage ×1, ranged hit +0, ranged time ×1, staff charges +0, recharge ×1, status turns +0). Hero max HP = `HERO.hp` raised to **35**. The HUD badge that showed the class shows `요원`.
+   - `startGear(gun)`: hand 1 = that gun with the starting engraving `rapid` on it (engravings move to the suit in Task 3), hand 2 = null, armour = leather (`armorOf(1)`), belt = 2 potions.
+   - Delete the weapon rack (`weaponRack`, `RACK_ENGRAVES`) and its call in `GridSim.create`; scattered loot stays.
+   - `src/app/gridFlow.ts`: no class select — `격자 출격` launches a run with the pistol directly (temporary until the ship screen). Delete `src/ui/grid/classSelect.ts`. Keep the best/wins record.
+8. **Engravings that read ranged weapons now read guns**: no rule change is needed beyond the groups — `rapid`, `mark`, `ricochet`, `kite`, `volley`, `shoveShot` (fires the gun in the other hand if it can) work with guns. Rename `elemArrow`'s display text: name `원소 탄`, note `마지막 원소가 다음 총탄에 실림` (keep the id `elemArrow`).
+9. **View**: add block meshes for `pistol`, `shotgun`, `rifle` in `weaponMeshes.ts` (simple dark-metal boxes of increasing length, held in the right hand) and map them in the actor code: idle `Pistol_Idle_Loop` for guns, shoot animation `shoot` (Pistol_Shoot). **Keep the `crossbow`/`bow` looks** — skeleton archers still carry a crossbow model. Weapon icons for the three guns in `src/ui/grid/icons.ts` (simple SVG silhouettes, or reuse an existing icon if one fits); `GROUP_NOTE` lines: 권총 `빠름(0.8턴) · 충전 1`, 산탄총 `가까운 부채꼴 3칸 · 밀치기 · 충전 2`, 소총 `멀리 · 엄폐 무시 절반 · 충전 2`.
+10. **HUD**: the resource row shows charge (e.g. a lightning icon `charge`/`maxCharge`) instead of arrows. The fire button's sub-label uses the new `weaponState`.
+
+**Tests to write first** (new `tests/sim/grid/guns.test.ts`):
+- A run starts with a pistol in hand 1, hand 2 empty, charge 10/10, 35 hp, leather armour; `GridSim.create(seed)` lays no weapon rack (no weapon floor items at the start).
+- Pistol shot spends 1 charge and takes 0.8 time; with 0 charge `shoot` is refused (`blocked`, no time).
+- Shotgun: foes on the target and both flanking cells are all hit and pushed one cell away; costs 2.
+- Rifle: against a foe in cover, its hit chance is higher than the pistol's with the same base (cover halved).
+- Melee refills: a landed sword blow +1; a killing blow +1 +2; an axe sweep hitting three foes still +1 (+2 per kill); never above max; a missed blow gives nothing.
+- `rollEquipment` never returns a gun, a bow, a crossbow or throwing; staffs appear.
+- Chests no longer give arrows.
+
+**Update existing tests**: many grid tests use `bow`, `crossbow`, `throwing`, `arrows`, classes (`'warrior' | 'hunter' | 'mage'`), the weapon rack, or `CLASS_BONUS`. Convert them to the new rules keeping their intent: bow/crossbow → pistol/rifle (and arrows → charge), class-specific expectations → the neutral values, rack tests → deleted (the rack is gone). The engraving tests in `engrave.test.ts`/`review3.test.ts` that use `bow`/`crossbow` keep testing the same engraving with a gun. Update `tests/e2e/grid.spec.ts` for the removed class select (no `class-*` clicks) and the HUD text (it is run later by the reviewer — keep the changes minimal and obvious).
+
+**Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
 ### Task 3: Engravings on the suit (outline)
 - `Hero.suit: EngraveId[]` (6 slots) replaces `Weapon.engraves`; `has(s, id)` checks the suit and the fit of the weapon in hand (melee/ranged=gun/magic=staff/any).
