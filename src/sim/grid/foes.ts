@@ -1,25 +1,28 @@
+import { BOSS_POWER, isBossFloor, zoneOf, type ZoneId } from './zones';
 import type { Rng } from '../../core/rng';
 import { FOES, type Cell, type Ent, type FoeKind, type GridState } from './types';
 
 /** Stats per foe kind (with experience for a kill). */
 export const FOE_TABLE = FOES;
 export const FOE_XP: Record<FoeKind, number> = { minion: 3, brute: 6, ghoul: 4, archer: 4, mage: 6, champion: 30 };
-const PER_FLOOR = 0.25;
+const PER_FLOOR = 0.12;
 
-/** Deeper floors: +25% health and damage per floor below the first (the champion is tuned as is). */
+/** Deeper floors add 12% health and damage; champions use zone power. */
 export function scaleFoe(kind: FoeKind, floor: number): { hp: number; dmg: [number, number]; power: number } {
-  const power = kind === 'champion' ? 1 : 1 + PER_FLOOR * Math.max(0, floor - 1);
+  const power = kind === 'champion' ? (isBossFloor(floor) ? BOSS_POWER[floor as 5 | 10 | 15] : 1) : 1 + PER_FLOOR * Math.max(0, floor - 1);
   const d = FOES[kind].dmg;
   return { hp: Math.round(FOES[kind].hp * power), dmg: [Math.round(d[0] * power), Math.round(d[1] * power)], power };
 }
 
-/** Who lives in a room: minion 45 · brute 20 · ghoul 15 · archer 12 · mage 8 (mages from floor 2). */
+const SPAWN_CUTOFFS: Record<ZoneId, readonly number[]> = {
+  cave: [0.35, 0.5, 0.85, 1], crypt: [0.45, 0.65, 0.8, 0.92], ruins: [0.2, 0.5, 0.6, 0.8],
+};
+
+/** One draw from the current zone's minion, brute, ghoul, archer and mage weights. */
 export function spawnKind(rng: Rng, floor: number): FoeKind {
-  for (;;) {
-    const r = rng.next();
-    const k: FoeKind = r < 0.45 ? 'minion' : r < 0.65 ? 'brute' : r < 0.8 ? 'ghoul' : r < 0.92 ? 'archer' : 'mage';
-    if (k !== 'mage' || floor >= 2) return k;
-  }
+  const r = rng.next();
+  const [minion, brute, ghoul, archer] = SPAWN_CUTOFFS[zoneOf(floor).id] as readonly [number, number, number, number];
+  return r < minion ? 'minion' : r < brute ? 'brute' : r < ghoul ? 'ghoul' : r < archer ? 'archer' : 'mage';
 }
 
 export function makeFoe(id: string, kind: FoeKind, pos: Cell, group: number, floor: number, time: number): Ent {

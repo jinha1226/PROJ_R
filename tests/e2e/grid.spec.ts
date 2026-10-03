@@ -41,8 +41,8 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
     for (const f of s.foes) f.alive = false;
     w.act({ kind: 'move', dir: { x: 1, y: 0 } });
   });
-  await expect(page.locator('.grid-banner')).toHaveText('2층');
-  await expect(page.locator('.gh-danger')).toContainText('2층 / 3');
+  await expect(page.locator('.grid-banner')).toHaveText('2층 · 동굴');
+  await expect(page.locator('.gh-danger')).toContainText('2층 / 15');
   await page.screenshot({ path: 'test-artifacts/grid-floor2.png' });
   // fall: the haul is lost and the result screen comes up once
   await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; const h = w.state().hero as { hp: number; alive?: boolean }; h.hp = 0; h.alive = false; w.act({ kind: 'wait' }); });

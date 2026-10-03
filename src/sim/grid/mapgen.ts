@@ -1,3 +1,4 @@
+import { isBossFloor } from './zones';
 import { placeTraps } from './traps';
 import { createRng, type Rng } from '../../core/rng';
 import { spawnKind } from './foes';
@@ -78,13 +79,13 @@ export function generateMap(seed: number, floor = 1): GridMap {
   }
   const d = distanceMap(m, m.start);
   const far = rooms.slice(1).map((r) => ({ r, d: d[idx(m, centre(r))]! })).filter((x) => x.d > 0).sort((a, b) => b.d - a.d);
-  // floors 1–2: the way down in the farthest room; floor 3: the champion waits there
+  // the deepest room holds stairs, or a champion at the end of a zone
   const deepest = far[0]?.r;
-  if (deepest && floor < 3) m.stairs = centre(deepest);
-  if (deepest && floor >= 3) m.spawns.push({ kind: 'champion', pos: centre(deepest), group: rooms.indexOf(deepest) });
+  if (deepest && !isBossFloor(floor)) m.stairs = centre(deepest);
+  if (deepest && isBossFloor(floor)) m.spawns.push({ kind: 'champion', pos: centre(deepest), group: rooms.indexOf(deepest) });
   rooms.slice(1).forEach((r, i) => {
     // the champion's room holds nothing else
-    if (floor >= 3 && r === deepest) return;
+    if (isBossFloor(floor) && r === deepest) return;
     const cells = rng.shuffle(freeCells(m, r, taken, 0));
     const byDoor = (c: Cell) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tileAt(m, { x: c.x + dx!, y: c.y + dy! }) === 'door');
     const spot = cells.findIndex((c) => !byDoor(c));

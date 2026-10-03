@@ -220,6 +220,12 @@ export function pickUp(s: GridState, t: number): void {
   s.floorItems = s.floorItems.filter((f) => {
     if (!same(f.pos, s.hero.pos)) return true;
     const it = f.item;
+    if (it.kind === 'core') {
+      s.outcome = 'won';
+      s.run.won = true;
+      s.events.push({ t, type: 'core', src: s.hero.id }, { t, type: 'victory', src: s.hero.id });
+      return false;
+    }
     if (it.kind === 'potion' || it.kind === 'scroll') {
       stow(s, it);
       s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.kind === 'potion' ? potionName(s, it.p) : scrollName(s, it.sc) });

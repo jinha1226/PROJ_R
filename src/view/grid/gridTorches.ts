@@ -16,9 +16,10 @@ export class GridTorches {
   private readonly lights: THREE.PointLight[] = [];
   private t = 0;
 
-  constructor(m: GridMap, kit: DungeonKit, lightCount: number) {
+  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1) {
     const flameGeo = new THREE.SphereGeometry(0.07, 8, 6);
-    torchSpots(m).forEach((face, n) => {
+    const spots = torchSpots(m);
+    spots.filter((_, i) => Math.floor((i + 1) * density) > Math.floor(i * density)).forEach((face, n) => {
       const base = toWorld(face.wall.x + face.dir.x * 0.5, face.wall.y + face.dir.y * 0.5);
       const model = kit.clone('Torch', { height: 0.5 });
       model.position.set(base.x, TORCH_Y - 0.25, base.z);

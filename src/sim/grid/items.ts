@@ -23,6 +23,8 @@ export interface RuneStone { kind: 'rune'; id: EngraveId; name: string }
 export type Equipment = Weapon | Armor | RuneStone;
 /** A potion or scroll lying on the floor (picked up into the pack, not the bag). */
 export type Consumable = { kind: 'potion'; p: PotionKind; name: string } | { kind: 'scroll'; sc: ScrollKind; name: string };
+/** The final guardian's energy source; picking it up ends the run. */
+export interface Core { kind: 'core'; name: '에너지원' }
 export type BeltItem = 'potion' | 'bomb' | 'fireFlask' | 'frostFlask' | 'shockFlask' | 'poisonFlask';
 export const BELT_ITEMS: BeltItem[] = ['potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask'];
 

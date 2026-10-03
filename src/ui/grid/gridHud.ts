@@ -1,6 +1,7 @@
 import { ENGRAVES, type EngraveId } from '../../sim/grid/engraveCore';
 import { activeWeapon, CLASS_NAME } from '../../sim/grid/gear';
-import { XP_STEPS } from '../../sim/grid/run';
+import { isBossFloor, zoneOf } from '../../sim/grid/zones';
+import { FLOORS, XP_STEPS } from '../../sim/grid/run';
 import type { GEvent, GridState } from '../../sim/grid/types';
 import { icon, weaponIcon } from './icons';
 import { weaponState } from './weaponInfo';
@@ -25,6 +26,8 @@ function batchim(word: string): boolean {
 
 /** Log lines for traps, searching and learning what a potion or scroll is. */
 function eventLine(e: GEvent): string | undefined {
+  if (e.type === 'stairs') return '계단이 열렸다';
+  if (e.type === 'core') return '에너지원을 손에 넣었다';
   if (e.type === 'identify') return identifyLine(e.text ?? '|');
   if (e.type === 'trap' && e.src === 'hero') return `함정 작동 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;
   if (e.type === 'trapFound') return `함정을 발견했다 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;
@@ -94,7 +97,7 @@ export class GridHud {
       const card = q('.gh-target');
       card.hidden = !t;
       if (t) card.innerHTML = `${icon('skull')}<b>${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${Math.round(target!.chance * 100)}%</span>`;
-      q('.gh-danger').textContent = `${s.run.floor}층 / 3 · 처치 ${s.run.kills}${s.run.floor >= 3 ? ' · 해골 챔피언이 기다린다' : ''}`;
+      q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 에너지원을 지키는 수호자' : ' · 구간 수호자가 기다린다' : ''}`;
     }
     this.logTimer -= dt;
     if (this.logTimer <= 0) this.el.querySelector<HTMLElement>('.ghud-log')!.hidden = true;

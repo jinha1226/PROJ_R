@@ -42,15 +42,16 @@ describe('final review fixes (2)', () => {
     expect(m.s.foes[0]!.pos).not.toEqual({ x: 4, y: 2 });
   });
 
-  it('once the champion falls the run is won, even if the hero dies in the same moment', () => {
-    const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'champion', pos: { x: 12, y: 12 } }, { kind: 'brute', pos: { x: 8, y: 7 } }]);
-    sureHits(g);
-    const champ = g.s.foes[0]!;
-    champ.hp = 1;
-    champ.status = { burn: 3, freeze: 0, poison: 0 };
+  it('core pickup wins even if the hero dies in the same action', () => {
+    const g = sim(OPEN, { x: 7, y: 7 });
+    g.s.run.floor = 15;
+    g.s.floorItems.push({ pos: { x: 8, y: 7 }, item: { kind: 'core', name: '에너지원' } });
     g.s.hero.hp = 1;
-    g.act({ kind: 'wait' });
+    g.s.hero.status = { burn: 3, freeze: 0, poison: 0 };
+    const events = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
+    expect(g.s.hero.alive).toBe(false);
     expect(g.s.outcome).toBe('won');
+    expect(events.some((e) => e.type === 'dead')).toBe(false);
   });
 
   it('explosions and elements wake the sleepers they hit', () => {

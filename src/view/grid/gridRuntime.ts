@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { zoneOf } from '../../sim/grid/zones';
+import { applyZoneLook } from './zoneLook';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { archerCanShoot } from '../../sim/grid/ai';
 import { activeWeapon } from '../../sim/grid/gear';
@@ -44,6 +46,7 @@ export class GridRuntime {
   /** rough pixel look on/off */
   pixelated = true;
   private playback = new Playback();
+  private readonly hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
   private readonly light = new THREE.PointLight('#ffd9a0', 10, 8, 1.5);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
@@ -56,14 +59,14 @@ export class GridRuntime {
     const scene = this.h.scene;
     scene.background = new THREE.Color('#0b0b0e');
     scene.fog = null;
-    const hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
+    const look = applyZoneLook(this.hemi, sim.s.run.floor, mobile);
     const sun = new THREE.DirectionalLight('#c8d0ff', 0.45);
     sun.position.set(-10, 30, 14);
-    scene.add(hemi, sun, this.light);
+    scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer);
     this.terrain = new GridTerrain(sim.s.map, kit);
     this.actors = new GridActors(lib);
-    this.torches = new GridTorches(sim.s.map, kit, mobile ? 3 : 6);
+    this.torches = new GridTorches(sim.s.map, kit, look.lights, look.density);
     this.elements = new GridElements(kit, sim.s);
     this.mapRef = sim.s.map;
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
@@ -98,7 +101,8 @@ export class GridRuntime {
     const scene = this.h.scene;
     for (const part of [this.terrain, this.torches, this.elements, this.actors]) { scene.remove(part.root); part.dispose(); }
     this.terrain = new GridTerrain(s.map, this.kit);
-    this.torches = new GridTorches(s.map, this.kit, this.mobile ? 3 : 6);
+    const look = applyZoneLook(this.hemi, s.run.floor, this.mobile);
+    this.torches = new GridTorches(s.map, this.kit, look.lights, look.density);
     this.elements = new GridElements(this.kit, s);
     this.actors = new GridActors(this.lib);
     scene.add(this.terrain.root, this.torches.root, this.elements.root, this.actors.root);
@@ -107,7 +111,7 @@ export class GridRuntime {
     this.pending.clear();
     this.actors.sync(s);
     this.center.set(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
-    this.banner.textContent = `${s.run.floor}층`;
+    this.banner.textContent = `${s.run.floor}층 · ${zoneOf(s.run.floor).name}`;
     this.banner.classList.remove('on');
     void this.banner.offsetWidth;
     this.banner.classList.add('on');

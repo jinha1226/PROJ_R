@@ -10,14 +10,14 @@ import { OPEN, sim, sureHits } from './kit';
 const W = { kind: 'wait' } as const;
 
 describe('floors', () => {
-  it('floors 1 and 2 have stairs reachable from the start; floor 3 has the champion and no stairs', () => {
+  it('floors 1–4 have reachable stairs; floor 5 has the champion and no stairs', () => {
     for (const seed of [3, 8, 21]) {
-      for (const floor of [1, 2]) {
+      for (const floor of [1, 2, 3, 4]) {
         const m = generateMap(seed, floor);
         expect(m.stairs, `seed ${seed} floor ${floor}`).toBeTruthy();
         expect(findPath(m, m.start, m.stairs!)).not.toBeNull();
       }
-      const m3 = generateMap(seed, 3);
+      const m3 = generateMap(seed, 5);
       expect(m3.stairs).toBeUndefined();
       expect(m3.spawns.filter((s) => s.kind === 'champion')).toHaveLength(1);
     }
@@ -54,10 +54,11 @@ describe('floors', () => {
     expect(g.s.run.floor).toBe(2);
   });
 
-  it('killing the champion wins the run', () => {
-    const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'champion', pos: { x: 8, y: 7 } }]);
+  it('picking up the final core wins the run', () => {
+    const g = sim(OPEN, { x: 7, y: 7 }, []);
     sureHits(g);
-    g.s.foes[0]!.hp = 1;
+    g.s.run.floor = 15;
+    g.s.floorItems.push({ pos: { x: 8, y: 7 }, item: { kind: 'core', name: '에너지원' } });
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
     expect(g.s.outcome).toBe('won');
     expect(ev.some((e) => e.type === 'victory')).toBe(true);
@@ -105,9 +106,9 @@ describe('new foes', () => {
     expect(g.s.foes.filter((f) => f.kind === 'minion')).toHaveLength(2);
   });
 
-  it('spawn mix: ranged foes are about a fifth from floor 2, no mages on floor 1; deeper foes are tougher', () => {
+  it('spawn mix: ranged foes are about a fifth in the crypt, no mages on floor 1; deeper foes are tougher', () => {
     const rng = createRng(4);
-    const f2 = Array.from({ length: 2000 }, () => spawnKind(rng, 2));
+    const f2 = Array.from({ length: 2000 }, () => spawnKind(rng, 6));
     const ranged = f2.filter((k) => k === 'archer' || k === 'mage').length / f2.length;
     expect(ranged).toBeGreaterThan(0.15);
     expect(ranged).toBeLessThan(0.25);

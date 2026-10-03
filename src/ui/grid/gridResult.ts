@@ -1,3 +1,4 @@
+import { FLOORS } from '../../sim/grid/run';
 import type { Screen } from '../../app/router';
 
 export interface GridResultData {
@@ -23,9 +24,9 @@ export class GridResult implements Screen {
     this.el.className = 'screen grid-result';
     this.el.dataset.testid = 'grid-result';
     this.el.innerHTML = `<div class="panel">
-      <h2 class="${d.won ? 'ok' : 'lost'}">${d.won ? '해골 챔피언을 쓰러뜨렸다' : '쓰러졌다'}</h2>
+      <h2 class="${d.won ? 'ok' : 'lost'}">${d.won ? '에너지원을 손에 넣었다' : '쓰러졌다'}</h2>
       <ul class="gres-stats">
-        <li><span>도달한 층</span><b>${d.floor}층 / 3</b></li>
+        <li><span>도달한 층</span><b>${d.floor}층 / ${FLOORS}</b></li>
         <li><span>처치</span><b>${d.kills}</b></li>
         <li><span>레벨</span><b>${d.level}</b></li>
         <li><span>턴</span><b>${d.turns}</b></li>

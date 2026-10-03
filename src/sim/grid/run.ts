@@ -2,12 +2,13 @@ import { scatterLoot } from './consumables';
 import { offerFor } from './engrave';
 import { FOE_XP, makeFoe, spawnFoe } from './foes';
 import { generateMap } from './mapgen';
+import { isBossFloor } from './zones';
 import { refreshSight } from './state';
 import { dist, idx, same, tileAt, type Cell, type GridState } from './types';
 
-export const FLOORS = 3;
+export const FLOORS = 15;
 /** Experience needed for levels 2, 3, 4, … */
-export const XP_STEPS = [10, 25, 45, 70, 100, 140, 190];
+export const XP_STEPS = [10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820];
 const LEVEL_HP = 5;
 const WANDER_EVERY = 150;
 
@@ -43,9 +44,13 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     s.run.kills++;
     s.hero.xp += FOE_XP[f.kind as keyof typeof FOE_XP] ?? 3;
     if (f.kind === 'champion' && !s.outcome) {
-      s.outcome = 'won';
-      s.run.won = true;
-      s.events.push({ t: s.time, type: 'victory', src: s.hero.id });
+      const pos = { ...f.pos };
+      // the final guardian leaves the energy source; a zone guardian opens the way down
+      if (s.run.floor === FLOORS) s.floorItems.push({ pos, item: { kind: 'core', name: '에너지원' } });
+      else if (isBossFloor(s.run.floor)) {
+        s.map.stairs = pos;
+        s.events.push({ t: s.time, type: 'stairs', to: { ...pos } });
+      }
     }
   }
   while (s.hero.level - 1 < XP_STEPS.length && s.hero.xp >= XP_STEPS[s.hero.level - 1]!) {

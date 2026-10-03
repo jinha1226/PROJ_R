@@ -37,6 +37,10 @@ export class GridElements {
       this.barrels.set(`${b.x},${b.y}`, o);
       this.root.add(o);
     }
+    this.buildStairs(s);
+  }
+
+  private buildStairs(s: GridState): void {
     const st = s.map.stairs;
     if (st) {
       const g = new THREE.Group();
@@ -46,7 +50,7 @@ export class GridElements {
       const ring = new THREE.Mesh(new THREE.RingGeometry(CELL * 0.42, CELL * 0.5, 4, 1, Math.PI / 4), new THREE.MeshBasicMaterial({ color: '#ffb84a', transparent: true, opacity: 0.8 }));
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.03;
-      const steps = kit.clone('Stairs_Modular', { width: CELL * 0.7 });
+      const steps = this.kit.clone('Stairs_Modular', { width: CELL * 0.7 });
       steps.position.y = -0.55;
       g.add(pit, steps, ring);
       g.position.copy(toWorld(st.x, st.y));
@@ -57,6 +61,7 @@ export class GridElements {
   }
 
   sync(s: GridState): void {
+    if (s.map.stairs && !this.stairs) this.buildStairs(s);
     for (const [k, o] of this.barrels) {
       const [x, y] = k.split(',').map(Number) as [number, number];
       const there = s.barrels.some((b) => b.x === x && b.y === y);

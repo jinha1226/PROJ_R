@@ -86,7 +86,7 @@ export class GridSim {
     s.tiles = s.tiles.filter((x) => x.until > s.time);
     s.telegraphs = s.telegraphs.filter((x) => s.foes.some((f) => f.id === x.src && f.alive));
     settleKills(s, alive);
-    // a champion felled in the same moment still counts: the run is won
+    // a core collected in the same action still counts: the run is won
     if (!s.hero.alive && s.outcome !== 'won') {
       s.outcome = 'dead';
       s.events.push({ t: s.time, type: 'dead', src: s.hero.id });
