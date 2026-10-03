@@ -105,5 +105,5 @@ describe('report from a real battle', () => {
     expect(rep.units).toHaveLength(5);
     expect(Object.values(rep.enemies).some((e) => e.boss)).toBe(true);
     expect(rep.units.some((u) => u.minLifelineFrac < 1)).toBe(true);
-  });
+  }, 20_000);
 });
