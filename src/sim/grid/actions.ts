@@ -1,10 +1,11 @@
 import { bodyAt, shotClear } from './combat';
-import { activeWeapon, addToBag, equipFromBag, swapHands, wearFromBag } from './gear';
-import { rollEquipment, type Weapon } from './items';
+import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
+import { lunge, swapCombo } from './combos';
+import { rollEquipment } from './items';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
-import { meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange } from './weapons';
+import { meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange, type ShotHooks } from './weapons';
 
 export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.pos, c));
 
@@ -46,7 +47,7 @@ export function autoTarget(s: GridState): string | undefined {
   return byDist[0]?.id;
 }
 
-export interface ActHooks { noise(at: Cell, r: number): void; cast(w: Weapon, at: Cell): void; use(a: Extract<GAction, { kind: 'use' }>): number | null }
+export interface ActHooks extends ShotHooks { use(a: Extract<GAction, { kind: 'use' }>): number | null }
 
 /** Resolves the hero's action; returns its time cost, or null when it cannot be done (nothing happens, no time passes). */
 export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | null {
@@ -57,7 +58,7 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
     case 'move': {
       const to = add(h.pos, a.dir);
       const foe = s.foes.find((f) => f.alive && same(f.pos, to));
-      if (foe && (Math.abs(a.dir.x) + Math.abs(a.dir.y) === 1 || canStep(s.map, h.pos, a.dir))) return meleeAttack(s, t, a.dir, foe);
+      if (foe && (Math.abs(a.dir.x) + Math.abs(a.dir.y) === 1 || canStep(s.map, h.pos, a.dir))) return meleeAttack(s, t, a.dir, foe, hooks);
       if (s.barrels.some((b) => same(b, to)) && canStep(s.map, h.pos, a.dir)) {
         s.events.push({ t, type: 'bump', src: h.id, from: { ...h.pos }, to: { ...to } });
         explodeBarrels(s, t, to, h.id);
@@ -66,7 +67,9 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       const ch = chestAt(s, to);
       if (ch && !ch.opened && canStep(s.map, h.pos, a.dir)) { openChest(s, t, to); return COST.open; }
       const far = reachTarget(s, a.dir);
-      if (far) return meleeAttack(s, t, a.dir, far);
+      if (far) return meleeAttack(s, t, a.dir, far, hooks);
+      const lunged = lunge(s, t, a.dir, hooks);
+      if (lunged !== null) return lunged;
       // an opened chest can be stepped over (a chest in a doorway must never seal the way)
       if (!canStep(s.map, h.pos, a.dir) || bodyAt(s, to)) return null;
       if (tileAt(s.map, to) === 'door') {
@@ -83,13 +86,11 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       if (a.at) return shootCell(s, t, a.at, (c) => explodeBarrels(s, t, c, h.id));
       const foe = s.foes.find((f) => f.id === (a.target ?? autoTarget(s)) && f.alive);
       if (!foe || !shootable(s).includes(foe.id)) return null;
-      return rangedAttack(s, t, foe, hooks.cast, hooks.noise);
+      return rangedAttack(s, t, foe, hooks);
     }
     case 'swap':
       if (!g.hands[g.active === 0 ? 1 : 0]) return null;
-      swapHands(g);
-      s.events.push({ t, type: 'swap', src: h.id, text: activeWeapon(g)?.name });
-      return COST.swap;
+      return swapCombo(s, t, hooks);
     case 'equip':
       if (!equipFromBag(g, a.bag)) return null;
       s.events.push({ t, type: 'equip', src: h.id, text: activeWeapon(g)?.name });

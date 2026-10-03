@@ -4,6 +4,7 @@ import { CLASS_BONUS, startGear, type ClassId } from './gear';
 import { makeWeapon, type Element, type WeaponGroup } from './items';
 import { add, DIRS, same, tileAt, type Cell, type FloorItem } from './types';
 import { makeFoe } from './foes';
+import { freshFx } from './engraveCore';
 import { HERO, type GridMap, type GridState } from './types';
 
 /** A fresh sortie on a map: the hero at the start, every spawn asleep, chests shut. */
@@ -13,11 +14,11 @@ export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior', f
     seed, time: 0, map: { ...map, tiles: [...map.tiles] },
     hero: {
       id: 'hero', kind: 'hero', pos: { ...map.start }, hp: maxHp, maxHp, nextAt: 0, alive: true, awake: true, group: 0,
-      level: 1, xp: 0, value: 0, loot: [], exitTime: 0, gear: startGear(cls),
+      level: 1, xp: 0, value: 0, loot: [], exitTime: 0, gear: startGear(cls), fx: freshFx(),
     },
     foes: map.spawns.map((sp, i) => makeFoe(`f${i + 1}`, sp.kind, sp.pos, sp.group, floor, 0)),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
-    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], barrels: (map.barrels ?? []).map((b) => ({ ...b })),
+    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], fired: new Set(), barrels: (map.barrels ?? []).map((b) => ({ ...b })),
   };
   refreshSight(s);
   return s;

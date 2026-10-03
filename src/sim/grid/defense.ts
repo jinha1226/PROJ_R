@@ -1,4 +1,5 @@
 import { activeWeapon } from './gear';
+import { counterBlow } from './combos';
 import type { GridState } from './types';
 
 const BASE_EVASION = 0.05;
@@ -25,10 +26,12 @@ export function defend(s: GridState, t: number, src: string, kind: 'melee' | 'sh
   const p = kind === 'melee' ? parryOf(s) : 0;
   if (p > 0 && s.rng.chance(p)) {
     s.events.push({ t, type: 'parry', src: s.hero.id, dst: src, to: { ...s.hero.pos } });
+    counterBlow(s, t, src, 'parry');
     return 'parry';
   }
   if (s.rng.chance(evasionOf(s))) {
     s.events.push({ t, type: 'dodge', src: s.hero.id, dst: src, to: { ...s.hero.pos }, text: s.rng.chance(0.5) ? 'L' : 'R' });
+    counterBlow(s, t, src, 'dodge');
     return 'dodge';
   }
   return null;

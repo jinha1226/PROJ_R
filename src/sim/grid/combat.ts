@@ -1,6 +1,6 @@
 import { losClear } from './fov';
 import { defend } from './defense';
-import { dist, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridMap, type GridState } from './types';
+import { dist, opaque, same, tileAt, walkable, type Cell, type Ent, type GEvent, type GridMap, type GridState } from './types';
 
 const PER_TILE = 0.04;
 const COVER = 0.3;
@@ -29,6 +29,12 @@ export function bodyAt(s: GridState, c: Cell): Ent | undefined {
   return s.foes.find((f) => f.alive && same(f.pos, c));
 }
 
+export const foeAt = (s: GridState, c: Cell): Ent | undefined => s.foes.find((f) => f.alive && same(f.pos, c));
+
+/** A cell something can be pushed or step into: open floor (no shut door), nobody there, no shut chest or barrel. */
+export const freeCell = (s: GridState, c: Cell): boolean =>
+  walkable(tileAt(s.map, c)) && tileAt(s.map, c) !== 'door' && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c)) && !s.barrels.some((b) => same(b, c));
+
 /** A shot line, the same both ways (a line traced from either end counts), bodies in between block it. */
 export function shotClear(s: GridState, from: Cell, to: Cell): boolean {
   const bodies = (c: Cell) => !!bodyAt(s, c) || s.barrels.some((b) => same(b, c));
@@ -49,7 +55,8 @@ export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: numb
   const amount = Math.max(1, Math.round(roll * mult) - armour);
   dst.hp -= amount;
   const ev: GEvent = { t, type: 'hit', src: src.id, dst: dst.id, amount, to: { ...dst.pos } };
-  if (roll === dmg[1] || mult > 1) ev.crit = true;
+  // small engraving boosts (a mark, last stand) are not crits; sneak attacks and finishers are
+  if (roll === dmg[1] || mult >= 1.5) ev.crit = true;
   s.events.push(ev);
   if (dst.hp <= 0) {
     dst.hp = 0;

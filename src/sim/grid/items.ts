@@ -1,4 +1,5 @@
 import type { Rng } from '../../core/rng';
+import type { Engraving } from './engraveCore';
 
 export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'bow' | 'crossbow' | 'throwing' | 'staff';
 export type Element = 'fire' | 'frost' | 'shock' | 'poison';
@@ -13,6 +14,7 @@ export interface Weapon {
   charges?: number;
   /** throwing */
   stack?: number;
+  engraves?: Engraving[];
 }
 export interface Armor { kind: 'armor'; tier: 1 | 2 | 3; name: string; reduce: number }
 export type Equipment = Weapon | Armor;

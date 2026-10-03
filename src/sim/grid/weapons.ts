@@ -1,12 +1,17 @@
-import { bodyAt, hitChance, shotClear, strike } from './combat';
+import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
+import { blowMult, fire, has } from './engraveCore';
+import { afterShot, rapidStep } from './shotCombos';
 import { activeWeapon, addToBag, CLASS_BONUS } from './gear';
 import { makeWeapon, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
-import { onEnter } from './status';
+import { hurt, onEnter } from './status';
 import { add, canStep, COST, dist, HERO, same, tileAt, walkable, type Cell, type Ent, type GridState } from './types';
 
 const SNEAK = 2;
 const DAGGER_SNEAK = 3;
 const SLAM = 3;
+const SLAM_WAVE = 3;
+const FINISH_AT = 3;
+const FINISH_MULT = 1.5;
 
 /** Damage range of the hero's weapon: tier, +1 per level above 1, warriors hit harder in melee. */
 export function heroDmg(s: GridState, w: Weapon): [number, number] {
@@ -16,8 +21,7 @@ export function heroDmg(s: GridState, w: Weapon): [number, number] {
   return [Math.round((lo + up) * k), Math.round((hi + up) * k)];
 }
 
-const foeAt = (s: GridState, c: Cell): Ent | undefined => s.foes.find((f) => f.alive && same(f.pos, c));
-const free = (s: GridState, c: Cell) => walkable(tileAt(s.map, c)) && tileAt(s.map, c) !== 'door' && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c)) && !s.barrels.some((b) => same(b, c));
+export interface ShotHooks { noise(at: Cell, r: number): void; cast(w: Weapon, at: Cell): number }
 
 /** Cells beside the bump direction an axe also sweeps (front-left and front-right). */
 function sweepCells(from: Cell, d: Cell): Cell[] {
@@ -25,12 +29,38 @@ function sweepCells(from: Cell, d: Cell): Cell[] {
   return sides.map((sd) => add(from, sd));
 }
 
+/** Shoves a foe one cell; against a wall or another body it is slammed instead (damage + stun, a wall-slam shockwave). */
+export function pushFoe(s: GridState, t: number, foe: Ent, d: Cell): void {
+  const to = add(foe.pos, d);
+  if (freeCell(s, to) && canStep(s.map, foe.pos, d)) {
+    s.events.push({ t, type: 'push', src: foe.id, from: { ...foe.pos }, to: { ...to } });
+    foe.pos = to;
+    onEnter(s, foe, t);
+    return;
+  }
+  foe.hp -= SLAM;
+  foe.stun = Math.max(foe.stun ?? 0, 1);
+  s.events.push({ t, type: 'stun', src: s.hero.id, dst: foe.id, amount: SLAM, to: { ...foe.pos } });
+  if (foe.hp <= 0) { foe.hp = 0; foe.alive = false; s.events.push({ t, type: 'die', src: s.hero.id, dst: foe.id, to: { ...foe.pos } }); }
+  if (has(s, 'wallslam') && fire(s, t, 'wallslam')) {
+    for (const f of s.foes) if (f !== foe && f.alive && dist(f.pos, foe.pos) === 1) hurt(s, t, s.hero.id, f, SLAM_WAVE, 'slam');
+  }
+}
+
+/** Same foe hit again and again: the count, and whether this blow is the finisher. */
+function comboStep(s: GridState, foe: Ent): { next: number; finisher: boolean } {
+  const c = s.hero.fx.combo;
+  const next = c.target === foe.id ? c.hits + 1 : 1;
+  return { next, finisher: next >= FINISH_AT && has(s, 'finisher') > 0 };
+}
+
 /** One melee blow with the weapon in hand (or a bash with a ranged one); returns its time cost. */
-export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent): number {
+export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: ShotHooks): number {
   const h = s.hero;
   const w = activeWeapon(h.gear);
   s.events.push({ t, type: 'bump', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos } });
   h.target = foe.id;
+  h.fx.acted = 'melee';
   if (!w || !WEAPONS[w.group].melee) {
     foe.awake = true;
     strike(s, t, h, foe, HERO.bashHit, HERO.bash);
@@ -38,12 +68,13 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent): number 
   }
   const def = WEAPONS[w.group];
   const dmg = heroDmg(s, w);
-  const blow = (f: Ent) => {
-    const mult = f.awake ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK;
+  const combo = comboStep(s, foe);
+  const blow = (f: Ent, k = 1) => {
+    const mult = (f.awake ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
     f.awake = true;
     return strike(s, t, h, f, def.hit, dmg, mult);
   };
-  const landed = blow(foe);
+  const landed = blow(foe, combo.finisher ? FINISH_MULT : 1);
   if (w.group === 'axe') for (const c of sweepCells(h.pos, d)) {
     const f = foeAt(s, c);
     const step = { x: c.x - h.pos.x, y: c.y - h.pos.y };
@@ -55,20 +86,29 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent): number 
     const f = foeAt(s, beyond);
     if (f && canStep(s.map, foe.pos, d) && tileAt(s.map, beyond) !== 'door') blow(f);
   }
-  if (w.group === 'mace' && landed && foe.alive) {
-    const to = add(foe.pos, d);
-    if (free(s, to) && canStep(s.map, foe.pos, d)) {
-      s.events.push({ t, type: 'push', src: foe.id, from: { ...foe.pos }, to: { ...to } });
-      foe.pos = to;
-      onEnter(s, foe, t);
-    } else {
-      foe.hp -= SLAM;
-      foe.stun = Math.max(foe.stun ?? 0, 1);
-      s.events.push({ t, type: 'stun', src: h.id, dst: foe.id, amount: SLAM, to: { ...foe.pos } });
-      if (foe.hp <= 0) { foe.hp = 0; foe.alive = false; s.events.push({ t, type: 'die', src: h.id, dst: foe.id, to: { ...foe.pos } }); }
-    }
-  }
+  h.fx.nextMult = 1;
+  h.fx.combo = { target: foe.id, hits: landed && !combo.finisher ? combo.next : 0 };
+  if (landed && combo.next >= 2) s.events.push({ t, type: 'combo', src: h.id, dst: foe.id, amount: combo.next, text: combo.finisher ? 'finisher' : undefined });
+  let pushed = false;
+  const shove = () => { if (!pushed && foe.alive) { pushed = true; pushFoe(s, t, foe, d); } };
+  if (w.group === 'mace' && landed) shove();
+  if (combo.finisher && landed && fire(s, t, 'finisher')) shove();
+  if (landed && foe.alive && hooks && has(s, 'shoveShot')) shoveShot(s, t, foe, hooks, shove);
   return def.time;
+}
+
+/** Shove the foe off, then the ranged weapon in the other hand fires at it (the hand in use stays). */
+function shoveShot(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shove: () => void): void {
+  const g = s.hero.gear;
+  const other = g.hands[g.active === 0 ? 1 : 0];
+  if (!other || WEAPONS[other.group].melee) return;
+  shove();
+  const was = g.active;
+  g.active = was === 0 ? 1 : 0;
+  const shot = foe.alive && !s.fired.has('shoveShot') && rangedAttack(s, t, foe, hooks) !== null;
+  g.active = was;
+  s.hero.fx.acted = 'melee';
+  if (shot) fire(s, t, 'shoveShot');
 }
 
 /** A spear reaches a foe two cells away when the cell between is empty. */
@@ -77,7 +117,7 @@ export function reachTarget(s: GridState, d: Cell): Ent | undefined {
   if (activeWeapon(h.gear)?.group !== 'spear') return undefined;
   const mid = add(h.pos, d);
   // a closed door between stops the reach
-  if (!canStep(s.map, h.pos, d) || tileAt(s.map, mid) === 'door' || bodyAt(s, mid) || !canStep(s.map, mid, d)) return undefined;
+  if (!canStep(s.map, h.pos, d) || tileAt(s.map, mid) === 'door' || foeAt(s, mid) || !canStep(s.map, mid, d)) return undefined;
   return foeAt(s, add(mid, d));
 }
 
@@ -95,22 +135,28 @@ export function canFire(s: GridState): boolean {
 }
 
 /** Fires the ranged weapon in hand at a foe; null if it cannot. Staff spells are resolved by `cast`. */
-export function rangedAttack(s: GridState, t: number, foe: Ent, cast: (w: Weapon, at: Cell) => void, noise: (at: Cell, r: number) => void): number | null {
+export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
   if (!w || !canFire(s) || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos)) return null;
   h.target = foe.id;
+  h.fx.acted = 'shot';
   s.events.push({ t, type: 'shoot', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
   if (w.group === 'staff') {
     w.charges = (w.charges ?? 1) - 1;
-    cast(w, foe.pos);
-    noise(h.pos, 6);
-    return WEAPONS.staff.time;
+    const k = hooks.cast(w, foe.pos);
+    hooks.noise(h.pos, 6);
+    return WEAPONS.staff.time * k;
   }
-  const chance = hitChance(s.map, h.pos, foe.pos, WEAPONS[w.group].hit + CLASS_BONUS[h.gear.cls].rangedHit);
-  const mult = foe.awake ? 1 : SNEAK;
+  const base = WEAPONS[w.group].hit + CLASS_BONUS[h.gear.cls].rangedHit;
+  const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base);
+  const rapid = rapidStep(s, t, foe);
+  const mult = (foe.awake ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe);
   foe.awake = true;
-  const hit = strike(s, t, h, foe, chance, heroDmg(s, w), mult);
+  const dmg = heroDmg(s, w);
+  const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
+  h.fx.nextMult = 1;
+  afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w));
   if (w.group === 'throwing') {
     w.stack = (w.stack ?? 1) - 1;
     const land = hit ? foe.pos : add(foe.pos, { x: Math.sign(foe.pos.x - h.pos.x), y: Math.sign(foe.pos.y - h.pos.y) });
@@ -118,9 +164,9 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, cast: (w: Weapon
     s.floorItems.push({ pos: { ...spot }, item: { ...makeWeapon('throwing', w.tier), stack: 1 } });
   } else {
     h.gear.arrows--;
-    noise(h.pos, w.group === 'crossbow' ? 6 : 3);
+    hooks.noise(h.pos, w.group === 'crossbow' ? 6 : 3);
   }
-  return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime;
+  return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime * rapid.time;
 }
 
 /** A ranged shot at a barrel (it goes off); null if the weapon in hand cannot reach it. */

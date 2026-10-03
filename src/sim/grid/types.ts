@@ -1,6 +1,7 @@
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
 import type { BeltItem, Equipment } from './items';
+import type { HeroFx } from './engraveCore';
 
 /** 'open' is a door that has been opened. */
 export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar';
@@ -46,7 +47,7 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean }
+export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean; marked?: boolean }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
@@ -60,6 +61,7 @@ export interface Hero extends Ent {
   /** time spent standing on an open exit */
   exitTime: number;
   gear: Gear;
+  fx: HeroFx;
 }
 export interface ChestState { pos: Cell; opened: boolean }
 export interface GridState {
@@ -85,6 +87,8 @@ export interface GridState {
   tiles: TileFx[];
   barrels: Cell[];
   telegraphs: Telegraph[];
+  /** engravings already fired during the current hero action */
+  fired: Set<string>;
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
@@ -98,7 +102,7 @@ export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry';
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
