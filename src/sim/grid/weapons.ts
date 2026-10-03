@@ -1,3 +1,4 @@
+import { absorbOffer } from './absorb';
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { afterShot, rapidStep } from './shotCombos';
@@ -228,6 +229,12 @@ export function pickUp(s: GridState, t: number): void {
   s.floorItems = s.floorItems.filter((f) => {
     if (!same(f.pos, s.hero.pos)) return true;
     const it = f.item;
+    if (it.kind === 'echo') {
+      const offer = absorbOffer(s, it.family);
+      s.events.push({ t, type: 'absorb', src: s.hero.id, text: it.family });
+      if (offer.length) s.offers.push(offer);
+      return false;
+    }
     if (it.kind === 'core') {
       s.outcome = 'won';
       s.run.won = true;

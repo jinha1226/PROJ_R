@@ -1,3 +1,4 @@
+import { ENGRAVES, type EngraveId } from '../../sim/grid/engraveCore';
 import { activeWeapon } from '../../sim/grid/gear';
 import { isBossFloor, zoneOf } from '../../sim/grid/zones';
 import { FLOORS, XP_STEPS } from '../../sim/grid/run';
@@ -25,6 +26,8 @@ function batchim(word: string): boolean {
 
 /** Log lines for traps, searching and learning what a potion or scroll is. */
 function eventLine(e: GEvent): string | undefined {
+  if (e.type === 'absorb') return '잔향을 흡수했다';
+  if (e.type === 'record') return `새 각인 기록 — ${ENGRAVES[e.text as EngraveId]?.name ?? e.text ?? ''}`;
   if (e.type === 'stairs') return '계단이 열렸다';
   if (e.type === 'core') return '에너지원을 손에 넣었다';
   if (e.type === 'identify') return identifyLine(e.text ?? '|');
@@ -74,7 +77,7 @@ export class GridHud {
     const g = h.gear;
     const w = activeWeapon(g);
     const t = target ? s.foes.find((f) => f.id === target.id) : undefined;
-    const key = JSON.stringify([h.hp, h.maxHp, h.level, h.xp, h.status, h.buffs, g.hands, g.active, h.charge, h.maxCharge, g.belt.potion, Math.floor(s.time), target, t?.hp, s.run]);
+    const key = JSON.stringify([h.hp, h.maxHp, h.level, h.xp, h.status, h.buffs, g.hands, g.active, h.charge, h.maxCharge, g.belt.potion, Math.floor(s.time), target, t?.hp, t?.elite, s.run]);
     if (key !== this.key) {
       this.key = key;
       const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
@@ -95,7 +98,7 @@ export class GridHud {
       q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, h) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
       const card = q('.gh-target');
       card.hidden = !t;
-      if (t) card.innerHTML = `${icon('skull')}<b>${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${Math.round(target!.chance * 100)}%</span>`;
+      if (t) card.innerHTML = `${icon('skull')}<b>${t.elite ? '정예 ' : ''}${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${Math.round(target!.chance * 100)}%</span>`;
       q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 에너지원을 지키는 수호자' : ' · 구간 수호자가 기다린다' : ''}`;
     }
     this.logTimer -= dt;

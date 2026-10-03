@@ -1,3 +1,4 @@
+import { ELITE_MULT } from './absorb';
 import { BOSS_POWER, isBossFloor, zoneOf, type ZoneId } from './zones';
 import type { Rng } from '../../core/rng';
 import { FOES, type Cell, type Ent, type FoeKind, type GridState } from './types';
@@ -25,9 +26,10 @@ export function spawnKind(rng: Rng, floor: number): FoeKind {
   return r < minion ? 'minion' : r < brute ? 'brute' : r < ghoul ? 'ghoul' : r < archer ? 'archer' : 'mage';
 }
 
-export function makeFoe(id: string, kind: FoeKind, pos: Cell, group: number, floor: number, time: number): Ent {
+export function makeFoe(id: string, kind: FoeKind, pos: Cell, group: number, floor: number, time: number, elite = false): Ent {
   const sc = scaleFoe(kind, floor);
-  return { id, kind, pos: { ...pos }, hp: sc.hp, maxHp: sc.hp, nextAt: time, alive: true, awake: false, group, power: sc.power };
+  if (elite) { sc.hp = Math.round(sc.hp * ELITE_MULT); sc.power *= ELITE_MULT; }
+  return { ...(elite ? { elite: true } : {}), id, kind, pos: { ...pos }, hp: sc.hp, maxHp: sc.hp, nextAt: time, alive: true, awake: false, group, power: sc.power };
 }
 
 /** A foe's damage roll range (scaled by depth). */

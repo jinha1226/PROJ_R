@@ -2,6 +2,7 @@ import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
 import { lunge, swapCombo } from './combos';
 import { rollEquipment, type Equipment } from './items';
+import { record } from './absorb';
 import { putOnSuit } from './engrave';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
@@ -141,6 +142,7 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       const offer = s.offers[0];
       const id = a.i === null ? undefined : offer?.[a.i];
       if (!offer || (a.i !== null && !id) || (id && !putOnSuit(s, id, a.slot))) return null;
+      if (id) record(s, t, id);
       s.offers.shift();
       return 0;
     }

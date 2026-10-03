@@ -1,6 +1,6 @@
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
-import type { BeltItem, Consumable, Core, Equipment } from './items';
+import type { BeltItem, Consumable, Core, Echo, Equipment } from './items';
 import type { Lore, PotionKind, ScrollKind } from './lore';
 import type { EngraveId, HeroFx } from './engraveCore';
 
@@ -17,7 +17,7 @@ export interface GridMap {
   start: Cell;
   exits: Cell[];
   chests: Cell[];
-  spawns: { kind: FoeKind; pos: Cell; group: number }[];
+  spawns: { kind: FoeKind; pos: Cell; group: number; elite?: boolean }[];
   /** oil barrels (block the way, explode when hit) */
   barrels?: Cell[];
   /** the way down (boss floors unlock it on the guardian’s death) */
@@ -54,7 +54,7 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
+export interface Ent { elite?: boolean; id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
@@ -101,8 +101,10 @@ export interface GridState {
   telegraphs: Telegraph[];
   /** engravings already fired during the current hero action */
   fired: Set<string>;
-  /** level-up engraving choices waiting for the player (first one is shown) */
+  /** Level-up and absorption engraving choices waiting for the player (first one is shown) */
   offers: EngraveId[][];
+  /** Engravings discovered this run, including the four starting records. */
+  records: EngraveId[];
   /** traps on this floor (found ones are shown) */
   traps: Trap[];
   /** this run's potion colours and scroll runes */
@@ -111,7 +113,7 @@ export interface GridState {
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
 export interface RunState { floor: number; kills: number; won: boolean; floorStart: number; waves: number }
-export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core }
+export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | Echo }
 export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
@@ -121,7 +123,7 @@ export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
+  | 'absorb' | 'record' | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

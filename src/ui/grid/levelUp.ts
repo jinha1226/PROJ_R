@@ -14,8 +14,8 @@ export class LevelUpPanel {
     let selected: number | null = null;
     const render = () => {
       this.el.innerHTML = `<div class="glvl-panel">
-        <h3>${selected === null ? `레벨 ${level}! 각인 하나를 고르세요` : '어느 칸을 바꿀까요?'}</h3>
-        <p class="muted">슈트 각인 ${suit.length}/${SUIT_SLOTS}</p>
+        <h3>${selected === null ? '각인 하나를 고르세요' : '어느 칸을 바꿀까요?'}</h3>
+        <p class="muted">레벨 ${level} · 슈트 각인 ${suit.length}/${SUIT_SLOTS}</p>
         <div class="glvl-cards">${(selected === null ? offer : suit).map((id, i) => `<button class="glvl-card" data-i="${i}" data-testid="${selected === null ? 'grid-levelup' : 'grid-suit-slot'}-${i}">
           <small>${FIT[ENGRAVES[id].fits]}</small><b>${esc(ENGRAVES[id].name)}</b><span>${esc(ENGRAVES[id].note)}</span></button>`).join('')}</div>
         ${selected === null ? '<button class="btn" data-do="skip" data-testid="grid-levelup-skip">넘기기</button>' : '<button class="btn" data-do="cancel">취소</button>'}

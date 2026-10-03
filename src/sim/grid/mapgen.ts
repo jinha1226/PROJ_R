@@ -112,5 +112,12 @@ export function generateMap(seed: number, floor = 1): GridMap {
   });
   // traps roll on their own stream so the rest of the floor stays as it was
   m.traps = placeTraps(m, taken, createRng((seed ^ 0x51ed27) + floor * 104729), floor);
+  // Elite selection has its own stream and cannot disturb floor contents.
+  if (!isBossFloor(floor)) {
+    const elites = createRng((seed ^ 0x3e11a7) + floor * 6151);
+    const count = elites.int(1, 2);
+    const pool = elites.shuffle(m.spawns.filter((sp) => sp.kind !== 'champion'));
+    for (const sp of pool.slice(0, count)) sp.elite = true;
+  }
   return m;
 }

@@ -28,7 +28,7 @@ const LOOK: Record<Ent['kind'], UalLook> = {
 };
 const LUNGE = 0.3;
 
-/** The coloured ring under each figure (gold hero, red foes). */
+/** The coloured ring under each figure (gold hero and elites, red ordinary foes). */
 function ring(color: string, scale: number): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.RingGeometry(0.32 * scale, 0.4 * scale, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, depthWrite: false }));
   m.rotation.x = -Math.PI / 2;
@@ -72,8 +72,9 @@ export class GridActors {
     for (const e of [s.hero, ...s.foes]) {
       if (this.views.has(e.id)) continue;
       this.kinds.set(e.id, e.kind);
-      const actor = new UalActor(this.lib, LOOK[e.kind]);
-      actor.root.add(ring(e.kind === 'hero' ? '#e0a64a' : '#d0533f', LOOK[e.kind].scale));
+      const look = { ...LOOK[e.kind], scale: LOOK[e.kind].scale * (e.elite ? 1.12 : 1) };
+      const actor = new UalActor(this.lib, look);
+      actor.root.add(ring(e.kind === 'hero' || e.elite ? '#e0a64a' : '#d0533f', look.scale));
       const x = e.pos.x * CELL;
       const z = e.pos.y * CELL;
       actor.root.position.set(x, 0, z);

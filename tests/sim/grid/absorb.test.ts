@@ -1,0 +1,182 @@
+import { FAMILY, ELITE_MULT, absorbOffer } from '../../../src/sim/grid/absorb';
+import { ENGRAVES, ENGRAVE_IDS } from '../../../src/sim/grid/engraveCore';
+import { FOE_XP, foeDmg, scaleFoe } from '../../../src/sim/grid/foes';
+import { GridSim } from '../../../src/sim/grid/gridSim';
+import { makeWeapon } from '../../../src/sim/grid/items';
+import { nextFloor, settleKills } from '../../../src/sim/grid/run';
+import { newState } from '../../../src/sim/grid/state';
+import { FOES, type FoeKind } from '../../../src/sim/grid/types';
+import { handMap, OPEN, sim, sureHits } from './kit';
+import { createHash } from 'node:crypto';
+import { expect, it } from 'vitest';
+import { generateMap } from '../../../src/sim/grid/mapgen';
+
+it('preserves the existing floor layout, spawns and contents apart from elite flags', () => {
+  const hashes = [1, 6, 11].map((floor) => {
+    const m = generateMap(21, floor);
+    const plain = { ...m, spawns: m.spawns.map(({ kind, pos, group }) => ({ kind, pos, group })) };
+    return createHash('sha256').update(JSON.stringify(plain)).digest('hex');
+  });
+  expect(hashes).toMatchInlineSnapshot(`
+    [
+      "c7b60efdf41b3fd9ae73b50c8ce5ccff46f673583632c54481223a3aecc9ec9c",
+      "0efb5e8c419372eeebac707837b077ea3fd79f1d26173e9bdc1b2308464820a0",
+      "7b0e93120c0dbf5fc180759e896a0c2d51a10a0c36473cbd3ab0afed0a3c3361",
+    ]
+  `);
+});
+
+it('maps every foe to its engraving family', () => {
+  expect(FAMILY).toEqual({ minion: 'melee', brute: 'melee', archer: 'ranged', mage: 'magic', ghoul: 'any', champion: 'all' });
+});
+
+it('marks one or two deterministic elites on ordinary floors and none on boss floors', () => {
+  for (const seed of [3, 8, 21]) for (let floor = 1; floor <= 15; floor++) {
+    const m = generateMap(seed, floor);
+    const elites = m.spawns.filter((f) => f.elite);
+    if ([5, 10, 15].includes(floor)) expect(elites).toHaveLength(0);
+    else {
+      expect(elites.length).toBeGreaterThanOrEqual(1);
+      expect(elites.length).toBeLessThanOrEqual(2);
+      expect(elites.every((f) => f.kind !== 'champion')).toBe(true);
+    }
+    expect(generateMap(seed, floor)).toEqual(m);
+  }
+});
+
+it('scales elite health and power and gives triple XP, settling each death once', () => {
+  const map = handMap(OPEN);
+  map.spawns = [{ kind: 'brute', pos: { x: 2, y: 1 }, group: 1, elite: true }];
+  const s = newState(map, 3);
+  const f = s.foes[0]!;
+  expect(ELITE_MULT).toBe(1.6);
+  expect(f).toMatchObject({ elite: true, hp: Math.round(FOES.brute.hp * 1.6), maxHp: 32, power: 1.6 });
+  expect(foeDmg(f)).toEqual(FOES.brute.dmg.map((n) => Math.round(n * 1.6)));
+  f.alive = false;
+  const before = new Set([f.id]);
+  settleKills(s, before);
+  settleKills(s, before);
+  expect(s.hero.xp).toBe(FOE_XP.brute * 3);
+  expect(s.floorItems).toHaveLength(1);
+});
+
+it('keeps records across floors and applies generated elite flags on descent', () => {
+  const s = newState(handMap(OPEN), 21);
+  s.records.push('finisher');
+  nextFloor(s);
+  expect(s.records).toContain('finisher');
+  const elites = s.foes.filter((f) => f.elite);
+  expect(elites.length).toBeGreaterThanOrEqual(1);
+  for (const f of elites) {
+    const base = scaleFoe(f.kind as FoeKind, 2);
+    expect(f.hp).toBe(Math.round(base.hp * ELITE_MULT));
+    expect(f.power).toBeCloseTo(base.power * ELITE_MULT);
+  }
+});
+
+it.each(['minion', 'brute', 'archer', 'mage', 'ghoul', 'champion'] as const)('a defeated %s leaves the right echo alongside existing items', (kind) => {
+  const map = handMap(OPEN);
+  map.spawns = [{ kind, pos: { x: 2, y: 1 }, group: 1, elite: kind !== 'champion' }];
+  const s = newState(map, 3, 'pistol', kind === 'champion' ? 15 : 1);
+  s.floorItems.push({ pos: { x: 2, y: 1 }, item: makeWeapon('sword', 1) });
+  const g = GridSim.fromState(s);
+  sureHits(g);
+  s.foes[0]!.hp = 1;
+  g.act({ kind: 'move', dir: { x: 1, y: 0 } });
+  expect(s.floorItems).toContainEqual({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: FAMILY[kind], name: '잔향' } });
+  expect(s.floorItems.some((f) => f.item.kind === 'weapon')).toBe(true);
+  if (kind === 'champion') expect(s.floorItems.some((f) => f.item.kind === 'core')).toBe(true);
+});
+
+it('ordinary foes on hand maps leave no echoes and give normal XP', () => {
+  const g = sim(OPEN, { x: 1, y: 1 }, [{ kind: 'minion', pos: { x: 2, y: 1 } }]);
+  expect(g.s.foes[0]!.elite).toBeFalsy();
+  g.s.foes[0]!.hp = 1;
+  sureHits(g);
+  g.act({ kind: 'move', dir: { x: 1, y: 0 } });
+  expect(g.s.floorItems).toEqual([]);
+  expect(g.s.hero.xp).toBe(FOE_XP.minion);
+});
+
+it('absorbs on a step with no added time, queues two records and one discovery, and excludes suit engravings', () => {
+  const g = sim(OPEN, { x: 1, y: 1 });
+  g.s.records = ['dash', 'finisher', 'leap'];
+  g.s.hero.suit = ['dash'];
+  g.s.offers = [['rapid']];
+  g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'melee', name: '잔향' } });
+  const events = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
+  expect(g.s.time).toBe(1);
+  expect(g.s.floorItems).toEqual([]);
+  expect(events).toContainEqual({ t: 0, type: 'absorb', src: 'hero', text: 'melee' });
+  expect(g.s.offers[0]).toEqual(['rapid']);
+  const offer = g.s.offers[1]!;
+  expect(offer).toHaveLength(3);
+  expect(offer.map((id) => g.s.records.includes(id))).toEqual([true, true, false]);
+  expect(offer.every((id) => ENGRAVES[id].fits === 'melee' && id !== 'dash')).toBe(true);
+  expect(new Set(offer).size).toBe(3);
+});
+
+it('fills short recorded and unrecorded pools, always keeping records first', () => {
+  const s = newState(handMap(OPEN), 3);
+  s.records = ['dash'];
+  expect(absorbOffer(s, 'melee').map((id) => s.records.includes(id))).toEqual([true, false, false]);
+  s.records = [...ENGRAVE_IDS];
+  expect(absorbOffer(s, 'melee').map((id) => s.records.includes(id))).toEqual([true, true, true]);
+  s.records = [];
+  expect(absorbOffer(s, 'ranged')).toHaveLength(3);
+  s.hero.suit = ['alternate', 'echo', 'chain'];
+  expect(absorbOffer(s, 'magic')).toEqual(['elemArrow']);
+  s.hero.suit.push('elemArrow');
+  expect(absorbOffer(s, 'magic')).toEqual([]);
+});
+
+it('uses only the requested family, or all families for champions, with deterministic draws', () => {
+  for (const family of ['melee', 'ranged', 'magic', 'any', 'all'] as const) {
+    const a = newState(handMap(OPEN), 87);
+    const b = newState(handMap(OPEN), 87);
+    expect(absorbOffer(a, family)).toEqual(absorbOffer(b, family));
+    const picks = absorbOffer(a, family);
+    expect(picks.every((id) => family === 'all' || ENGRAVES[id].fits === family)).toBe(true);
+  }
+  const s = newState(handMap(OPEN), 3);
+  s.records = ['dash', 'rapid'];
+  expect(absorbOffer(s, 'all').slice(0, 2).sort()).toEqual(['dash', 'rapid']);
+});
+
+it('consumes exhausted echoes without queuing empty offers', () => {
+  const g = sim(OPEN, { x: 1, y: 1 });
+  g.s.hero.suit = ['alternate', 'echo', 'chain', 'elemArrow'];
+  g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'magic', name: '잔향' } });
+  expect(g.act({ kind: 'move', dir: { x: 1, y: 0 } }).some((e) => e.type === 'absorb')).toBe(true);
+  expect(g.s.floorItems).toEqual([]);
+  expect(g.s.offers).toEqual([]);
+});
+
+it('records a newly chosen engraving once, but not existing records or passed offers', () => {
+  const g = sim(OPEN, { x: 1, y: 1 });
+  g.s.offers = [['finisher'], ['dash'], ['leap']];
+  expect(g.act({ kind: 'choose', i: 0 })).toContainEqual({ t: 0, type: 'record', src: 'hero', text: 'finisher' });
+  expect(g.s.records.filter((id) => id === 'finisher')).toHaveLength(1);
+  expect(g.act({ kind: 'choose', i: 0 }).some((e) => e.type === 'record')).toBe(false);
+  expect(g.act({ kind: 'choose', i: null }).some((e) => e.type === 'record')).toBe(false);
+  expect(g.s.records).not.toContain('leap');
+  expect(g.s.time).toBe(0);
+});
+
+it('does not record a refused full-suit choice and records a successful replacement', () => {
+  const g = sim(OPEN, { x: 1, y: 1 });
+  g.s.hero.suit = ['dash', 'rapid', 'chain', 'momentum', 'leap', 'counter'];
+  g.s.offers = [['finisher']];
+  expect(g.act({ kind: 'choose', i: 0 })[0]!.type).toBe('blocked');
+  expect(g.s.records).not.toContain('finisher');
+  expect(g.act({ kind: 'choose', i: 0, slot: 2 }).some((e) => e.type === 'record')).toBe(true);
+  expect(g.s.hero.suit[2]).toBe('finisher');
+});
+
+it('seeds independent per-run records with the four starting engravings', () => {
+  const a = newState(handMap(OPEN), 3);
+  const b = newState(handMap(OPEN), 3);
+  expect(a.records).toEqual(['dash', 'rapid', 'chain', 'momentum']);
+  a.records.push('leap');
+  expect(b.records).not.toContain('leap');
+});

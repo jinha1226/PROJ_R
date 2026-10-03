@@ -1,10 +1,11 @@
+import { FAMILY } from './absorb';
 import { scatterLoot } from './consumables';
 import { offerFor } from './engrave';
 import { FOE_XP, makeFoe, spawnFoe } from './foes';
 import { generateMap } from './mapgen';
 import { isBossFloor } from './zones';
 import { refreshSight } from './state';
-import { dist, idx, same, tileAt, type Cell, type GridState } from './types';
+import { dist, idx, same, tileAt, type Cell, type FoeKind, type GridState } from './types';
 
 export const FLOORS = 15;
 /** Experience needed for levels 2, 3, 4, … */
@@ -22,7 +23,7 @@ export function nextFloor(s: GridState): void {
   s.run.waves = 0;
   s.hero.pos = { ...map.start };
   s.hero.target = undefined;
-  s.foes = map.spawns.map((sp, i) => makeFoe(`f${s.nextFoeId + i}`, sp.kind, sp.pos, sp.group, floor, s.hero.nextAt));
+  s.foes = map.spawns.map((sp, i) => makeFoe(`f${s.nextFoeId + i}`, sp.kind, sp.pos, sp.group, floor, s.hero.nextAt, sp.elite));
   s.nextFoeId += map.spawns.length;
   s.chests = map.chests.map((c) => ({ pos: { ...c }, opened: false }));
   s.barrels = (map.barrels ?? []).map((b) => ({ ...b }));
@@ -42,7 +43,10 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     if (f.alive || !aliveBefore.has(f.id)) continue;
     aliveBefore.delete(f.id);
     s.run.kills++;
-    s.hero.xp += FOE_XP[f.kind as keyof typeof FOE_XP] ?? 3;
+    s.hero.xp += (FOE_XP[f.kind as FoeKind] ?? 3) * (f.elite ? 3 : 1);
+    if (f.elite || f.kind === 'champion') {
+      s.floorItems.push({ pos: { ...f.pos }, item: { kind: 'echo', family: FAMILY[f.kind as FoeKind], name: '잔향' } });
+    }
     if (f.kind === 'champion' && !s.outcome) {
       const pos = { ...f.pos };
       // the final guardian leaves the energy source; a zone guardian opens the way down
