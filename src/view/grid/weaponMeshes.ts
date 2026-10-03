@@ -3,7 +3,7 @@ import type { WeaponGroup } from '../../sim/grid/items';
 import { weaponKit } from './weaponKit';
 
 /** What a figure can hold: the hero's weapon groups plus the skeletons' short blade. */
-export type WeaponLook = WeaponGroup | 'blade';
+export type WeaponLook = WeaponGroup | 'blade' | 'none';
 
 const box = (w: number, h: number, d: number, mat: THREE.Material, y = 0, z = 0): THREE.Mesh => {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -13,6 +13,7 @@ const box = (w: number, h: number, d: number, mat: THREE.Material, y = 0, z = 0)
 
 /** Block-built weapons, held along the hand bone (+y up the blade/shaft). */
 export function weaponMesh(kind: WeaponLook): THREE.Object3D {
+  if (kind === 'none') return new THREE.Group();
   const packed = weaponKit()?.make(kind);
   if (packed) return packed;
   const g = new THREE.Group();

@@ -11,17 +11,14 @@ export function handMap(rows: string[]): GridMap {
 }
 
 describe('grid map generation', () => {
-  it('makes a 48x48 floor with rooms, a start and two reachable exits', () => {
+  it('makes a 48x48 floor with rooms, a start and reachable stairs', () => {
     const m = generateMap(7);
     expect(m.w).toBe(48);
     expect(m.h).toBe(48);
     expect(m.rooms.length).toBeGreaterThanOrEqual(8);
     expect(walkable(tileAt(m, m.start))).toBe(true);
-    expect(m.exits).toHaveLength(2);
-    for (const e of m.exits) {
-      expect(walkable(tileAt(m, e))).toBe(true);
-      expect(findPath(m, m.start, e)).not.toBeNull();
-    }
+    expect(walkable(tileAt(m, m.stairs!))).toBe(true);
+    expect(findPath(m, m.start, m.stairs!)).not.toBeNull();
   });
 
   it('puts chests and foes on floor, none in the start room', () => {
@@ -37,12 +34,12 @@ describe('grid map generation', () => {
     }
   });
 
-  it('every seed gives enough rooms and two reachable exits', () => {
+  it('every seed gives enough rooms and reachable stairs', () => {
     for (let seed = 1; seed <= 100; seed++) {
       const m = generateMap(seed);
       expect(m.rooms.length, `seed ${seed}`).toBeGreaterThanOrEqual(8);
-      expect(m.exits.length, `seed ${seed}`).toBe(2);
-      for (const e of m.exits) expect(findPath(m, m.start, e), `seed ${seed}`).not.toBeNull();
+      expect(m.stairs, `seed ${seed}`).toBeTruthy();
+      expect(findPath(m, m.start, m.stairs!), `seed ${seed}`).not.toBeNull();
     }
   });
 

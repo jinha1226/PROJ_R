@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { GridSim } from '../../../src/sim/grid/gridSim';
-import { DANGER, EXIT_TIME } from '../../../src/sim/grid/ai';
 import { dist, type GAction } from '../../../src/sim/grid/types';
 import { OPEN, sim } from './kit';
 
@@ -67,52 +66,13 @@ describe('foe behaviour', () => {
   });
 });
 
-describe('danger clock', () => {
-  it('turn 200 raises the alarm, turn 300 brings reinforcements and closes an exit', () => {
-    const g = GridSim.create(4);
-    g.s.hero.hp = 9999;
-    g.s.hero.maxHp = 9999;
-    const sleepers = g.s.foes.filter((f) => !f.awake).length;
-    let alarm = false;
-    let reinforce = false;
-    let closed = false;
-    for (let i = 0; i < 305; i++) {
-      const ev = g.act(W);
-      alarm ||= has(ev, 'alarm');
-      reinforce ||= has(ev, 'reinforce');
-      closed ||= has(ev, 'exitClosed');
-    }
-    expect(alarm).toBe(true);
-    expect(g.s.foes.filter((f) => !f.awake).length).toBeLessThan(sleepers);
-    expect(reinforce).toBe(true);
-    expect(closed).toBe(true);
-    expect(g.s.closedExits).toHaveLength(1);
-    expect(DANGER.alarm).toBe(200);
-  });
-});
-
-describe('getting out, or not', () => {
-  it('three turns on an open exit gets you out; stepping off resets it', () => {
-    const rows = [...OPEN];
-    rows[7] = '#.....X.......#';
-    const g = sim(rows, { x: 6, y: 7 });
-    g.act(W);
-    g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-    expect(g.s.hero.exitTime).toBe(0);
-    g.act({ kind: 'move', dir: { x: -1, y: 0 } });
-    for (let i = 0; i < EXIT_TIME; i++) g.act(W);
-    expect(g.s.outcome).toBe('extracted');
-    expect(g.act(W)).toEqual([]);
-  });
-
-  it('dying loses the haul and ends the sortie', () => {
+describe('the end of a run', () => {
+  it('dying ends the run', () => {
     const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
     g.s.hero.hp = 1;
-    g.s.hero.value = 300;
     let ev: { type: string }[] = [];
     for (let i = 0; i < 30 && !g.s.outcome; i++) ev = g.act(W);
     expect(g.s.outcome).toBe('dead');
-    expect(g.s.hero.value).toBe(0);
     expect(has(ev, 'dead')).toBe(true);
   });
 

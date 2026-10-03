@@ -15,6 +15,12 @@ const LOOK: Record<Ent['kind'], UalLook> = {
     block: { skin: '#e8e2d0', hair: '#3e5a2e', shirt: '#4e6a3a', trim: '#2e3a22', pants: '#3e4a2e', boots: '#2a2a1e', face: 'hood', bulk: 0.85 } },
   brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle',
     block: { skin: '#e8e2d0', hair: '#6a6e78', shirt: '#7a2e28', trim: '#2a2420', pants: '#4a2a24', boots: '#2a2420', face: 'helmet', bulk: 1.15 } },
+  ghoul: { body: '#6a8a4a', trim: '#3a2a1a', scale: 0.95, weapon: 'none', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop',
+    block: { skin: '#7a9a5a', hair: '#4a5a32', shirt: '#5a4a32', trim: '#3a2a1a', pants: '#4a3a28', boots: '#3a2e20', face: 'ghoul' } },
+  mage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'staff', idle: 'Spell_Simple_Idle_Loop',
+    block: { skin: '#e8e2d0', hair: '#4a2a6a', shirt: '#5a3a8a', trim: '#d8b040', pants: '#4a2a6a', boots: '#2a1a3a', face: 'hood', bulk: 0.85 } },
+  champion: { body: '#3a3a44', trim: '#d8b040', scale: 1.45, weapon: 'sword', shield: true, idle: 'Sword_Idle',
+    block: { skin: '#e8e2d0', hair: '#c8a040', shirt: '#4a4a56', trim: '#d8b040', pants: '#2e2e36', boots: '#1e1e24', face: 'helmet', bulk: 1.2 } },
 };
 const LUNGE = 0.3;
 
@@ -152,6 +158,7 @@ export class GridActors {
   /** Which close-quarters motion: daggers and skeleton blades jab, ranged weapons in hand bash, the rest swing. */
   private meleeAnim(id: string): UalAnim {
     const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
+    if (this.kindOf(id) === 'ghoul') return 'scratch';
     if (w === 'dagger' || w === 'blade') return 'jab';
     if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'throwing') return 'bash';
     return 'swing';

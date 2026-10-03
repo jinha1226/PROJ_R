@@ -1,10 +1,11 @@
 import { hitChance, shotClear, strike } from './combat';
-import { onEnter, tickStatuses } from './status';
+import { applyElement, areaCells, onEnter, tickStatuses } from './status';
+import { championTurn } from './boss';
+import { foeDmg } from './foes';
 import { chestAt } from './actions';
 import { findPath } from './path';
 import { add, canStep, DIRS, dist, FOES, idx, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
-export { DANGER, EXIT_TIME } from './danger';
 
 /** Cells a foe may not walk into: other bodies and chests. */
 export const blockedFor = (s: GridState, self: Ent) => (c: Cell): boolean =>
@@ -40,9 +41,11 @@ export function foeTurn(s: GridState, f: Ent): number {
   // stunned (slammed by a mace): loses this turn
   if ((f.stun ?? 0) > 0) { f.stun!--; return 1; }
   if (f.kind === 'archer') return archerTurn(s, f, t);
+  if (f.kind === 'mage') return mageTurn(s, f, t);
+  if (f.kind === 'champion') return championTurn(s, f, t);
   if (canMelee(s, f)) {
     s.events.push({ t, type: 'bump', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...s.hero.pos } });
-    strike(s, t, f, s.hero, def.hit, def.dmg);
+    strike(s, t, f, s.hero, def.hit, foeDmg(f));
     return 1;
   }
   if (!stepToward(s, f, f.lastSeen ?? s.hero.pos, t)) return 1;
@@ -80,11 +83,44 @@ function archerTurn(s: GridState, f: Ent, t: number): number {
   }
   if (archerCanShoot(s, f)) {
     s.events.push({ t, type: 'shoot', src: f.id, dst: s.hero.id, from: { ...f.pos }, to: { ...h } });
-    strike(s, t, f, s.hero, hitChance(s.map, f.pos, h, def.hit), def.dmg);
+    strike(s, t, f, s.hero, hitChance(s.map, f.pos, h, def.hit), foeDmg(f));
     return 1;
   }
-  // a neighbouring cell with a clear line in the 3–6 band, else close in
+  return takeRange(s, f, t, def.move);
+}
+
+/** Ranged foes: a neighbouring cell with a clear line in the 3–6 band, else close in. */
+function takeRange(s: GridState, f: Ent, t: number, move: number): number {
+  const h = s.hero.pos;
   const spot = steps(s, f).filter((c) => dist(c, h) >= 3 && dist(c, h) <= 6 && shotClear(s, c, h)).sort((a, b) => dist(a, h) - dist(b, h))[0];
-  if (spot) { moveTo(s, f, spot, t); return def.move; }
-  return stepToward(s, f, f.lastSeen ?? h, t) ? def.move : 1;
+  if (spot) { moveTo(s, f, spot, t); return move; }
+  return stepToward(s, f, f.lastSeen ?? h, t) ? move : 1;
+}
+
+/**
+ * Mages mark the ground around the hero (fire or frost) and the spell lands two of their turns later —
+ * long enough to walk out of it. They keep their distance like archers.
+ */
+function mageTurn(s: GridState, f: Ent, t: number): number {
+  const pending = s.telegraphs.find((x) => x.src === f.id);
+  if (pending) {
+    if (t + 1e-9 < pending.at) return 1;
+    s.telegraphs = s.telegraphs.filter((x) => x !== pending);
+    s.events.push({ t, type: 'shoot', src: f.id, to: { ...pending.center }, text: 'spell' });
+    applyElement(s, t, pending.el ?? 'fire', pending.center, 1, pending.dmg, f.id);
+    return 1;
+  }
+  const h = s.hero.pos;
+  const d = dist(f.pos, h);
+  if (d <= 1) {
+    const away = steps(s, f).sort((a, b) => dist(b, h) - dist(a, h))[0];
+    if (away && dist(away, h) > d) { moveTo(s, f, away, t); return FOES.mage.move; }
+  }
+  if (d >= 2 && d <= FOES.mage.range && s.visible.has(idx(s.map, f.pos)) && shotClear(s, f.pos, h)) {
+    const el = s.rng.chance(0.5) ? 'fire' : 'frost';
+    s.telegraphs.push({ cells: areaCells(s, h, 1), center: { ...h }, src: f.id, kind: 'spell', el, dmg: foeDmg(f), at: t + 2 });
+    s.events.push({ t, type: 'telegraph', src: f.id, to: { ...h }, text: el });
+    return 1;
+  }
+  return takeRange(s, f, t, FOES.mage.move);
 }

@@ -1,6 +1,7 @@
 import { createRng, type Rng } from '../../core/rng';
+import { spawnKind } from './foes';
 import { distanceMap } from './path';
-import { idx, tileAt, type Cell, type FoeKind, type GridMap, type Room, type Tile } from './types';
+import { idx, tileAt, type Cell, type GridMap, type Room, type Tile } from './types';
 
 const SIZE = 48;
 const MAX_ROOMS = 12;
@@ -57,8 +58,8 @@ function freeCells(m: GridMap, r: Room, taken: Set<number>, margin: number): Cel
 }
 
 /** One crypt floor: rooms joined by corridors, doors, pillars, a start room, the two farthest rooms as exits, chests and sleeping foes. */
-export function generateMap(seed: number): GridMap {
-  const rng = createRng(seed ^ 0x9e3779b9);
+export function generateMap(seed: number, floor = 1): GridMap {
+  const rng = createRng((seed ^ 0x9e3779b9) + floor * 7919);
   const tiles: Tile[] = new Array<Tile>(SIZE * SIZE).fill('wall');
   const rooms = placeRooms(rng);
   for (const r of rooms) for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) carve(tiles, { x, y });
@@ -76,8 +77,13 @@ export function generateMap(seed: number): GridMap {
   }
   const d = distanceMap(m, m.start);
   const far = rooms.slice(1).map((r) => ({ r, d: d[idx(m, centre(r))]! })).filter((x) => x.d > 0).sort((a, b) => b.d - a.d);
-  m.exits = far.slice(0, 2).map((x) => centre(x.r));
+  // floors 1–2: the way down in the farthest room; floor 3: the champion waits there
+  const deepest = far[0]?.r;
+  if (deepest && floor < 3) m.stairs = centre(deepest);
+  if (deepest && floor >= 3) m.spawns.push({ kind: 'champion', pos: centre(deepest), group: rooms.indexOf(deepest) });
   rooms.slice(1).forEach((r, i) => {
+    // the champion's room holds nothing else
+    if (floor >= 3 && r === deepest) return;
     const cells = rng.shuffle(freeCells(m, r, taken, 0));
     const byDoor = (c: Cell) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => tileAt(m, { x: c.x + dx!, y: c.y + dy! }) === 'door');
     const spot = cells.findIndex((c) => !byDoor(c));
@@ -96,8 +102,7 @@ export function generateMap(seed: number): GridMap {
       taken.add(idx(m, c));
     }
     for (let n = rng.int(1, 3); n > 0 && cells.length; n--) {
-      const roll = rng.next();
-      const kind: FoeKind = roll < 0.55 ? 'minion' : roll < 0.85 ? 'archer' : 'brute';
+      const kind = spawnKind(rng, floor);
       const c = cells.pop()!;
       m.spawns.push({ kind, pos: c, group: i + 1 });
       taken.add(idx(m, c));

@@ -16,24 +16,26 @@ let weaponsP: Promise<WeaponKit> | null = null;
 const getWeapons = (): Promise<WeaponKit> => (weaponsP ??= WeaponKit.load(import.meta.env.BASE_URL).catch((e: unknown) => { weaponsP = null; throw e; }));
 const getUal = (): Promise<UalLibrary> => (ual ??= UalLibrary.load(import.meta.env.BASE_URL).catch((e: unknown) => { ual = null; throw e; }));
 
-function loadGold(): number {
+interface Record { best: number; wins: number }
+
+function loadRecord(): Record {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) ?? 'null') as { gold?: unknown } | null;
-    return typeof v?.gold === 'number' ? v.gold : 0;
+    const v = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<Record> | null;
+    return { best: typeof v?.best === 'number' ? v.best : 0, wins: typeof v?.wins === 'number' ? v.wins : 0 };
   } catch {
-    return 0;
+    return { best: 0, wins: 0 };
   }
 }
 
-function saveGold(gold: number): void {
+function saveRecord(r: Record): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ gold }));
+    localStorage.setItem(KEY, JSON.stringify(r));
   } catch {
-    /* storage blocked: the total just isn't kept */
+    /* storage blocked: the record just isn't kept */
   }
 }
 
-/** Grid sortie prototype: title → sortie → result → again. */
+/** Grid dungeon: title → three floors → result → again. */
 export class GridFlow {
   constructor(private readonly router: Router, private readonly root: HTMLElement, private readonly toTitle: () => void) {}
 
@@ -51,11 +53,12 @@ export class GridFlow {
 
   private result(sim: GridSim, seed: number): void {
     const s = sim.s;
-    const ok = s.outcome === 'extracted';
-    const gold = loadGold() + (ok ? s.hero.value : 0);
-    saveGold(gold);
+    const won = s.outcome === 'won';
+    const before = loadRecord();
+    const rec = { best: Math.max(before.best, s.run.floor), wins: before.wins + (won ? 1 : 0) };
+    saveRecord(rec);
     this.router.go(new GridResult({
-      ok, value: ok ? s.hero.value : 0, loot: ok ? s.hero.loot : [], turns: Math.floor(s.time), gold,
+      won, floor: s.run.floor, kills: s.run.kills, level: s.hero.level, turns: Math.floor(s.time), best: rec.best, wins: rec.wins,
       again: () => void this.start((seed * 7919 + 104729) % 999983 + 1), quit: () => this.toTitle(),
     }));
   }

@@ -5,7 +5,7 @@ import type { BeltItem, Equipment } from './items';
 /** 'open' is a door that has been opened. */
 export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar';
 export interface Cell { x: number; y: number }
-export type FoeKind = 'minion' | 'archer' | 'brute';
+export type FoeKind = 'minion' | 'brute' | 'ghoul' | 'archer' | 'mage' | 'champion';
 export interface Room { x: number; y: number; w: number; h: number }
 export interface GridMap {
   w: number;
@@ -18,6 +18,8 @@ export interface GridMap {
   spawns: { kind: FoeKind; pos: Cell; group: number }[];
   /** oil barrels (block the way, explode when hit) */
   barrels?: Cell[];
+  /** the way down (floors 1–2) */
+  stairs?: Cell;
 }
 
 export const idx = (m: { w: number }, c: Cell): number => c.y * m.w + c.x;
@@ -44,7 +46,7 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses }
+export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison'; until: number }
@@ -72,7 +74,7 @@ export interface GridState {
   visible: Set<number>;
   rng: Rng;
   events: GEvent[];
-  outcome?: 'extracted' | 'dead';
+  outcome?: 'won' | 'dead';
   /** indices into map.exits that have closed */
   closedExits: number[];
   /** danger steps already fired (0 none, 1 alarm, 2 reinforcements) */
@@ -82,8 +84,11 @@ export interface GridState {
   run: RunState;
   tiles: TileFx[];
   barrels: Cell[];
+  telegraphs: Telegraph[];
 }
-export interface RunState { floor: number; kills: number; won: boolean }
+/** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
+export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
+export interface RunState { floor: number; kills: number; won: boolean; floorStart: number; waves: number }
 export interface FloorItem { pos: Cell; item: Equipment }
 export type GAction =
   | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
@@ -92,7 +97,8 @@ export type GAction =
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
-  | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status';
+  | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
@@ -102,4 +108,7 @@ export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [nu
   minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },
   archer: { hp: 8, move: 1, dmg: [3, 5], range: 7, hit: 0.85 },
   brute: { hp: 20, move: 1.4, dmg: [6, 9], range: 1, hit: 0.8 },
+  ghoul: { hp: 12, move: 0.7, dmg: [3, 6], range: 1, hit: 0.8 },
+  mage: { hp: 10, move: 1, dmg: [4, 7], range: 6, hit: 1 },
+  champion: { hp: 70, move: 1, dmg: [8, 12], range: 1, hit: 0.85 },
 };

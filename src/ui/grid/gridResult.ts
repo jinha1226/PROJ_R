@@ -1,18 +1,18 @@
 import type { Screen } from '../../app/router';
 
 export interface GridResultData {
-  ok: boolean;
-  value: number;
-  loot: { name: string; value: number }[];
+  won: boolean;
+  floor: number;
+  kills: number;
+  level: number;
   turns: number;
-  gold: number;
+  best: number;
+  wins: number;
   again(): void;
   quit(): void;
 }
 
-const esc = (v: unknown): string => String(v).replace(/[&"<>]/g, (c) => `&#${c.charCodeAt(0)};`);
-
-/** End of a grid sortie: what came home (or was lost), the running total, and another go. */
+/** End of a run: how deep, how many fell, the record so far, and another go. */
 export class GridResult implements Screen {
   private readonly el = document.createElement('div');
 
@@ -23,10 +23,14 @@ export class GridResult implements Screen {
     this.el.className = 'screen grid-result';
     this.el.dataset.testid = 'grid-result';
     this.el.innerHTML = `<div class="panel">
-      <h2 class="${d.ok ? 'ok' : 'lost'}">${d.ok ? '탈출 성공' : '쓰러졌다'}</h2>
-      <p>${d.turns}턴 · 가져온 가치 <b>${d.value}G</b></p>
-      ${d.loot.length ? `<ul>${d.loot.map((l) => `<li>${esc(l.name)} <small>${l.value}G</small></li>`).join('')}</ul>` : `<p class="muted">${d.ok ? '빈손으로 나왔다' : '이번에 주운 것은 모두 잃었다'}</p>`}
-      <p>모은 골드 합계 <b>${d.gold}G</b></p>
+      <h2 class="${d.won ? 'ok' : 'lost'}">${d.won ? '해골 챔피언을 쓰러뜨렸다' : '쓰러졌다'}</h2>
+      <ul class="gres-stats">
+        <li><span>도달한 층</span><b>${d.floor}층 / 3</b></li>
+        <li><span>처치</span><b>${d.kills}</b></li>
+        <li><span>레벨</span><b>${d.level}</b></li>
+        <li><span>턴</span><b>${d.turns}</b></li>
+      </ul>
+      <p class="muted">최고 기록 ${d.best}층 · 승리 ${d.wins}회</p>
       <div class="row"><button class="btn primary" data-act="again" data-testid="grid-again">다시</button><button class="btn" data-act="quit" data-testid="grid-quit">타이틀</button></div>
     </div>`;
     this.el.addEventListener('click', (e) => {

@@ -114,10 +114,11 @@ export class GridRuntime {
         break;
       }
       case 'shoot': {
-        const p = at(e.dst);
+        const p = at(e.dst) ?? (e.to ? cellVec(e.to) : undefined);
         const from = at(e.src);
         if (!p || !from) break;
-        a.shoot(e.src, p, e.text);
+        a.shoot(e.src, p, e.text === 'spell' ? 'staff' : e.text);
+        if (!e.dst) break;
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
         this.fx.bolt(from, p, () => { entry.ready = true; this.pending.delete(key); for (const q of entry.queue) this.cue(q); });

@@ -3,10 +3,11 @@ import { computeFov } from './fov';
 import { CLASS_BONUS, startGear, type ClassId } from './gear';
 import { makeWeapon, type Element, type WeaponGroup } from './items';
 import { add, DIRS, same, tileAt, type Cell, type FloorItem } from './types';
-import { HERO, FOES, type GridMap, type GridState } from './types';
+import { makeFoe } from './foes';
+import { HERO, type GridMap, type GridState } from './types';
 
 /** A fresh sortie on a map: the hero at the start, every spawn asleep, chests shut. */
-export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior'): GridState {
+export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior', floor = 1): GridState {
   const maxHp = HERO.hp + CLASS_BONUS[cls].maxHp;
   const s: GridState = {
     seed, time: 0, map: { ...map, tiles: [...map.tiles] },
@@ -14,9 +15,9 @@ export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior'): 
       id: 'hero', kind: 'hero', pos: { ...map.start }, hp: maxHp, maxHp, nextAt: 0, alive: true, awake: true, group: 0,
       level: 1, xp: 0, value: 0, loot: [], exitTime: 0, gear: startGear(cls),
     },
-    foes: map.spawns.map((sp, i) => ({ id: `f${i + 1}`, kind: sp.kind, pos: { ...sp.pos }, hp: FOES[sp.kind].hp, maxHp: FOES[sp.kind].hp, nextAt: 0, alive: true, awake: false, group: sp.group })),
+    foes: map.spawns.map((sp, i) => makeFoe(`f${i + 1}`, sp.kind, sp.pos, sp.group, floor, 0)),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
-    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor: 1, kills: 0, won: false }, tiles: [], barrels: (map.barrels ?? []).map((b) => ({ ...b })),
+    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], barrels: (map.barrels ?? []).map((b) => ({ ...b })),
   };
   refreshSight(s);
   return s;

@@ -1,4 +1,3 @@
-import { DANGER, EXIT_TIME } from '../../sim/grid/danger';
 import { activeWeapon, CLASS_NAME } from '../../sim/grid/gear';
 import type { GEvent, GridState } from '../../sim/grid/types';
 import { icon, weaponIcon } from './icons';
@@ -7,7 +6,7 @@ import { weaponState } from './weaponInfo';
 const LOG: Partial<Record<GEvent['type'], string>> = {
   alarm: '발소리가 늘었다 — 잠든 해골들이 깨어난다', reinforce: '묘지 깊은 곳에서 증원이 몰려온다!', exitClosed: '탈출 지점 하나가 무너졌다',
 };
-const KIND: Record<string, string> = { minion: '해골 졸개', archer: '해골 석궁병', brute: '해골 전사' };
+const KIND: Record<string, string> = { minion: '해골 졸개', archer: '해골 석궁병', brute: '해골 전사', ghoul: '구울', mage: '해골 마법사', champion: '해골 챔피언' };
 
 /** Top bar (level badge, health, arrows/potions/turn, weapon in hand), target card, danger line, toasts. */
 export class GridHud {
@@ -27,7 +26,6 @@ export class GridHud {
       </div>
       <div class="gh-target" hidden></div>
       <div class="gh-danger"></div>
-      <div class="ghud-exit" hidden><span>탈출 중</span><div><div></div></div></div>
       <div class="ghud-log" hidden></div>
       <div class="ghud-help muted">WASD·QEZC 이동(꾹 누르면 연속) · F 사격 · X 교체 · I 가방 · Tab 표적 · Space 쉬기 · 1 물약 · 클릭 이동 · 휠 확대</div>`;
   }
@@ -47,7 +45,7 @@ export class GridHud {
     const g = h.gear;
     const w = activeWeapon(g);
     const t = target ? s.foes.find((f) => f.id === target.id) : undefined;
-    const key = JSON.stringify([h.hp, h.level, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), h.exitTime, target, t?.hp, s.danger]);
+    const key = JSON.stringify([h.hp, h.maxHp, h.level, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), target, t?.hp, s.run]);
     if (key !== this.key) {
       this.key = key;
       const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
@@ -63,10 +61,7 @@ export class GridHud {
       const card = q('.gh-target');
       card.hidden = !t;
       if (t) card.innerHTML = `${icon('skull')}<b>${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${Math.round(target!.chance * 100)}%</span>`;
-      const next = s.danger === 0 ? `${DANGER.alarm}턴에 순찰이 늘어난다` : s.danger === 1 ? `${DANGER.reinforce}턴에 증원이 온다` : '증원이 왔다';
-      q('.gh-danger').textContent = next;
-      q('.ghud-exit').hidden = h.exitTime <= 0;
-      q('.ghud-exit div div').style.width = `${Math.min(1, h.exitTime / EXIT_TIME) * 100}%`;
+      q('.gh-danger').textContent = `${s.run.floor}층 / 3 · 처치 ${s.run.kills}${s.run.floor >= 3 ? ' · 해골 챔피언이 기다린다' : ''}`;
     }
     this.logTimer -= dt;
     if (this.logTimer <= 0) this.el.querySelector<HTMLElement>('.ghud-log')!.hidden = true;

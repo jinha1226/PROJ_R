@@ -98,3 +98,5 @@
 .gbag-slot { font: inherit; font-size: 12px; min-height: 52px; color: #e8dcc0; background: #2a2830; border: 1px solid #ffffff22; border-radius: 8px; }
 .gbag-slot.sel { border-color: #e0a64a; box-shadow: 0 0 0 1px #e0a64a; } .gbag-slot.empty { opacity: 0.35; }
 .gbag-detail { margin: 10px 0 6px; font-size: 13px; } .gbag-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.gres-stats { list-style: none; padding: 0; margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gres-stats li { display: flex; justify-content: space-between; background: #0006; border-radius: 8px; padding: 6px 10px; } .gres-stats b { color: #ffe2a0; }

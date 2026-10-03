@@ -1,5 +1,6 @@
 import { autoTarget, heroAct } from './actions';
-import { noise, updateAwareness, updateDanger, updateExtraction } from './danger';
+import { noise, updateAwareness } from './danger';
+import { nextFloor, settleKills, updateWanderers } from './run';
 import { runUntilHero } from './clock';
 import { hitChance } from './combat';
 import { activeWeapon, CLASS_BONUS, type ClassId } from './gear';
@@ -30,29 +31,37 @@ export class GridSim {
     if (s.outcome) return [];
     s.events = [];
     const t0 = s.hero.nextAt;
+    const alive = new Set(s.foes.filter((f) => f.alive).map((f) => f.id));
     // frozen: whatever was asked, the turn passes
     const frozen = (s.hero.status?.freeze ?? 0) > 0;
     const cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
     if (cost === null) return [{ t: t0, type: 'blocked', src: s.hero.id }];
     tickStatuses(s, s.hero, t0);
     s.hero.nextAt += cost;
+    settleKills(s, alive);
+    if (s.outcome) { s.time = s.hero.nextAt; return s.events; }
+    if (s.map.stairs && same(s.hero.pos, s.map.stairs) && s.hero.alive) {
+      s.time = s.hero.nextAt;
+      nextFloor(s);
+      return s.events;
+    }
     rechargeStaffs(s, cost);
     refreshSight(s);
     updateAwareness(s);
     runUntilHero(s);
     s.time = s.hero.nextAt;
     s.tiles = s.tiles.filter((x) => x.until > s.time);
+    s.telegraphs = s.telegraphs.filter((x) => s.foes.some((f) => f.id === x.src && f.alive));
+    settleKills(s, alive);
     if (!s.hero.alive) {
       s.outcome = 'dead';
-      s.hero.value = 0;
-      s.hero.loot = [];
       s.events.push({ t: s.time, type: 'dead', src: s.hero.id });
       return s.events;
     }
+    if (s.outcome) return s.events;
     refreshSight(s);
     updateAwareness(s);
-    updateExtraction(s, cost);
-    if (!s.outcome) updateDanger(s);
+    updateWanderers(s);
     return s.events;
   }
 
