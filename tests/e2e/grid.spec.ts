@@ -78,3 +78,50 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   await page.screenshot({ path: 'test-artifacts/grid-portrait.png' });
   await ctx.close();
 });
+
+test('engravings: inscribe a rune stone from the bag, pick one on level-up, and a dash fires', async ({ page }) => {
+  type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto('./?seed=21');
+  await page.click('[data-testid="to-grid"]');
+  await page.click('[data-testid="class-warrior"]');
+  await waitGrid(page);
+  const engraves = () => page.evaluate(() => ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.hands[0].engraves.map((e: Any) => e.id));
+  expect(await engraves()).toEqual(['dash']);
+  // a rune stone in the bag: open the bag, choose it, inscribe it on the sword
+  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.bag.push({ kind: 'rune', id: 'finisher', name: '룬석: 3연타 마무리' }); });
+  await page.keyboard.press('i');
+  await page.click('[data-testid="grid-bag-0"]');
+  await page.click('[data-testid="grid-bag-inscribe"]');
+  await expect.poll(engraves).toEqual(['dash', 'finisher']);
+  await page.click('[data-testid="grid-bag-close"]');
+  // a level-up choice: the modal shows, a pick is inscribed (the oldest engraving makes room)
+  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).offers = [['leap', 'echo', 'mark']]; });
+  await expect(page.locator('[data-testid="grid-levelup"]')).toBeVisible();
+  await page.click('[data-testid="grid-levelup-0"]');
+  await expect(page.locator('[data-testid="grid-levelup"]')).toHaveCount(0);
+  expect(await engraves()).toEqual(['finisher', 'leap']);
+  // a foe two cells ahead in the open: walking at it is a dash (one cell in, a blow)
+  const dashed = await page.evaluate(() => {
+    const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
+    const s = w.state() as unknown as Any;
+    s.hero.gear.hands[0].engraves = [{ id: 'dash', lvl: 1 }];
+    const h = s.hero.pos;
+    for (const d of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) {
+      const at = (i: number) => s.map.tiles[(h.y + d.y * i) * s.map.w + h.x + d.x * i];
+      if (at(1) !== 'floor' || at(2) !== 'floor') continue;
+      for (const f of s.foes) if (f.alive) f.pos = { x: 0, y: 0 };
+      const foe = { ...s.foes[0], id: 'zz', alive: true, awake: true, hp: 200, maxHp: 200, stun: 3, status: undefined, pos: { x: h.x + d.x * 2, y: h.y + d.y * 2 } };
+      s.foes.push(foe);
+      w.act({ kind: 'move', dir: d });
+      return { moved: s.hero.pos.x === h.x + d.x && s.hero.pos.y === h.y + d.y, hurt: foe.hp < 200 };
+    }
+    return null;
+  });
+  expect(dashed).toEqual({ moved: true, hurt: true });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: 'test-artifacts/grid-dash.png' });
+  expect(errors).toEqual([]);
+});
