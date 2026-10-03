@@ -1,3 +1,4 @@
+import { scatterLoot } from './consumables';
 import { offerFor } from './engrave';
 import { FOE_XP, makeFoe, spawnFoe } from './foes';
 import { generateMap } from './mapgen';
@@ -28,6 +29,7 @@ export function nextFloor(s: GridState): void {
   s.tiles = [];
   s.telegraphs = [];
   s.floorItems = [];
+  s.floorItems = scatterLoot(s);
   s.seen = new Uint8Array(map.w * map.h);
   s.events.push({ t: s.time, type: 'floor', amount: floor });
   refreshSight(s);

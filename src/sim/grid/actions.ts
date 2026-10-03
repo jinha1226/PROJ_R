@@ -9,6 +9,10 @@ import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
 import { buffOn } from './buffs';
 import { search } from './traps';
+import { drink, readScroll, rollConsumable, stow, throwPotion } from './consumables';
+import { potionName, scrollName } from './lore';
+
+const CONSUMABLE_CHANCE = 0.45;
 
 const STEP_NOISE = 1;
 const DOOR_NOISE = 2;
@@ -34,6 +38,11 @@ function openChest(s: GridState, t: number, c: Cell): void {
   };
   if (s.rng.chance(0.6)) stash(rollEquipment(s.rng, s.run.floor));
   if (s.rng.chance(RUNE_CHANCE)) stash(runeStone(s.rng.pick(ENGRAVE_IDS)));
+  if (s.rng.chance(CONSUMABLE_CHANCE)) {
+    const got = rollConsumable(s.rng);
+    stow(s, got);
+    s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: got.kind === 'potion' ? potionName(s, got.p) : scrollName(s, got.sc) });
+  }
   const arrows = s.rng.int(2, 5);
   g.arrows += arrows;
   s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: '화살', amount: arrows });
@@ -124,6 +133,9 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       s.events.push({ t, type: 'drop', src: h.id, text: e.name, to: { ...h.pos } });
       return COST.drop;
     }
+    case 'drink': return drink(s, t, a.p);
+    case 'read': return readScroll(s, t, a.sc);
+    case 'throwPotion': return throwPotion(s, t, a.p, a.at);
     case 'search':
       s.events.push({ t, type: 'search', src: h.id, to: { ...h.pos } });
       search(s, t);

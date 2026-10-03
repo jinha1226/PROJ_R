@@ -1,6 +1,7 @@
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
-import type { BeltItem, Equipment } from './items';
+import type { BeltItem, Consumable, Equipment } from './items';
+import type { Lore, PotionKind, ScrollKind } from './lore';
 import type { EngraveId, HeroFx } from './engraveCore';
 
 /** 'open' is a door that has been opened. */
@@ -68,6 +69,8 @@ export interface Hero extends Ent {
   exitTime: number;
   gear: Gear;
   fx: HeroFx;
+  /** strength: 10 to start, a point above 10 is a point of melee damage */
+  str: number;
 }
 export interface ChestState { pos: Cell; opened: boolean }
 export interface GridState {
@@ -99,20 +102,23 @@ export interface GridState {
   offers: EngraveId[][];
   /** traps on this floor (found ones are shown) */
   traps: Trap[];
+  /** this run's potion colours and scroll runes */
+  lore: Lore;
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
 export interface RunState { floor: number; kills: number; won: boolean; floorStart: number; waves: number }
-export interface FloorItem { pos: Cell; item: Equipment }
+export interface FloorItem { pos: Cell; item: Equipment | Consumable }
 export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
-  | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'inscribe'; bag: number } | { kind: 'choose'; i: number | null } | { kind: 'search' };
+  | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'inscribe'; bag: number } | { kind: 'choose'; i: number | null } | { kind: 'search' }
+  | { kind: 'drink'; p: PotionKind } | { kind: 'read'; sc: ScrollKind } | { kind: 'throwPotion'; p: PotionKind; at: Cell };
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search';
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

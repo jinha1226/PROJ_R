@@ -48,8 +48,9 @@ describe('rune stones and inscribing', () => {
 
   it('every weapon on the prototype rack comes engraved', () => {
     const g = GridSim.create(4);
-    expect(g.s.floorItems.length).toBeGreaterThan(0);
-    for (const f of g.s.floorItems) expect(f.item.kind === 'weapon' && f.item.engraves!.length > 0).toBe(true);
+    const rack = g.s.floorItems.filter((f) => f.item.kind === 'weapon');
+    expect(rack.length).toBeGreaterThan(0);
+    for (const f of rack) expect(f.item.kind === 'weapon' && f.item.engraves!.length > 0).toBe(true);
   });
 
   it('each class starts with one engraving on its first weapon', () => {

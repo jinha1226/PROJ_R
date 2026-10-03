@@ -4,6 +4,7 @@ import { championTurn } from './boss';
 import { foeDmg } from './foes';
 import { chestAt } from './actions';
 import { findPath } from './path';
+import { buffOn } from './buffs';
 import { add, canStep, DIRS, dist, FOES, idx, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
 
@@ -22,11 +23,13 @@ export function stepToward(s: GridState, f: Ent, to: Cell, t: number): boolean {
 
 /** Archers only shoot from where the hero can see them (so every shot comes with a visible aim line). */
 export function archerCanShoot(s: GridState, f: Ent): boolean {
-  return f.alive && f.awake && dist(f.pos, s.hero.pos) <= FOES.archer.range && s.visible.has(idx(s.map, f.pos)) && shotClear(s, f.pos, s.hero.pos);
+  return f.alive && f.awake && !buffOn(s.hero, 'invis', f.nextAt) && dist(f.pos, s.hero.pos) <= FOES.archer.range && s.visible.has(idx(s.map, f.pos)) && shotClear(s, f.pos, s.hero.pos);
 }
 
 /** Adjacent, and not across a wall corner. */
 export function canMelee(s: GridState, f: Ent): boolean {
+  // an invisible hero is not struck at
+  if (buffOn(s.hero, 'invis', f.nextAt)) return false;
   const d = { x: s.hero.pos.x - f.pos.x, y: s.hero.pos.y - f.pos.y };
   return dist(f.pos, s.hero.pos) === 1 && (d.x === 0 || d.y === 0 || canStep(s.map, f.pos, d));
 }
@@ -40,6 +43,13 @@ export function foeTurn(s: GridState, f: Ent): number {
   if (!f.awake) return 1;
   // stunned (slammed by a mace): loses this turn
   if ((f.stun ?? 0) > 0) { f.stun!--; return 1; }
+  // confused: a stumble somewhere; afraid: away from the hero
+  if (buffOn(f, 'confuse', t)) { const c = steps(s, f); if (c.length) moveTo(s, f, s.rng.pick(c), t); return def.move; }
+  if (buffOn(f, 'fear', t)) {
+    const away = steps(s, f).sort((a, b) => dist(b, s.hero.pos) - dist(a, s.hero.pos))[0];
+    if (away && dist(away, s.hero.pos) > dist(f.pos, s.hero.pos)) moveTo(s, f, away, t);
+    return def.move;
+  }
   if (f.kind === 'archer') return archerTurn(s, f, t);
   if (f.kind === 'mage') return mageTurn(s, f, t);
   if (f.kind === 'champion') return championTurn(s, f, t);
@@ -116,7 +126,7 @@ function mageTurn(s: GridState, f: Ent, t: number): number {
     const away = steps(s, f).sort((a, b) => dist(b, h) - dist(a, h))[0];
     if (away && dist(away, h) > d) { moveTo(s, f, away, t); return FOES.mage.move; }
   }
-  if (d >= 2 && d <= FOES.mage.range && s.visible.has(idx(s.map, f.pos)) && shotClear(s, f.pos, h)) {
+  if (d >= 2 && d <= FOES.mage.range && !buffOn(s.hero, 'invis', t) && s.visible.has(idx(s.map, f.pos)) && shotClear(s, f.pos, h)) {
     const el = s.rng.chance(0.5) ? 'fire' : 'frost';
     s.telegraphs.push({ cells: areaCells(s, h, 1), center: { ...h }, src: f.id, kind: 'spell', el, dmg: foeDmg(f), at: t + 2 });
     s.events.push({ t, type: 'telegraph', src: f.id, to: { ...h }, text: el });

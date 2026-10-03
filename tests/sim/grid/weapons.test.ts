@@ -159,8 +159,9 @@ describe('weapon rack', () => {
   it('a new run lays one of every other weapon group around the start to try', async () => {
     const { GridSim } = await import('../../../src/sim/grid/gridSim');
     const g = GridSim.create(7);
-    const groups = g.s.floorItems.map((f) => f.item.kind === 'weapon' && f.item.group);
+    const rack = g.s.floorItems.filter((f) => f.item.kind === 'weapon');
+    const groups = rack.map((f) => f.item.kind === 'weapon' && f.item.group);
     expect(new Set(groups)).toEqual(new Set(['dagger', 'axe', 'spear', 'mace', 'bow', 'throwing', 'staff']));
-    for (const f of g.s.floorItems) expect(Math.max(Math.abs(f.pos.x - g.s.hero.pos.x), Math.abs(f.pos.y - g.s.hero.pos.y))).toBeLessThanOrEqual(3);
+    for (const f of rack) expect(Math.max(Math.abs(f.pos.x - g.s.hero.pos.x), Math.abs(f.pos.y - g.s.hero.pos.y))).toBeLessThanOrEqual(3);
   });
 });

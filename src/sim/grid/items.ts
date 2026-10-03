@@ -1,5 +1,6 @@
 import type { Rng } from '../../core/rng';
 import type { EngraveId, Engraving } from './engraveCore';
+import type { PotionKind, ScrollKind } from './lore';
 
 export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'bow' | 'crossbow' | 'throwing' | 'staff';
 export type Element = 'fire' | 'frost' | 'shock' | 'poison';
@@ -20,6 +21,8 @@ export interface Armor { kind: 'armor'; tier: 1 | 2 | 3; name: string; reduce: n
 /** A rune stone: one engraving, waiting in the bag to be inscribed on a weapon. */
 export interface RuneStone { kind: 'rune'; id: EngraveId; name: string }
 export type Equipment = Weapon | Armor | RuneStone;
+/** A potion or scroll lying on the floor (picked up into the pack, not the bag). */
+export type Consumable = { kind: 'potion'; p: PotionKind; name: string } | { kind: 'scroll'; sc: ScrollKind; name: string };
 export type BeltItem = 'potion' | 'bomb' | 'fireFlask' | 'frostFlask' | 'shockFlask' | 'poisonFlask';
 export const BELT_ITEMS: BeltItem[] = ['potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask'];
 

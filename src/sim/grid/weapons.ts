@@ -1,6 +1,9 @@
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { afterShot, rapidStep } from './shotCombos';
+import { buffOn } from './buffs';
+import { stow } from './consumables';
+import { potionName, scrollName } from './lore';
 import { activeWeapon, addToBag, CLASS_BONUS } from './gear';
 import { makeWeapon, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
@@ -17,8 +20,11 @@ const FINISH_MULT = 1.5;
 export function heroDmg(s: GridState, w: Weapon): [number, number] {
   const [lo, hi] = WEAPONS[w.group].dmg[w.tier - 1]!;
   const up = s.hero.level - 1;
-  const k = WEAPONS[w.group].melee ? CLASS_BONUS[s.hero.gear.cls].meleeDmg : 1;
-  return [Math.round((lo + up) * k), Math.round((hi + up) * k)];
+  const melee = WEAPONS[w.group].melee;
+  const k = melee ? CLASS_BONUS[s.hero.gear.cls].meleeDmg : 1;
+  // strength above 10 adds to every melee blow
+  const str = melee ? Math.max(0, s.hero.str - 10) : 0;
+  return [Math.round((lo + up) * k) + str, Math.round((hi + up) * k) + str];
 }
 
 export interface ShotHooks { noise(at: Cell, r: number): void; cast(w: Weapon, at: Cell): number }
@@ -70,8 +76,10 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   }
   const def = WEAPONS[w.group];
   const dmg = heroDmg(s, w);
+  // an invisible hero's blows land like sneak attacks
+  const unseen = buffOn(h, 'invis', t);
   const blow = (f: Ent, k = 1) => {
-    const mult = (f.awake ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
+    const mult = (f.awake && !unseen ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
     f.awake = true;
     return strike(s, t, h, f, def.hit, dmg, mult);
   };
@@ -157,7 +165,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   const base = WEAPONS[w.group].hit + CLASS_BONUS[h.gear.cls].rangedHit;
   const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base);
   const rapid = rapidStep(s, t, foe);
-  const mult = (foe.awake ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe);
+  const mult = (foe.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe);
   foe.awake = true;
   const dmg = heroDmg(s, w);
   const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
@@ -211,6 +219,11 @@ export function pickUp(s: GridState, t: number): void {
   s.floorItems = s.floorItems.filter((f) => {
     if (!same(f.pos, s.hero.pos)) return true;
     const it = f.item;
+    if (it.kind === 'potion' || it.kind === 'scroll') {
+      stow(s, it);
+      s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.kind === 'potion' ? potionName(s, it.p) : scrollName(s, it.sc) });
+      return false;
+    }
     const stack = it.kind === 'weapon' && it.group === 'throwing' ? g.hands.find((w) => w?.group === 'throwing') : undefined;
     if (stack && it.kind === 'weapon') { stack.stack = (stack.stack ?? 0) + (it.stack ?? 1); s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.name }); return false; }
     if (addToBag(g, it)) { s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.name }); return false; }

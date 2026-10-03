@@ -1,3 +1,4 @@
+import { buffOn } from './buffs';
 import { dist, idx, type Cell, type GridState } from './types';
 
 const LOUD = 6;
@@ -25,6 +26,8 @@ export function wake(s: GridState, id: string): void {
 
 /** After the hero's turn: anyone who can see the hero wakes (and rouses their room), awake foes remember where the hero is. */
 export function updateAwareness(s: GridState): void {
+  // nobody notices an invisible hero
+  if (buffOn(s.hero, 'invis', s.time)) return;
   for (const f of s.foes) {
     if (!f.alive || !s.visible.has(idx(s.map, f.pos)) || dist(f.pos, s.hero.pos) > 8) continue;
     // a sleeper that sees the hero up close wakes; from farther off it may sleep on a while

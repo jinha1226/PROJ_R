@@ -8,15 +8,19 @@ import { WEAPONS, type Weapon } from './items';
 import { heroDmg, rechargeStaffs } from './weapons';
 import { castSpell, passMarks } from './shotCombos';
 import { discover } from './traps';
+import { scatterLoot } from './consumables';
+import { buffOn, clearBuff } from './buffs';
 import { fire, has } from './engraveCore';
 import { explodeBarrels, useThrown } from './explosives';
 import { tickStatuses } from './status';
 import { generateMap } from './mapgen';
 import { newState, refreshSight, weaponRack } from './state';
-import { same, type Cell, type GAction, type GEvent, type GridState } from './types';
+import { DIRS, same, type Cell, type GAction, type GEvent, type GridState } from './types';
 
 /** The grid sortie: one hero action at a time, the world catches up to the hero's next turn, events say what happened. */
 const MOMENTUM = 0.5;
+const HASTE = 0.5;
+const CONFUSED_ASTRAY = 0.5;
 
 export class GridSim {
   private constructor(readonly s: GridState) {}
@@ -24,6 +28,7 @@ export class GridSim {
   static create(seed: number, cls: ClassId = 'warrior'): GridSim {
     const s = newState(generateMap(seed), seed, cls);
     s.floorItems = weaponRack(s);
+    s.floorItems.push(...scatterLoot(s));
     return new GridSim(s);
   }
 
@@ -45,9 +50,14 @@ export class GridSim {
     // frozen: whatever was asked, the turn passes
     // a level-up pick is not a turn: it is made even while frozen
     const frozen = (s.hero.status?.freeze ?? 0) > 0 && a.kind !== 'choose';
+    // confused: a step goes astray half the time
+    if (a.kind === 'move' && buffOn(s.hero, 'confuse', t0) && s.rng.chance(CONFUSED_ASTRAY)) a = { kind: 'move', dir: s.rng.pick(DIRS), plain: true };
     let cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
     if (cost === null) { fx.momentum = boosted; return [{ t: t0, type: 'blocked', src: s.hero.id }]; }
     // momentum halves the action after a kill (a free swap does not use it up)
+    if (cost > 0 && buffOn(s.hero, 'haste', t0)) cost *= HASTE;
+    // any attack or throw gives an invisible hero away
+    if (fx.acted || a.kind === 'use' || a.kind === 'throwPotion') clearBuff(s.hero, 'invis');
     if (boosted && cost > 0) cost *= MOMENTUM;
     else if (boosted) fx.momentum = true;
     if (cost > 0) discover(s, t0);
