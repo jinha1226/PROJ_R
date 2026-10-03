@@ -1,6 +1,8 @@
 .ship-overlay { position: absolute; inset: 0; pointer-events: none; color: #d4f5ff; }
-.ship-hud { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); left: 8px; max-width: 300px; padding: 7px 10px; background: #0a1b29d0; border: 1px solid #65b9dc55; border-radius: 10px; font-size: 12px; line-height: 1.35; }
-.ship-hud b { font-size: 14px; } .ship-hud p { margin: 3px 0; } .ship-hud small { color: #8fb8c8; } .ship-hud .row { margin-top: 5px; display: flex; gap: 6px; pointer-events: auto; } .ship-hud .btn { padding: 4px 10px; font-size: 12px; }
+.ship-hud { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left: 8px; max-width: 300px; padding: 7px 10px; background: #0a1b29d0; border: 1px solid #65b9dc55; border-radius: 10px; font-size: 12px; line-height: 1.35; }
+.ship-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.ship-hud b { font-size: 15px; color: #7ff0ff; } .ship-hud span { color: #9fc8d8; } .ship-hud em { font-style: normal; color: #ffcf6a; }
+.ship-hud p { flex-basis: 100%; margin: 0; font-size: 11px; color: #7fa8b8; } .ship-hud .row { display: flex; gap: 6px; pointer-events: auto; } .ship-hud .btn { padding: 3px 9px; font-size: 11px; }
 .ship-modal { position: absolute; inset: 0; z-index: 20; background: #0009; display: grid; place-items: center; pointer-events: auto; padding: 16px; }
 .ship-modal[hidden] { display: none; }
 .ship-modal .panel { width: min(480px, 100%); max-height: 80dvh; overflow: auto; background: #102331; border: 1px solid #65b9dc; padding: 20px; border-radius: 12px; }

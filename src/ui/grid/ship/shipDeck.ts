@@ -32,7 +32,7 @@ export class ShipDeck {
   mount(root: HTMLElement, runtime: GridRuntime): void { this.runtime = runtime; root.classList.add('ship'); root.append(this.el); this.drawHud(); }
   private drawHud(): void {
     const m = this.api.meta;
-    this.hud.innerHTML = `<b>우주선 · ⚡${m.energy} · 최고 ${m.best}층</b><p>${m.suit ? `${m.suit.floor}층에 슈트가 남아 있다` : '시설에 부딪치면 시설 창이 열린다'}</p><small>${this.api.wake ? '복제 포드에서 깨어났다 · ' : ''}WASD · 스틱 · 바닥 탭으로 이동</small><div class="row"></div>`;
+    this.hud.innerHTML = `<b>⚡${m.energy}</b><span>최고 ${m.best}층</span>${m.suit ? `<em>${m.suit.floor}층에 슈트</em>` : ''}<div class="row"></div><p>${this.api.wake ? '복제 포드에서 깨어났다 · ' : ''}시설에 부딪치면 창이 열린다</p>`;
     const row = this.hud.querySelector('.row')!;
     if (this.api.saved) this.button(row, '이어하기', () => this.api.resume(), 'ship-continue');
     this.button(row, '타이틀', () => this.api.quit(), 'ship-quit');

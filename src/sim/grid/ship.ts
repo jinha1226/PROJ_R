@@ -4,23 +4,26 @@ import { add, canStep, same, type GAction, type GEvent, type GridMap, type GridS
 export const STATIONS = { pod: '복제 포드', armory: '무기고', suitlab: '슈트 공방', records: '기록 보관소', nav: '항법 콘솔', core: '에너지 코어', hatch: '출격 해치' } as const;
 export type StationId = keyof typeof STATIONS;
 const LETTERS: Record<string, StationId> = { P: 'pod', A: 'armory', S: 'suitlab', R: 'records', N: 'nav', C: 'core', H: 'hatch' };
+/** The crashed ship: a power hall round the energy core, bays behind bulkheads, the airlock hatch on the east wall. `o` = crates. */
 const DECK = [
-  '###############',
-  '#.............#',
-  '#.A....R....N.#',
-  '#.............#',
-  '#.............#',
-  '#.P....C....H.#',
-  '#.............#',
-  '#.............#',
-  '#.S...........#',
-  '#.............#',
-  '###############',
+  '###################',
+  '#P...#.....R...#.N#',
+  '#....#.........#..#',
+  '#..o.#.........#..#',
+  '##.###.........##.#',
+  '#.................#',
+  '#........C.......H#',
+  '#.................#',
+  '##.###.........##.#',
+  '#....#.........#..#',
+  '#....#.........#..#',
+  '#S..o#...o.o...#.A#',
+  '###################',
 ];
 export function shipState(meta: MetaState): GridState {
-  const map: GridMap = { w: 15, h: 11, tiles: [], rooms: [{ x: 1, y: 1, w: 13, h: 9 }], start: { x: 2, y: 5 }, stations: [], exits: [], chests: [], spawns: [] };
+  const map: GridMap = { w: DECK[0]!.length, h: DECK.length, tiles: [], rooms: [{ x: 1, y: 1, w: DECK[0]!.length - 2, h: DECK.length - 2 }], start: { x: 1, y: 1 }, stations: [], exits: [], chests: [], spawns: [] };
   DECK.forEach((row, y) => [...row].forEach((letter, x) => {
-    map.tiles.push(letter === '#' ? 'wall' : 'floor');
+    map.tiles.push(letter === '#' ? 'wall' : letter === 'o' ? 'pillar' : 'floor');
     const id = LETTERS[letter];
     if (id) map.stations!.push({ id, pos: { x, y } });
   }));

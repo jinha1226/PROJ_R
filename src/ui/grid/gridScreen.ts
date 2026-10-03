@@ -29,6 +29,7 @@ import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import { attachFoePress } from './foePress';
 import '../styles/grid.css';
+import '../styles/gridSf.css';
 export interface GridApi { ship?: ShipDeck; sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; afterAction?(): void; fatal(e: unknown): void }
 const WALK_EVERY = 0.14;
 const TAP_PX = 12;

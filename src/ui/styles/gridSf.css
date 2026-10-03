@@ -1,0 +1,85 @@
+/* SF skin for the grid sortie and the ship (layout stays in grid.css): navy glass panels, cyan trim, cut corners, segmented gauges. */
+.screen.grid, .grid-result {
+  --gold: #4fe3ff;
+  --panel: linear-gradient(180deg, #0b1d2ae8, #06121ce8);
+  --rim: #2fb8e055;
+  --sf-line: #3ae0ff;
+  --sf-dim: #8fb8c8;
+  --sf-warn: #ffb23a;
+  --sf-bad: #ff4a3a;
+  --sf-glass: #071520e0;
+  --sf-cut: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  --sf-cut-s: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+  --sf-scan: repeating-linear-gradient(0deg, #ffffff06 0 1px, transparent 1px 3px);
+}
+.screen.grid .ghud { color: #dff6ff; text-shadow: 0 0 6px #00141f; font-feature-settings: 'tnum'; }
+
+/* panels: vitals, target card, log lines, banner */
+.screen.grid .gh-main, .screen.grid .gh-target, .screen.grid .gh-weapon {
+  background: var(--sf-scan), var(--panel); border: 1px solid var(--rim); border-radius: 0; clip-path: var(--sf-cut);
+  box-shadow: inset 0 0 0 1px #3ae0ff18, inset 0 0 18px #0090c022;
+}
+.screen.grid .gh-main { position: relative; }
+.screen.grid .gh-main::before { content: ''; position: absolute; left: 0; top: 0; width: 26px; height: 2px; background: var(--sf-line); box-shadow: 0 0 6px var(--sf-line); }
+.screen.grid .gh-target { border-color: #ff5a4a66; }
+.screen.grid .gh-target .gi, .screen.grid .gh-hp-ic { color: #ff6a5a; filter: drop-shadow(0 0 4px #ff3a2a99); }
+.screen.grid .gh-intent { color: var(--sf-warn); letter-spacing: 0.04em; }
+.screen.grid .gh-danger { color: var(--sf-dim); letter-spacing: 0.06em; }
+.screen.grid .ghud-log, .screen.grid .ghud-log > div { background: none; border: 0; box-shadow: none; color: #bfefff; }
+.screen.grid .ghud-log > div { border-left: 2px solid var(--sf-line); padding-left: 8px; background: linear-gradient(90deg, #06202ccc, transparent); }
+.screen.grid .ghud-log .warn, .screen.grid .ghud-log.warn { border-left-color: var(--sf-bad); color: #ffd0c8; }
+.screen.grid .grid-banner { color: #9ff4ff; letter-spacing: 0.3em; text-shadow: 0 0 14px #00c8ff; }
+
+/* gauges: segmented bars */
+.screen.grid .gh-hp-bar, .screen.grid .gh-t-bar, .screen.grid .gh-xp, .screen.grid .gh-charge > div {
+  border-radius: 0; background: #02080ccc; border: 1px solid #ffffff22; clip-path: var(--sf-cut-s);
+}
+.screen.grid .gh-hp-fill, .screen.grid .gh-hp-lag { border-radius: 0; }
+.screen.grid .gh-hp-fill { background: repeating-linear-gradient(90deg, transparent 0 9px, #02080c 9px 11px), linear-gradient(180deg, #ff8a6a, #e0302a 60%, #a01a14); box-shadow: 0 0 8px #ff3a2a66; }
+.screen.grid .gh-charge i { background: repeating-linear-gradient(90deg, transparent 0 9px, #02080c 9px 11px), linear-gradient(180deg, #8ff4ff, #18b8e8); box-shadow: 0 0 8px #18d8ff88; }
+.screen.grid .gh-xp div { background: linear-gradient(90deg, #6a8aff, #b48aff); box-shadow: 0 0 6px #8a6aff88; }
+.screen.grid .gh-t-bar div { background: linear-gradient(90deg, #ff5a4a, #ff8a5a); }
+.screen.grid .gh-st { border-radius: 0; clip-path: var(--sf-cut-s); background: #06141ccc !important; }
+
+/* suit strip */
+.screen.grid .gh-tile { border-radius: 0; clip-path: var(--sf-cut-s); background: var(--sf-scan), #06141cd8; border: 1px solid #ffffff1c; color: var(--sf-dim); letter-spacing: 0.02em; }
+.screen.grid .gh-tile.lit { color: #e8fbff; border-color: #3ae0ffaa; background: var(--sf-scan), linear-gradient(180deg, #0a3346e8, #06202ee8); box-shadow: inset 0 0 12px #18c8ff44; }
+.screen.grid .gh-tile.dim { opacity: 0.55; }
+.screen.grid .gh-tile.flash { background: #3ae0ff; color: #001018; box-shadow: 0 0 18px #3ae0ff; }
+
+/* action buttons, belt, zoom */
+.screen.grid .gt-btn, .screen.grid .xzoom .btn, .screen.grid .gbelt-b {
+  border-radius: 0 !important; clip-path: var(--sf-cut-s); background: var(--sf-scan), linear-gradient(180deg, #0c2230f0, #07141ef0) !important;
+  border: 1px solid #3ae0ff44 !important; color: #dff6ff; box-shadow: inset 0 0 14px #0090c022 !important;
+}
+.screen.grid .gt-btn .gt-ic, .screen.grid .gbelt-b .gi { color: var(--sf-line); filter: drop-shadow(0 0 4px #18c8ff88); }
+.screen.grid .gt-btn small { color: var(--sf-dim); }
+.screen.grid .gt-btn kbd { background: #02080c; color: #8ff4ff; border: 1px solid #3ae0ff44; border-radius: 2px; }
+.screen.grid .gt-fire { border-color: #3ae0ffcc !important; background: var(--sf-scan), linear-gradient(180deg, #0f3a50f0, #082232f0) !important; box-shadow: 0 0 14px #18c8ff44, inset 0 0 18px #18c8ff33 !important; }
+.screen.grid .gt-fire em, .screen.grid .gt-fire .gt-ic { color: #aff8ff; text-shadow: 0 0 8px #18d8ff; }
+.screen.grid .gt-btn.on, .screen.grid .gt-btn:active { filter: brightness(1.35); }
+.screen.grid .gt-potion .gt-ic { color: #ff7a8a; }
+.screen.grid .gt-stick { border-color: #3ae0ff66; background: radial-gradient(circle, #3ae0ff14, #3ae0ff05 70%); }
+.screen.grid .gt-knob { background: radial-gradient(circle at 35% 30%, #e8fbff, #3ab8d8); box-shadow: 0 0 10px #18c8ff88; }
+
+/* modal panels: bag, level-up, ship stations, aim bar */
+.screen.grid .gbag-panel, .screen.grid .glvl-panel, .screen.grid .ship-modal .panel, .grid-result .panel, .screen.grid .gaim {
+  background: var(--sf-scan), linear-gradient(180deg, #0b1f2cf4, #061220f4); border: 1px solid #3ae0ff66; border-radius: 0; clip-path: var(--sf-cut);
+  color: #dff6ff; box-shadow: inset 0 0 0 1px #3ae0ff14, inset 0 0 40px #0080b022;
+}
+.screen.grid .glvl-panel h3, .screen.grid .ship-modal h2, .grid-result h2 { color: #8ff4ff; letter-spacing: 0.06em; text-shadow: 0 0 10px #00b8ff88; }
+.screen.grid .glvl-card, .screen.grid .gbag-slot, .screen.grid .gbag-cur, .screen.grid .gpack-row {
+  border-radius: 0; clip-path: var(--sf-cut-s); background: #07182299; border: 1px solid #3ae0ff2a; color: #dff6ff;
+}
+.screen.grid .glvl-card:hover, .screen.grid .gbag-slot.sel { border-color: var(--sf-line); box-shadow: inset 0 0 14px #18c8ff44; }
+.screen.grid .glvl-card b, .screen.grid .gengr i { color: #8ff4ff; }
+.screen.grid .gengr i { background: #0a2a3a; border-color: #3ae0ff55; border-radius: 0; }
+.screen.grid .btn, .grid-result .btn { border-radius: 0; clip-path: var(--sf-cut-s); background: #0c2230; border: 1px solid #3ae0ff55; color: #dff6ff; }
+.screen.grid .btn.primary, .grid-result .btn.primary { background: linear-gradient(180deg, #1aa8d0, #0a6a90); border-color: #8ff4ff; color: #001018; font-weight: 800; }
+.screen.grid .ship-modal .btn[aria-pressed="true"] { background: #0f4a64; border-color: #8ff4ff; }
+.grid-result { background: radial-gradient(ellipse at center, #0a1c28, #03080c); }
+.grid-result .gres-stats li { border-radius: 0; clip-path: var(--sf-cut-s); background: #071822; border: 1px solid #3ae0ff22; }
+
+/* ship deck HUD and labels follow the same trim */
+.screen.grid .ship-hud { border-radius: 0; clip-path: var(--sf-cut); background: var(--sf-scan), var(--panel); border-color: #3ae0ff55; }
+.screen.grid .grid-icon.label { border-radius: 0; clip-path: var(--sf-cut-s); }

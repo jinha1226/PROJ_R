@@ -8,7 +8,7 @@ import { same, tileAt } from '../../../src/sim/grid/types';
 it('builds a deterministic empty deck with each reachable station once and starts at the pod', () => {
   const s = shipState(freshMeta());
   expect(s.mode).toBe('ship');
-  expect(s.map.tiles).toHaveLength(15 * 11);
+  expect(s.map.tiles).toHaveLength(19 * 13);
   expect(s.map.stations?.map(p => p.id).sort()).toEqual(Object.keys(STATIONS).sort());
   expect(s.hero.pos).toEqual(s.map.stations!.find(p => p.id === 'pod')!.pos);
   for (const p of s.map.stations!) {

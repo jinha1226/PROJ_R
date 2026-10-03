@@ -67,7 +67,7 @@ export class GridRuntime {
     this.pixel = new PixelPass(this.h.renderer);
     this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit);
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
-    if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.45; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
+    if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.62; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
     this.actors = new GridActors(lib);
     this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density);
     this.elements = new GridElements(kit, sim.s);
@@ -219,6 +219,7 @@ export class GridRuntime {
     for (const e of this.playback.update(this.fx.frozen ? 0 : dt)) this.cue(e);
     this.fx.update(dt);
     this.pops.update(dt);
+    if (this.terrain instanceof ShipTerrain) this.terrain.update(dt);
     this.actors.update(dt, this.fx.frozen);
     this.torches.update(dt);
     this.items.update(dt);

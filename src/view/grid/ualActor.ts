@@ -16,6 +16,8 @@ const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   dash: 'Sword_Dash_RM', leapUp: 'NinjaJump_Start', leapLand: 'NinjaJump_Land', finisher: 'Sword_Regular_C', shove: 'Shield_OneShot', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
   reload: 'Pistol_Reload', knockback: 'Hit_Knockback', death: 'Death01', interact: 'Chest_Open', drink: 'Consume',
 };
+/** bones the legs-only half of a run drives (the rest follows the held stance) */
+const LEG_BONES = /^(root|pelvis|thigh_[lr]|calf_[lr]|foot_[lr]|ball_[lr]|ball_leaf_[lr])$/;
 /** melee swings rotate through these so a fight does not repeat one motion */
 const SWINGS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'];
 
@@ -33,7 +35,16 @@ export class UalLibrary {
       const v = t.values;
       for (let i = 0; i < v.length; i += 3) { v[i] = 0; v[i + 2] = 0; }
     }
-    return new UalLibrary(g.scene, new Map(g.animations.map((a) => [a.name, a])), HEIGHT / Math.max(0.01, size.y));
+    const clips = new Map(g.animations.map((a) => [a.name, a]));
+    // running keeps the weapon up: legs from the jog, everything above the hips from the stance the figure holds
+    const isLeg = (t: THREE.KeyframeTrack) => LEG_BONES.test(t.name.slice(0, t.name.lastIndexOf('.')));
+    const jog = clips.get(CLIP.run);
+    if (jog) clips.set(`${CLIP.run}__legs`, new THREE.AnimationClip(`${CLIP.run}__legs`, jog.duration, jog.tracks.filter(isLeg)));
+    for (const idle of ['Sword_Idle', 'Idle_Loop', 'Pistol_Idle_Loop', 'Spell_Simple_Idle_Loop']) {
+      const c = clips.get(idle);
+      if (c) clips.set(`${idle}__upper`, new THREE.AnimationClip(`${idle}__upper`, c.duration, c.tracks.filter((t) => !isLeg(t))));
+    }
+    return new UalLibrary(g.scene, clips, HEIGHT / Math.max(0.01, size.y));
   }
 
   spawn(): THREE.Object3D {
@@ -53,6 +64,8 @@ export class UalActor {
   private readonly mixer: THREE.AnimationMixer;
   private readonly mats: THREE.MeshStandardMaterial[] = [];
   private current: THREE.AnimationAction | null = null;
+  /** the upper-body stance layered over a legs-only run */
+  private upper: THREE.AnimationAction | null = null;
   private loop: 'idle' | 'run' = 'idle';
   private swing = 0;
   private idleClip: string;
@@ -102,7 +115,7 @@ export class UalActor {
       if ((e as unknown as { action: THREE.AnimationAction }).action !== this.current) return;
       this.busy = false;
       this.busyKind = null;
-      if (!this.dead) this.start(this.loop === 'run' ? this.runClip : this.idleClip, true, 1, 0.12);
+      if (!this.dead) this.loopOn(this.loop === 'run', this.loop === 'run' ? 1.5 : 1, 0.12);
     });
     this.start(this.idleClip, true, 1, 0);
   }
@@ -120,6 +133,26 @@ export class UalActor {
     this.current = a;
   }
 
+  /** Idle, or a run: a legs-only jog under the held stance when both halves exist, else the whole jog. */
+  private loopOn(running: boolean, speed: number, fade: number): void {
+    const legs = `${this.runClip}__legs`;
+    const up = this.lib.clips.get(`${this.idleClip}__upper`);
+    if (!running || !up || !this.lib.clips.has(legs)) {
+      this.dropUpper(fade);
+      this.start(running ? this.runClip : this.idleClip, true, running ? speed : 1, fade);
+      return;
+    }
+    this.start(legs, true, speed, fade);
+    const a = this.mixer.clipAction(up);
+    if (this.upper !== a) { this.upper?.fadeOut(fade); a.reset(); a.setLoop(THREE.LoopRepeat, Infinity); a.fadeIn(fade); a.play(); }
+    this.upper = a;
+  }
+
+  private dropUpper(fade: number): void {
+    this.upper?.fadeOut(fade);
+    this.upper = null;
+  }
+
   private get runClip(): string {
     return this.look.run ?? CLIP.run;
   }
@@ -128,7 +161,7 @@ export class UalActor {
   setWeapon(kind: WeaponLook, idle?: UalIdle): void {
     if (idle && idle !== this.idleClip) {
       this.idleClip = idle;
-      if (!this.busy && this.loop === 'idle' && !this.dead) this.start(idle, true, 1, 0.15);
+      if (!this.busy && !this.dead) this.loopOn(this.loop === 'run', 1.5, 0.15);
     }
     if (kind === this.heldKind || !this.hand) return;
     this.held?.parent?.remove(this.held);
@@ -154,6 +187,8 @@ export class UalActor {
     const loop = anim === 'idle' || anim === 'run';
     this.busy = !loop;
     this.busyKind = loop ? null : anim;
+    if (loop) { this.loopOn(anim === 'run', speed, 0.06); return; }
+    this.dropUpper(0.06);
     this.start(name, loop, speed, 0.06);
   }
 
@@ -161,7 +196,7 @@ export class UalActor {
     const want = running ? 'run' : 'idle';
     if (this.dead || want === this.loop) return;
     this.loop = want;
-    if (!this.busy) this.start(running ? this.runClip : this.idleClip, true, running ? 1.5 : 1, 0.12);
+    if (!this.busy) this.loopOn(running, 1.5, 0.12);
   }
 
   flash(color: number, ms: number): void {
@@ -189,6 +224,7 @@ export class UalActor {
   setDead(): void {
     if (this.dead) return;
     this.dead = true;
+    this.dropUpper(0.05);
     this.start(CLIP.death, false, 1.3, 0.05);
   }
 
