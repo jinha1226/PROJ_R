@@ -16,6 +16,8 @@ export interface GridMap {
   exits: Cell[];
   chests: Cell[];
   spawns: { kind: FoeKind; pos: Cell; group: number }[];
+  /** oil barrels (block the way, explode when hit) */
+  barrels?: Cell[];
 }
 
 export const idx = (m: { w: number }, c: Cell): number => c.y * m.w + c.x;
@@ -42,7 +44,10 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number }
+export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses }
+export interface Statuses { burn: number; freeze: number; poison: number }
+/** fire or a poison cloud on the floor until a game time */
+export interface TileFx { pos: Cell; kind: 'fire' | 'poison'; until: number }
 export interface Hero extends Ent {
   kind: 'hero';
   level: number;
@@ -75,17 +80,19 @@ export interface GridState {
   nextFoeId: number;
   floorItems: FloorItem[];
   run: RunState;
+  tiles: TileFx[];
+  barrels: Cell[];
 }
 export interface RunState { floor: number; kills: number; won: boolean }
 export interface FloorItem { pos: Cell; item: Equipment }
 export type GAction =
-  | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string } | { kind: 'wait' }
+  | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
   | { kind: 'use'; item: BeltItem; at?: Cell };
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
-  | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use';
+  | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

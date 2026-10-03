@@ -2,7 +2,9 @@ import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, swapHands, wearFromBag } from './gear';
 import { rollEquipment, type Weapon } from './items';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
-import { meleeAttack, pickUp, rangedAttack, reachTarget, weaponRange } from './weapons';
+import { explodeBarrels } from './explosives';
+import { onEnter } from './status';
+import { meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange } from './weapons';
 
 export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.pos, c));
 
@@ -52,6 +54,11 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       const to = add(h.pos, a.dir);
       const foe = s.foes.find((f) => f.alive && same(f.pos, to));
       if (foe && (Math.abs(a.dir.x) + Math.abs(a.dir.y) === 1 || canStep(s.map, h.pos, a.dir))) return meleeAttack(s, t, a.dir, foe);
+      if (s.barrels.some((b) => same(b, to)) && canStep(s.map, h.pos, a.dir)) {
+        s.events.push({ t, type: 'bump', src: h.id, from: { ...h.pos }, to: { ...to } });
+        explodeBarrels(s, t, to, h.id);
+        return COST.bash;
+      }
       const ch = chestAt(s, to);
       if (ch && !ch.opened && canStep(s.map, h.pos, a.dir)) { openChest(s, t, to); return COST.open; }
       const far = reachTarget(s, a.dir);
@@ -65,9 +72,11 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       s.events.push({ t, type: 'move', src: h.id, from: { ...h.pos }, to: { ...to } });
       h.pos = to;
       pickUp(s, t);
+      onEnter(s, h, t);
       return COST.move;
     }
     case 'shoot': {
+      if (a.at) return shootCell(s, t, a.at, (c) => explodeBarrels(s, t, c, h.id));
       const foe = s.foes.find((f) => f.id === (a.target ?? autoTarget(s)) && f.alive);
       if (!foe || !shootable(s).includes(foe.id)) return null;
       return rangedAttack(s, t, foe, hooks.cast, hooks.noise);

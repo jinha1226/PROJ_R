@@ -16,7 +16,7 @@ export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior'): 
     },
     foes: map.spawns.map((sp, i) => ({ id: `f${i + 1}`, kind: sp.kind, pos: { ...sp.pos }, hp: FOES[sp.kind].hp, maxHp: FOES[sp.kind].hp, nextAt: 0, alive: true, awake: false, group: sp.group })),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
-    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor: 1, kills: 0, won: false },
+    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor: 1, kills: 0, won: false }, tiles: [], barrels: (map.barrels ?? []).map((b) => ({ ...b })),
   };
   refreshSight(s);
   return s;

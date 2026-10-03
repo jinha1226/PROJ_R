@@ -63,7 +63,7 @@ export function generateMap(seed: number): GridMap {
   const rooms = placeRooms(rng);
   for (const r of rooms) for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) carve(tiles, { x, y });
   for (let i = 1; i < rooms.length; i++) corridor(tiles, centre(rooms[i - 1]!), centre(rooms[i]!), rng.chance(0.5));
-  const m: GridMap = { w: SIZE, h: SIZE, tiles, rooms, start: centre(rooms[0]!), exits: [], chests: [], spawns: [] };
+  const m: GridMap = { w: SIZE, h: SIZE, tiles, rooms, start: centre(rooms[0]!), exits: [], chests: [], spawns: [], barrels: [] };
   addDoors(m);
   const taken = new Set<number>(rooms.map((r) => idx(m, centre(r))));
   for (const r of rooms) {
@@ -84,6 +84,15 @@ export function generateMap(seed: number): GridMap {
     if (rng.chance(0.6) && spot >= 0) {
       const c = cells.splice(spot, 1)[0]!;
       m.chests.push(c);
+      taken.add(idx(m, c));
+    }
+    // oil barrels: away from doors so they never plug a doorway
+    m.barrels ??= [];
+    for (let n = rng.int(0, 2); n > 0; n--) {
+      const k = cells.findIndex((c) => !byDoor(c));
+      if (k < 0) break;
+      const c = cells.splice(k, 1)[0]!;
+      m.barrels.push(c);
       taken.add(idx(m, c));
     }
     for (let n = rng.int(1, 3); n > 0 && cells.length; n--) {

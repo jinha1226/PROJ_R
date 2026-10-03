@@ -5,7 +5,7 @@ import type { Cell, FoeKind, GridMap, Tile } from '../../../src/sim/grid/types';
 /** A hand map from rows: '#' wall, '.' floor, 'P' pillar, '+' door, 'C' chest (floor), 'X' exit (floor). */
 export function handMap(rows: string[]): GridMap {
   const ch: Record<string, Tile> = { '#': 'wall', '.': 'floor', P: 'pillar', '+': 'door', C: 'floor', X: 'floor' };
-  const m: GridMap = { w: rows[0]!.length, h: rows.length, tiles: [], rooms: [], start: { x: 1, y: 1 }, exits: [], chests: [], spawns: [] };
+  const m: GridMap = { w: rows[0]!.length, h: rows.length, tiles: [], rooms: [], start: { x: 1, y: 1 }, exits: [], chests: [], spawns: [], barrels: [] };
   rows.forEach((r, y) => r.split('').forEach((c, x) => {
     m.tiles.push(ch[c]!);
     if (c === 'C') m.chests.push({ x, y });

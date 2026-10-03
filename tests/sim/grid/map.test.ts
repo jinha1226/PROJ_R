@@ -92,3 +92,21 @@ describe('grid sight and movement', () => {
     expect(findPath(sealed, { x: 1, y: 1 }, { x: 3, y: 1 })).toBeNull();
   });
 });
+
+describe('barrels', () => {
+  it('rooms get a few barrels on open floor, never by a door or on a chest or foe, and not in the start room', () => {
+    let total = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const m = generateMap(seed);
+      const r0 = m.rooms[0]!;
+      for (const b of m.barrels ?? []) {
+        total++;
+        expect(tileAt(m, b)).toBe('floor');
+        expect(b.x >= r0.x && b.x < r0.x + r0.w && b.y >= r0.y && b.y < r0.y + r0.h).toBe(false);
+        expect(m.chests.some((c) => c.x === b.x && c.y === b.y) || m.spawns.some((sp) => sp.pos.x === b.x && sp.pos.y === b.y)).toBe(false);
+        for (const d of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) expect(tileAt(m, { x: b.x + d.x, y: b.y + d.y })).not.toBe('door');
+      }
+    }
+    expect(total).toBeGreaterThan(30);
+  });
+});

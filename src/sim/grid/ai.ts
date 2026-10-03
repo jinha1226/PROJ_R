@@ -1,4 +1,5 @@
 import { hitChance, shotClear, strike } from './combat';
+import { onEnter, tickStatuses } from './status';
 import { chestAt } from './actions';
 import { findPath } from './path';
 import { add, canStep, DIRS, dist, FOES, idx, same, tileAt, type Cell, type Ent, type GridState } from './types';
@@ -7,7 +8,7 @@ export { DANGER, EXIT_TIME } from './danger';
 
 /** Cells a foe may not walk into: other bodies and chests. */
 export const blockedFor = (s: GridState, self: Ent) => (c: Cell): boolean =>
-  chestAt(s, c)?.opened === false || s.foes.some((f) => f !== self && f.alive && same(f.pos, c)) || (s.hero.alive && same(s.hero.pos, c));
+  chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f !== self && f.alive && same(f.pos, c)) || (s.hero.alive && same(s.hero.pos, c));
 
 /** Steps one cell along a path toward `to`; false if there is no way. */
 export function stepToward(s: GridState, f: Ent, to: Cell, t: number): boolean {
@@ -33,6 +34,8 @@ export function canMelee(s: GridState, f: Ent): boolean {
 export function foeTurn(s: GridState, f: Ent): number {
   const t = f.nextAt;
   const def = FOES[f.kind as keyof typeof FOES];
+  // burning, poison and ice come first; a frozen or dead foe loses the turn
+  if (tickStatuses(s, f, t) || !f.alive) return 1;
   if (!f.awake) return 1;
   // stunned (slammed by a mace): loses this turn
   if ((f.stun ?? 0) > 0) { f.stun!--; return 1; }
@@ -58,6 +61,7 @@ function moveTo(s: GridState, f: Ent, to: Cell, t: number): void {
   }
   s.events.push({ t, type: 'move', src: f.id, from: { ...f.pos }, to: { ...to } });
   f.pos = to;
+  onEnter(s, f, t);
 }
 
 /** Archers keep 3–6 tiles away, shoot when the line is clear, and walk to a spot with a clear line when it is not. */

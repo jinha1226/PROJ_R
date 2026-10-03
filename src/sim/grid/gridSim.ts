@@ -1,10 +1,12 @@
 import { autoTarget, heroAct } from './actions';
 import { noise, updateAwareness, updateDanger, updateExtraction } from './danger';
 import { runUntilHero } from './clock';
-import { hitChance, strike } from './combat';
+import { hitChance } from './combat';
 import { activeWeapon, CLASS_BONUS, type ClassId } from './gear';
 import { WEAPONS, type Weapon } from './items';
 import { heroDmg, rechargeStaffs } from './weapons';
+import { explodeBarrels, useThrown } from './explosives';
+import { applyElement, tickStatuses } from './status';
 import { generateMap } from './mapgen';
 import { newState, refreshSight, weaponRack } from './state';
 import { same, type Cell, type GAction, type GEvent, type GridState } from './types';
@@ -27,14 +29,19 @@ export class GridSim {
     const s = this.s;
     if (s.outcome) return [];
     s.events = [];
-    const cost = heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: () => null });
-    if (cost === null) return [{ t: s.hero.nextAt, type: 'blocked', src: s.hero.id }];
+    const t0 = s.hero.nextAt;
+    // frozen: whatever was asked, the turn passes
+    const frozen = (s.hero.status?.freeze ?? 0) > 0;
+    const cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
+    if (cost === null) return [{ t: t0, type: 'blocked', src: s.hero.id }];
+    tickStatuses(s, s.hero, t0);
     s.hero.nextAt += cost;
     rechargeStaffs(s, cost);
     refreshSight(s);
     updateAwareness(s);
     runUntilHero(s);
     s.time = s.hero.nextAt;
+    s.tiles = s.tiles.filter((x) => x.until > s.time);
     if (!s.hero.alive) {
       s.outcome = 'dead';
       s.hero.value = 0;
@@ -64,7 +71,9 @@ export class GridSim {
   /** A staff spell at a cell (elements arrive with the status task: for now a plain hit on whoever stands there). */
   private cast(w: Weapon, at: Cell): void {
     const s = this.s;
-    const f = s.foes.find((x) => x.alive && same(x.pos, at));
-    if (f) strike(s, s.hero.nextAt, s.hero, f, hitChance(s.map, s.hero.pos, at, WEAPONS.staff.hit), heroDmg(s, w));
+    const el = w.element ?? 'fire';
+    const t = s.hero.nextAt;
+    applyElement(s, t, el, at, el === 'fire' || el === 'poison' ? 1 : 0, heroDmg(s, w), s.hero.id, (c) => explodeBarrels(s, t, c, s.hero.id));
+    for (const f of s.foes) if (f.alive && same(f.pos, at)) f.awake = true;
   }
 }

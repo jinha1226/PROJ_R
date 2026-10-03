@@ -1,6 +1,7 @@
 import { bodyAt, hitChance, shotClear, strike } from './combat';
 import { activeWeapon, addToBag, CLASS_BONUS } from './gear';
 import { makeWeapon, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
+import { onEnter } from './status';
 import { add, canStep, COST, dist, HERO, same, tileAt, walkable, type Cell, type Ent, type GridState } from './types';
 
 const SNEAK = 2;
@@ -16,7 +17,7 @@ export function heroDmg(s: GridState, w: Weapon): [number, number] {
 }
 
 const foeAt = (s: GridState, c: Cell): Ent | undefined => s.foes.find((f) => f.alive && same(f.pos, c));
-const free = (s: GridState, c: Cell) => walkable(tileAt(s.map, c)) && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c));
+const free = (s: GridState, c: Cell) => walkable(tileAt(s.map, c)) && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c)) && !s.barrels.some((b) => same(b, c));
 
 /** Cells beside the bump direction an axe also sweeps (front-left and front-right). */
 function sweepCells(from: Cell, d: Cell): Cell[] {
@@ -59,6 +60,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent): number 
     if (free(s, to) && canStep(s.map, foe.pos, d)) {
       s.events.push({ t, type: 'push', src: foe.id, from: { ...foe.pos }, to: { ...to } });
       foe.pos = to;
+      onEnter(s, foe, t);
     } else {
       foe.hp -= SLAM;
       foe.stun = Math.max(foe.stun ?? 0, 1);
@@ -117,6 +119,25 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, cast: (w: Weapon
     h.gear.arrows--;
     noise(h.pos, w.group === 'crossbow' ? 6 : 3);
   }
+  return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime;
+}
+
+/** A ranged shot at a barrel (it goes off); null if the weapon in hand cannot reach it. */
+export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) => void): number | null {
+  const h = s.hero;
+  const w = activeWeapon(h.gear);
+  if (!w || !canFire(s) || !s.barrels.some((b) => same(b, at)) || dist(h.pos, at) > weaponRange(w)) return null;
+  const others = s.barrels.filter((b) => !same(b, at));
+  const saved = s.barrels;
+  s.barrels = others;
+  const clear = shotClear(s, h.pos, at);
+  s.barrels = saved;
+  if (!clear) return null;
+  s.events.push({ t, type: 'shoot', src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
+  if (w.group === 'staff') w.charges = (w.charges ?? 1) - 1;
+  else if (w.group === 'throwing') w.stack = (w.stack ?? 1) - 1;
+  else h.gear.arrows--;
+  explode(at);
   return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime;
 }
 
