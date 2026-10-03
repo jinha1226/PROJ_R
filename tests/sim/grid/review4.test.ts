@@ -6,13 +6,13 @@ import { identifyLine } from '../../../src/ui/grid/gridHud';
 import { OPEN, sim, sureHits } from './kit';
 
 const R = { x: 1, y: 0 };
-const engraved = (group: 'sword' | 'axe' | 'pistol', id: 'dash' | 'leap' | 'kite') => Object.assign(makeWeapon(group, 1), { engraves: [{ id, lvl: 1 as const }] });
 
 describe('final review fixes (roguelike basics)', () => {
   it('a dash or leap cut short by a teleport trap strikes nobody', () => {
-    for (const [w, from, foe] of [[engraved('sword', 'dash'), 3, 5], [engraved('axe', 'leap'), 2, 5]] as const) {
+    for (const [group, id, from, foe] of [['sword', 'dash', 3, 5], ['axe', 'leap', 2, 5]] as const) {
       const g = sim(OPEN, { x: from, y: 7 }, [{ kind: 'brute', pos: { x: foe, y: 7 } }]);
-      g.s.hero.gear.hands[0] = w;
+      g.s.hero.gear.hands[0] = makeWeapon(group, 1);
+      g.s.hero.suit = [id];
       g.s.hero.gear.active = 0;
       // the landing cell: a dash steps one in, a leap flies over one and lands on the next
       g.s.traps = [{ pos: { x: foe - 1, y: 7 }, kind: 'teleport', found: false }];
@@ -25,7 +25,8 @@ describe('final review fixes (roguelike basics)', () => {
   it('kite never rolls onto a found trap, nor out of a net', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    g.s.hero.gear.hands[0] = engraved('pistol', 'kite');
+    g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
+    g.s.hero.suit = ['kite'];
     g.s.hero.gear.active = 0;
     g.s.hero.charge = 5;
     g.s.foes[0]!.hp = 99;
@@ -87,7 +88,7 @@ describe('final review fixes (roguelike basics)', () => {
     let asleep = 0;
     for (let seed = 1; seed <= 60; seed++) {
       const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'minion', pos: { x: 5, y: 7 }, awake: false }], seed);
-      g.s.hero.gear.hands[0]!.engraves = [];
+      g.s.hero.suit = [];
       g.act({ kind: 'move', dir: R });
       if (!g.s.foes[0]!.awake) asleep++;
     }

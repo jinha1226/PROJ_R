@@ -176,7 +176,7 @@ export class GridScreen implements Screen {
     this.levelUp = null;
     if (!offer) return false;
     this.walk = null;
-    const panel = new LevelUpPanel(offer, activeWeapon(this.s.hero.gear), this.s.hero.level, (a) => { this.doAction(a); });
+    const panel = new LevelUpPanel(offer, this.s.hero.suit, this.s.hero.level, (a) => { this.doAction(a); });
     this.levelUp = { panel, offer };
     this.el.appendChild(panel.el);
     return true;

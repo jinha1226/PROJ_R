@@ -1,7 +1,7 @@
 import { foeAt, freeCell, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { activeWeapon, swapHands } from './gear';
-import { WEAPONS } from './items';
+import { WEAPONS, type Weapon } from './items';
 import { refillMelee } from './suitCharge';
 import { onEnter } from './status';
 import { add, canStep, COST, dist, idx, same, type Cell, type Ent, type GridState } from './types';
@@ -72,17 +72,22 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
   return WEAPONS[w.group].time + LEAP_TIME;
 }
 
-/** Swapping hands, with the incoming weapon's engravings: a free swap with a charged blow, or a strike on the swap. */
+const handKind = (w: Weapon | null) => !w ? 'empty' : WEAPONS[w.group].melee ? 'melee' : w.group === 'staff' ? 'staff' : 'gun';
+
+/** Suit swap effects depend on the weapon family before and after the swap. */
 export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   const h = s.hero;
   const g = h.gear;
+  const before = handKind(activeWeapon(g));
   swapHands(g);
   s.events.push({ t, type: 'swap', src: h.id, text: activeWeapon(g)?.name });
   let cost = COST.swap;
-  if (has(s, 'quickswap')) { fire(s, t, 'quickswap'); h.fx.nextMult = QUICK_MULT; cost = 0; }
+  if (has(s, 'quickswap') && before !== handKind(activeWeapon(g))) { fire(s, t, 'quickswap'); h.fx.nextMult = QUICK_MULT; cost = 0; }
   if (!has(s, 'swapstrike')) return cost;
   // a swap that strikes is never free (else quick swap + swap strike would land endless blows in no time)
-  const w = activeWeapon(g)!;
+  cost = COST.swap;
+  const w = activeWeapon(g);
+  if (!w) return cost;
   const want = (f: Ent) => (f.id === h.target ? 0 : 1);
   if (WEAPONS[w.group].melee) {
     const f = s.foes.filter((x) => x.alive && canSwingAt(s, h.pos, x.pos)).sort((x, y) => want(x) - want(y))[0];

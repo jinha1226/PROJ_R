@@ -1,5 +1,5 @@
 import { activeWeapon } from './gear';
-import type { Element, Weapon } from './items';
+import { isGun, WEAPONS, type Element } from './items';
 import type { Ent, GridState } from './types';
 
 export type EngraveId =
@@ -7,19 +7,20 @@ export type EngraveId =
   | 'momentum' | 'quickswap' | 'swapstrike' | 'wallslam' | 'laststand'
   | 'rapid' | 'mark' | 'ricochet' | 'kite' | 'volley'
   | 'alternate' | 'echo' | 'chain' | 'elemArrow';
-export interface Engraving { id: EngraveId; lvl: 1 | 2 | 3 }
+export const SUIT_SLOTS = 6;
+export type Fit = 'melee' | 'ranged' | 'magic' | 'any';
 
 /** Name, one line, and which weapons it suits (for level-up offers). */
-export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: 'melee' | 'ranged' | 'magic' | 'any' }> = {
+export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit }> = {
   dash: { name: '돌진 베기', note: '2칸 앞 적에게 뛰어들며 벤다', fits: 'melee' },
   finisher: { name: '3연타 마무리', note: '같은 적 3타째 ×1.5 + 밀치기', fits: 'melee' },
-  shoveShot: { name: '밀치고 쏘기', note: '벤 적을 밀치고 다른 손 원거리로 한 발', fits: 'melee' },
+  shoveShot: { name: '밀치고 쏘기', note: '벤 적을 밀치고 다른 손 총으로 한 발', fits: 'melee' },
   leap: { name: '도약 내려찍기', note: '3칸 앞 적에게 도약, 착지 주변 공격', fits: 'melee' },
   counter: { name: '반격', note: '회피하면 바로 반격', fits: 'melee' },
   riposte: { name: '되받아치기', note: '패링하면 바로 반격', fits: 'melee' },
   momentum: { name: '기세', note: '처치하면 다음 행동 시간 절반', fits: 'any' },
-  quickswap: { name: '칼바꿈', note: '이 무기로 교체 0턴, 다음 공격 +50%', fits: 'any' },
-  swapstrike: { name: '연환', note: '이 무기로 교체하면 즉시 공격', fits: 'any' },
+  quickswap: { name: '칼바꿈', note: '무기 종류를 바꾸면 0턴, 다음 공격 +50%', fits: 'any' },
+  swapstrike: { name: '연환', note: '교체 후 든 무기로 즉시 공격', fits: 'any' },
   wallslam: { name: '벽치기', note: '벽에 박으면 주변 충격파', fits: 'melee' },
   laststand: { name: '배수진', note: '체력 30% 이하 피해 +40%', fits: 'any' },
   rapid: { name: '연사', note: '같은 적 연속 사격: 빨라지고 3발째 치명', fits: 'ranged' },
@@ -49,13 +50,18 @@ export interface HeroFx {
 }
 export const freshFx = (): HeroFx => ({ combo: { hits: 0 }, rapid: { n: 0 }, shots: 0, spells: 0, nextMult: 1, momentum: false, acted: null });
 
-export function engravingOn(w: Weapon | null | undefined, id: EngraveId): number {
-  return w?.engraves?.find((e) => e.id === id)?.lvl ?? 0;
+/** Whether the active hand fits this engraving's family. */
+export function fitsHand(s: GridState, id: EngraveId): boolean {
+  const fit = ENGRAVES[id].fits;
+  const w = activeWeapon(s.hero.gear);
+  if (fit === 'any') return true;
+  if (!w) return false;
+  return fit === 'melee' ? WEAPONS[w.group].melee : fit === 'ranged' ? isGun(w.group) : w.group === 'staff';
 }
 
-/** The engraving's level on the weapon in hand (0 = not engraved). */
-export function has(s: GridState, id: EngraveId): number {
-  return engravingOn(activeWeapon(s.hero.gear), id);
+/** A suit engraving is active only while the hand fits it. */
+export function has(s: GridState, id: EngraveId): boolean {
+  return s.hero.suit.includes(id) && fitsHand(s, id);
 }
 
 /** Marks an engraving as fired this action (false if it already did — each fires once per action). */

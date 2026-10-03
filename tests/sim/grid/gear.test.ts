@@ -9,7 +9,7 @@ describe('starting guns', () => {
   it.each(['pistol', 'shotgun', 'rifle'] as const)('starts with %s and the same neutral stats', (gun) => {
     const g = startGear(gun);
     expect(g.hands.map((w) => w?.group ?? null)).toEqual([gun, null]);
-    expect(g.hands[0]?.engraves).toEqual([{ id: 'rapid', lvl: 1 }]);
+    expect(g.hands[0]).not.toHaveProperty('engraves');
     expect(g.armor).toMatchObject({ kind: 'armor', name: '요원 슈트', reduce: 1 });
     expect(g.belt.potion).toBe(2);
     expect(newState(handMap(OPEN), 1, gun).hero.maxHp).toBe(35);

@@ -13,7 +13,8 @@ describe('ship guns and suit charge', () => {
   it('starts with an engraved pistol, empty second hand, full suit and no rack', () => {
     const s = GridSim.create(7).s;
     expect(s.hero).toMatchObject({ hp: 35, maxHp: 35, charge: 10, maxCharge: 10 });
-    expect(s.hero.gear.hands[0]).toMatchObject({ group: 'pistol', tier: 1, engraves: [{ id: 'rapid', lvl: 1 }] });
+    expect(s.hero.gear.hands[0]).toMatchObject({ group: 'pistol', tier: 1 });
+    expect(s.hero.suit).toEqual([]);
     expect(s.hero.gear.hands[1]).toBeNull();
     expect(s.hero.gear.armor?.tier).toBe(1);
     expect(s.hero.gear.belt.potion).toBe(2);
@@ -144,7 +145,8 @@ describe('ship guns and suit charge', () => {
 
   it.each(['counter', 'riposte'] as const)('%s earns melee hit and kill charge', (id) => {
     const g = sim(OPEN, { x: 5, y: 5 }, [{ kind: 'minion', pos: { x: 6, y: 5 } }]);
-    g.s.hero.gear.hands[0] = Object.assign(makeWeapon('sword', 1), { engraves: [{ id, lvl: 1 as const }] });
+    g.s.hero.suit = [id];
+    g.s.hero.gear.hands[0] = makeWeapon('sword', 1);
     g.s.hero.charge = 0;
     g.s.foes[0]!.hp = 1;
     sureHits(g);
@@ -154,7 +156,8 @@ describe('ship guns and suit charge', () => {
 
   it('leap refills once for its main hit and for each melee kill', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [7, 8].map((y) => ({ kind: 'minion', pos: { x: 6, y } })));
-    g.s.hero.gear.hands[0] = Object.assign(makeWeapon('axe', 1), { engraves: [{ id: 'leap' as const, lvl: 1 as const }] });
+    g.s.hero.suit = ['leap'];
+    g.s.hero.gear.hands[0] = makeWeapon('axe', 1);
     g.s.hero.charge = 0;
     g.s.foes.forEach((f) => { f.hp = 1; });
     sureHits(g);
@@ -164,7 +167,8 @@ describe('ship guns and suit charge', () => {
 
   it('shove-shot can spend the melee refill but its gun kill gives no melee kill charge', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
-    g.s.hero.gear.hands = [Object.assign(makeWeapon('sword', 1), { engraves: [{ id: 'shoveShot' as const, lvl: 1 as const }] }), makeWeapon('pistol', 1)];
+    g.s.hero.suit = ['shoveShot'];
+    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('pistol', 1)];
     g.s.hero.charge = 0;
     g.s.foes[0]!.hp = 10;
     sureHits(g);

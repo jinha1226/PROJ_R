@@ -57,7 +57,7 @@ export function pushFoe(s: GridState, t: number, foe: Ent, d: Cell): void {
 function comboStep(s: GridState, foe: Ent): { next: number; finisher: boolean } {
   const c = s.hero.fx.combo;
   const next = c.target === foe.id ? c.hits + 1 : 1;
-  return { next, finisher: next >= FINISH_AT && has(s, 'finisher') > 0 };
+  return { next, finisher: next >= FINISH_AT && has(s, 'finisher') };
 }
 
 /** One melee blow with the weapon in hand (or a bash with a ranged one); returns its time cost. */

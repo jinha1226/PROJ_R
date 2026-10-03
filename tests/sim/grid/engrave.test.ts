@@ -4,12 +4,12 @@ import type { EngraveId } from '../../../src/sim/grid/engraveCore';
 import type { GridSim } from '../../../src/sim/grid/gridSim';
 import { OPEN, sim, sureHits } from './kit';
 
-/** Hand 1 gets `group` with the given engravings; hand 2 optionally another weapon. */
+/** The suit gets the ids; hand 1 gets `group`; hand 2 optionally another weapon. */
 const arm = (g: GridSim, group: WeaponGroup, ids: EngraveId[], other?: WeaponGroup, otherIds: EngraveId[] = [], el?: 'fire' | 'frost' | 'shock' | 'poison') => {
   const w = makeWeapon(group, 1, el);
-  w.engraves = ids.map((id) => ({ id, lvl: 1 }));
+  g.s.hero.suit = [...new Set([...ids, ...otherIds])];
   g.s.hero.gear.hands[0] = w;
-  if (other) { const o = makeWeapon(other, 1); o.engraves = otherIds.map((id) => ({ id, lvl: 1 })); g.s.hero.gear.hands[1] = o; }
+  if (other) { const o = makeWeapon(other, 1); g.s.hero.gear.hands[1] = o; }
   g.s.hero.gear.active = 0;
   g.s.hero.charge = g.s.hero.maxCharge;
 };
@@ -100,7 +100,7 @@ describe('general engravings', () => {
     expect(g.s.time - t).toBeCloseTo(0.5);
   });
 
-  it('quickswap: swapping to the engraved weapon is free and its next blow +50%', () => {
+  it('quickswap: changing weapon family is free and its next blow +50%', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     arm(g, 'rifle', [], 'sword', ['quickswap']);
@@ -112,7 +112,7 @@ describe('general engravings', () => {
     expect(hit.amount).toBe(Math.round(6 * 1.5));
   });
 
-  it('swap-strike: swapping to the engraved weapon strikes at once', () => {
+  it('swap-strike: swapping strikes with the incoming weapon at once', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     arm(g, 'rifle', [], 'sword', ['swapstrike']);
@@ -208,7 +208,7 @@ describe('ranged and magic engravings', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
     sureHits(g);
     arm(g, 'staff', ['alternate'], 'staff', ['alternate'], 'fire');
-    g.s.hero.gear.hands[1] = Object.assign(makeWeapon('staff', 1, 'frost'), { engraves: [{ id: 'alternate' as const, lvl: 1 as const }] });
+    g.s.hero.gear.hands[1] = makeWeapon('staff', 1, 'frost');
     g.s.foes[0]!.hp = 999;
     g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
     g.act({ kind: 'swap' });

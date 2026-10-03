@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { makeWeapon } from '../../../src/sim/grid/items';
 import { createRng } from '../../../src/core/rng';
 import { scaleFoe, spawnKind } from '../../../src/sim/grid/foes';
 import { generateMap } from '../../../src/sim/grid/mapgen';
@@ -91,7 +92,7 @@ describe('fifteen floors in three zones', () => {
     expect(g.s.outcome).toBeUndefined();
     expect(g.s.map.stairs).toBeUndefined();
     expect(g.s.floorItems).toEqual([{ pos: { x: 8, y: 7 }, item: { kind: 'core', name: '에너지원' } }]);
-    g.s.hero.gear.bag = Array.from({ length: 20 }, () => ({ kind: 'rune', id: 'momentum', name: '룬' }));
+    g.s.hero.gear.bag = Array.from({ length: 20 }, () => makeWeapon('sword', 1));
     const events = g.act(step);
     expect(g.s.outcome).toBe('won');
     expect(g.s.run.won).toBe(true);

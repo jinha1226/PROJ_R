@@ -1,36 +1,19 @@
-import { ENGRAVE_IDS, ENGRAVES, type EngraveId } from './engraveCore';
+import { ENGRAVE_IDS, ENGRAVES, SUIT_SLOTS, type EngraveId } from './engraveCore';
 import { activeWeapon } from './gear';
-import { WEAPONS, type RuneStone, type Weapon } from './items';
+import { WEAPONS, type Weapon } from './items';
 import type { GridState } from './types';
 
-/** Engravings a weapon holds (the prototype gives every weapon two; upgrades add more later). */
-export const ENGRAVE_SLOTS = 2;
-export const RUNE_CHANCE = 0.35;
-const MAX_LVL = 3;
 const OFFER_SIZE = 3;
-/** an engraving that suits the weapon in hand is this many times likelier to be offered */
 const FIT_WEIGHT = 4;
 
-export function runeStone(id: EngraveId): RuneStone {
-  return { kind: 'rune', id, name: `룬석: ${ENGRAVES[id].name}` };
-}
-
-/** Puts an engraving on a weapon: the same one again goes up a level, a full weapon loses its oldest. */
-export function inscribe(w: Weapon, id: EngraveId): void {
-  const list = (w.engraves ??= []);
-  const had = list.find((e) => e.id === id);
-  if (had) { had.lvl = Math.min(MAX_LVL, had.lvl + 1) as 1 | 2 | 3; return; }
-  if (list.length >= ENGRAVE_SLOTS) list.shift();
-  list.push({ id, lvl: 1 });
-}
-
-/** A rune can go on a weapon that does not already carry that engraving (levels do nothing yet). */
-export const canInscribe = (w: Weapon, id: EngraveId): boolean => !w.engraves?.some((e) => e.id === id);
-
-/** The engraving a new one would push off a full weapon (null if there is room or it is already there). */
-export function wouldErase(w: Weapon | null, id: EngraveId): EngraveId | null {
-  const list = w?.engraves ?? [];
-  return list.length >= ENGRAVE_SLOTS && !list.some((e) => e.id === id) ? list[0]!.id : null;
+/** Append to a free suit slot, or explicitly replace one when full; never duplicate. */
+export function putOnSuit(s: GridState, id: EngraveId, slot?: number): boolean {
+  const suit = s.hero.suit;
+  if (suit.includes(id)) return false;
+  if (suit.length < SUIT_SLOTS) { suit.push(id); return true; }
+  if (slot === undefined || !Number.isInteger(slot) || slot < 0 || slot >= SUIT_SLOTS) return false;
+  suit[slot] = id;
+  return true;
 }
 
 /** What kind of engraving suits a weapon. */
@@ -39,11 +22,11 @@ export function fitOf(w: Weapon | null): 'melee' | 'ranged' | 'magic' {
   return w.group === 'staff' ? 'magic' : 'ranged';
 }
 
-/** Three different engravings for a level-up, weighted toward the weapon in hand (and not ones it already has). */
+/** Three different engravings for a level-up, weighted toward the weapon in hand (excluding those on the suit). */
 export function offerFor(s: GridState): EngraveId[] {
   const w = activeWeapon(s.hero.gear);
   const fit = fitOf(w);
-  const pool = ENGRAVE_IDS.filter((id) => !w?.engraves?.some((e) => e.id === id));
+  const pool = ENGRAVE_IDS.filter((id) => !s.hero.suit.includes(id));
   const weight = (id: EngraveId) => (ENGRAVES[id].fits === fit || ENGRAVES[id].fits === 'any' ? FIT_WEIGHT : 1);
   const out: EngraveId[] = [];
   while (out.length < OFFER_SIZE && pool.length) {

@@ -2,8 +2,7 @@ import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
 import { lunge, swapCombo } from './combos';
 import { rollEquipment, type Equipment } from './items';
-import { ENGRAVE_IDS } from './engraveCore';
-import { canInscribe, inscribe, RUNE_CHANCE, runeStone } from './engrave';
+import { putOnSuit } from './engrave';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
@@ -37,7 +36,6 @@ function openChest(s: GridState, t: number, c: Cell): void {
     else { s.floorItems.push({ pos: { ...s.hero.pos }, item: e }); s.events.push({ t, type: 'full', src: 'hero', text: e.name }); }
   };
   if (s.rng.chance(0.6)) stash(rollEquipment(s.rng, s.run.floor));
-  if (s.rng.chance(RUNE_CHANCE)) stash(runeStone(s.rng.pick(ENGRAVE_IDS)));
   if (s.rng.chance(CONSUMABLE_CHANCE)) {
     const got = rollConsumable(s.rng);
     stow(s, got);
@@ -138,23 +136,12 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       s.events.push({ t, type: 'search', src: h.id, to: { ...h.pos } });
       search(s, t);
       return COST.search;
-    case 'inscribe': {
-      const r = g.bag[a.bag];
-      const w = activeWeapon(g);
-      if (r?.kind !== 'rune' || !w || !canInscribe(w, r.id)) return null;
-      g.bag.splice(a.bag, 1);
-      inscribe(w, r.id);
-      s.events.push({ t, type: 'inscribe', src: h.id, text: r.id });
-      return COST.inscribe;
-    }
     case 'choose': {
-      // a level-up pick: inscribed on the weapon in hand at once (no time); null passes it up
+      // a level-up pick: put on the suit at once (no time); null passes it up
       const offer = s.offers[0];
       const id = a.i === null ? undefined : offer?.[a.i];
-      const w = activeWeapon(g);
-      if (!offer || (a.i !== null && !id) || (id && !w)) return null;
+      if (!offer || (a.i !== null && !id) || (id && !putOnSuit(s, id, a.slot))) return null;
       s.offers.shift();
-      if (id) { inscribe(w!, id); s.events.push({ t, type: 'inscribe', src: h.id, text: id }); }
       return 0;
     }
     case 'use':
@@ -167,9 +154,10 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
         return COST.potion;
       }
       return hooks.use(a);
-    default:
+    case 'wait':
       s.events.push({ t, type: 'wait', src: h.id });
       return COST.wait;
+    default: return null;
   }
 }
 

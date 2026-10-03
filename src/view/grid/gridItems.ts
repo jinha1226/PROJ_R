@@ -19,12 +19,11 @@ export class GridItems {
       for (const f of s.floorItems) {
         const g = new THREE.Group();
         const it = f.item;
-        // a rune stone glows violet; a potion is a small bottle in its run colour, a scroll a rolled sheet; armour is a grey plate
+        // a potion is a small bottle in its run colour, a scroll a rolled sheet; armour is a grey plate
         const model = it.kind === 'weapon' ? weaponMesh(it.group)
           : it.kind === 'potion' ? new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.3, 8), new THREE.MeshStandardMaterial({ color: POTION_HEX[s.lore.colors[it.p]] ?? '#d0d0d0', emissive: POTION_HEX[s.lore.colors[it.p]] ?? '#d0d0d0', emissiveIntensity: 0.4 }))
           : it.kind === 'scroll' ? new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 8), new THREE.MeshStandardMaterial({ color: '#efe0b0', emissive: '#6a5a30', emissiveIntensity: 0.3 }))
           : it.kind === 'core' ? new THREE.Mesh(new THREE.OctahedronGeometry(0.3), new THREE.MeshStandardMaterial({ color: '#5ae0ff', emissive: '#5ae0ff', emissiveIntensity: 1.4 }))
-          : it.kind === 'rune' ? new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshStandardMaterial({ color: '#8a6cff', emissive: '#5a3cff', emissiveIntensity: 0.9 }))
           : new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), new THREE.MeshStandardMaterial({ color: '#8a8a92', metalness: 0.5 }));
         model.rotation.set(0, 0, Math.PI / 2);
         model.position.y = it.kind === 'core' ? 0.5 : 0.08;
