@@ -2,7 +2,7 @@ import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, swapHands, wearFromBag } from './gear';
 import { rollEquipment, type Weapon } from './items';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
-import { meleeAttack, pickUp, rangedAttack, reachTarget, reload, weaponRange } from './weapons';
+import { meleeAttack, pickUp, rangedAttack, reachTarget, weaponRange } from './weapons';
 
 export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.pos, c));
 
@@ -71,11 +71,6 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       const foe = s.foes.find((f) => f.id === (a.target ?? autoTarget(s)) && f.alive);
       if (!foe || !shootable(s).includes(foe.id)) return null;
       return rangedAttack(s, t, foe, hooks.cast, hooks.noise);
-    }
-    case 'reload': {
-      const cost = reload(s);
-      if (cost !== null) s.events.push({ t, type: 'reload', src: h.id });
-      return cost;
     }
     case 'swap':
       if (!g.hands[g.active === 0 ? 1 : 0]) return null;

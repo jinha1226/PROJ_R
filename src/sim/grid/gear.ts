@@ -16,10 +16,10 @@ export interface Gear {
 }
 
 /** Leanings, not locks: every class can use every weapon. */
-export const CLASS_BONUS: Record<ClassId, { meleeDmg: number; maxHp: number; rangedHit: number; reload: number; charges: number; recharge: number; statusTurns: number }> = {
-  warrior: { meleeDmg: 1.2, maxHp: 10, rangedHit: 0, reload: 1, charges: 0, recharge: 1, statusTurns: 0 },
-  hunter: { meleeDmg: 1, maxHp: 0, rangedHit: 0.1, reload: 0.75, charges: 0, recharge: 1, statusTurns: 0 },
-  mage: { meleeDmg: 1, maxHp: 0, rangedHit: 0, reload: 1, charges: 1, recharge: 2, statusTurns: 1 },
+export const CLASS_BONUS: Record<ClassId, { meleeDmg: number; maxHp: number; rangedHit: number; rangedTime: number; charges: number; recharge: number; statusTurns: number }> = {
+  warrior: { meleeDmg: 1.2, maxHp: 10, rangedHit: 0, rangedTime: 1, charges: 0, recharge: 1, statusTurns: 0 },
+  hunter: { meleeDmg: 1, maxHp: 0, rangedHit: 0.1, rangedTime: 0.8, charges: 0, recharge: 1, statusTurns: 0 },
+  mage: { meleeDmg: 1, maxHp: 0, rangedHit: 0, rangedTime: 1, charges: 1, recharge: 2, statusTurns: 1 },
 };
 export const CLASS_NAME: Record<ClassId, string> = { warrior: '전사', hunter: '사냥꾼', mage: '마법사' };
 

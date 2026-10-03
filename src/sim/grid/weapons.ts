@@ -86,7 +86,7 @@ export function weaponRange(w: Weapon | null): number {
 export function canFire(s: GridState): boolean {
   const w = activeWeapon(s.hero.gear);
   if (!w || WEAPONS[w.group].melee) return false;
-  if (w.group === 'bow' || w.group === 'crossbow') return !!w.loaded && s.hero.gear.arrows > 0;
+  if (w.group === 'bow' || w.group === 'crossbow') return s.hero.gear.arrows > 0;
   if (w.group === 'throwing') return (w.stack ?? 0) > 0;
   return (w.charges ?? 0) > 0;
 }
@@ -114,18 +114,10 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, cast: (w: Weapon
     const spot = walkable(tileAt(s.map, land)) ? land : foe.pos;
     s.floorItems.push({ pos: { ...spot }, item: { ...makeWeapon('throwing', w.tier), stack: 1 } });
   } else {
-    w.loaded = false;
     h.gear.arrows--;
     noise(h.pos, w.group === 'crossbow' ? 6 : 3);
   }
-  return WEAPONS[w.group].time;
-}
-
-export function reload(s: GridState): number | null {
-  const w = activeWeapon(s.hero.gear);
-  if (!w || (w.group !== 'bow' && w.group !== 'crossbow') || w.loaded || s.hero.gear.arrows <= 0) return null;
-  w.loaded = true;
-  return (WEAPONS[w.group].reload ?? 1) * CLASS_BONUS[s.hero.gear.cls].reload;
+  return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime;
 }
 
 /** Staffs regain a charge every 8 turns (twice as fast for a mage). */

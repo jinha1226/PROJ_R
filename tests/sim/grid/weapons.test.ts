@@ -64,16 +64,18 @@ describe('melee weapon groups', () => {
 });
 
 describe('ranged weapon groups', () => {
-  it('a bow reloads in half a turn, a crossbow in one and a half, a hunter a quarter faster', () => {
-    for (const [group, cls, time] of [['bow', 'warrior', 0.5], ['crossbow', 'warrior', 1.5], ['crossbow', 'hunter', 1.125]] as const) {
+  it('no reloading: a bow shoots every turn, a crossbow hits harder but takes 1.6 turns, a hunter shoots a fifth faster', () => {
+    for (const [group, cls, time] of [['bow', 'warrior', 1], ['crossbow', 'warrior', 1.6], ['crossbow', 'hunter', 1.28]] as const) {
       const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
       g.s.hero.gear.cls = cls;
       hold(g, group);
       g.s.hero.gear.arrows = 5;
+      g.s.foes[0]!.hp = 999;
       g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
       const t = g.s.time;
-      g.act({ kind: 'reload' });
+      expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))[0]).toBe('shoot');
       expect(g.s.time - t).toBeCloseTo(time);
+      expect(g.s.hero.gear.arrows).toBe(3);
     }
   });
 

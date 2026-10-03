@@ -79,7 +79,7 @@ export interface GridState {
 export interface RunState { floor: number; kills: number; won: boolean }
 export interface FloorItem { pos: Cell; item: Equipment }
 export type GAction =
-  | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string } | { kind: 'reload' } | { kind: 'wait' }
+  | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
   | { kind: 'use'; item: BeltItem; at?: Cell };
 export type GEventType =

@@ -146,12 +146,11 @@ export class GridScreen implements Screen {
       const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
       // fire with a melee weapon in hand: switch to the ranged one in the other hand
       if (!w || WEAPONS[w.group].melee) { if (other && !WEAPONS[other.group].melee) this.doAction({ kind: 'swap' }); return; }
-      if ((w.group === 'bow' || w.group === 'crossbow') && !w.loaded) { this.doAction({ kind: 'reload' }); return; }
       const target = this.api.sim.autoTarget();
       if (target) this.doAction({ kind: 'shoot', target });
       return;
     }
-    this.doAction({ kind: c });
+    if (c === 'wait') this.doAction({ kind: 'wait' });
   }
 
   private toggleBag(): void {
@@ -214,8 +213,7 @@ export class GridScreen implements Screen {
     this.hud.update(s, target && chance !== null ? { id: target, chance } : null, dt);
     const w = activeWeapon(s.hero.gear);
     const melee = !w || WEAPONS[w.group].melee;
-    const needsReload = !!w && (w.group === 'bow' || w.group === 'crossbow') && !w.loaded;
-    this.touch?.setFire(melee ? '교체' : needsReload ? '장전' : '사격', melee ? '원거리로' : needsReload ? `화살 ${s.hero.gear.arrows}` : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
+    this.touch?.setFire(melee ? '교체' : '사격', melee ? '원거리로' : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
     this.touch?.setPotions(s.hero.gear.belt.potion);
     if (s.outcome && !this.ended) {
       this.ended = true;
