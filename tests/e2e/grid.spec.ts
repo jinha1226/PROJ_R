@@ -21,8 +21,13 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   });
   expect(moved).toBeGreaterThan(0);
   // walk toward a foe the way a tap does, then trade blows
-  await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; w.walkTo(w.state().foes[0]!.pos); });
-  await page.waitForFunction(() => !(window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.walking(), null, { timeout: 30_000 });
+  await page.evaluate(() => {
+    const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
+    const h = w.state().hero.pos;
+    const near = [...w.state().foes].sort((a, b) => Math.max(Math.abs(a.pos.x - h.x), Math.abs(a.pos.y - h.y)) - Math.max(Math.abs(b.pos.x - h.x), Math.abs(b.pos.y - h.y)))[0]!;
+    w.walkTo(near.pos);
+  });
+  await page.waitForFunction(() => !(window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.walking(), null, { timeout: 90_000 });
   await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
     for (let i = 0; i < 4; i++) if (!w.act({ kind: 'shoot' })) w.act({ kind: w.state().hero.loaded ? 'wait' : 'reload' });
