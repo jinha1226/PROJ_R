@@ -56,6 +56,7 @@ export class UalActor {
   private flashLeft = 0;
   private flashTotal = 1;
   private flashColor = new THREE.Color();
+  private readonly tint = new THREE.Color(0, 0, 0);
   private hand: THREE.Object3D | undefined;
   private offHand: THREE.Object3D | undefined;
   private held: THREE.Object3D | null = null;
@@ -157,6 +158,12 @@ export class UalActor {
     this.flashLeft = this.flashTotal = ms / 1000;
   }
 
+  /** A steady glow for a status (frozen blue, poisoned green, burning orange); null clears it. */
+  setTint(color: string | null): void {
+    this.tint.set(color ?? '#000000');
+    if (color) this.tint.multiplyScalar(0.45);
+  }
+
   setDead(): void {
     if (this.dead) return;
     this.dead = true;
@@ -167,7 +174,7 @@ export class UalActor {
     this.mixer.update(dt);
     if (this.flashLeft > 0) this.flashLeft = Math.max(0, this.flashLeft - dt);
     const k = this.flashLeft / this.flashTotal;
-    for (const m of this.mats) m.emissive.copy(this.flashColor).multiplyScalar(k * 0.9);
+    for (const m of this.mats) m.emissive.copy(this.tint).lerp(this.flashColor, k * 0.9);
   }
 
   dispose(): void {

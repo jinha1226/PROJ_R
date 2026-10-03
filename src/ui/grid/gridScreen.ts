@@ -98,7 +98,7 @@ export class GridScreen implements Screen {
       this.tap = null;
       if (t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) < TAP_PX && performance.now() - t.at < TAP_MS) this.onTap(e.clientX, e.clientY);
     });
-    (window as unknown as { __PROJR_GRID__: unknown }).__PROJR_GRID__ = { state: () => this.s, act: (a: GAction) => this.doAction(a), walkTo: (c: Cell) => this.walkTo(c), walking: () => !!this.walk };
+    (window as unknown as { __PROJR_GRID__: unknown }).__PROJR_GRID__ = { state: () => this.s, act: (a: GAction) => this.doAction(a), walkTo: (c: Cell) => this.walkTo(c), walking: () => !!this.walk, toStairs: () => { if (this.s.map.stairs) this.walkTo(this.s.map.stairs); } };
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
@@ -164,6 +164,9 @@ export class GridScreen implements Screen {
     if (!c) return;
     const foe = s.foes.find((f) => f.alive && same(f.pos, c) && s.visible.has(idx(s.map, c)));
     if (foe) { s.hero.target = foe.id; return; }
+    // a barrel in sight with a ranged weapon in hand: shoot it
+    const w = activeWeapon(s.hero.gear);
+    if (w && !WEAPONS[w.group].melee && s.barrels.some((b) => same(b, c)) && s.visible.has(idx(s.map, c))) { this.doAction({ kind: 'shoot', at: c }); return; }
     if (s.seen[idx(s.map, c)]) this.walkTo(c);
   }
 

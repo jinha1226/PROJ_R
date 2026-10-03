@@ -100,3 +100,7 @@
 .gbag-detail { margin: 10px 0 6px; font-size: 13px; } .gbag-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .gres-stats { list-style: none; padding: 0; margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .gres-stats li { display: flex; justify-content: space-between; background: #0006; border-radius: 8px; padding: 6px 10px; } .gres-stats b { color: #ffe2a0; }
+
+.grid-banner { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: 44px; font-weight: 900; color: #ffe2a0; text-shadow: 0 0 18px #000, 0 2px 0 #7a4a1a; letter-spacing: 0.1em; opacity: 0; pointer-events: none; }
+.grid-banner.on { animation: grid-banner 1.6s ease-out; }
+@keyframes grid-banner { 0% { opacity: 0; transform: translate(-50%, -40%); } 15% { opacity: 1; transform: translate(-50%, -50%); } 75% { opacity: 1; } 100% { opacity: 0; } }

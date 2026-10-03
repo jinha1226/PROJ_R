@@ -128,6 +128,13 @@ export class GridActors {
     v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
   }
 
+  /** Status glow from the sim: frozen, poisoned, burning. */
+  setStatus(id: string, st: { burn: number; freeze: number; poison: number } | undefined): void {
+    const v = this.views.get(id);
+    if (!v || v.dead) return;
+    v.actor.setTint(!st ? null : st.freeze > 0 ? '#5ab4ff' : st.burn > 0 ? '#ff7a2a' : st.poison > 0 ? '#7ad04a' : null);
+  }
+
   /** Just the white flash (the knock-back motion carries the rest). */
   flashOnly(id: string | undefined): void {
     this.v(id)?.actor.flash(0xffffff, 110);
@@ -214,5 +221,6 @@ export class GridActors {
   dispose(): void {
     for (const v of this.views.values()) v.actor.dispose();
     this.views.clear();
+    this.root.clear();
   }
 }

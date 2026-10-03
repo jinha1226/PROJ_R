@@ -10,6 +10,7 @@ import { chase } from './chase';
 import { GridActors } from './gridActors';
 import { GridFx } from './gridFx';
 import { GridItems } from './gridItems';
+import { GridElements } from './gridElements';
 import { GridParticles } from './gridParticles';
 import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
@@ -23,24 +24,27 @@ const CAM_K = 8;
 /** Draws a grid sortie: the map, models chasing their cells, and each turn's events replayed as a quick overlapping show. */
 export class GridRuntime {
   private readonly h: SceneHandle;
-  private readonly terrain: GridTerrain;
-  private readonly actors: GridActors;
+  private terrain: GridTerrain;
+  private actors: GridActors;
+  private elements: GridElements;
+  private mapRef: GridSim['s']['map'];
+  private readonly banner = document.createElement('div');
   private readonly fx: GridFx;
-  private readonly torches: GridTorches;
+  private torches: GridTorches;
   private readonly particles = new GridParticles();
   private readonly items = new GridItems();
   private punch = 0;
   private readonly pixel: PixelPass;
   /** rough pixel look on/off */
   pixelated = true;
-  private readonly playback = new Playback();
+  private playback = new Playback();
   private readonly light = new THREE.PointLight('#ffd9a0', 10, 8, 1.5);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;
   private clock = 0;
 
-  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, lib: UalLibrary, kit: DungeonKit, mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
+  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined) {
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     const scene = this.h.scene;
@@ -54,7 +58,11 @@ export class GridRuntime {
     this.terrain = new GridTerrain(sim.s.map, kit);
     this.actors = new GridActors(lib);
     this.torches = new GridTorches(sim.s.map, kit, mobile ? 3 : 6);
-    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root);
+    this.elements = new GridElements(kit, sim.s);
+    this.mapRef = sim.s.map;
+    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
+    this.banner.className = 'grid-banner';
+    el.appendChild(this.banner);
     this.fx = new GridFx(scene, el, (p) => this.project(p));
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
@@ -69,9 +77,32 @@ export class GridRuntime {
 
   /** A new turn's events: hurry the last show, queue this one, and update what is seen. */
   apply(events: GEvent[], startTime: number): void {
+    if (this.sim.s.map !== this.mapRef) { this.newFloor(); return; }
     this.playback.hurry();
     this.playback.push(events, startTime);
     this.actors.sync(this.sim.s);
+    this.refresh();
+  }
+
+  /** Down the stairs: rebuild the floor, the figures and the lights; drop what was left of the last show. */
+  private newFloor(): void {
+    const s = this.sim.s;
+    const scene = this.h.scene;
+    for (const part of [this.terrain, this.torches, this.elements, this.actors]) { scene.remove(part.root); part.dispose(); }
+    this.terrain = new GridTerrain(s.map, this.kit);
+    this.torches = new GridTorches(s.map, this.kit, this.mobile ? 3 : 6);
+    this.elements = new GridElements(this.kit, s);
+    this.actors = new GridActors(this.lib);
+    scene.add(this.terrain.root, this.torches.root, this.elements.root, this.actors.root);
+    this.mapRef = s.map;
+    this.playback = new Playback();
+    this.pending.clear();
+    this.actors.sync(s);
+    this.center.set(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
+    this.banner.textContent = `${s.run.floor}층`;
+    this.banner.classList.remove('on');
+    void this.banner.offsetWidth;
+    this.banner.classList.add('on');
     this.refresh();
   }
 
@@ -88,6 +119,8 @@ export class GridRuntime {
     const s = this.sim.s;
     this.terrain.shade(s);
     this.items.sync(s);
+    this.elements.sync(s);
+    for (const e of [s.hero, ...s.foes]) this.actors.setStatus(e.id, e.status);
     this.actors.setWeapon('hero', activeWeapon(s.hero.gear)?.group ?? 'blade');
     this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));
     for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
@@ -150,6 +183,9 @@ export class GridRuntime {
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'loot': if (e.to) this.fx.number(e.text === '볼트' || e.text === '물약' ? `+${e.text} ${e.amount}` : `+${e.text} ${e.amount}G`, 'combo', cellVec(e.to)); break;
       case 'stun': a.knock(e.dst); break;
+      case 'explode': if (e.to) { const p = cellVec(e.to); this.fx.transient.burst(p.x, p.z, '#ffb04a', 1.4, 0.5); this.particles.spray(p, '#ff8a2a', 30); this.fx.shake(0.25, 0.35); this.fx.hitStop(); } break;
+      case 'telegraph': { const p = at(e.src); if (p) this.fx.transient.burst(p.x, p.z, e.text === 'frost' ? '#5ab4ff' : '#ff5a3a', 0.6, 0.4); break; }
+      case 'levelUp': { const p = at('hero'); if (p) { this.fx.number(`레벨 ${e.amount}!`, 'combo', p); this.fx.transient.glow(p.x, p.z, '#ffd76a'); } break; }
       case 'heal': {
         a.anim(e.dst, 'drink'); const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
       case 'wake': { const p = at(e.src); if (p) this.fx.number('!', 'crit', p); break; }
@@ -165,6 +201,7 @@ export class GridRuntime {
     this.actors.update(dt, this.fx.frozen);
     this.torches.update(dt);
     this.items.update(dt);
+    this.elements.update(dt);
     this.particles.update(this.fx.frozen ? 0 : dt, this.center);
     this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
@@ -218,6 +255,8 @@ export class GridRuntime {
     this.torches.dispose();
     this.particles.dispose();
     this.items.dispose();
+    this.elements.dispose();
+    this.banner.remove();
     this.pixel.dispose();
     this.terrain.dispose();
     this.h.dispose();
