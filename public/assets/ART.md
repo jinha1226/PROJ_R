@@ -20,6 +20,7 @@
   - `models/qpack/dungeon.glb`: FBX 30종(벽·바닥·기둥·아치 문·상자·통·횃불·깃발·거미줄·해골·계단·함정 등)을 조각마다 메시 하나로 합쳐 GLB 하나로 묶음
 - **Sci-Fi Essentials Kit** — Quaternius, CC0 1.0 (OpenGameArt `sci-fi-essentials-kit`, https://quaternius.com/packs/scifiessentialskit.html)
   - `models/qpack/guns.glb`: glTF 총 3종(Gun_Pistol·Gun_Rifle·Gun_Sniper → 권총·산탄총·소총)을 Blender 4.0으로 메시 하나씩 합치고, 기본 색 텍스처만 512px로 줄여(노멀·ORM 제외) GLB 하나로 묶음
+  - `models/scifi/ship.glb`: 우주선 내부 소품 13종(사물함·책상·선반·위성 안테나·의료 튜브·상자·의자·통 등)을 같은 방식으로 합치고 기본 색 텍스처만 512px로 줄여 묶음 / `textures/ship/trim_*.jpg`: 트림 텍스처 3장(512px, 벽·바닥용) / 라이선스 `models/scifi/LICENSE.txt`
 - 라이선스 사본: `models/qpack/LICENSE.txt`
 
 ## 가공 내용
