@@ -234,7 +234,44 @@ New events: `'absorb'` (echo taken, `text` = family) and `'record'` (`text` = en
 
 **Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
-### Task 5: Level-up suit upgrades and screens (outline)
-- Level-up 3-choice of suit upgrades (max charge +2, hp +5, kill charge +1, evasion +3%p, gun damage +1, melee damage +1); HUD charge bar; suit panel in the bag; absorb choice reuses the level-up panel.
+### Task 5: Level-up suit upgrades
+
+**Why:** New engravings now come only from absorbing echoes. A level gained instead offers three **suit upgrades** for the rest of the run.
+
+**Scope:** `src/sim/grid/**`, `src/ui/grid/**`, `tests/sim/grid/**`, grid unit tests. Do not edit `tests/e2e/**`. Other modes off limits.
+
+**Interfaces — Produces:**
+```ts
+// upgrades.ts (new)
+export type UpgradeId = 'charge' | 'hp' | 'killCharge' | 'evasion' | 'gunDmg' | 'meleeDmg';
+export const UPGRADES: Record<UpgradeId, { name: string; note: string }>;
+//   charge: '충전 확장' / '충전 최대치 +2'      hp: '보강 장갑' / '최대 체력 +5'
+//   killCharge: '흡수 회로' / '근접 처치 충전 +1'  evasion: '회피 보조' / '회피 +3%'
+//   gunDmg: '총열 강화' / '총 피해 +1'          meleeDmg: '근력 보조' / '근접 피해 +1'
+export function upgradeOffer(s: GridState): UpgradeId[];        // 3 different, picked with s.rng
+export function applyUpgrade(s: GridState, id: UpgradeId): void;
+// types.ts
+Hero.bonus: { killCharge: number; evasion: number; gunDmg: number; meleeDmg: number };  // all 0 at start
+GridState.upgrades: UpgradeId[][];       // level-up choices waiting (first is shown)
+GAction: { kind: 'upgrade'; i: number | null }   // free action like 'choose'; null passes it up; refused when none pending
+```
+New event: `'upgrade'` (`text` = id).
+
+**Behaviour:**
+1. On level up (`settleKills` in `run.ts`): push `upgradeOffer(s)` onto `s.upgrades` instead of an engraving offer onto `s.offers`. `s.offers` now only receives absorb offers. Remove `offerFor` if nothing else uses it (and its tests), or keep it unused-free — no dead code.
+2. `applyUpgrade`: charge → `maxCharge += 2` and `charge += 2` (capped at max); hp → `maxHp += 5`, `hp += 5`; killCharge → `bonus.killCharge += 1`; evasion → `bonus.evasion += 0.03`; gunDmg → `bonus.gunDmg += 1`; meleeDmg → `bonus.meleeDmg += 1`. Upgrades stack if picked again later.
+3. Effects: melee kills refill `2 + bonus.killCharge` each (`suitCharge.ts`); `evasionOf` adds `bonus.evasion` (`defense.ts`); `heroDmg` adds `bonus.gunDmg` to guns and `bonus.meleeDmg` to melee weapons (staffs get neither).
+4. `upgrade` action: costs no time (and, like `choose`, works while frozen — mirror how `choose` bypasses the frozen check in `gridSim.ts`; it must not tick statuses).
+5. **Screen**: the level-up panel shows pending upgrades first (`s.upgrades[0]`), then pending engraving offers (`s.offers[0]`). Upgrade panel: title `레벨 ${level}! 슈트 강화`, three cards with name and note, `data-testid="grid-upgrade-${i}"`, plus 넘기기 (`grid-upgrade-skip`). The engraving panel keeps its testids. The screen's "hold the game while a choice is pending" logic covers both queues. Log line for `'upgrade'`: `슈트 강화 — ${name}`.
+
+**Tests to write first** (new `tests/sim/grid/upgrades.test.ts`):
+- A level gained queues one upgrade offer of 3 different ids and no engraving offer.
+- Each upgrade's effect (charge: max and current +2; hp; killCharge: a melee kill gives 3; evasion: `evasionOf` +0.03; gunDmg: pistol damage range +1; meleeDmg: sword range +1, pistol unchanged).
+- `upgrade` costs no time, consumes the offer, works while frozen without ticking burn; `i: null` passes; with none pending → `blocked`.
+- Echo absorb offers still go to `s.offers` (regression).
+
+**Update existing tests** that expected level-ups to offer engravings (`acquire.test.ts`, others) to the new rule.
+
+**Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
 ### Task 6: E2E, README, review, push
