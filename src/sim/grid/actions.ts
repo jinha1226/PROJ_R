@@ -4,6 +4,7 @@ import { lunge, swapCombo } from './combos';
 import { rollEquipment, type Equipment } from './items';
 import { record } from './absorb';
 import { putOnSuit } from './engrave';
+import { applyUpgrade } from './upgrades';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
@@ -137,8 +138,19 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       s.events.push({ t, type: 'search', src: h.id, to: { ...h.pos } });
       search(s, t);
       return COST.search;
+    case 'upgrade': {
+      const offer = s.upgrades[0];
+      const id = a.i === null ? undefined : offer?.[a.i];
+      if (!offer || (a.i !== null && !id)) return null;
+      if (id) {
+        applyUpgrade(s, id);
+        s.events.push({ t, type: 'upgrade', src: h.id, text: id });
+      }
+      s.upgrades.shift();
+      return 0;
+    }
     case 'choose': {
-      // a level-up pick: put on the suit at once (no time); null passes it up
+      // an engraving pick: put on the suit at once (no time); null passes it up
       const offer = s.offers[0];
       const id = a.i === null ? undefined : offer?.[a.i];
       if (!offer || (a.i !== null && !id) || (id && !putOnSuit(s, id, a.slot))) return null;

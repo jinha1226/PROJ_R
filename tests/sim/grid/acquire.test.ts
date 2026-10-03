@@ -7,7 +7,7 @@ import { createRng } from '../../../src/core/rng';
 import { handMap, OPEN, sim, sureHits } from './kit';
 import { newState } from '../../../src/sim/grid/state';
 
-describe('level-up choice', () => {
+describe('engraving and upgrade choices', () => {
   it('each starting gun has no engravings and the suit starts empty', () => {
     for (const gun of ['pistol', 'shotgun', 'rifle'] as const) {
       const { hero } = GridSim.create(2, gun).s;
@@ -31,7 +31,7 @@ describe('level-up choice', () => {
     expect(suits / total).toBeGreaterThan(0.6);
   });
 
-  it('a level gained queues an offer; choosing puts it on the suit at no time cost', () => {
+  it('levels gained queue upgrades; choosing consumes one at no time cost', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'minion', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     g.s.hero.gear.hands[0] = makeWeapon('sword', 1);
@@ -39,13 +39,15 @@ describe('level-up choice', () => {
     g.s.foes[0]!.hp = 1;
     g.s.hero.xp = 999;
     g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-    expect(g.s.offers.length).toBeGreaterThan(0);
-    const pick = g.s.offers[0]![1]!;
-    const left = g.s.offers.length;
+    expect(g.s.upgrades).toHaveLength(14);
+    expect(g.s.offers).toEqual([]);
+    const pick = g.s.upgrades[0]![1]!;
+    const left = g.s.upgrades.length;
     const t = g.s.time;
-    g.act({ kind: 'choose', i: 1 });
-    expect(g.s.hero.suit).toContain(pick);
-    expect(g.s.offers.length).toBe(left - 1);
+    const ev = g.act({ kind: 'upgrade', i: 1 });
+    expect(ev.some((e) => e.type === 'upgrade' && e.text === pick)).toBe(true);
+    expect(g.s.hero.suit).toEqual([]);
+    expect(g.s.upgrades.length).toBe(left - 1);
     expect(g.s.time).toBe(t);
   });
 

@@ -18,14 +18,15 @@ const SLAM_WAVE = 3;
 const FINISH_AT = 3;
 const FINISH_MULT = 1.5;
 
-/** Damage range of the hero's weapon: tier, +1 per level above 1 and melee strength. */
+/** Damage range of the hero's weapon: tier, +1 per level above 1 melee strength and suit upgrades. */
 export function heroDmg(s: GridState, w: Weapon): [number, number] {
   const [lo, hi] = WEAPONS[w.group].dmg[w.tier - 1]!;
   const up = s.hero.level - 1;
   const melee = WEAPONS[w.group].melee;
   // strength above 10 adds to every melee blow
   const str = melee ? Math.max(0, s.hero.str - 10) : 0;
-  return [(lo + up) + str, (hi + up) + str];
+  const bonus = melee ? s.hero.bonus.meleeDmg : isGun(w.group) ? s.hero.bonus.gunDmg : 0;
+  return [lo + up + str + bonus, hi + up + str + bonus];
 }
 
 export interface ShotHooks { noise(at: Cell, r: number): void; cast(w: Weapon, at: Cell): number }

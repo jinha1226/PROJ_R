@@ -10,7 +10,7 @@ export type EngraveId =
 export const SUIT_SLOTS = 6;
 export type Fit = 'melee' | 'ranged' | 'magic' | 'any';
 
-/** Name, one line, and which weapons it suits (for level-up offers). */
+/** Name, one line, and which weapons it suits (for absorption and scroll offers). */
 export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit }> = {
   dash: { name: '돌진 베기', note: '2칸 앞 적에게 뛰어들며 벤다', fits: 'melee' },
   finisher: { name: '3연타 마무리', note: '같은 적 3타째 ×1.5 + 밀치기', fits: 'melee' },

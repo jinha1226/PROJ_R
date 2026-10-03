@@ -6,6 +6,7 @@ import { WEAPONS, type BeltItem } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
 import { GridBag } from './gridBag';
 import { LevelUpPanel } from './levelUp';
+import { UpgradePanel } from './upgradePanel';
 import { GridBelt, THROWN } from './gridBelt';
 import { ThrowAim } from './throwAim';
 import { weaponState } from './weaponInfo';
@@ -43,7 +44,7 @@ export class GridScreen implements Screen {
   private touch: GridTouch | null = null;
   private zoom: ZoomControl | null = null;
   private bag: GridBag | null = null;
-  private levelUp: { panel: LevelUpPanel; offer: unknown } | null = null;
+  private levelUp: { panel: LevelUpPanel | UpgradePanel; offer: unknown } | null = null;
   private readonly belt = new GridBelt((it) => this.controls.push(it));
   private readonly throwing = new ThrowAim(() => this.s, (c) => this.controls.push(c), (a) => this.doAction(a), (cells, ok) => this.rt?.showAim(cells, ok));
   private cleanup: (() => void)[] = [];
@@ -168,15 +169,18 @@ export class GridScreen implements Screen {
     this.el.appendChild(this.bag.el);
   }
 
-  /** A pending level-up choice holds the game until it is made (or passed up); true while it is open. */
+  /** A pending upgrade or engraving choice holds the game until it is made (or passed up); true while it is open. */
   private showLevelUp(): boolean {
-    const offer = this.s.offers[0];
+    const upgrade = this.s.upgrades[0];
+    const offer = upgrade ?? this.s.offers[0];
     if (this.levelUp && this.levelUp.offer === offer) return true;
     this.levelUp?.panel.el.remove();
     this.levelUp = null;
     if (!offer) return false;
     this.walk = null;
-    const panel = new LevelUpPanel(offer, this.s.hero.suit, this.s.hero.level, (a) => { this.doAction(a); });
+    const act = (a: GAction) => { this.doAction(a); };
+    const panel = upgrade ? new UpgradePanel(upgrade, this.s.hero.level, act)
+      : new LevelUpPanel(this.s.offers[0]!, this.s.hero.suit, this.s.hero.level, act);
     this.levelUp = { panel, offer };
     this.el.appendChild(panel.el);
     return true;

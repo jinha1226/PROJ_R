@@ -1,3 +1,4 @@
+import type { UpgradeId } from './upgrades';
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
 import type { BeltItem, Consumable, Core, Echo, Equipment } from './items';
@@ -60,6 +61,7 @@ export interface Statuses { burn: number; freeze: number; poison: number }
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
 export interface Hero extends Ent {
   suit: EngraveId[];
+  bonus: { killCharge: number; evasion: number; gunDmg: number; meleeDmg: number };
   charge: number;
   maxCharge: number;
   /** game time banked toward the next self-charge */
@@ -103,7 +105,9 @@ export interface GridState {
   telegraphs: Telegraph[];
   /** engravings already fired during the current hero action */
   fired: Set<string>;
-  /** Level-up and absorption engraving choices waiting for the player (first one is shown) */
+  /** Level-up suit upgrades waiting for the player (shown before engravings). */
+  upgrades: UpgradeId[][];
+  /** Absorption and scroll engraving choices waiting for the player. */
   offers: EngraveId[][];
   /** Engravings discovered this run, including the four starting records. */
   records: EngraveId[];
@@ -120,12 +124,13 @@ export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
   | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'choose'; i: number | null; slot?: number } | { kind: 'search' }
+  | { kind: 'upgrade'; i: number | null }
   | { kind: 'drink'; p: PotionKind } | { kind: 'read'; sc: ScrollKind } | { kind: 'throwPotion'; p: PotionKind; at: Cell };
 export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'absorb' | 'record' | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
+  | 'upgrade' | 'absorb' | 'record' | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

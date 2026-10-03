@@ -10,7 +10,7 @@ const SWORD_PARRY = 0.12;
 /** Chance to weave out of a foe's blow or shot: 5%, +10% with a dagger in hand, +5% in leather or no armour. */
 export function evasionOf(s: GridState): number {
   const g = s.hero.gear;
-  return BASE_EVASION + (activeWeapon(g)?.group === 'dagger' ? DAGGER_EVASION : 0) + ((g.armor?.reduce ?? 0) <= 1 ? LIGHT_EVASION : 0);
+  return BASE_EVASION + s.hero.bonus.evasion + (activeWeapon(g)?.group === 'dagger' ? DAGGER_EVASION : 0) + ((g.armor?.reduce ?? 0) <= 1 ? LIGHT_EVASION : 0);
 }
 
 /** Chance to turn a melee blow aside with a sword in hand. */

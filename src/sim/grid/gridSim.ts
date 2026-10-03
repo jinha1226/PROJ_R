@@ -49,7 +49,7 @@ export class GridSim {
     const alive = new Set(s.foes.filter((f) => f.alive).map((f) => f.id));
     // frozen: whatever was asked, the turn passes
     // a level-up pick is not a turn: it is made even while frozen
-    const frozen = (s.hero.status?.freeze ?? 0) > 0 && a.kind !== 'choose';
+    const frozen = (s.hero.status?.freeze ?? 0) > 0 && a.kind !== 'choose' && a.kind !== 'upgrade';
     // confused: a step goes astray half the time
     const astray = a.kind === 'move' && buffOn(s.hero, 'confuse', t0) && s.rng.chance(CONFUSED_ASTRAY);
     if (astray) a = { kind: 'move', dir: s.rng.pick(DIRS), plain: true };
