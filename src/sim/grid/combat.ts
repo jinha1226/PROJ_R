@@ -18,8 +18,8 @@ export function inCover(m: GridMap, shooter: Cell, target: Cell): boolean {
   return dist(shooter, target) > 1 && sides.some((c) => opaque(tileAt(m, c)));
 }
 
-export function hitChance(m: GridMap, from: Cell, to: Cell, base: number): number {
-  const p = base - PER_TILE * (dist(from, to) - 1) - (inCover(m, from, to) ? COVER : 0);
+export function hitChance(m: GridMap, from: Cell, to: Cell, base: number, coverMul = 1): number {
+  const p = base - PER_TILE * (dist(from, to) - 1) - (inCover(m, from, to) ? COVER * coverMul : 0);
   return Math.max(MIN_HIT, Math.round(p * 1000) / 1000);
 }
 

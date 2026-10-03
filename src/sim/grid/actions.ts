@@ -43,9 +43,6 @@ function openChest(s: GridState, t: number, c: Cell): void {
     stow(s, got);
     s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: got.kind === 'potion' ? potionName(s, got.p) : scrollName(s, got.sc) });
   }
-  const arrows = s.rng.int(2, 5);
-  g.arrows += arrows;
-  s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: '화살', amount: arrows });
   const supply = s.rng.pick(['potion', 'potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask', null] as const);
   if (supply) { g.belt[supply]++; s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: SUPPLY_NAME[supply], amount: 1 }); }
 }
@@ -110,13 +107,13 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       return COST.move;
     }
     case 'shoot': {
-      if (a.at) return shootCell(s, t, a.at, (c) => explodeBarrels(s, t, c, h.id));
+      if (a.at) return shootCell(s, t, a.at, (c) => explodeBarrels(s, t, c, h.id), hooks.noise);
       const foe = s.foes.find((f) => f.id === (a.target ?? autoTarget(s)) && f.alive);
       if (!foe || !shootable(s).includes(foe.id)) return null;
       return rangedAttack(s, t, foe, hooks);
     }
     case 'swap':
-      if (!g.hands[g.active === 0 ? 1 : 0]) return null;
+      // The empty second hand must be selectable to equip a found local weapon.
       return swapCombo(s, t, hooks);
     case 'equip':
       if (!equipFromBag(g, a.bag)) return null;

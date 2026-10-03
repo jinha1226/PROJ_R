@@ -30,7 +30,7 @@ export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: 'me
   alternate: { name: '교대 시전', note: '직전과 다른 원소: ×1.5, 시간 절반', fits: 'magic' },
   echo: { name: '잔향', note: '3번째 주문마다 한 번 더', fits: 'magic' },
   chain: { name: '연쇄 번개', note: '번개가 두 번 튄다', fits: 'magic' },
-  elemArrow: { name: '원소 화살', note: '마지막 원소가 다음 화살에 실림', fits: 'magic' },
+  elemArrow: { name: '원소 탄', note: '마지막 원소가 다음 총탄에 실림', fits: 'magic' },
 };
 export const ENGRAVE_IDS = Object.keys(ENGRAVES) as EngraveId[];
 

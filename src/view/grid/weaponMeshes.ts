@@ -3,7 +3,7 @@ import type { WeaponGroup } from '../../sim/grid/items';
 import { weaponKit } from './weaponKit';
 
 /** What a figure can hold: the hero's weapon groups plus the skeletons' short blade. */
-export type WeaponLook = WeaponGroup | 'blade' | 'none';
+export type WeaponLook = WeaponGroup | 'bow' | 'crossbow' | 'blade' | 'none';
 
 const box = (w: number, h: number, d: number, mat: THREE.Material, y = 0, z = 0): THREE.Mesh => {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -18,6 +18,7 @@ export function weaponMesh(kind: WeaponLook): THREE.Object3D {
   if (packed) return packed;
   const g = new THREE.Group();
   const metal = new THREE.MeshStandardMaterial({ color: '#c8ccd4', metalness: 0.6, roughness: 0.35 });
+  const gunmetal = new THREE.MeshStandardMaterial({ color: '#303b48', metalness: 0.8, roughness: 0.4 });
   const wood = new THREE.MeshStandardMaterial({ color: '#6a4a2a', roughness: 0.8 });
   const gem = new THREE.MeshStandardMaterial({ color: '#ff8a3a', emissive: '#ff5a1a', emissiveIntensity: 1.2 });
   switch (kind) {
@@ -33,10 +34,14 @@ export function weaponMesh(kind: WeaponLook): THREE.Object3D {
       g.add(stock, box(0.4, 0.03, 0.04, metal, 0, 0.3));
       break;
     }
-    case 'throwing': g.add(box(0.03, 0.22, 0.06, metal, 0.12), box(0.035, 0.08, 0.035, wood)); break;
+    case 'pistol': case 'shotgun': case 'rifle': {
+      const length = kind === 'pistol' ? 0.3 : kind === 'shotgun' ? 0.55 : 0.8;
+      g.add(box(0.09, 0.1, length, gunmetal, 0.06, length / 2 - 0.06), box(0.075, 0.19, 0.1, gunmetal, -0.06));
+      break;
+    }
     case 'staff': g.add(box(0.05, 1.3, 0.05, wood, 0.35), box(0.12, 0.12, 0.12, gem, 1.05)); break;
   }
   // bows and crossbows are held crosswise; blades and shafts point forward
-  if (kind !== 'bow' && kind !== 'crossbow') g.rotation.x = Math.PI / 2;
+  if (!['bow', 'crossbow', 'pistol', 'shotgun', 'rifle'].includes(kind)) g.rotation.x = Math.PI / 2;
   return g;
 }

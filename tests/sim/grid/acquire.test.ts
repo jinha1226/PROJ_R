@@ -46,15 +46,8 @@ describe('rune stones and inscribing', () => {
     expect(g.s.floorItems.some((f) => f.item.kind === 'rune')).toBe(true);
   });
 
-  it('every weapon on the prototype rack comes engraved', () => {
-    const g = GridSim.create(4);
-    const rack = g.s.floorItems.filter((f) => f.item.kind === 'weapon');
-    expect(rack.length).toBeGreaterThan(0);
-    for (const f of rack) expect(f.item.kind === 'weapon' && f.item.engraves!.length > 0).toBe(true);
-  });
-
-  it('each class starts with one engraving on its first weapon', () => {
-    for (const cls of ['warrior', 'hunter', 'mage'] as const) expect(GridSim.create(2, cls).s.hero.gear.hands[0]!.engraves).toHaveLength(1);
+  it('each starting gun starts with one engraving on its first weapon', () => {
+    for (const gun of ['pistol', 'shotgun', 'rifle'] as const) expect(GridSim.create(2, gun).s.hero.gear.hands[0]!.engraves).toHaveLength(1);
   });
 });
 
@@ -65,7 +58,7 @@ describe('level-up choice', () => {
     for (let seed = 1; seed <= 40; seed++) {
       const s = newState(handMap(OPEN), seed);
       s.rng = createRng(seed);
-      s.hero.gear.hands[0] = makeWeapon('bow', 1);
+      s.hero.gear.hands[0] = makeWeapon('pistol', 1);
       s.hero.gear.active = 0;
       const offer = offerFor(s);
       expect(new Set(offer).size).toBe(3);

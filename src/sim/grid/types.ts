@@ -59,6 +59,8 @@ export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
 export interface Hero extends Ent {
+  charge: number;
+  maxCharge: number;
   kind: 'hero';
   level: number;
   xp: number;
@@ -123,7 +125,7 @@ export type GEventType =
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
 export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1, inscribe: 1, search: 1 };
-export const HERO = { hp: 30, sight: 8, heal: 12, bash: [2, 4] as const, bashHit: 0.9 };
+export const HERO = { hp: 35, sight: 8, heal: 12, bash: [2, 4] as const, bashHit: 0.9 };
 export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [number, number]; range: number; hit: number }> = {
   minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },
   archer: { hp: 8, move: 1, dmg: [3, 5], range: 7, hit: 0.85 },

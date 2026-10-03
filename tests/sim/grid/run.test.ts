@@ -24,12 +24,12 @@ describe('floors', () => {
   });
 
   it('taking the stairs keeps the hero and starts a fresh floor', () => {
-    const g = GridSim.create(5, 'warrior');
+    const g = GridSim.create(5, 'pistol');
     const s = g.s;
     s.hero.hp = 17;
     s.hero.level = 2;
     s.tiles.push({ pos: { x: 1, y: 1 }, kind: 'fire', until: 999 });
-    const sword = s.hero.gear.hands[0];
+    const gun = s.hero.gear.hands[0];
     const oldMap = s.map;
     nextFloor(s);
     expect(s.run.floor).toBe(2);
@@ -37,7 +37,7 @@ describe('floors', () => {
     expect(s.hero.pos).toEqual(s.map.start);
     expect(s.hero.hp).toBe(17);
     expect(s.hero.level).toBe(2);
-    expect(s.hero.gear.hands[0]).toBe(sword);
+    expect(s.hero.gear.hands[0]).toBe(gun);
     expect(s.tiles).toEqual([]);
     expect(s.telegraphs).toEqual([]);
     expect(s.foes.every((f) => f.alive && !f.awake)).toBe(true);
@@ -132,7 +132,7 @@ describe('growth and the deep', () => {
   });
 
   it('every 150 turns on a floor a wanderer or two turns up out of sight', () => {
-    const g = GridSim.create(6, 'warrior');
+    const g = GridSim.create(6, 'pistol');
     g.s.hero.hp = 9999;
     g.s.hero.maxHp = 9999;
     const n = g.s.foes.length;
@@ -140,9 +140,9 @@ describe('growth and the deep', () => {
     expect(g.s.foes.length).toBeGreaterThan(n);
   });
 
-  it('the same seed, class and actions give the same run across a floor change', () => {
+  it('the same seed, starting gun and actions give the same run across a floor change', () => {
     const run = () => {
-      const g = GridSim.create(9, 'hunter');
+      const g = GridSim.create(9, 'pistol');
       for (let i = 0; i < 10; i++) g.act({ kind: 'move', dir: { x: 1, y: 0 } });
       nextFloor(g.s);
       for (let i = 0; i < 10; i++) g.act({ kind: 'move', dir: { x: 0, y: 1 } });

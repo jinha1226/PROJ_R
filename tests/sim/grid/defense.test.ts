@@ -35,10 +35,12 @@ describe('dodge and parry', () => {
 
   it('a sword in hand parries melee but not arrows', () => {
     const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'minion', pos: { x: 8, y: 7 } }]);
+    g.s.hero.gear.hands[0] = makeWeapon('sword', 1);
     expect(parryOf(g.s)).toBeCloseTo(0.12);
     rolls(g, 0.11);
     expect(g.act(W).some((e) => e.type === 'parry')).toBe(true);
     const a = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'archer', pos: { x: 8, y: 7 } }]);
+    a.s.hero.gear.hands[0] = makeWeapon('sword', 1);
     a.s.hero.gear.armor = { kind: 'armor', tier: 3, name: '판금 갑옷', reduce: 3 };
     rolls(a, 0.11);
     expect(a.act(W).some((e) => e.type === 'parry')).toBe(false);

@@ -1,8 +1,6 @@
 import { GridSim } from '../sim/grid/gridSim';
 import { GridResult } from '../ui/grid/gridResult';
 import { GridScreen } from '../ui/grid/gridScreen';
-import { ClassSelect } from '../ui/grid/classSelect';
-import type { ClassId } from '../sim/grid/gear';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
 import { DungeonKit } from '../view/grid/dungeonKit';
 import { UalLibrary } from '../view/grid/ualActor';
@@ -37,20 +35,20 @@ function saveRecord(r: Record): void {
   }
 }
 
-/** Grid dungeon: title → three floors → result → again. */
+/** Grid dungeon: title → fifteen floors → result → again. */
 export class GridFlow {
   constructor(private readonly router: Router, private readonly root: HTMLElement, private readonly toTitle: () => void) {}
 
   start(seed: number): void {
-    this.router.go(new ClassSelect((cls) => void this.launch(seed, cls), () => this.toTitle()));
+    void this.launch(seed);
   }
 
-  private async launch(seed: number, cls: ClassId): Promise<void> {
+  private async launch(seed: number): Promise<void> {
     this.router.go(new LoadingScreen());
     try {
       const [lib, kit, weapons] = await Promise.all([getUal(), getDungeon(), getWeapons()]);
       setWeaponKit(weapons);
-      const sim = GridSim.create(seed, cls);
+      const sim = GridSim.create(seed);
       this.router.go(new GridScreen({ sim, lib, kit, end: () => this.result(sim, seed), fatal: (e) => showFatal(this.root, e) }));
     } catch (e) {
       showFatal(this.root, e);

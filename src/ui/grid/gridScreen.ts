@@ -250,7 +250,7 @@ export class GridScreen implements Screen {
     const melee = !w || WEAPONS[w.group].melee;
     const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
     this.touch?.setSwap(other?.group);
-    this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : '사격', melee ? '원거리로' : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
+    this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : '사격', melee ? '원거리로' : w ? `${weaponState(w, s.hero)}${canFire(s) && chance !== null ? ` · ${Math.round(chance * 100)}%` : ''}` : '-');
     this.touch?.setPotions(s.hero.gear.belt.potion);
     if (this.throwing.aim) this.touch?.setFire(undefined, '던지기', this.throwing.label());
     this.belt.update(s, this.throwing.item);

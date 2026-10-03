@@ -139,13 +139,13 @@ export class GridActors {
   }
 
   /** Ranged: aim, fire, kick back a little. */
-  /** Fires: the motion follows the weapon (bow draw, crossbow, staff spell, overhand throw). */
+  /** Fires: the motion follows the weapon (gun shot, bow draw, crossbow, staff spell). */
   shoot(id: string | undefined, at: THREE.Vector3, group?: string): void {
     const v = this.v(id);
     if (!v) return;
     this.face(id, at);
     this.nudge(v, at, -0.1);
-    const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'staff' ? 'cast' : group === 'throwing' ? 'throw' : 'shoot';
+    const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'staff' ? 'cast' : 'shoot';
     v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
   }
 
@@ -185,7 +185,7 @@ export class GridActors {
   /** Shows the weapon group a figure is holding. */
   setWeapon(id: string, kind: WeaponLook): void {
     // ranged weapons rest at ease; melee keeps a guard stance
-    const idle = kind === 'bow' || kind === 'crossbow' || kind === 'staff' || kind === 'throwing' ? 'Idle_Loop' : 'Sword_Idle';
+    const idle = ['pistol', 'shotgun', 'rifle'].includes(kind) ? 'Pistol_Idle_Loop' : kind === 'bow' || kind === 'crossbow' || kind === 'staff' ? 'Idle_Loop' : 'Sword_Idle';
     if (id === 'hero') this.heroWeapon = kind;
     this.v(id)?.actor.setWeapon(kind, idle);
   }
@@ -200,7 +200,7 @@ export class GridActors {
     const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
     if (this.kindOf(id) === 'ghoul') return 'scratch';
     if (w === 'dagger' || w === 'blade') return 'jab';
-    if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'throwing') return 'bash';
+    if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'pistol' || w === 'shotgun' || w === 'rifle') return 'bash';
     return 'swing';
   }
 

@@ -1,5 +1,5 @@
 import { ENGRAVES, type EngraveId } from '../../sim/grid/engraveCore';
-import { activeWeapon, CLASS_NAME } from '../../sim/grid/gear';
+import { activeWeapon } from '../../sim/grid/gear';
 import { isBossFloor, zoneOf } from '../../sim/grid/zones';
 import { FLOORS, XP_STEPS } from '../../sim/grid/run';
 import type { GEvent, GridState } from '../../sim/grid/types';
@@ -37,7 +37,7 @@ function eventLine(e: GEvent): string | undefined {
 }
 const KIND: Record<string, string> = { minion: '해골 졸개', archer: '해골 석궁병', brute: '해골 전사', ghoul: '구울', mage: '해골 마법사', champion: '해골 챔피언' };
 
-/** Top bar (level badge, health, arrows/potions/turn, weapon in hand), target card, danger line, toasts. */
+/** Top bar (level badge, health, charge/potions/turn, weapon in hand), target card, danger line, toasts. */
 export class GridHud {
   readonly el = document.createElement('div');
   private logTimer = 0;
@@ -75,12 +75,12 @@ export class GridHud {
     const g = h.gear;
     const w = activeWeapon(g);
     const t = target ? s.foes.find((f) => f.id === target.id) : undefined;
-    const key = JSON.stringify([h.hp, h.maxHp, h.level, h.xp, h.status, h.buffs, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), target, t?.hp, s.run]);
+    const key = JSON.stringify([h.hp, h.maxHp, h.level, h.xp, h.status, h.buffs, g.hands, g.active, h.charge, h.maxCharge, g.belt.potion, Math.floor(s.time), target, t?.hp, s.run]);
     if (key !== this.key) {
       this.key = key;
       const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
       q('.gh-badge b').textContent = `${h.level}`;
-      q('.gh-badge small').textContent = CLASS_NAME[g.cls];
+      q('.gh-badge small').textContent = '요원';
       const frac = Math.max(0, h.hp / h.maxHp);
       q('.gh-hp-fill').style.width = `${frac * 100}%`;
       q('.gh-hp-fill').classList.toggle('low', frac < 0.35);
@@ -89,11 +89,11 @@ export class GridHud {
       const st = h.status;
       const chips = st ? [st.burn > 0 ? `<span class="gh-st burn">화상 ${st.burn}</span>` : '', st.freeze > 0 ? `<span class="gh-st frost">빙결 ${st.freeze}</span>` : '', st.poison > 0 ? `<span class="gh-st poison">중독 ${st.poison}</span>` : ''].join('') : '';
       const buffs = Object.entries(h.buffs ?? {}).filter(([k, until]) => BUFF_NAME[k] && until! > s.time).map(([k, until]) => `<span class="gh-st ${k}">${BUFF_NAME[k]} ${Math.ceil(until! - s.time)}</span>`).join('');
-      q('.gh-res').innerHTML = `<span title="화살">${icon('arrow')}<b>${g.arrows}</b><i>화살</i></span><span title="물약">${icon('potion')}<b>${g.belt.potion}</b><i>물약</i></span><span title="턴">${icon('hourglass')}<b>${Math.floor(s.time)}</b><i>턴</i></span>${chips}${buffs}`;
+      q('.gh-res').innerHTML = `<span title="충전">${icon('charge')}<b>${h.charge}/${h.maxCharge}</b><i>충전</i></span><span title="물약">${icon('potion')}<b>${g.belt.potion}</b><i>물약</i></span><span title="턴">${icon('hourglass')}<b>${Math.floor(s.time)}</b><i>턴</i></span>${chips}${buffs}`;
       const lo = XP_STEPS[h.level - 2] ?? 0;
       const hi = XP_STEPS[h.level - 1] ?? lo + 1;
       q('.gh-xp div').style.width = `${Math.min(1, (h.xp - lo) / Math.max(1, hi - lo)) * 100}%`;
-      q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, g.arrows) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
+      q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, h) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
       const card = q('.gh-target');
       card.hidden = !t;
       if (t) card.innerHTML = `${icon('skull')}<b>${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${Math.round(target!.chance * 100)}%</span>`;

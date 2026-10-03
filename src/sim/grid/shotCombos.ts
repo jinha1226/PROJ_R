@@ -33,7 +33,7 @@ export function rapidStep(s: GridState, t: number, foe: Ent): { mult: number; ti
   return { mult: r.n % 3 === 0 ? RAPID_CRIT : 1, time: RAPID_TIME };
 }
 
-/** What an arrow or thrown blade sets off once it has flown: an element riding on it, a mark, a bounce, a volley, a step back. */
+/** What a gunshot sets off: an element riding on it, a mark, a bounce, a volley, a step back. */
 export function afterShot(s: GridState, t: number, foe: Ent, hit: boolean, dmg: readonly [number, number], chanceAt: (from: Cell, to: Cell) => number, range: number): void {
   const h = s.hero;
   const fx = h.fx;
@@ -85,7 +85,7 @@ export function passMarks(s: GridState, t: number): void {
 
 /**
  * A staff spell with its engravings: alternating elements hit harder and faster, every third spell echoes,
- * lightning chains, the element is kept for an elemental arrow. Returns the time factor for the cast.
+ * lightning chains, the element is kept for an elemental bullet. Returns the time factor for the cast.
  */
 export function castSpell(s: GridState, w: Weapon, at: Cell, base: readonly [number, number], onBarrel: (c: Cell) => void): number {
   const h = s.hero;

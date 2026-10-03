@@ -3,7 +3,6 @@ import { addBuff, clearBuff } from './buffs';
 import { noise } from './danger';
 import { offerFor } from './engrave';
 import { canThrow } from './explosives';
-import { CLASS_BONUS } from './gear';
 import { STAFF_CHARGES, type Consumable, type Element } from './items';
 import { identify, isKnown, potionKey, POTIONS, scrollKey, SCROLLS, type PotionKind, type ScrollKind } from './lore';
 import { addStatus, applyElement, areaCells, entsAt } from './status';
@@ -97,7 +96,7 @@ export function readScroll(s: GridState, t: number, sc: ScrollKind): number | nu
       for (const f of s.foes) if (f.alive && f.awake) f.lastSeen = { ...h.pos };
       break;
     case 'recharge':
-      for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.max(w.charges ?? 0, STAFF_CHARGES + CLASS_BONUS[g.cls].charges);
+      for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.max(w.charges ?? 0, STAFF_CHARGES);
       break;
   }
   return 1;

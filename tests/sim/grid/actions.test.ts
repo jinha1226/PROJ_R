@@ -32,15 +32,14 @@ describe('hero actions', () => {
     if (types(ev).includes('hit')) expect(g.s.foes[0]!.hp).toBeLessThan(hp);
   });
 
-  it('the crossbow fires again without reloading and spends an arrow each time', () => {
+  it('the pistol fires again without reloading and spends one charge each time', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
-    g.act({ kind: 'swap' });
     g.s.foes[0]!.hp = 999;
     const id = g.s.foes[0]!.id;
-    const arrows = g.s.hero.gear.arrows;
+    const charge = g.s.hero.charge;
     expect(types(g.act({ kind: 'shoot', target: id }))[0]).toBe('shoot');
     expect(types(g.act({ kind: 'shoot', target: id }))[0]).toBe('shoot');
-    expect(g.s.hero.gear.arrows).toBe(arrows - 2);
+    expect(g.s.hero.charge).toBe(charge - 2);
   });
 
   it('hit chance falls with distance and behind cover, never below 5%', () => {
@@ -56,7 +55,6 @@ describe('hero actions', () => {
     const rows = [...OPEN];
     rows[7] = '#.....P.......#';
     const g = sim(rows, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
-    g.act({ kind: 'swap' });
     expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))).toEqual(['blocked']);
   });
 
@@ -78,12 +76,13 @@ describe('hero actions', () => {
     const g = sim(rows, { x: 5, y: 7 });
     expect(types(g.act({ kind: 'move', dir: { x: 1, y: 0 } }))).toContain('door');
     expect(g.s.map.tiles[7 * 15 + 6]).toBe('open');
-    const before = g.s.hero.gear.arrows;
+    const before = g.s.hero.charge;
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
     expect(types(ev)).toContain('open');
     expect(g.s.hero.pos).toEqual({ x: 6, y: 7 });
     expect(g.s.chests[0]!.opened).toBe(true);
-    expect(g.s.hero.gear.arrows).toBeGreaterThan(before);
+    expect(g.s.hero.charge).toBe(before);
+    expect(types(ev)).toContain('loot');
   });
 });
 

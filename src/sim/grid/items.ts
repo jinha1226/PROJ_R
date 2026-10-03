@@ -2,7 +2,11 @@ import type { Rng } from '../../core/rng';
 import type { EngraveId, Engraving } from './engraveCore';
 import type { PotionKind, ScrollKind } from './lore';
 
-export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'bow' | 'crossbow' | 'throwing' | 'staff';
+export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'pistol' | 'shotgun' | 'rifle' | 'staff';
+export type GunGroup = 'pistol' | 'shotgun' | 'rifle';
+export const GUNS: GunGroup[] = ['pistol', 'shotgun', 'rifle'];
+export const GUN_COST: Record<GunGroup, number> = { pistol: 1, shotgun: 2, rifle: 2 };
+export const isGun = (g: WeaponGroup): g is GunGroup => GUNS.includes(g as GunGroup);
 export type Element = 'fire' | 'frost' | 'shock' | 'poison';
 export interface Weapon {
   kind: 'weapon';
@@ -13,8 +17,6 @@ export interface Weapon {
   element?: Element;
   /** staff */
   charges?: number;
-  /** throwing */
-  stack?: number;
   engraves?: Engraving[];
 }
 export interface Armor { kind: 'armor'; tier: 1 | 2 | 3; name: string; reduce: number }
@@ -36,18 +38,17 @@ export const WEAPONS: Record<WeaponGroup, { melee: boolean; dmg: Range2; hit: nu
   axe: { melee: true, dmg: [[7, 11], [9, 14]], hit: 0.85, time: 1.4 },
   spear: { melee: true, dmg: [[5, 8], [7, 11]], hit: 0.88, time: 1 },
   mace: { melee: true, dmg: [[6, 9], [8, 12]], hit: 0.85, time: 1.2 },
-  bow: { melee: false, dmg: [[4, 7], [6, 9]], hit: 0.8, time: 1, range: 7 },
-  crossbow: { melee: false, dmg: [[6, 10], [9, 13]], hit: 0.85, time: 1.6, range: 8 },
-  throwing: { melee: false, dmg: [[4, 6], [5, 8]], hit: 0.85, time: 1, range: 5 },
+  pistol: { melee: false, dmg: [[4, 6], [4, 6]], hit: 0.85, time: 0.8, range: 7 },
+  shotgun: { melee: false, dmg: [[5, 8], [5, 8]], hit: 0.9, time: 1, range: 4 },
+  rifle: { melee: false, dmg: [[8, 12], [8, 12]], hit: 0.85, time: 1.2, range: 9 },
   staff: { melee: false, dmg: [[5, 8], [7, 10]], hit: 0.85, time: 1, range: 6 },
 };
 export const STAFF_CHARGES = 3;
 export const STAFF_RECHARGE = 8;
-export const THROW_STACK = 6;
 
 const NAMES: Record<WeaponGroup, [string, string]> = {
   dagger: ['단검', '날 선 단검'], sword: ['장검', '기사검'], axe: ['전투 도끼', '양날 도끼'], spear: ['창', '기병창'], mace: ['철퇴', '가시 철퇴'],
-  bow: ['짧은 활', '긴 활'], crossbow: ['석궁', '무거운 석궁'], throwing: ['투척 단검', '균형 투척 단검'], staff: ['지팡이', '룬 지팡이'],
+  pistol: ['권총', '권총'], shotgun: ['산탄총', '산탄총'], rifle: ['소총', '소총'], staff: ['지팡이', '룬 지팡이'],
 };
 const STAFF_NAME: Record<Element, string> = { fire: '화염', frost: '서리', shock: '번개', poison: '독' };
 const ARMORS: Armor[] = [
@@ -56,26 +57,29 @@ const ARMORS: Armor[] = [
   { kind: 'armor', tier: 3, name: '판금 갑옷', reduce: 3 },
 ];
 const MELEE: WeaponGroup[] = ['dagger', 'sword', 'axe', 'spear', 'mace'];
-const RANGED: WeaponGroup[] = ['bow', 'crossbow', 'throwing', 'staff'];
+const LOCAL: WeaponGroup[] = [...MELEE, 'staff'];
 const ELEMENTS: Element[] = ['fire', 'frost', 'shock', 'poison'];
 /** chance of a tier-2 find on floors 1, 2, 3 */
 const TIER2 = [0.1, 0.35, 0.6];
 
 export function makeWeapon(group: WeaponGroup, tier: 1 | 2, element?: Element): Weapon {
+  if (isGun(group)) tier = 1;
   const w: Weapon = { kind: 'weapon', group, tier, name: NAMES[group][tier - 1]! };
   if (group === 'staff') { w.element = element ?? 'fire'; w.charges = STAFF_CHARGES; w.name = `${STAFF_NAME[w.element]} ${w.name}`; }
-  if (group === 'throwing') w.stack = THROW_STACK;
   return w;
 }
+
+/** The agent's suit: worn from the start, never taken off (it grows at the ship, not from finds). */
+export const SUIT_NAME = '요원 슈트';
+export const agentSuit = (): Armor => ({ kind: 'armor', tier: 1, name: SUIT_NAME, reduce: 1 });
 
 export function armorOf(tier: 1 | 2 | 3): Armor {
   return { ...ARMORS[tier - 1]! };
 }
 
-/** A random find: one in five is armour; weapons are an even split between melee and ranged groups. */
-export function rollEquipment(rng: Rng, floor: number): Weapon | Armor {
+/** A random find: one of the six local weapon groups with equal weight (no armour — the agent wears the suit). */
+export function rollEquipment(rng: Rng, floor: number): Weapon {
   const t2 = TIER2[Math.min(TIER2.length, Math.max(1, floor)) - 1]!;
-  if (rng.chance(0.2)) return armorOf(rng.chance(t2) ? (rng.chance(0.3) ? 3 : 2) : 1);
-  const group = rng.pick(rng.chance(0.5) ? MELEE : RANGED);
+  const group = rng.pick(LOCAL);
   return makeWeapon(group, rng.chance(t2) ? 2 : 1, group === 'staff' ? rng.pick(ELEMENTS) : undefined);
 }

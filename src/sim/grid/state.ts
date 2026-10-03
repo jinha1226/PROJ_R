@@ -1,21 +1,20 @@
 import { createRng } from '../../core/rng';
 import { computeFov } from './fov';
-import { CLASS_BONUS, startGear, type ClassId } from './gear';
-import { makeWeapon, type Element, type Weapon, type WeaponGroup } from './items';
-import { add, DIRS, same, tileAt, type Cell, type FloorItem } from './types';
+import { startGear } from './gear';
+import type { GunGroup } from './items';
 import { makeFoe } from './foes';
-import { freshFx, type EngraveId } from './engraveCore';
+import { freshFx } from './engraveCore';
 import { newLore } from './lore';
 import { HERO, type GridMap, type GridState } from './types';
 
 /** A fresh sortie on a map: the hero at the start, every spawn asleep, chests shut. */
-export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior', floor = 1): GridState {
-  const maxHp = HERO.hp + CLASS_BONUS[cls].maxHp;
+export function newState(map: GridMap, seed: number, gun: GunGroup = 'pistol', floor = 1): GridState {
+  const maxHp = HERO.hp;
   const s: GridState = {
     seed, time: 0, map: { ...map, tiles: [...map.tiles] },
     hero: {
       id: 'hero', kind: 'hero', pos: { ...map.start }, hp: maxHp, maxHp, nextAt: 0, alive: true, awake: true, group: 0,
-      level: 1, xp: 0, value: 0, loot: [], exitTime: 0, gear: startGear(cls), fx: freshFx(), str: 10,
+      level: 1, xp: 0, value: 0, loot: [], exitTime: 0, charge: 10, maxCharge: 10, gear: startGear(gun), fx: freshFx(), str: 10,
     },
     foes: map.spawns.map((sp, i) => makeFoe(`f${i + 1}`, sp.kind, sp.pos, sp.group, floor, 0)),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
@@ -29,24 +28,4 @@ export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior', f
 export function refreshSight(s: GridState): void {
   s.visible = computeFov(s.map, s.hero.pos, HERO.sight, s);
   for (const k of s.visible) s.seen[k] = 1;
-}
-
-const RACK: WeaponGroup[] = ['dagger', 'sword', 'axe', 'spear', 'mace', 'bow', 'crossbow', 'throwing', 'staff'];
-const RACK_STAFF: Element[] = ['frost', 'shock', 'poison'];
-/** prototype: the rack shows off the combos, two engravings per weapon */
-const RACK_ENGRAVES: Record<WeaponGroup, [EngraveId, EngraveId]> = {
-  dagger: ['counter', 'momentum'], sword: ['dash', 'riposte'], axe: ['leap', 'momentum'], spear: ['quickswap', 'laststand'], mace: ['wallslam', 'finisher'],
-  bow: ['rapid', 'kite'], crossbow: ['mark', 'ricochet'], throwing: ['volley', 'swapstrike'], staff: ['echo', 'elemArrow'],
-};
-const engraved = (w: Weapon): Weapon => ({ ...w, engraves: RACK_ENGRAVES[w.group].map((id) => ({ id, lvl: 1 as const })) });
-
-/** Prototype aid: one of every weapon group the hero is not already holding, laid on the floor around the start. */
-export function weaponRack(s: GridState): FloorItem[] {
-  const held = new Set(s.hero.gear.hands.map((w) => w?.group));
-  const spots: Cell[] = [];
-  for (let r = 1; r <= 3 && spots.length < RACK.length; r++) for (const d of DIRS) {
-    const c = add(s.hero.pos, { x: d.x * r, y: d.y * r });
-    if (tileAt(s.map, c) === 'floor' && !s.chests.some((ch) => same(ch.pos, c)) && !s.foes.some((f) => same(f.pos, c)) && !spots.some((p) => same(p, c))) spots.push(c);
-  }
-  return RACK.filter((gp) => !held.has(gp)).slice(0, spots.length).map((gp, i) => ({ pos: spots[i]!, item: engraved(makeWeapon(gp, 1, gp === 'staff' ? RACK_STAFF[s.seed % 3] : undefined)) }));
 }

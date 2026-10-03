@@ -6,7 +6,7 @@ import { identifyLine } from '../../../src/ui/grid/gridHud';
 import { OPEN, sim, sureHits } from './kit';
 
 const R = { x: 1, y: 0 };
-const engraved = (group: 'sword' | 'axe' | 'bow', id: 'dash' | 'leap' | 'kite') => Object.assign(makeWeapon(group, 1), { engraves: [{ id, lvl: 1 as const }] });
+const engraved = (group: 'sword' | 'axe' | 'pistol', id: 'dash' | 'leap' | 'kite') => Object.assign(makeWeapon(group, 1), { engraves: [{ id, lvl: 1 as const }] });
 
 describe('final review fixes (roguelike basics)', () => {
   it('a dash or leap cut short by a teleport trap strikes nobody', () => {
@@ -25,9 +25,9 @@ describe('final review fixes (roguelike basics)', () => {
   it('kite never rolls onto a found trap, nor out of a net', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    g.s.hero.gear.hands[0] = engraved('bow', 'kite');
+    g.s.hero.gear.hands[0] = engraved('pistol', 'kite');
     g.s.hero.gear.active = 0;
-    g.s.hero.gear.arrows = 5;
+    g.s.hero.charge = 5;
     g.s.foes[0]!.hp = 99;
     g.s.traps = [{ pos: { x: 4, y: 7 }, kind: 'spike', found: true }];
     g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
@@ -41,9 +41,9 @@ describe('final review fixes (roguelike basics)', () => {
   it('shooting or bumping a barrel gives an invisible hero away; drinking a healing potion does not', () => {
     const shot = sim(OPEN, { x: 3, y: 7 });
     shot.s.barrels = [{ x: 7, y: 7 }];
-    shot.s.hero.gear.hands[0] = makeWeapon('bow', 1);
+    shot.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
     shot.s.hero.gear.active = 0;
-    shot.s.hero.gear.arrows = 3;
+    shot.s.hero.charge = 3;
     addBuff(shot.s, shot.s.hero, 'invis', 10, shot.s.time);
     shot.act({ kind: 'shoot', at: { x: 7, y: 7 } });
     expect(buffOn(shot.s.hero, 'invis', shot.s.time)).toBe(false);

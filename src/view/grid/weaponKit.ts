@@ -7,7 +7,6 @@ const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: nu
   sword: { name: 'Sword', length: 0.85, grip: 0.1 },
   blade: { name: 'Sword_2', length: 0.6, grip: 0.1 },
   dagger: { name: 'Dagger', length: 0.36, grip: 0.18 },
-  throwing: { name: 'Dagger_2', length: 0.3, grip: 0.18 },
   axe: { name: 'Axe', length: 0.8, grip: 0.08 },
   spear: { name: 'Spear', length: 1.6, grip: 0.3 },
   mace: { name: 'Hammer_Small', length: 0.7, grip: 0.08 },

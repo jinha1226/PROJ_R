@@ -3,8 +3,8 @@ import { noise, updateAwareness } from './danger';
 import { nextFloor, settleKills, updateWanderers } from './run';
 import { runUntilHero } from './clock';
 import { hitChance } from './combat';
-import { activeWeapon, CLASS_BONUS, type ClassId } from './gear';
-import { WEAPONS, type Weapon } from './items';
+import { activeWeapon } from './gear';
+import { WEAPONS, type GunGroup, type Weapon } from './items';
 import { heroDmg, rechargeStaffs } from './weapons';
 import { castSpell, passMarks } from './shotCombos';
 import { discover } from './traps';
@@ -14,7 +14,7 @@ import { fire, has } from './engraveCore';
 import { explodeBarrels, useThrown } from './explosives';
 import { tickStatuses } from './status';
 import { generateMap } from './mapgen';
-import { newState, refreshSight, weaponRack } from './state';
+import { newState, refreshSight } from './state';
 import { DIRS, same, type Cell, type GAction, type GEvent, type GridState } from './types';
 
 /** The grid sortie: one hero action at a time, the world catches up to the hero's next turn, events say what happened. */
@@ -25,9 +25,8 @@ const CONFUSED_ASTRAY = 0.5;
 export class GridSim {
   private constructor(readonly s: GridState) {}
 
-  static create(seed: number, cls: ClassId = 'warrior'): GridSim {
-    const s = newState(generateMap(seed), seed, cls);
-    s.floorItems = weaponRack(s);
+  static create(seed: number, gun: GunGroup = 'pistol'): GridSim {
+    const s = newState(generateMap(seed), seed, gun);
     s.floorItems.push(...scatterLoot(s));
     return new GridSim(s);
   }
@@ -108,7 +107,7 @@ export class GridSim {
     const f = this.s.foes.find((x) => x.id === id && x.alive);
     const w = activeWeapon(this.s.hero.gear);
     if (!f || !w || WEAPONS[w.group].melee) return null;
-    return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit + CLASS_BONUS[this.s.hero.gear.cls].rangedHit);
+    return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit, w.group === 'rifle' ? 0.5 : 1);
   }
 
   /** A staff spell at a cell; returns the time factor its engravings give the cast. */

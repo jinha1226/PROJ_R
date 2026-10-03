@@ -166,7 +166,7 @@ export class GridRuntime {
       }
       case 'shoot': {
         const p = at(e.dst) ?? (e.to ? cellVec(e.to) : undefined);
-        // a bounce, a chain jump or a volley's extra arrows fly on their own; the shooter does not draw again
+        // a bounce, a chain jump or a volley's extra bullets fly on their own; the shooter does not draw again
         const quiet = e.text === 'ricochet' || e.text === 'chain' || e.text === 'volley';
         const from = quiet && e.from ? cellVec(e.from) : at(e.src);
         if (!p || !from) break;

@@ -1,7 +1,6 @@
 import { losClear } from './fov';
 import { reactOn, reactOnTile, type ReactionKit } from './reactions';
 import type { Element } from './items';
-import { CLASS_BONUS } from './gear';
 import { springTrap } from './traps';
 import { dist, same, tileAt, walkable, type Cell, type Ent, type GridState, type Statuses } from './types';
 
@@ -32,13 +31,12 @@ export function hurt(s: GridState, t: number, src: string, dst: Ent, amount: num
   }
 }
 
-/** Adds a status; a mage's elements last a turn longer. Poison stacks, the others refresh. */
+/** Adds a status. Poison stacks, the others refresh. */
 export function addStatus(s: GridState, t: number, e: Ent, el: Element, src: string): void {
-  const bonus = src === s.hero.id ? CLASS_BONUS[s.hero.gear.cls].statusTurns : 0;
   const x = st(e);
-  if (el === 'fire') x.burn = Math.max(x.burn, STATUS_TURNS.burn + bonus);
-  if (el === 'frost') x.freeze = Math.max(x.freeze, STATUS_TURNS.freeze + bonus);
-  if (el === 'poison') x.poison += STATUS_TURNS.poison + bonus;
+  if (el === 'fire') x.burn = Math.max(x.burn, STATUS_TURNS.burn);
+  if (el === 'frost') x.freeze = Math.max(x.freeze, STATUS_TURNS.freeze);
+  if (el === 'poison') x.poison += STATUS_TURNS.poison;
   if (el !== 'shock') s.events.push({ t, type: 'status', src, dst: e.id, text: el, to: { ...e.pos } });
 }
 

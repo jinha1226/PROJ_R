@@ -4,7 +4,7 @@ import { icon, weaponIcon } from './icons';
 
 const RADIUS = 56;
 const BUTTONS: { cmd: GridCmd; label: string; ic: string; cls: string }[] = [
-  { cmd: 'shoot', label: '사격', ic: 'bow', cls: 'gt-fire' },
+  { cmd: 'shoot', label: '사격', ic: 'pistol', cls: 'gt-fire' },
   { cmd: 'wait', label: '쉬기', ic: 'wait', cls: 'gt-wait' },
   { cmd: 'potion', label: '물약', ic: 'potion', cls: 'gt-potion' },
   { cmd: 'prev', label: '', ic: 'prev', cls: 'gt-prev' },

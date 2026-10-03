@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 type Cell = { x: number; y: number };
-type S = { time: number; outcome?: string; hero: { pos: Cell; hp: number; loaded: boolean }; foes: { pos: Cell; alive: boolean; kind: string }[]; map: { tiles: string[]; w: number } };
+type S = { time: number; outcome?: string; hero: { pos: Cell; hp: number; charge: number }; foes: { pos: Cell; alive: boolean; kind: string }[]; map: { tiles: string[]; w: number } };
 type G = { state(): S; act(a: unknown): boolean; walkTo(c: Cell): void; walking(): boolean; toStairs(): void };
 const waitGrid = (page: Page) => page.waitForFunction(() => !!(window as unknown as { __PROJR_GRID__?: G }).__PROJR_GRID__, null, { timeout: 60_000 });
 
@@ -11,9 +11,8 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
-  await expect(page.locator('[data-testid="grid-stats"]')).toContainText('화살');
+  await expect(page.locator('[data-testid="grid-stats"]')).toContainText('충전');
   const moved = await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
     for (const dir of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 1 }]) if (w.act({ kind: 'move', dir })) return w.state().time;
@@ -30,7 +29,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   await page.waitForFunction(() => !(window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.walking(), null, { timeout: 90_000 });
   await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
-    for (let i = 0; i < 4; i++) if (!w.act({ kind: 'shoot' })) w.act({ kind: w.state().hero.loaded ? 'wait' : 'reload' });
+    for (let i = 0; i < 4; i++) if (!w.act({ kind: 'shoot' })) w.act({ kind: 'wait' });
   });
   await page.screenshot({ path: 'test-artifacts/grid-fight.png' });
   // down the stairs: the banner shows and the HUD says floor 2
@@ -49,7 +48,6 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   await expect(page.locator('[data-testid="grid-result"]')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('[data-testid="grid-result"] h2')).toHaveText('쓰러졌다');
   await page.click('[data-testid="grid-again"]');
-  await page.click('[data-testid="class-hunter"]');
   await waitGrid(page);
   await expect(page.locator('[data-testid="grid-sortie"]')).toBeVisible();
   expect(errors).toEqual([]);
@@ -60,7 +58,6 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   const page = await ctx.newPage();
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
   await expect(page.locator('.screen.grid.portrait')).toBeVisible();
   await page.evaluate(() => { const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__; Object.assign((w.state() as unknown as { hero: { gear: { belt: Record<string, number> } } }).hero.gear.belt, { bomb: 1, fireFlask: 1 }); w.act({ kind: 'wait' }); });
@@ -86,10 +83,11 @@ test('engravings: inscribe a rune stone from the bag, pick one on level-up, and 
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
   const engraves = () => page.evaluate(() => ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.hands[0].engraves.map((e: Any) => e.id));
-  expect(await engraves()).toEqual(['dash']);
+  expect(await engraves()).toEqual(['rapid']);
+  // Equip a local sword for the existing melee engraving scenario.
+  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.hands[0] = { kind: 'weapon', group: 'sword', tier: 1, name: '장검', engraves: [{ id: 'dash', lvl: 1 }] }; });
   // a rune stone in the bag: open the bag, choose it, inscribe it on the sword
   await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.bag.push({ kind: 'rune', id: 'finisher', name: '룬석: 3연타 마무리' }); });
   await page.keyboard.press('i');
@@ -133,7 +131,6 @@ test('roguelike basics: drink an unknown potion from the bag, read a map scroll,
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
-  await page.click('[data-testid="class-warrior"]');
   await waitGrid(page);
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
   await page.evaluate(() => {

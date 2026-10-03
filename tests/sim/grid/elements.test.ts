@@ -82,7 +82,7 @@ describe('explosives', () => {
     const g = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 6 }, awake: false }]);
     sureHits(g);
     g.s.barrels = [{ x: 8, y: 7 }, { x: 9, y: 8 }, { x: 10, y: 9 }];
-    g.s.hero.gear.hands[0] = makeWeapon('bow', 1);
+    g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
     const t = ev(g, { kind: 'shoot', at: { x: 8, y: 7 } });
     expect(t.filter((e) => e.type === 'explode')).toHaveLength(3);
     expect(g.s.barrels).toHaveLength(0);

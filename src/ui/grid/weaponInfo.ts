@@ -1,5 +1,6 @@
+import type { Hero } from '../../sim/grid/types';
 import { ENGRAVES } from '../../sim/grid/engraveCore';
-import { WEAPONS, type Equipment, type Weapon, type WeaponGroup } from '../../sim/grid/items';
+import { isGun, WEAPONS, type Equipment, type Weapon, type WeaponGroup } from '../../sim/grid/items';
 
 /** One line on what makes each weapon group different. */
 export const GROUP_NOTE: Record<WeaponGroup, string> = {
@@ -8,15 +9,14 @@ export const GROUP_NOTE: Record<WeaponGroup, string> = {
   axe: '앞 3칸 휩쓸기 · 느림(1.4턴)',
   spear: '2칸 앞까지 찌름(관통)',
   mace: '밀치기 · 벽에 박으면 기절',
-  bow: '빠른 연사 · 피해 낮음',
-  crossbow: '한 방이 셈 · 느림(1.6턴)',
-  throwing: '장전 없음 · 던진 건 다시 주움',
+  pistol: '빠름(0.8턴) · 충전 1',
+  shotgun: '가까운 부채꼴 3칸 · 밀치기 · 충전 2',
+  rifle: '멀리 · 엄폐 무시 절반 · 충전 2',
   staff: '충전식 마법 · 8턴마다 1회 회복',
 };
 
-export function weaponState(w: Weapon, arrows: number): string {
-  if (w.group === 'bow' || w.group === 'crossbow') return arrows > 0 ? `화살 ${arrows}` : '화살 없음';
-  if (w.group === 'throwing') return `${w.stack ?? 0}개`;
+export function weaponState(w: Weapon, hero: Pick<Hero, 'charge' | 'maxCharge'>): string {
+  if (isGun(w.group)) return `충전 ${hero.charge}/${hero.maxCharge}`;
   if (w.group === 'staff') return `충전 ${w.charges ?? 0}`;
   return '';
 }

@@ -1,13 +1,14 @@
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { afterShot, rapidStep } from './shotCombos';
+import { refillMelee } from './suitCharge';
 import { buffOn } from './buffs';
 import { stow } from './consumables';
 import { potionName, scrollName } from './lore';
-import { activeWeapon, addToBag, CLASS_BONUS } from './gear';
-import { makeWeapon, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
+import { activeWeapon, addToBag } from './gear';
+import { GUN_COST, isGun, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
-import { add, canStep, COST, dist, HERO, same, tileAt, walkable, type Cell, type Ent, type GridState } from './types';
+import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
 const SNEAK = 2;
 const DAGGER_SNEAK = 3;
@@ -16,15 +17,14 @@ const SLAM_WAVE = 3;
 const FINISH_AT = 3;
 const FINISH_MULT = 1.5;
 
-/** Damage range of the hero's weapon: tier, +1 per level above 1, warriors hit harder in melee. */
+/** Damage range of the hero's weapon: tier, +1 per level above 1 and melee strength. */
 export function heroDmg(s: GridState, w: Weapon): [number, number] {
   const [lo, hi] = WEAPONS[w.group].dmg[w.tier - 1]!;
   const up = s.hero.level - 1;
   const melee = WEAPONS[w.group].melee;
-  const k = melee ? CLASS_BONUS[s.hero.gear.cls].meleeDmg : 1;
   // strength above 10 adds to every melee blow
   const str = melee ? Math.max(0, s.hero.str - 10) : 0;
-  return [Math.round((lo + up) * k) + str, Math.round((hi + up) * k) + str];
+  return [(lo + up) + str, (hi + up) + str];
 }
 
 export interface ShotHooks { noise(at: Cell, r: number): void; cast(w: Weapon, at: Cell): number }
@@ -74,6 +74,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
     strike(s, t, h, foe, HERO.bashHit, HERO.bash);
     return COST.bash;
   }
+  const eventStart = s.events.length;
   const def = WEAPONS[w.group];
   const dmg = heroDmg(s, w);
   // an invisible hero's blows land like sneak attacks
@@ -102,6 +103,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   const shove = () => { if (!pushed && foe.alive) { pushed = true; pushFoe(s, t, foe, d); } };
   if (w.group === 'mace' && landed) shove();
   if (combo.finisher && landed && fire(s, t, 'finisher')) shove();
+  refillMelee(s, landed, eventStart);
   if (landed && foe.alive && hooks && has(s, 'shoveShot')) shoveShot(s, t, foe, hooks, shove);
   return def.time;
 }
@@ -110,12 +112,12 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
 function shoveShot(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shove: () => void): void {
   const g = s.hero.gear;
   const other = g.hands[g.active === 0 ? 1 : 0];
-  if (!other || WEAPONS[other.group].melee) return;
+  if (!other || !isGun(other.group)) return;
   const was = g.active;
   g.active = was === 0 ? 1 : 0;
   const ready = canFire(s);
   g.active = was;
-  // no bolts, no charges: no shove either (a pointless push would only break the fight up)
+  // no charge: no shove either (a pointless push would only break the fight up)
   if (!ready) return;
   shove();
   g.active = was === 0 ? 1 : 0;
@@ -139,12 +141,11 @@ export function weaponRange(w: Weapon | null): number {
   return w && !WEAPONS[w.group].melee ? WEAPONS[w.group].range ?? 6 : 8;
 }
 
-/** Can the weapon in hand fire right now (loaded, arrows, stack, charges)? */
+/** Can the weapon in hand fire with its current charge? */
 export function canFire(s: GridState): boolean {
   const w = activeWeapon(s.hero.gear);
   if (!w || WEAPONS[w.group].melee) return false;
-  if (w.group === 'bow' || w.group === 'crossbow') return s.hero.gear.arrows > 0;
-  if (w.group === 'throwing') return (w.stack ?? 0) > 0;
+  if (isGun(w.group)) return s.hero.charge >= GUN_COST[w.group];
   return (w.charges ?? 0) > 0;
 }
 
@@ -162,29 +163,37 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
     hooks.noise(h.pos, 6);
     return WEAPONS.staff.time * k;
   }
-  const base = WEAPONS[w.group].hit + CLASS_BONUS[h.gear.cls].rangedHit;
-  const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base);
+  if (!isGun(w.group)) return null;
+  const base = WEAPONS[w.group].hit;
+  const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base, w.group === 'rifle' ? 0.5 : 1);
   const rapid = rapidStep(s, t, foe);
-  const mult = (foe.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe);
-  foe.awake = true;
   const dmg = heroDmg(s, w);
-  const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
+  const target = { ...foe.pos };
+  const d = { x: Math.sign(target.x - h.pos.x), y: Math.sign(target.y - h.pos.y) };
+  const flank = d.x && d.y
+    ? [add(target, { x: -d.x, y: 0 }), add(target, { x: 0, y: -d.y })]
+    : [add(target, { x: -d.y, y: d.x }), add(target, { x: d.y, y: -d.x })];
+  const targets = w.group === 'shotgun'
+    ? [foe, ...flank.flatMap((c) => { const f = foeAt(s, c); return f && shotClear(s, h.pos, c) ? [f] : []; })]
+    : [foe];
+  // Resolve every hit at the original cells before pushes can move bodies into the blast.
+  const hits = targets.map((f) => {
+    const mult = (f.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, f);
+    f.awake = true;
+    return strike(s, t, h, f, chanceAt(h.pos, f.pos), dmg, mult);
+  });
+  h.charge -= GUN_COST[w.group];
+  hooks.noise(h.pos, w.group === 'pistol' ? 4 : 6);
   h.fx.nextMult = 1;
-  afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w));
-  if (w.group === 'throwing') {
-    w.stack = (w.stack ?? 1) - 1;
-    const land = hit ? foe.pos : add(foe.pos, { x: Math.sign(foe.pos.x - h.pos.x), y: Math.sign(foe.pos.y - h.pos.y) });
-    const spot = walkable(tileAt(s.map, land)) ? land : foe.pos;
-    s.floorItems.push({ pos: { ...spot }, item: { ...makeWeapon('throwing', w.tier), stack: 1 } });
-  } else {
-    h.gear.arrows--;
-    hooks.noise(h.pos, w.group === 'crossbow' ? 6 : 3);
-  }
-  return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime * rapid.time;
+  if (w.group === 'shotgun') targets.forEach((f, i) => {
+    if (hits[i] && f.alive) pushFoe(s, t, f, { x: Math.sign(f.pos.x - h.pos.x), y: Math.sign(f.pos.y - h.pos.y) });
+  });
+  afterShot(s, t, foe, hits[0]!, dmg, chanceAt, weaponRange(w));
+  return WEAPONS[w.group].time * rapid.time;
 }
 
 /** A ranged shot at a barrel (it goes off); null if the weapon in hand cannot reach it. */
-export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) => void): number | null {
+export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) => void, noise?: (at: Cell, r: number) => void): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
   if (!w || !canFire(s) || !s.barrels.some((b) => same(b, at)) || dist(h.pos, at) > weaponRange(w)) return null;
@@ -197,24 +206,23 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   s.events.push({ t, type: 'shoot', src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
   if (w.group === 'staff') w.charges = (w.charges ?? 1) - 1;
-  else if (w.group === 'throwing') w.stack = (w.stack ?? 1) - 1;
-  else h.gear.arrows--;
+  else if (isGun(w.group)) h.charge -= GUN_COST[w.group];
+  noise?.(h.pos, w.group === 'pistol' ? 4 : 6);
   explode(at);
-  return WEAPONS[w.group].time * CLASS_BONUS[h.gear.cls].rangedTime;
+  return WEAPONS[w.group].time;
 }
 
-/** Staffs regain a charge every 8 turns (twice as fast for a mage). */
+/** Staffs regain a charge every 8 turns. */
 export function rechargeStaffs(s: GridState, spent: number): void {
   const g = s.hero.gear;
-  const b = CLASS_BONUS[g.cls];
-  g.staffClock = (g.staffClock ?? 0) + spent * b.recharge;
+  g.staffClock = (g.staffClock ?? 0) + spent;
   while (g.staffClock >= STAFF_RECHARGE - 1e-9) {
     g.staffClock -= STAFF_RECHARGE;
-    for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.min(STAFF_CHARGES + b.charges, (w.charges ?? 0) + 1);
+    for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.min(STAFF_CHARGES, (w.charges ?? 0) + 1);
   }
 }
 
-/** Walking onto a cell picks up what lies there: thrown daggers rejoin a stack in hand, the rest goes to the bag. */
+/** Walking onto a cell picks up its items into the appropriate inventory. */
 export function pickUp(s: GridState, t: number): void {
   const g = s.hero.gear;
   s.floorItems = s.floorItems.filter((f) => {
@@ -231,8 +239,6 @@ export function pickUp(s: GridState, t: number): void {
       s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.kind === 'potion' ? potionName(s, it.p) : scrollName(s, it.sc) });
       return false;
     }
-    const stack = it.kind === 'weapon' && it.group === 'throwing' ? g.hands.find((w) => w?.group === 'throwing') : undefined;
-    if (stack && it.kind === 'weapon') { stack.stack = (stack.stack ?? 0) + (it.stack ?? 1); s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.name }); return false; }
     if (addToBag(g, it)) { s.events.push({ t, type: 'pickup', src: s.hero.id, text: it.name }); return false; }
     s.events.push({ t, type: 'full', src: s.hero.id, text: it.name });
     return true;

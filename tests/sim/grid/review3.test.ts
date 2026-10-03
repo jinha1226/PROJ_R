@@ -9,7 +9,7 @@ describe('final review fixes (combos)', () => {
   it('a quick swap that also strikes is not free (no endless zero-time blows)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    g.s.hero.gear.hands = [makeWeapon('crossbow', 1), Object.assign(makeWeapon('sword', 1), { engraves: [{ id: 'quickswap' as const, lvl: 1 as const }, { id: 'swapstrike' as const, lvl: 1 as const }] })];
+    g.s.hero.gear.hands = [makeWeapon('rifle', 1), Object.assign(makeWeapon('sword', 1), { engraves: [{ id: 'quickswap' as const, lvl: 1 as const }, { id: 'swapstrike' as const, lvl: 1 as const }] })];
     g.s.hero.gear.active = 0;
     g.s.foes[0]!.hp = 99;
     const t = g.s.time;
@@ -44,12 +44,12 @@ describe('final review fixes (combos)', () => {
     expect(g.s.hero.gear.bag).toHaveLength(1);
   });
 
-  it('shove-shot does not shove when the other hand cannot fire (out of bolts)', () => {
+  it('shove-shot does not shove when the other hand cannot fire (not enough charge after the melee refill)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    g.s.hero.gear.hands = [Object.assign(makeWeapon('sword', 1), { engraves: [{ id: 'shoveShot' as const, lvl: 1 as const }] }), makeWeapon('crossbow', 1)];
+    g.s.hero.gear.hands = [Object.assign(makeWeapon('sword', 1), { engraves: [{ id: 'shoveShot' as const, lvl: 1 as const }] }), makeWeapon('rifle', 1)];
     g.s.hero.gear.active = 0;
-    g.s.hero.gear.arrows = 0;
+    g.s.hero.charge = 0;
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: R });
     expect(ev.some((e) => e.type === 'push')).toBe(false);
@@ -73,9 +73,9 @@ describe('final review fixes (combos)', () => {
     const kite = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(kite);
     kite.s.map.stairs = { x: 4, y: 7 };
-    kite.s.hero.gear.hands[0] = Object.assign(makeWeapon('bow', 1), { engraves: [{ id: 'kite' as const, lvl: 1 as const }] });
+    kite.s.hero.gear.hands[0] = Object.assign(makeWeapon('pistol', 1), { engraves: [{ id: 'kite' as const, lvl: 1 as const }] });
     kite.s.hero.gear.active = 0;
-    kite.s.hero.gear.arrows = 5;
+    kite.s.hero.charge = 5;
     kite.s.foes[0]!.hp = 99;
     kite.act({ kind: 'shoot', target: kite.s.foes[0]!.id });
     expect(kite.s.run.floor).toBe(1);
