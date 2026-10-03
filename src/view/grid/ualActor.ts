@@ -24,6 +24,8 @@ export class UalLibrary {
   static async load(baseUrl: string): Promise<UalLibrary> {
     const g = await new GLTFLoader().loadAsync(`${baseUrl}assets/models/ual/ual.glb`);
     const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
+    // some clips carry root motion (a swing lunges 0.8 m forward): figures stay on their cell, so the root never travels
+    for (const a of g.animations) a.tracks = a.tracks.filter((t) => t.name !== 'root.position');
     return new UalLibrary(g.scene, new Map(g.animations.map((a) => [a.name, a])), HEIGHT / Math.max(0.01, size.y));
   }
 
@@ -54,6 +56,7 @@ export class UalActor {
   private flashTotal = 1;
   private flashColor = new THREE.Color();
   private hand: THREE.Object3D | undefined;
+  private offHand: THREE.Object3D | undefined;
   private held: THREE.Object3D | null = null;
   private heldKind: WeaponLook | null = null;
 
@@ -76,6 +79,7 @@ export class UalActor {
       m.material = Array.isArray(m.material) ? tinted : tinted[0]!;
     });
     this.hand = bone(model, 'hand_r');
+    this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
     if (look.shield) {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.32), new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8 }));
@@ -117,10 +121,12 @@ export class UalActor {
       if (!this.busy && this.loop === 'idle' && !this.dead) this.start(idle, true, 1, 0.15);
     }
     if (kind === this.heldKind || !this.hand) return;
-    if (this.held) this.hand.remove(this.held);
+    this.held?.parent?.remove(this.held);
     this.held = weaponMesh(kind);
     this.heldKind = kind;
-    this.hand.add(this.held);
+    // a bow is held in the left hand (the right one draws the string)
+    if (kind === 'bow' && this.offHand) { this.held.rotation.set(0, 0, Math.PI / 2); this.offHand.add(this.held); }
+    else this.hand.add(this.held);
   }
 
   play(anim: UalAnim, speed = 1.4): void {

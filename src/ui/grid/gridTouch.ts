@@ -1,14 +1,16 @@
+import type { WeaponGroup } from '../../sim/grid/items';
 import type { GridCmd } from './gridControls';
+import { icon, weaponIcon } from './icons';
 
 const RADIUS = 56;
-const BUTTONS: { cmd: GridCmd; label: string; cls: string }[] = [
-  { cmd: 'shoot', label: '사격', cls: 'gt-fire' },
-  { cmd: 'wait', label: '쉬기', cls: 'gt-wait' },
-  { cmd: 'potion', label: '물약', cls: 'gt-potion' },
-  { cmd: 'prev', label: '◀', cls: 'gt-prev' },
-  { cmd: 'next', label: '▶', cls: 'gt-next' },
-  { cmd: 'swap', label: '교체', cls: 'gt-swap' },
-  { cmd: 'bag', label: '가방', cls: 'gt-bag' },
+const BUTTONS: { cmd: GridCmd; label: string; ic: string; cls: string }[] = [
+  { cmd: 'shoot', label: '사격', ic: 'bow', cls: 'gt-fire' },
+  { cmd: 'wait', label: '쉬기', ic: 'wait', cls: 'gt-wait' },
+  { cmd: 'potion', label: '물약', ic: 'potion', cls: 'gt-potion' },
+  { cmd: 'prev', label: '', ic: 'prev', cls: 'gt-prev' },
+  { cmd: 'next', label: '', ic: 'next', cls: 'gt-next' },
+  { cmd: 'swap', label: '교체', ic: 'swap', cls: 'gt-swap' },
+  { cmd: 'bag', label: '가방', ic: 'bag', cls: 'gt-bag' },
 ];
 
 /** Phone controls: a floating stick on the lower left, fire / wait / potion / target buttons on the lower right. */
@@ -32,7 +34,7 @@ export class GridTouch {
       const el = document.createElement('div');
       el.className = `gt-btn ${b.cls}`;
       el.dataset.testid = `grid-${b.cmd}`;
-      el.innerHTML = `<span>${b.label}</span><small></small>`;
+      el.innerHTML = `<span class="gt-ic">${icon(b.ic)}</span>${b.label ? `<em>${b.label}</em>` : ''}<small></small>`;
       el.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); this.onCmd(b.cmd); });
       box.appendChild(el);
     }
@@ -74,15 +76,28 @@ export class GridTouch {
     this.knob.style.transform = `translate(${v.x * RADIUS}px, ${v.y * RADIUS}px)`;
   }
 
-  /** Fire button text: hit chance, "장전" when empty, or "-" with nothing to shoot. */
-  setFire(label: string, sub: string): void {
+  /** Fire button: the weapon in hand, what it will do, and the hit chance or state. */
+  setFire(group: WeaponGroup | undefined, label: string, sub: string): void {
     const f = this.el.querySelector('.gt-fire')!;
-    f.querySelector('span')!.textContent = label;
+    const key = `${group}|${label}|${sub}`;
+    if (f.getAttribute('data-k') === key) return;
+    f.setAttribute('data-k', key);
+    f.querySelector('.gt-ic')!.innerHTML = weaponIcon(group);
+    f.querySelector('em')!.textContent = label;
     f.querySelector('small')!.textContent = sub;
   }
 
   setPotions(n: number): void {
-    this.el.querySelector('.gt-potion small')!.textContent = String(n);
+    const p = this.el.querySelector('.gt-potion small')!;
+    if (p.textContent !== String(n)) p.textContent = String(n);
+    this.el.querySelector('.gt-potion')!.classList.toggle('empty', n <= 0);
+  }
+
+  /** The swap button shows the weapon waiting in the other hand. */
+  setSwap(group: WeaponGroup | undefined): void {
+    const s = this.el.querySelector('.gt-swap small')!;
+    const html = group ? weaponIcon(group) : '';
+    if (s.innerHTML !== html) s.innerHTML = html;
   }
 
   dispose(): void {

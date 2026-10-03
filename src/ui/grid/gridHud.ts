@@ -1,13 +1,15 @@
 import { DANGER, EXIT_TIME } from '../../sim/grid/danger';
+import { activeWeapon, CLASS_NAME } from '../../sim/grid/gear';
 import type { GEvent, GridState } from '../../sim/grid/types';
-import { GROUP_NOTE, weaponState } from './weaponInfo';
+import { icon, weaponIcon } from './icons';
+import { weaponState } from './weaponInfo';
 
 const LOG: Partial<Record<GEvent['type'], string>> = {
   alarm: '발소리가 늘었다 — 잠든 해골들이 깨어난다', reinforce: '묘지 깊은 곳에서 증원이 몰려온다!', exitClosed: '탈출 지점 하나가 무너졌다',
 };
 const KIND: Record<string, string> = { minion: '해골 졸개', archer: '해골 석궁병', brute: '해골 전사' };
 
-/** HP, crossbow, potions, turn, haul, the danger clock, the current target and one log line. */
+/** Top bar (level badge, health, arrows/potions/turn, weapon in hand), target card, danger line, toasts. */
 export class GridHud {
   readonly el = document.createElement('div');
   private logTimer = 0;
@@ -15,15 +17,19 @@ export class GridHud {
 
   constructor() {
     this.el.className = 'ghud';
-    this.el.innerHTML = `<div class="ghud-top">
-        <div class="ghud-hp"><div></div><span></span></div>
-        <div class="ghud-stats" data-testid="grid-stats"></div>
+    this.el.innerHTML = `<div class="gh-top">
+        <div class="gh-badge"><b></b><small></small></div>
+        <div class="gh-main">
+          <div class="gh-hp">${icon('heart', 'gh-hp-ic')}<div class="gh-hp-bar"><div class="gh-hp-fill"></div><div class="gh-hp-lag"></div></div><span class="gh-hp-num"></span></div>
+          <div class="gh-res" data-testid="grid-stats"></div>
+        </div>
+        <div class="gh-weapon"></div>
       </div>
-      <div class="ghud-hands" data-testid="grid-hands"></div>
-      <div class="ghud-danger"></div>
+      <div class="gh-target" hidden></div>
+      <div class="gh-danger"></div>
       <div class="ghud-exit" hidden><span>탈출 중</span><div><div></div></div></div>
       <div class="ghud-log" hidden></div>
-      <div class="ghud-help muted">WASD·QEZC 이동(꾹 누르면 연속) · F 사격 · Tab 표적 · R 장전 · Space 쉬기 · 1 물약 · 클릭 이동 · 휠 확대</div>`;
+      <div class="ghud-help muted">WASD·QEZC 이동(꾹 누르면 연속) · F 사격 · X 교체 · I 가방 · Tab 표적 · Space 쉬기 · 1 물약 · 클릭 이동 · 휠 확대</div>`;
   }
 
   cue(e: GEvent): void {
@@ -32,23 +38,33 @@ export class GridHud {
     const el = this.el.querySelector<HTMLElement>('.ghud-log')!;
     el.textContent = text;
     el.hidden = false;
-    this.logTimer = 3;
+    el.classList.toggle('warn', !!LOG[e.type]);
+    this.logTimer = 2.6;
   }
 
   update(s: GridState, target: { id: string; chance: number } | null, dt: number): void {
     const h = s.hero;
-    const t = target ? s.foes.find((f) => f.id === target.id) : undefined;
     const g = h.gear;
-    const key = JSON.stringify([h.hp, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), h.exitTime, target, t?.hp, s.danger]);
+    const w = activeWeapon(g);
+    const t = target ? s.foes.find((f) => f.id === target.id) : undefined;
+    const key = JSON.stringify([h.hp, h.level, g.hands, g.active, g.arrows, g.belt.potion, Math.floor(s.time), h.exitTime, target, t?.hp, s.danger]);
     if (key !== this.key) {
       this.key = key;
       const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
-      q('.ghud-hp div').style.width = `${(h.hp / h.maxHp) * 100}%`;
-      q('.ghud-hp span').textContent = `HP ${h.hp}/${h.maxHp}`;
-      q('.ghud-stats').innerHTML = `<span>화살 <b>${g.arrows}</b></span><span>물약 <b>${g.belt.potion}</b></span><span>턴 <b>${Math.floor(s.time)}</b></span>`;
-      q('.ghud-hands').innerHTML = g.hands.map((w, i) => `<button class="ghand ${i === g.active ? 'on' : ''}" data-swap="1">${w ? `<b>${w.name}</b><small>${weaponState(w, g.arrows) || GROUP_NOTE[w.group]}</small>` : '<b>빈손</b>'}</button>`).join('<span class="ghand-x">⇄</span>');
-      const next = s.danger === 0 ? `${DANGER.alarm}턴 순찰 증가` : s.danger === 1 ? `${DANGER.reinforce}턴 증원 · 탈출 지점 붕괴` : '증원이 왔다';
-      q('.ghud-danger').innerHTML = `${t ? `<b>${KIND[t.kind]}</b> HP ${t.hp} · 명중 ${Math.round(target!.chance * 100)}% · ` : ''}위험: ${next}`;
+      q('.gh-badge b').textContent = `${h.level}`;
+      q('.gh-badge small').textContent = CLASS_NAME[g.cls];
+      const frac = Math.max(0, h.hp / h.maxHp);
+      q('.gh-hp-fill').style.width = `${frac * 100}%`;
+      q('.gh-hp-fill').classList.toggle('low', frac < 0.35);
+      q('.gh-hp-lag').style.width = `${frac * 100}%`;
+      q('.gh-hp-num').textContent = `${h.hp} / ${h.maxHp}`;
+      q('.gh-res').innerHTML = `<span title="화살">${icon('arrow')}<b>${g.arrows}</b><i>화살</i></span><span title="물약">${icon('potion')}<b>${g.belt.potion}</b><i>물약</i></span><span title="턴">${icon('hourglass')}<b>${Math.floor(s.time)}</b><i>턴</i></span>`;
+      q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, g.arrows) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
+      const card = q('.gh-target');
+      card.hidden = !t;
+      if (t) card.innerHTML = `${icon('skull')}<b>${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${Math.round(target!.chance * 100)}%</span>`;
+      const next = s.danger === 0 ? `${DANGER.alarm}턴에 순찰이 늘어난다` : s.danger === 1 ? `${DANGER.reinforce}턴에 증원이 온다` : '증원이 왔다';
+      q('.gh-danger').textContent = next;
       q('.ghud-exit').hidden = h.exitTime <= 0;
       q('.ghud-exit div div').style.width = `${Math.min(1, h.exitTime / EXIT_TIME) * 100}%`;
     }

@@ -71,7 +71,6 @@ export class GridScreen implements Screen {
       return this.api.fatal(e);
     }
     this.el.appendChild(this.hud.el);
-    this.hud.el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-swap]')) this.controls.push('swap'); });
     if (mobile) {
       this.touch = new GridTouch((c) => this.controls.push(c));
       this.el.appendChild(this.touch.el);
@@ -213,7 +212,9 @@ export class GridScreen implements Screen {
     this.hud.update(s, target && chance !== null ? { id: target, chance } : null, dt);
     const w = activeWeapon(s.hero.gear);
     const melee = !w || WEAPONS[w.group].melee;
-    this.touch?.setFire(melee ? '교체' : '사격', melee ? '원거리로' : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
+    const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
+    this.touch?.setSwap(other?.group);
+    this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : '사격', melee ? '원거리로' : canFire(s) && chance !== null ? `${Math.round(chance * 100)}%` : w ? weaponState(w, s.hero.gear.arrows) || '-' : '-');
     this.touch?.setPotions(s.hero.gear.belt.potion);
     if (s.outcome && !this.ended) {
       this.ended = true;

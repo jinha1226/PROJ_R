@@ -1,42 +1,75 @@
 /* grid sortie (Jupiter Hell–style prototype) */
-.screen.grid { background: #0b0b0e; overflow: hidden; }
+.screen.grid { background: #0b0b0e; overflow: hidden; --gold: #e8b45a; --panel: linear-gradient(180deg, #1d1a20f2, #121015f2); --rim: #ffffff1f; }
 .grid-stage { position: absolute; inset: 0; touch-action: none; }
 .grid-stage canvas { width: 100%; height: 100%; display: block; }
-.ghud { position: absolute; inset: 0; pointer-events: none; font-size: 14px; text-shadow: 0 0 3px #000; }
-.ghud-top { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: calc(env(safe-area-inset-top, 0px) + 8px) 10px 8px; background: linear-gradient(#000c, #0000); }
-.ghud-hp { position: relative; width: 170px; height: 18px; background: #000a; border-radius: 9px; overflow: hidden; border: 1px solid #ffffff22; }
-.ghud-hp div { height: 100%; background: linear-gradient(90deg, #b8322a, #e8664a); transition: width 0.15s; }
-.ghud-hp span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
-.ghud-stats { display: flex; gap: 12px; flex-wrap: wrap; }
-.ghud-stats i { font-style: normal; font-size: 12px; } .ghud-stats .ok { color: #8fe08a; } .ghud-stats .no { color: #ff8a7a; }
-.ghud-stats .gold { color: var(--accent, #e0a64a); font-weight: 700; }
-.ghud-danger { position: absolute; left: 10px; right: 60px; top: calc(env(safe-area-inset-top, 0px) + 64px); font-size: 12px; color: #d8cdb8; background: #0008; padding: 3px 8px; border-radius: 6px; }
-.ghud-log { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); background: #000c; border: 1px solid #d0533f; color: #ffcfc4; padding: 8px 14px; border-radius: 8px; font-size: 15px; white-space: nowrap; }
+.ghud { position: absolute; inset: 0; pointer-events: none; font-size: 14px; color: #efe4cc; text-shadow: 0 1px 2px #000; }
+.gi { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; }
+
+/* top bar */
+.gh-top { position: absolute; left: 8px; right: 60px; top: calc(env(safe-area-inset-top, 0px) + 8px); display: flex; align-items: stretch; gap: 8px; }
+.gh-badge { flex: none; width: 46px; height: 46px; border-radius: 12px; background: radial-gradient(circle at 30% 25%, #4a3a22, #1a140c); border: 2px solid var(--gold); box-shadow: 0 2px 8px #000a, inset 0 0 8px #0008; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.gh-badge b { font-size: 20px; color: #ffe2a0; } .gh-badge small { font-size: 9px; color: #d9c49a; margin-top: 2px; }
+.gh-main { flex: 1; min-width: 0; max-width: 380px; display: flex; flex-direction: column; gap: 5px; }
+.gh-hp { display: flex; align-items: center; gap: 6px; }
+.gh-hp-ic { color: #ff5a4a; font-size: 18px; filter: drop-shadow(0 0 4px #ff3a2a88); }
+.gh-hp-bar { position: relative; flex: 1; height: 16px; border-radius: 8px; background: #000c; border: 1px solid #ffffff2a; overflow: hidden; box-shadow: inset 0 2px 4px #000; }
+.gh-hp-fill, .gh-hp-lag { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; }
+.gh-hp-lag { background: #ffd0a0; opacity: 0.55; transition: width 0.6s ease 0.15s; }
+.gh-hp-fill { z-index: 1; background: linear-gradient(180deg, #ff7a5a, #c22a1e 60%, #8a1a12); box-shadow: inset 0 1px 0 #ffffff55; transition: width 0.12s; }
+.gh-hp-fill.low { animation: gh-pulse 0.8s ease-in-out infinite alternate; }
+@keyframes gh-pulse { from { filter: brightness(1); } to { filter: brightness(1.5); } }
+.gh-hp-num { font-weight: 800; font-size: 12px; min-width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+.gh-res { display: flex; gap: 6px; }
+.gh-res span { display: inline-flex; align-items: center; gap: 4px; background: #000a; border: 1px solid var(--rim); border-radius: 999px; padding: 2px 9px 2px 7px; font-size: 13px; }
+.gh-res span .gi { color: var(--gold); } .gh-res b { font-variant-numeric: tabular-nums; } .gh-res i { display: none; }
+.gh-weapon { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 12px; background: var(--panel); border: 1px solid var(--rim); box-shadow: 0 2px 8px #0008; }
+.gh-weapon .gi { font-size: 24px; color: var(--gold); }
+.gh-weapon b { display: block; font-size: 13px; } .gh-weapon small { display: block; font-size: 11px; color: #b8ad98; }
+@media (max-width: 480px) { .gh-weapon div { display: none; } }
+.gh-target { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px); transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 10px; background: #2a0e0ccc; border: 1px solid #d0533f88; font-size: 13px; }
+.gh-target[hidden] { display: none; }
+.gh-target .gi { color: #ffb0a0; } .gh-target span { font-weight: 800; color: #ffd76a; }
+.gh-t-bar { width: 70px; height: 6px; background: #000a; border-radius: 3px; overflow: hidden; } .gh-t-bar div { height: 100%; background: #e0503a; }
+.gh-danger { position: absolute; left: 8px; top: calc(env(safe-area-inset-top, 0px) + 60px); font-size: 11px; color: #b8ad98; letter-spacing: 0.02em; }
+.ghud-log { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 98px); transform: translateX(-50%); background: var(--panel); border: 1px solid #e8b45a66; color: #ffe8c0; padding: 7px 14px; border-radius: 10px; font-size: 14px; white-space: nowrap; box-shadow: 0 4px 14px #000a; }
+.ghud-log.warn { border-color: #d0533f; color: #ffcfc4; }
 .ghud-log[hidden], .ghud-exit[hidden] { display: none; }
-.ghud-exit { position: absolute; left: 50%; bottom: 210px; transform: translateX(-50%); text-align: center; color: #9fe8b0; }
+.ghud-exit { position: absolute; left: 50%; bottom: 230px; transform: translateX(-50%); text-align: center; color: #9fe8b0; }
 .ghud-exit > div { width: 180px; height: 8px; background: #000a; border-radius: 4px; overflow: hidden; margin-top: 4px; } .ghud-exit > div > div { height: 100%; background: #5fe08a; }
 .ghud-help { position: absolute; left: 10px; bottom: 8px; font-size: 11px; }
 @media (pointer: coarse) { .ghud-help { display: none; } }
 .grid-icons { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .grid-icon { position: absolute; left: 0; top: 0; margin: -10px 0 0 -6px; font-weight: 900; font-size: 16px; color: #ffcf6a; text-shadow: 0 0 4px #000; }
 .grid-icon.aim { color: #ff5a4a; }
-.grid .xzoom { position: absolute; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 96px); display: flex; flex-direction: column; gap: 6px; z-index: 16; }
-.grid .xzoom .btn { width: 40px; height: 40px; padding: 0; font-size: 20px; border-radius: 10px; background: #1b1a1fcc; }
+.grid .xzoom { position: absolute; right: 8px; top: calc(env(safe-area-inset-top, 0px) + 8px); display: flex; flex-direction: column; gap: 6px; z-index: 16; }
+.grid .xzoom .btn { width: 42px; height: 42px; padding: 0; font-size: 20px; border-radius: 12px; background: var(--panel); border: 1px solid var(--rim); color: #efe4cc; box-shadow: 0 2px 8px #0008; }
+.grid .xzoom .grid-pixel { font-size: 12px; font-weight: 700; }
 
 /* touch */
 .gt { position: absolute; inset: 0; z-index: 15; pointer-events: none; touch-action: none; }
 .gt-pad { position: absolute; left: 0; bottom: 0; width: 50%; height: 60%; pointer-events: auto; }
-.gt-stick { position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; background: #ffffff14; border: 2px solid #ffffff40; pointer-events: none; }
+.gt-stick { position: absolute; width: 116px; height: 116px; margin: -58px 0 0 -58px; border-radius: 50%; background: radial-gradient(circle, #ffffff10, #ffffff05 70%); border: 2px solid #e8b45a55; box-shadow: 0 0 18px #000a inset; pointer-events: none; }
 .gt-stick[hidden] { display: none; }
-.gt-knob { position: absolute; left: 32px; top: 32px; width: 48px; height: 48px; border-radius: 50%; background: #ffffff70; }
-.gt-buttons { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); width: 220px; height: 200px; pointer-events: none; }
-.gt-btn { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: #1b1a1fd0; border: 2px solid #ffffff50; color: #fff; pointer-events: auto; user-select: none; -webkit-user-select: none; }
-.gt-btn small { font-size: 11px; color: #e0d6c0; }
-.gt-fire { right: 0; bottom: 0; width: 96px; height: 96px; font-size: 18px; border-color: #e0a64a; }
-.gt-wait { right: 108px; bottom: 0; width: 60px; height: 60px; font-size: 13px; }
-.gt-potion { right: 100px; bottom: 74px; width: 60px; height: 60px; font-size: 13px; border-color: #8fe08a; }
-.gt-prev { right: 54px; bottom: 112px; width: 56px; height: 56px; }
-.gt-next { right: 0; bottom: 112px; width: 56px; height: 56px; }
+.gt-knob { position: absolute; left: 33px; top: 33px; width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6dc, #b89a62); box-shadow: 0 3px 8px #000a; }
+.gt-buttons { position: absolute; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); width: 250px; height: 176px; pointer-events: none; }
+.gt-btn { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: 50%; color: #efe4cc; pointer-events: auto; user-select: none; -webkit-user-select: none;
+  background: radial-gradient(circle at 35% 28%, #3a3440, #17141b 70%); border: 2px solid #ffffff2a; box-shadow: 0 4px 10px #000c, inset 0 1px 0 #ffffff22; transition: transform 0.06s; }
+.gt-btn.on, .gt-btn:active { transform: scale(0.93); filter: brightness(1.25); }
+.gt-ic { font-size: 22px; line-height: 0; color: var(--gold); }
+.gt-btn em { font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.gt-btn small { font-size: 10px; color: #cbbf9f; line-height: 1; }
+.gt-btn small:empty { display: none; }
+.gt-fire { right: 0; bottom: 0; width: 100px; height: 100px; border: 3px solid var(--gold); background: radial-gradient(circle at 35% 28%, #5a3a1c, #22140a 72%); box-shadow: 0 0 18px #e8b45a44, 0 6px 14px #000c, inset 0 1px 0 #ffffff33; }
+.gt-fire .gt-ic { font-size: 34px; color: #ffe2a0; } .gt-fire em { font-size: 13px; } .gt-fire small { font-size: 12px; color: #ffd76a; font-weight: 800; }
+.gt-swap { right: 112px; bottom: 8px; width: 60px; height: 60px; border-color: #e8b45a77; }
+.gt-swap small .gi { font-size: 14px; color: #efe4cc; }
+.gt-wait { right: 182px; bottom: 0; width: 56px; height: 56px; }
+.gt-potion { right: 118px; bottom: 80px; width: 58px; height: 58px; border-color: #7ad07a88; }
+.gt-potion .gt-ic { color: #ff7a8a; } .gt-potion small { position: absolute; right: -2px; top: -2px; min-width: 18px; height: 18px; border-radius: 9px; background: #c22a3a; color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 11px; }
+.gt-potion.empty { opacity: 0.45; }
+.gt-bag { right: 188px; bottom: 72px; width: 56px; height: 56px; }
+.gt-prev, .gt-next { bottom: 112px; width: 56px; height: 56px; } .gt-prev { right: 60px; } .gt-next { right: 0; }
+.gt-prev .gt-ic, .gt-next .gt-ic { font-size: 20px; color: #efe4cc; }
 
 /* result */
 .grid-result { display: grid; place-items: center; background: #0b0b0e; }
@@ -50,15 +83,10 @@
 @keyframes grid-hurt { 0% { opacity: 1; } 100% { opacity: 0; } }
 .grid .xzoom .grid-pixel { font-size: 12px; font-weight: 700; }
 
-/* hands (two weapons, tap to swap) */
-.ghud-hands { position: absolute; left: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 230px); display: flex; align-items: center; gap: 4px; pointer-events: auto; }
-.ghand { font: inherit; color: #e8dcc0; background: #000b; border: 1px solid #ffffff33; border-radius: 8px; padding: 4px 8px; display: flex; flex-direction: column; align-items: flex-start; min-width: 96px; min-height: 48px; cursor: pointer; }
-.ghand b { font-size: 13px; } .ghand small { font-size: 11px; color: #b8ad98; }
-.ghand.on { border-color: #e0a64a; box-shadow: 0 0 0 1px #e0a64a; }
-.ghand-x { color: #e0a64a; font-weight: 900; }
-@media (pointer: fine) { .ghud-hands { bottom: 34px; } }
-.gt-swap { right: 108px; bottom: 148px; width: 56px; height: 56px; font-size: 13px; border-color: #e0a64a; }
-.gt-bag { right: 170px; bottom: 112px; width: 56px; height: 56px; font-size: 13px; }
+
+.grid-hurt { position: absolute; inset: 0; pointer-events: none; opacity: 0; box-shadow: inset 0 0 90px 30px #c0101aa0; }
+.grid-hurt.on { animation: grid-hurt 0.45s ease-out; }
+@keyframes grid-hurt { 0% { opacity: 1; } 100% { opacity: 0; } }
 
 /* bag */
 .gbag { position: absolute; inset: 0; z-index: 30; background: #0008; display: grid; place-items: end center; }

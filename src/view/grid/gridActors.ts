@@ -134,7 +134,8 @@ export class GridActors {
 
   /** Shows the weapon group a figure is holding. */
   setWeapon(id: string, kind: WeaponLook): void {
-    const idle = kind === 'bow' || kind === 'crossbow' ? 'Pistol_Idle_Loop' : kind === 'staff' ? 'Spell_Simple_Idle_Loop' : kind === 'throwing' ? 'Idle_Loop' : 'Sword_Idle';
+    // ranged weapons rest at ease; melee keeps a guard stance
+    const idle = kind === 'bow' || kind === 'crossbow' || kind === 'staff' || kind === 'throwing' ? 'Idle_Loop' : 'Sword_Idle';
     if (id === 'hero') this.heroWeapon = kind;
     this.v(id)?.actor.setWeapon(kind, idle);
   }
