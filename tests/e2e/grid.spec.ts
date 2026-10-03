@@ -138,6 +138,8 @@ test('roguelike basics: drink an unknown potion from the bag, read a map scroll,
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
   await page.evaluate(() => {
     const s = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any;
+    // a sturdy hero: nearby foes must not end the run while the bag is being used
+    s.hero.hp = s.hero.maxHp = 999;
     s.hero.gear.potions = { haste: 1 };
     s.hero.gear.scrolls = { map: 1 };
     s.traps.push({ pos: { x: s.hero.pos.x + 1, y: s.hero.pos.y + 1 }, kind: 'net', found: false });
