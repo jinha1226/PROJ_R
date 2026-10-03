@@ -211,8 +211,7 @@ export class GridScreen implements Screen {
   private onTap(x: number, y: number): void {
     const s = this.s;
     const c = this.rt?.cellAt(x, y);
-    if (!c) return;
-    if (this.levelUp) return;
+    if (!c || this.levelUp) return;
     if (this.aim) { if (this.aim.tap(c)) this.throwAim(); return; }
     const foe = s.foes.find((f) => f.alive && same(f.pos, c) && s.visible.has(idx(s.map, c)));
     if (foe) { s.hero.target = foe.id; return; }
