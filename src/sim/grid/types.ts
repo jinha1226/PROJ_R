@@ -49,7 +49,7 @@ export type { Rng };
 export interface Ent { id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
-export interface TileFx { pos: Cell; kind: 'fire' | 'poison'; until: number }
+export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
 export interface Hero extends Ent {
   kind: 'hero';
   level: number;
@@ -98,7 +98,7 @@ export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp';
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

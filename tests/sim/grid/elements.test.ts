@@ -112,10 +112,11 @@ describe('explosives', () => {
     expect(f.hp).toBeLessThan(999);
     ev(g, { kind: 'use', item: 'fireFlask', at: f.pos });
     expect(f.status?.burn).toBeGreaterThan(0);
+    // frost on a burning foe is a reaction now: steam, the burning stops
+    expect(ev(g, { kind: 'use', item: 'frostFlask', at: f.pos }).some((e) => e.type === 'react' && e.text === 'steam')).toBe(true);
+    expect(f.status?.burn).toBe(0);
     ev(g, { kind: 'use', item: 'poisonFlask', at: f.pos });
     expect(f.status?.poison).toBeGreaterThan(0);
-    ev(g, { kind: 'use', item: 'frostFlask', at: f.pos });
-    expect(f.status?.freeze).toBeGreaterThan(0);
     expect(belt.bomb + belt.fireFlask + belt.frostFlask + belt.poisonFlask).toBe(0);
     expect(ev(g, { kind: 'use', item: 'shockFlask', at: { x: 13, y: 7 } }).map((e) => e.type)).toEqual(['blocked']);
   });

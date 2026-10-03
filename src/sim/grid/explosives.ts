@@ -38,7 +38,7 @@ export function explodeBarrels(s: GridState, t: number, first: Cell, src: string
 /** Can the hero throw at that cell (seen, in range, nothing solid in the way — bodies are thrown over)? */
 export function canThrow(s: GridState, at: Cell): boolean {
   const d = dist(s.hero.pos, at);
-  return d >= 1 && d <= THROW_RANGE && s.visible.has(idx(s.map, at)) && losClear(s.map, s.hero.pos, at);
+  return d >= 1 && d <= THROW_RANGE && s.visible.has(idx(s.map, at)) && losClear(s.map, s.hero.pos, at, undefined, s);
 }
 
 /** A bomb or a flask thrown at a cell; null when it cannot be thrown or there is none. */

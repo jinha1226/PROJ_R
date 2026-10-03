@@ -1,4 +1,5 @@
 import { losClear } from './fov';
+import { reactOn, reactOnTile, type ReactionKit } from './reactions';
 import type { Element } from './items';
 import { CLASS_BONUS } from './gear';
 import { dist, same, tileAt, walkable, type Cell, type Ent, type GridState, type Statuses } from './types';
@@ -60,22 +61,30 @@ export function areaCells(s: GridState, at: Cell, radius: number): Cell[] {
  * poison over an area leaves a cloud; lightning hits the target and half again to foes beside it.
  */
 export function applyElement(s: GridState, t: number, el: Element, at: Cell, radius: number, dmg: readonly [number, number] | null, src: string, onBarrel?: (c: Cell) => void, spare?: string): void {
+  const kit: ReactionKit = { hurt, ents: entsAt, area: areaCells };
   if (el === 'shock') {
     const target = entsAt(s, at)[0];
     if (!target) return;
     const amount = dmg ? s.rng.int(dmg[0], dmg[1]) : 4;
-    hurt(s, t, src, target, amount, 'shock');
+    const r = reactOn(s, t, 'shock', target, src, kit);
+    hurt(s, t, src, target, r === 'shatter' ? amount * 2 : amount, 'shock');
     for (const f of s.foes) if (f !== target && f.alive && dist(f.pos, target.pos) === 1) hurt(s, t, src, f, Math.round(amount / 2), 'shock');
     return;
   }
+  // one application reacts at most once (a 3×3 fireball over a poison cloud is one ignition)
+  let reacted = false;
   for (const c of areaCells(s, at, radius)) {
     const occupants = entsAt(s, c);
     const here = occupants.filter((e) => e.id !== spare);
     for (const e of here) {
       if (dmg) hurt(s, t, src, e, s.rng.int(dmg[0], dmg[1]), el);
+      if (!e.alive) continue;
+      const r = reacted ? null : reactOn(s, t, el, e, src, kit);
+      if (r) { reacted = true; continue; }
       if (e.alive) addStatus(s, t, e, el, src);
     }
-    if (el === 'fire' && !occupants.length) setTile(s, c, 'fire', FIRE_TILE);
+    if (!reacted && !occupants.length && reactOnTile(s, t, el, c, src, kit)) { reacted = true; continue; }
+    if (el === 'fire' && !occupants.length && !s.tiles.some((x) => x.kind === 'steam' && same(x.pos, c))) setTile(s, c, 'fire', FIRE_TILE);
     if (el === 'poison' && radius > 0) setTile(s, c, 'poison', CLOUD_TILE);
     if (el === 'fire' && s.barrels.some((b) => same(b, c))) onBarrel?.(c);
   }

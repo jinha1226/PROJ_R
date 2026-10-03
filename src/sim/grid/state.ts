@@ -25,7 +25,7 @@ export function newState(map: GridMap, seed: number, cls: ClassId = 'warrior', f
 
 /** Recomputes what the hero sees and remembers. */
 export function refreshSight(s: GridState): void {
-  s.visible = computeFov(s.map, s.hero.pos, HERO.sight);
+  s.visible = computeFov(s.map, s.hero.pos, HERO.sight, s);
   for (const k of s.visible) s.seen[k] = 1;
 }
 

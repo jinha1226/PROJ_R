@@ -31,7 +31,7 @@ export function bodyAt(s: GridState, c: Cell): Ent | undefined {
 /** A shot line, the same both ways (a line traced from either end counts), bodies in between block it. */
 export function shotClear(s: GridState, from: Cell, to: Cell): boolean {
   const bodies = (c: Cell) => !!bodyAt(s, c) || s.barrels.some((b) => same(b, c));
-  return losClear(s.map, from, to, bodies) || losClear(s.map, to, from, bodies);
+  return losClear(s.map, from, to, bodies, s) || losClear(s.map, to, from, bodies, s);
 }
 
 /** Rolls to hit and for damage; emits hit/miss (+die). Returns whether it hit. */
