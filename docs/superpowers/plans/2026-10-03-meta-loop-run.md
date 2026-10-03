@@ -186,8 +186,53 @@ export function putOnSuit(s: GridState, id: EngraveId, slot?: number): boolean; 
 
 **Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
-### Task 4: Elites, echoes and absorption (outline)
-- 1–2 elites per non-boss floor (×1.6 hp/damage, flag `elite`), an echo left on death; stepping in (1 turn) offers 3 engravings of the foe's family: 2 recorded + 1 unrecorded; records live in `s.records` (seeded per run for now: one per family) — persisted by the next plan.
+### Task 4: Elites, echoes and absorption
+
+**Why:** New engravings come from hunting. Each non-boss floor has 1–2 glowing elites; killing one leaves an echo, and walking into it offers three engravings of that foe's family (two already recorded, one new). Records grow as engravings are first taken (they are kept per run for now; the next plan saves them between runs).
+
+**Scope:** `src/sim/grid/**`, `src/ui/grid/**`, `src/view/grid/**`, `tests/sim/grid/**`, grid unit tests. Do not edit `tests/e2e/**`. Other modes off limits.
+
+**Interfaces — Produces:**
+```ts
+// types.ts
+Ent.elite?: boolean;
+GridMap.spawns[n].elite?: boolean;
+GridState.records: EngraveId[];          // seeded at newState: ['dash', 'rapid', 'chain', 'momentum']
+// items.ts — a floor item
+export interface Echo { kind: 'echo'; family: Family; name: '잔향' }
+FloorItem.item: Equipment | Consumable | Core | Echo
+// absorb.ts (new)
+export type Family = 'melee' | 'ranged' | 'magic' | 'any' | 'all';
+export const FAMILY: Record<FoeKind, Family>;   // minion, brute → melee; archer → ranged; mage → magic; ghoul → any; champion → all
+export function absorbOffer(s: GridState, family: Family): EngraveId[];   // up to 3
+export function record(s: GridState, t: number, id: EngraveId): void;     // adds to s.records once, emits 'record'
+export const ELITE_MULT = 1.6;
+```
+New events: `'absorb'` (echo taken, `text` = family) and `'record'` (`text` = engraving id).
+
+**Behaviour:**
+1. **Elites in map generation**: on non-boss floors, after spawns are placed, mark 1 or 2 of the non-champion spawns `elite: true` using a **separate seed-derived rng stream** (e.g. `createRng((seed ^ 0x3e11a7) + floor * 6151)`) so the rest of the floor stays the same. Boss floors have no elites. (Hand-built test maps have none unless a test sets them.)
+2. **Elite foes**: `makeFoe` (or where map spawns become foes in `state.ts`/`run.ts`) gives an elite `elite = true`, hp × `ELITE_MULT` and power × `ELITE_MULT` (damage scales through power as today). Elites give **×3 XP**.
+3. **Echo on death**: when an elite dies (settle kills), drop `{ kind: 'echo', family: FAMILY[kind], name: '잔향' }` at its cell. A champion's death also drops an echo with family `'all'` (in addition to the stairs / energy source it already leaves). If the cell already holds an item, still push (items can share a cell).
+4. **Absorbing**: walking onto an echo (`pickUp`) removes it, emits `absorb`, and pushes `absorbOffer(s, family)` onto `s.offers` (the same queue and 3-choice panel as level-ups; nothing is pushed if the offer is empty). No extra time beyond the step.
+5. **`absorbOffer(s, family)`**: the pool is every engraving whose `fits` equals the family (for `'all'`: every engraving), minus those already on the suit. Pick up to **2 recorded** (in `s.records`) and **1 unrecorded**, using `s.rng`; if one side runs short, fill from the other; return at most 3, recorded first.
+6. **Recording**: when an engraving is put on the suit through `choose` (level-up or absorb), call `record` — if it was not in `s.records`, add it and emit `record`.
+7. Level-ups keep offering engravings for now (Task 5 changes that).
+8. **Screen**:
+   - Elites: a gold ring under the foe instead of the red one, a slightly larger model (×1.12), and the target card shows `정예 ` before the name (`gridHud.ts`).
+   - Echo on the floor: a violet glowing wisp (e.g. emissive `#b48aff` sphere, bobbing) in `gridItems.ts`.
+   - Log lines: `absorb` → `잔향을 흡수했다`; `record` → `새 각인 기록 — ${name}` (the engraving popup system may also show it). The 3-choice panel title for an absorb offer can stay generic (`각인 하나를 고르세요`) — tell level-up and absorb apart only if it is easy.
+
+**Tests to write first** (new `tests/sim/grid/absorb.test.ts`):
+- `FAMILY` mapping; `generateMap` gives 1–2 elites on non-boss floors and none on 5/10/15, and the same seed gives the same elites; adding elites does not change the floor's other spawns/chests/stairs versus the same map with elite flags ignored (compare positions and kinds).
+- An elite foe has `round(base × 1.6)` hp at floor 1 and gives 3× XP.
+- Killing an elite leaves an echo of its family; killing a champion leaves an `'all'` echo.
+- Walking onto an echo pushes an offer of 3 with exactly 2 recorded and 1 unrecorded (set `s.records` to make it deterministic); none already on the suit.
+- Short pools: with only 1 recorded in the family the offer is 1 recorded + 2 unrecorded; with everything recorded, 3 recorded.
+- Choosing an unrecorded engraving records it (event `record`); choosing a recorded one emits no `record`.
+- `newState` seeds the four starting records.
+
+**Verify:** `npx tsc --noEmit -p .` · `npm run lint` · `npx vitest run` all pass.
 
 ### Task 5: Level-up suit upgrades and screens (outline)
 - Level-up 3-choice of suit upgrades (max charge +2, hp +5, kill charge +1, evasion +3%p, gun damage +1, melee damage +1); HUD charge bar; suit panel in the bag; absorb choice reuses the level-up panel.
