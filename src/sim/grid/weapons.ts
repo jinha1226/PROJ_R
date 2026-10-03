@@ -230,6 +230,11 @@ export function pickUp(s: GridState, t: number): void {
   s.floorItems = s.floorItems.filter((f) => {
     if (!same(f.pos, s.hero.pos)) return true;
     const it = f.item;
+    if (it.kind === 'suit') {
+      s.run.recovered = [...it.ids];
+      s.events.push({ t, type: 'suit', text: it.ids.join(',') });
+      return false;
+    }
     if (it.kind === 'echo') {
       const offer = absorbOffer(s, it.family);
       s.events.push({ t, type: 'absorb', src: s.hero.id, text: it.family });

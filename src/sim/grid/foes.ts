@@ -19,6 +19,19 @@ const SPAWN_CUTOFFS: Record<ZoneId, readonly number[]> = {
   cave: [0.35, 0.5, 0.85, 1], crypt: [0.45, 0.65, 0.8, 0.92], ruins: [0.2, 0.5, 0.6, 0.8],
 };
 
+/** Highest probability in the zone table; ties use the table's stable kind order. */
+export function mostCommonSpawn(floor: number): FoeKind {
+  const cutoffs = [...SPAWN_CUTOFFS[zoneOf(floor).id], 1];
+  const kinds: FoeKind[] = ['minion', 'brute', 'ghoul', 'archer', 'mage'];
+  let best = 0;
+  for (let i = 1; i < cutoffs.length; i++) {
+    const weight = cutoffs[i]! - cutoffs[i - 1]!;
+    const bestWeight = cutoffs[best]! - (cutoffs[best - 1] ?? 0);
+    if (weight > bestWeight + 1e-9) best = i;
+  }
+  return kinds[best]!;
+}
+
 /** One draw from the current zone's minion, brute, ghoul, archer and mage weights. */
 export function spawnKind(rng: Rng, floor: number): FoeKind {
   const r = rng.next();

@@ -1,3 +1,5 @@
+import { placeDeathSuit } from './deathSuit';
+import { energyFor } from './meta';
 import { FAMILY } from './absorb';
 import { scatterLoot } from './consumables';
 import { upgradeOffer } from './upgrades';
@@ -10,7 +12,7 @@ import { dist, idx, same, tileAt, type Cell, type FoeKind, type GridState } from
 export const FLOORS = 15;
 /** Experience needed for levels 2, 3, 4, … */
 export const XP_STEPS = [10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820];
-const LEVEL_HP = 5;
+export const LEVEL_HP = 5;
 const WANDER_EVERY = 150;
 
 /** Down the stairs: the hero (health, gear, level, statuses) goes on; the floor, its foes, fire, items and marks are new. */
@@ -32,6 +34,7 @@ export function nextFloor(s: GridState): void {
   s.telegraphs = [];
   s.floorItems = [];
   s.floorItems = scatterLoot(s);
+  placeDeathSuit(s);
   s.seen = new Uint8Array(map.w * map.h);
   s.events.push({ t: s.time, type: 'floor', amount: floor });
   refreshSight(s);
@@ -43,6 +46,10 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     if (f.alive || !aliveBefore.has(f.id)) continue;
     aliveBefore.delete(f.id);
     s.run.kills++;
+    const amount = energyFor(f.kind as FoeKind, s.run.floor, !!f.elite);
+    s.run.energy += amount;
+    s.events.push({ t: s.time, type: 'energy', amount, to: { ...f.pos } });
+    if (f.kind === 'champion' && (s.run.floor === 5 || s.run.floor === 10) && !s.run.bossesKilled.includes(s.run.floor)) s.run.bossesKilled.push(s.run.floor);
     s.hero.xp += (FOE_XP[f.kind as FoeKind] ?? 3) * (f.elite ? 3 : 1);
     if (f.elite || f.kind === 'champion') {
       s.floorItems.push({ pos: { ...f.pos }, item: { kind: 'echo', family: FAMILY[f.kind as FoeKind], name: '잔향' } });

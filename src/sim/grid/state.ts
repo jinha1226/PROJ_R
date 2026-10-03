@@ -19,7 +19,7 @@ export function newState(map: GridMap, seed: number, gun: GunGroup = 'pistol', f
     },
     foes: map.spawns.map((sp, i) => makeFoe(`f${i + 1}`, sp.kind, sp.pos, sp.group, floor, 0, sp.elite)),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),
-    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], fired: new Set(), offers: [], upgrades: [], records: ['dash', 'rapid', 'chain', 'momentum'], traps: (map.traps ?? []).map((t) => ({ ...t, pos: { ...t.pos } })), lore: newLore(seed), barrels: (map.barrels ?? []).map((b) => ({ ...b })),
+    seen: new Uint8Array(map.w * map.h), visible: new Set(), rng: createRng(seed), events: [], closedExits: [], danger: 0, nextFoeId: map.spawns.length + 1, floorItems: [], run: { energy: 0, bossesKilled: [], floor, kills: 0, won: false, floorStart: 0, waves: 0 }, tiles: [], telegraphs: [], fired: new Set(), offers: [], upgrades: [], records: ['dash', 'rapid', 'chain', 'momentum'], traps: (map.traps ?? []).map((t) => ({ ...t, pos: { ...t.pos } })), lore: newLore(seed), barrels: (map.barrels ?? []).map((b) => ({ ...b })),
   };
   refreshSight(s);
   return s;

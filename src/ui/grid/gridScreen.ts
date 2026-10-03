@@ -1,3 +1,4 @@
+import { loadPixel, savePixel } from '../../app/gridPreferences';
 import { exploreTarget } from '../../sim/grid/explore';
 import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
@@ -26,11 +27,8 @@ import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import { attachFoePress } from './foePress';
 import '../styles/grid.css';
-export interface GridApi { sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; fatal(e: unknown): void }
+export interface GridApi { sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; afterAction?(): void; fatal(e: unknown): void }
 const WALK_EVERY = 0.14;
-const PIXEL_KEY = 'projr.grid.pixel';
-const loadPixel = (): boolean => { try { return localStorage.getItem(PIXEL_KEY) !== '0'; } catch { return true; } };
-const savePixel = (on: boolean): void => { try { localStorage.setItem(PIXEL_KEY, on ? '1' : '0'); } catch { /* not kept */ } };
 const TAP_PX = 12;
 const TAP_MS = 350;
 /** The grid sortie: input → one sim action → the runtime replays it; the world only moves when the hero does. */
@@ -130,6 +128,7 @@ export class GridScreen implements Screen {
     const hp = s.hero.hp;
     const t0 = s.time;
     const ev = this.api.sim.act(a);
+    this.api.afterAction?.();
     if (!ev.length || (ev.length === 1 && ev[0]!.type === 'blocked')) return false;
     this.rt?.apply(ev, t0);
     const stop = interruption([...this.visibleFoes()].some((id) => !before.has(id)), s.hero.hp < hp);

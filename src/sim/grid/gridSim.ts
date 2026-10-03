@@ -1,3 +1,5 @@
+import { newRunState, type RunOptions } from './runSetup';
+import type { MetaState } from './meta';
 import { recordDeath } from './deathRecap';
 import { autoTarget, heroAct } from './actions';
 import { noise, updateAwareness } from './danger';
@@ -32,6 +34,10 @@ export class GridSim {
     const s = newState(generateMap(seed), seed, gun);
     s.floorItems.push(...scatterLoot(s));
     return new GridSim(s);
+  }
+
+  static createRun(seed: number, meta: MetaState, opts: RunOptions): GridSim {
+    return new GridSim(newRunState(seed, meta, opts));
   }
 
   static fromState(s: GridState): GridSim {
