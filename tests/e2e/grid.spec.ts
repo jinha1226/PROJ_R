@@ -76,7 +76,7 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   await ctx.close();
 });
 
-test('engravings: inscribe a rune stone from the bag, pick one on level-up, and a dash fires', async ({ page }) => {
+test('engravings: absorb an echo onto the suit, pick a suit upgrade on level-up, a dash fires, a full suit asks which slot', async ({ page }) => {
   type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -84,34 +84,52 @@ test('engravings: inscribe a rune stone from the bag, pick one on level-up, and 
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
   await waitGrid(page);
-  const engraves = () => page.evaluate(() => ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.hands[0].engraves.map((e: Any) => e.id));
-  expect(await engraves()).toEqual(['rapid']);
-  // Equip a local sword for the existing melee engraving scenario.
-  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.hands[0] = { kind: 'weapon', group: 'sword', tier: 1, name: '장검', engraves: [{ id: 'dash', lvl: 1 }] }; });
-  // a rune stone in the bag: open the bag, choose it, inscribe it on the sword
-  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.gear.bag.push({ kind: 'rune', id: 'finisher', name: '룬석: 3연타 마무리' }); });
-  await page.keyboard.press('i');
-  await page.click('[data-testid="grid-bag-0"]');
-  await page.click('[data-testid="grid-bag-inscribe"]');
-  await expect.poll(engraves).toEqual(['dash', 'finisher']);
-  await page.click('[data-testid="grid-bag-close"]');
-  // a level-up choice: the modal shows, a pick is inscribed (the oldest engraving makes room)
-  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).offers = [['leap', 'echo', 'mark']]; });
+  const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
+  expect((await st()).hero.suit).toEqual([]);
+  // an echo at the hero's feet-to-be: stepping in offers three engravings of that family; pick one onto the suit
+  await page.evaluate(() => {
+    const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
+    const s = w.state() as unknown as Any;
+    s.hero.hp = s.hero.maxHp = 999;
+    for (const f of s.foes) if (f.alive) f.pos = { x: 0, y: 0 };
+    const h = s.hero.pos;
+    for (const d of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) {
+      if (s.map.tiles[(h.y + d.y) * s.map.w + h.x + d.x] !== 'floor') continue;
+      s.floorItems.push({ pos: { x: h.x + d.x, y: h.y + d.y }, item: { kind: 'echo', family: 'melee', name: '잔향' } });
+      w.act({ kind: 'move', dir: d });
+      return;
+    }
+  });
   await expect(page.locator('[data-testid="grid-levelup"]')).toBeVisible();
   await page.click('[data-testid="grid-levelup-0"]');
   await expect(page.locator('[data-testid="grid-levelup"]')).toHaveCount(0);
-  expect(await engraves()).toEqual(['finisher', 'leap']);
-  // a foe two cells ahead in the open: walking at it is a dash (one cell in, a blow)
+  expect((await st()).hero.suit).toHaveLength(1);
+  await expect(page.locator('[data-testid="grid-suit-strip"]')).toBeVisible();
+  // a level gained: the suit upgrade panel
+  await page.evaluate(() => { const s = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any; s.upgrades = [['charge', 'hp', 'gunDmg']]; });
+  await expect(page.locator('[data-testid="grid-upgrade-0"]')).toBeVisible();
+  await page.click('[data-testid="grid-upgrade-0"]');
+  await expect.poll(async () => (await st()).hero.maxCharge).toBe(12);
+  // a full suit: picking a new engraving asks which slot to replace
+  await page.evaluate(() => {
+    const s = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any;
+    s.hero.suit = ['rapid', 'momentum', 'chain', 'mark', 'kite', 'volley'];
+    s.offers = [['dash', 'leap', 'finisher']];
+  });
+  await page.click('[data-testid="grid-levelup-0"]');
+  await page.click('[data-testid="grid-suit-slot-2"]');
+  await expect.poll(async () => (await st()).hero.suit[2]).toBe('dash');
+  // dash on the suit with a sword in hand: a foe two cells ahead is lunged at
   const dashed = await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
     const s = w.state() as unknown as Any;
-    s.hero.gear.hands[0].engraves = [{ id: 'dash', lvl: 1 }];
+    s.hero.gear.hands[0] = { kind: 'weapon', group: 'sword', tier: 1, name: '장검' };
+    s.hero.gear.active = 0;
     const h = s.hero.pos;
     for (const d of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) {
       const at = (i: number) => s.map.tiles[(h.y + d.y * i) * s.map.w + h.x + d.x * i];
       if (at(1) !== 'floor' || at(2) !== 'floor') continue;
-      for (const f of s.foes) if (f.alive) f.pos = { x: 0, y: 0 };
-      const foe = { ...s.foes[0], id: 'zz', alive: true, awake: true, hp: 200, maxHp: 200, stun: 3, status: undefined, pos: { x: h.x + d.x * 2, y: h.y + d.y * 2 } };
+      const foe = { ...s.foes[0], id: 'zz', alive: true, awake: true, hp: 200, maxHp: 200, stun: 3, status: undefined, elite: false, pos: { x: h.x + d.x * 2, y: h.y + d.y * 2 } };
       s.foes.push(foe);
       w.act({ kind: 'move', dir: d });
       return { moved: s.hero.pos.x === h.x + d.x && s.hero.pos.y === h.y + d.y, hurt: foe.hp < 200 };
