@@ -1,8 +1,11 @@
 import type { Gear } from '../../sim/grid/gear';
 import type { Equipment } from '../../sim/grid/items';
+import type { EngraveId } from '../../sim/grid/engraveCore';
 import type { GAction } from '../../sim/grid/types';
 import { GROUP_NOTE, statLine } from './weaponInfo';
-import { engraveChips } from './levelUp';
+import { engraveChips, eraseNote } from './levelUp';
+import { activeWeapon } from '../../sim/grid/gear';
+import { canInscribe, wouldErase } from '../../sim/grid/engrave';
 
 const ACTION = {
   weapon: '<button class="btn primary" data-do="equip" data-testid="grid-bag-equip">사용 중인 손에 들기 (1턴)</button>',
@@ -32,6 +35,20 @@ export class GridBag {
     this.render();
   }
 
+  private runeOk(g: Gear, id: EngraveId): boolean {
+    const w = activeWeapon(g);
+    return !!w && canInscribe(w, id);
+  }
+
+  /** Before inscribing: which engraving it would push off, or why it cannot go on. */
+  private runeNote(g: Gear, id: EngraveId): string {
+    const w = activeWeapon(g);
+    if (!w) return '<p class="muted">손에 든 무기가 없습니다</p>';
+    if (!canInscribe(w, id)) return '<p class="muted">이미 새겨진 각인입니다</p>';
+    const gone = wouldErase(w, id);
+    return gone ? `<p class="muted">${eraseNote(gone)}</p>` : '';
+  }
+
   render(): void {
     const g = this.gear();
     const key = JSON.stringify([g, this.sel]);
@@ -48,7 +65,8 @@ export class GridBag {
       <div class="gbag-row">${cell(g.hands[0], g.active === 0 ? '손 1 (사용 중)' : '손 1')}${cell(g.hands[1], g.active === 1 ? '손 2 (사용 중)' : '손 2')}${cell(g.armor, '갑옷')}</div>
       <div class="gbag-grid">${slots}</div>
       ${chosen ? `<div class="gbag-detail"><b>${esc(chosen.name)}</b> ${statLine(chosen)}${chosen.kind === 'weapon' ? ` · ${GROUP_NOTE[chosen.group]}${engraveChips(chosen.engraves)}` : ''}</div>
-        <div class="gbag-actions">${ACTION[chosen.kind]}
+        ${chosen.kind === 'rune' ? this.runeNote(g, chosen.id) : ''}
+        <div class="gbag-actions">${chosen.kind === 'rune' && !this.runeOk(g, chosen.id) ? '' : ACTION[chosen.kind]}
         <button class="btn" data-do="drop">버리기</button></div>` : '<p class="muted">가방의 물건을 골라 손에 들거나 입으세요.</p>'}
     </div>`;
   }

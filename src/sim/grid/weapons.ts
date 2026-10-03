@@ -103,8 +103,13 @@ function shoveShot(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shove: (
   const g = s.hero.gear;
   const other = g.hands[g.active === 0 ? 1 : 0];
   if (!other || WEAPONS[other.group].melee) return;
-  shove();
   const was = g.active;
+  g.active = was === 0 ? 1 : 0;
+  const ready = canFire(s);
+  g.active = was;
+  // no bolts, no charges: no shove either (a pointless push would only break the fight up)
+  if (!ready) return;
+  shove();
   g.active = was === 0 ? 1 : 0;
   const shot = foe.alive && !s.fired.has('shoveShot') && rangedAttack(s, t, foe, hooks) !== null;
   g.active = was;

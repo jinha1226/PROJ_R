@@ -97,7 +97,7 @@ export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'sp
 export interface RunState { floor: number; kills: number; won: boolean; floorStart: number; waves: number }
 export interface FloorItem { pos: Cell; item: Equipment }
 export type GAction =
-  | { kind: 'move'; dir: Cell } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
+  | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
   | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'inscribe'; bag: number } | { kind: 'choose'; i: number | null };
 export type GEventType =

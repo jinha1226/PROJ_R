@@ -42,7 +42,8 @@ export class GridSim {
     fx.momentum = false;
     const alive = new Set(s.foes.filter((f) => f.alive).map((f) => f.id));
     // frozen: whatever was asked, the turn passes
-    const frozen = (s.hero.status?.freeze ?? 0) > 0;
+    // a level-up pick is not a turn: it is made even while frozen
+    const frozen = (s.hero.status?.freeze ?? 0) > 0 && a.kind !== 'choose';
     let cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
     if (cost === null) { fx.momentum = boosted; return [{ t: t0, type: 'blocked', src: s.hero.id }]; }
     // momentum halves the action after a kill (a free swap does not use it up)

@@ -3,7 +3,7 @@ import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
 import { lunge, swapCombo } from './combos';
 import { rollEquipment, type Equipment } from './items';
 import { ENGRAVE_IDS } from './engraveCore';
-import { inscribe, RUNE_CHANCE, runeStone } from './engrave';
+import { canInscribe, inscribe, RUNE_CHANCE, runeStone } from './engrave';
 import { add, canStep, COST, dist, HERO, idx, same, tileAt, type Cell, type GAction, type GridState } from './types';
 import { explodeBarrels } from './explosives';
 import { onEnter } from './status';
@@ -72,7 +72,8 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       if (ch && !ch.opened && canStep(s.map, h.pos, a.dir)) { openChest(s, t, to); return COST.open; }
       const far = reachTarget(s, a.dir);
       if (far) return meleeAttack(s, t, a.dir, far, hooks);
-      const lunged = lunge(s, t, a.dir, hooks);
+      // tap-walking (plain steps) never turns into a dash or a leap
+      const lunged = a.plain ? null : lunge(s, t, a.dir, hooks);
       if (lunged !== null) return lunged;
       // an opened chest can be stepped over (a chest in a doorway must never seal the way)
       if (!canStep(s.map, h.pos, a.dir) || bodyAt(s, to)) return null;
@@ -114,7 +115,7 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
     case 'inscribe': {
       const r = g.bag[a.bag];
       const w = activeWeapon(g);
-      if (r?.kind !== 'rune' || !w) return null;
+      if (r?.kind !== 'rune' || !w || !canInscribe(w, r.id)) return null;
       g.bag.splice(a.bag, 1);
       inscribe(w, r.id);
       s.events.push({ t, type: 'inscribe', src: h.id, text: r.id });

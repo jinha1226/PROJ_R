@@ -62,7 +62,7 @@ export function afterShot(s: GridState, t: number, foe: Ent, hit: boolean, dmg: 
   if (foe.alive && dist(h.pos, foe.pos) === 1 && has(s, 'kite')) {
     const back = { x: -Math.sign(foe.pos.x - h.pos.x), y: -Math.sign(foe.pos.y - h.pos.y) };
     const to = { x: h.pos.x + back.x, y: h.pos.y + back.y };
-    if (canStep(s.map, h.pos, back) && freeCell(s, to) && fire(s, t, 'kite')) {
+    if (canStep(s.map, h.pos, back) && freeCell(s, to) && !(s.map.stairs && same(to, s.map.stairs)) && fire(s, t, 'kite')) {
       s.events.push({ t, type: 'move', src: h.id, from: { ...h.pos }, to: { ...to }, text: 'kite' });
       h.pos = to;
       onEnter(s, h, t);

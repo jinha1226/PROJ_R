@@ -259,7 +259,7 @@ export class GridScreen implements Screen {
     const next = this.walk.shift();
     const h = this.s.hero.pos;
     if (!next || dist(next, h) !== 1 || walkBlocked(this.s, next)) { this.walk = null; return; }
-    if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y } })) this.walk = null;
+    if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y }, plain: true })) this.walk = null;
     if (this.walk && !this.walk.length) this.walk = null;
   }
 

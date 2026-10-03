@@ -3,7 +3,7 @@ import { blowMult, fire, has } from './engraveCore';
 import { activeWeapon, swapHands } from './gear';
 import { WEAPONS } from './items';
 import { onEnter } from './status';
-import { add, canStep, COST, dist, idx, type Cell, type Ent, type GridState } from './types';
+import { add, canStep, COST, dist, idx, same, type Cell, type Ent, type GridState } from './types';
 import { canFire, heroDmg, meleeAttack, pickUp, rangedAttack, weaponRange, type ShotHooks } from './weapons';
 
 const DASH_TIME = 0.3;
@@ -38,7 +38,9 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
   const a = add(h.pos, d);
   const b = add(a, d);
   const seen = (f: Ent | undefined): f is Ent => !!f && s.visible.has(idx(s.map, f.pos));
-  if (!canStep(s.map, h.pos, d) || !freeCell(s, a) || !canStep(s.map, a, d)) return null;
+  // a lunge never lands on the stairs (going down is a step the player takes on purpose)
+  const open = (c: Cell) => freeCell(s, c) && !(s.map.stairs && same(c, s.map.stairs));
+  if (!canStep(s.map, h.pos, d) || !open(a) || !canStep(s.map, a, d)) return null;
   const near = foeAt(s, b);
   if (seen(near) && has(s, 'dash')) {
     fire(s, t, 'dash');
@@ -46,7 +48,7 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
     return meleeAttack(s, t, d, near, hooks) + DASH_TIME;
   }
   const far = foeAt(s, add(b, d));
-  if (!seen(far) || !has(s, 'leap') || !freeCell(s, b) || !canStep(s.map, b, d)) return null;
+  if (!seen(far) || !has(s, 'leap') || !open(b) || !canStep(s.map, b, d)) return null;
   fire(s, t, 'leap');
   stepTo(s, t, b, 'leap');
   h.target = far.id;
@@ -71,6 +73,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   let cost = COST.swap;
   if (has(s, 'quickswap')) { fire(s, t, 'quickswap'); h.fx.nextMult = QUICK_MULT; cost = 0; }
   if (!has(s, 'swapstrike')) return cost;
+  // a swap that strikes is never free (else quick swap + swap strike would land endless blows in no time)
   const w = activeWeapon(g)!;
   const want = (f: Ent) => (f.id === h.target ? 0 : 1);
   if (WEAPONS[w.group].melee) {
@@ -79,7 +82,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
     fire(s, t, 'swapstrike');
     h.fx.nextMult *= SWAP_STRIKE;
     meleeAttack(s, t, { x: f.pos.x - h.pos.x, y: f.pos.y - h.pos.y }, f, hooks);
-    return cost;
+    return COST.swap;
   }
   const f = s.foes.filter((x) => x.alive && s.visible.has(idx(s.map, x.pos)) && dist(h.pos, x.pos) <= weaponRange(w) && shotClear(s, h.pos, x.pos))
     .sort((x, y) => want(x) - want(y) || dist(h.pos, x.pos) - dist(h.pos, y.pos))[0];
@@ -87,7 +90,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   fire(s, t, 'swapstrike');
   h.fx.nextMult *= SWAP_STRIKE;
   rangedAttack(s, t, f, hooks);
-  return cost;
+  return COST.swap;
 }
 
 /** After a dodge (counter) or a parry (riposte): a blow straight back at the attacker beside the hero. */

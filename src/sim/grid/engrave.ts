@@ -24,6 +24,15 @@ export function inscribe(w: Weapon, id: EngraveId): void {
   list.push({ id, lvl: 1 });
 }
 
+/** A rune can go on a weapon that does not already carry that engraving (levels do nothing yet). */
+export const canInscribe = (w: Weapon, id: EngraveId): boolean => !w.engraves?.some((e) => e.id === id);
+
+/** The engraving a new one would push off a full weapon (null if there is room or it is already there). */
+export function wouldErase(w: Weapon | null, id: EngraveId): EngraveId | null {
+  const list = w?.engraves ?? [];
+  return list.length >= ENGRAVE_SLOTS && !list.some((e) => e.id === id) ? list[0]!.id : null;
+}
+
 /** What kind of engraving suits a weapon. */
 export function fitOf(w: Weapon | null): 'melee' | 'ranged' | 'magic' {
   if (!w || WEAPONS[w.group].melee) return 'melee';
