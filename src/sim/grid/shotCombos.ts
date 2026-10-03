@@ -1,5 +1,6 @@
 import { freeCell, shotClear, strike } from './combat';
 import { fire, has } from './engraveCore';
+import { buffOn } from './buffs';
 import { losClear } from './fov';
 import type { Weapon } from './items';
 import { applyElement, hurt, onEnter } from './status';
@@ -62,7 +63,9 @@ export function afterShot(s: GridState, t: number, foe: Ent, hit: boolean, dmg: 
   if (foe.alive && dist(h.pos, foe.pos) === 1 && has(s, 'kite')) {
     const back = { x: -Math.sign(foe.pos.x - h.pos.x), y: -Math.sign(foe.pos.y - h.pos.y) };
     const to = { x: h.pos.x + back.x, y: h.pos.y + back.y };
-    if (canStep(s.map, h.pos, back) && freeCell(s, to) && !(s.map.stairs && same(to, s.map.stairs)) && fire(s, t, 'kite')) {
+    // never onto the stairs or a trap the hero knows of, and not out of a net
+    const safe = !(s.map.stairs && same(to, s.map.stairs)) && !s.traps.some((tr) => tr.found && same(tr.pos, to)) && !buffOn(h, 'root', t);
+    if (canStep(s.map, h.pos, back) && freeCell(s, to) && safe && fire(s, t, 'kite')) {
       s.events.push({ t, type: 'move', src: h.id, from: { ...h.pos }, to: { ...to }, text: 'kite' });
       h.pos = to;
       onEnter(s, h, t);

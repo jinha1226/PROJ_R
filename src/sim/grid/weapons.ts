@@ -195,6 +195,7 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   s.barrels = saved;
   if (!clear) return null;
   s.events.push({ t, type: 'shoot', src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
+  h.fx.acted = 'shot';
   if (w.group === 'staff') w.charges = (w.charges ?? 1) - 1;
   else if (w.group === 'throwing') w.stack = (w.stack ?? 1) - 1;
   else h.gear.arrows--;

@@ -82,6 +82,7 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       if (foe && (Math.abs(a.dir.x) + Math.abs(a.dir.y) === 1 || canStep(s.map, h.pos, a.dir))) return melee(meleeAttack(s, t, a.dir, foe, hooks));
       if (s.barrels.some((b) => same(b, to)) && canStep(s.map, h.pos, a.dir)) {
         s.events.push({ t, type: 'bump', src: h.id, from: { ...h.pos }, to: { ...to } });
+        h.fx.acted = 'melee';
         explodeBarrels(s, t, to, h.id);
         return COST.bash;
       }

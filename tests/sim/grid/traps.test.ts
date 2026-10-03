@@ -30,18 +30,21 @@ describe('noise', () => {
     expect(g.s.foes[0]!.awake).toBe(true);
   });
 
-  it('a sleeper that can see the hero from afar does not always wake at once; next to the hero it does', () => {
-    let first = 0;
-    for (let seed = 1; seed <= 30; seed++) {
-      const g = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'minion', pos: { x: 8, y: 7 }, awake: false }], seed);
-      g.act({ kind: 'wait' });
-      if (g.s.foes[0]!.awake) first++;
-    }
-    expect(first).toBeGreaterThan(0);
-    expect(first).toBeLessThan(30);
-    const near = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'minion', pos: { x: 4, y: 7 }, awake: false }]);
-    near.act({ kind: 'wait' });
-    expect(near.s.foes[0]!.awake).toBe(true);
+  it('a sleeper that can see the hero does not always wake at once; closer, it wakes more often', () => {
+    const woke = (x: number) => {
+      let n = 0;
+      for (let seed = 1; seed <= 60; seed++) {
+        const g = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'minion', pos: { x, y: 7 }, awake: false }], seed);
+        g.act({ kind: 'wait' });
+        if (g.s.foes[0]!.awake) n++;
+      }
+      return n;
+    };
+    const far = woke(8);
+    const near = woke(3);
+    expect(far).toBeGreaterThan(0);
+    expect(near).toBeLessThan(60);
+    expect(near).toBeGreaterThan(far);
   });
 });
 

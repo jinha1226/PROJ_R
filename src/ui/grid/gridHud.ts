@@ -11,12 +11,25 @@ const LOG: Partial<Record<GEvent['type'], string>> = {
 export const TRAP_NAME: Record<string, string> = { spike: '가시', alarm: '경보', poison: '독가스', fire: '화염', teleport: '순간이동', net: '그물' };
 const BUFF_NAME: Record<string, string> = { haste: '신속', invis: '투명', confuse: '혼란', root: '그물' };
 
+/** "붉은 물약은 신속 물약이었다" from the identify event's "old|new" names. */
+export function identifyLine(text: string): string {
+  const [was = '', is = ''] = text.split('|');
+  return `${was}${batchim(was) ? '은' : '는'} ${is}${batchim(is) ? '이었다' : '였다'}`;
+}
+
+/** Does the word end in a final consonant (decides 은/는, 이었다/였다)? */
+function batchim(word: string): boolean {
+  const c = word.charCodeAt(word.length - 1) - 0xac00;
+  return c >= 0 && c < 11172 && c % 28 !== 0;
+}
+
 /** Log lines for traps, searching and learning what a potion or scroll is. */
 function eventLine(e: GEvent): string | undefined {
-  if (e.type === 'identify') { const [was, is] = (e.text ?? '|').split('|'); return `${was}은(는) ${is}이었다`; }
+  if (e.type === 'identify') return identifyLine(e.text ?? '|');
   if (e.type === 'trap' && e.src === 'hero') return `함정 작동 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;
   if (e.type === 'trapFound') return `함정을 발견했다 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;
   if (e.type === 'root') return '그물에 걸려 움직일 수 없다';
+  if (e.type === 'stumble') return '비틀거렸다';
   return undefined;
 }
 const KIND: Record<string, string> = { minion: '해골 졸개', archer: '해골 석궁병', brute: '해골 전사', ghoul: '구울', mage: '해골 마법사', champion: '해골 챔피언' };

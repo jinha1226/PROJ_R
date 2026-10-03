@@ -26,8 +26,10 @@ describe('waking', () => {
     expect(g.s.foes[0]!.awake).toBe(false);
     const open = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'minion', pos: { x: 8, y: 7 }, awake: false }, { kind: 'minion', pos: { x: 12, y: 12 }, awake: false }]);
     open.s.foes[1]!.group = open.s.foes[0]!.group;
-    const ev = open.act(W);
-    expect(has(ev, 'wake')).toBe(true);
+    // seen from afar a sleeper wakes within a few turns (not always at once), and rouses its group
+    let woke = false;
+    for (let i = 0; i < 12 && !woke; i++) woke = has(open.act(W), 'wake');
+    expect(woke).toBe(true);
     expect(open.s.foes.every((f) => f.awake)).toBe(true);
   });
 

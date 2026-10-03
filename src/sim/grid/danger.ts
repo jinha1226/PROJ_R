@@ -2,8 +2,8 @@ import { buffOn } from './buffs';
 import { dist, idx, type Cell, type GridState } from './types';
 
 const LOUD = 6;
-const SIGHT_WAKE = 0.25;
-const SIGHT_SURE = 2;
+/** chance a sleeper that sees the hero wakes, by distance: beside 50%, two cells 35%, farther 25% */
+const SIGHT_WAKE = [0, 0.5, 0.35, 0.25];
 
 /**
  * A noise of radius r: loud ones (shots, blasts, alarms) wake every sleeper in reach; quiet ones (a step 1, a door 2,
@@ -24,14 +24,17 @@ export function wake(s: GridState, id: string): void {
   s.events.push({ t: s.time, type: 'wake', src: f.id, to: { ...f.pos } });
 }
 
-/** After the hero's turn: anyone who can see the hero wakes (and rouses their room), awake foes remember where the hero is. */
-export function updateAwareness(s: GridState): void {
+/**
+ * Sleepers who see the hero may wake (and rouse their room) — rolled once per action (`roll`); awake foes remember
+ * where the hero is.
+ */
+export function updateAwareness(s: GridState, roll = true): void {
   // nobody notices an invisible hero
   if (buffOn(s.hero, 'invis', s.time)) return;
   for (const f of s.foes) {
     if (!f.alive || !s.visible.has(idx(s.map, f.pos)) || dist(f.pos, s.hero.pos) > 8) continue;
-    // a sleeper that sees the hero up close wakes; from farther off it may sleep on a while
-    if (!f.awake && dist(f.pos, s.hero.pos) > SIGHT_SURE && !s.rng.chance(SIGHT_WAKE)) continue;
+    // a sleeper that sees the hero may sleep on a while (closer is likelier to wake): a careful approach can catch it asleep
+    if (!f.awake && (!roll || !s.rng.chance(SIGHT_WAKE[Math.min(3, dist(f.pos, s.hero.pos))]!))) continue;
     if (!f.awake) for (const g of s.foes) if (g.alive && g.group === f.group) wake(s, g.id);
     f.lastSeen = { ...s.hero.pos };
   }

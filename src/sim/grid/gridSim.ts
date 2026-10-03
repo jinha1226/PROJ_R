@@ -51,13 +51,16 @@ export class GridSim {
     // a level-up pick is not a turn: it is made even while frozen
     const frozen = (s.hero.status?.freeze ?? 0) > 0 && a.kind !== 'choose';
     // confused: a step goes astray half the time
-    if (a.kind === 'move' && buffOn(s.hero, 'confuse', t0) && s.rng.chance(CONFUSED_ASTRAY)) a = { kind: 'move', dir: s.rng.pick(DIRS), plain: true };
+    const astray = a.kind === 'move' && buffOn(s.hero, 'confuse', t0) && s.rng.chance(CONFUSED_ASTRAY);
+    if (astray) a = { kind: 'move', dir: s.rng.pick(DIRS), plain: true };
     let cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
+    // a stumble into a wall still spends the turn (no free re-rolls of the confusion)
+    if (cost === null && astray) { s.events.push({ t: t0, type: 'stumble', src: s.hero.id, to: { ...s.hero.pos } }); cost = 1; }
     if (cost === null) { fx.momentum = boosted; return [{ t: t0, type: 'blocked', src: s.hero.id }]; }
     // momentum halves the action after a kill (a free swap does not use it up)
     if (cost > 0 && buffOn(s.hero, 'haste', t0)) cost *= HASTE;
     // any attack or throw gives an invisible hero away
-    if (fx.acted || a.kind === 'use' || a.kind === 'throwPotion') clearBuff(s.hero, 'invis');
+    if (fx.acted || (a.kind === 'use' && a.item !== 'potion') || a.kind === 'throwPotion') clearBuff(s.hero, 'invis');
     if (boosted && cost > 0) cost *= MOMENTUM;
     else if (boosted) fx.momentum = true;
     if (cost > 0) discover(s, t0);
@@ -91,7 +94,7 @@ export class GridSim {
     }
     if (s.outcome) return s.events;
     refreshSight(s);
-    updateAwareness(s);
+    updateAwareness(s, false);
     updateWanderers(s);
     return s.events;
   }

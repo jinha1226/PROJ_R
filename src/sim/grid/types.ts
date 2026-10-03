@@ -118,7 +118,7 @@ export type GEventType =
   | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
-  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify';
+  | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'inscribe' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 

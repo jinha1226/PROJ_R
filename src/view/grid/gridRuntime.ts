@@ -12,6 +12,7 @@ import { GridFx } from './gridFx';
 import { GridItems } from './gridItems';
 import { EngravePops } from './engravePops';
 import { buffOn } from '../../sim/grid/buffs';
+import { lootText } from './cueText';
 import { comboCue, type CueKit } from './comboCues';
 import { GridElements } from './gridElements';
 import { GridParticles } from './gridParticles';
@@ -196,7 +197,7 @@ export class GridRuntime {
       case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.particles.bones(p, 16, at(e.src)); break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
-      case 'loot': if (e.to) this.fx.number(e.text === '볼트' || e.text === '물약' ? `+${e.text} ${e.amount}` : `+${e.text} ${e.amount}G`, 'combo', cellVec(e.to)); break;
+      case 'loot': if (e.to) this.fx.number(lootText(e), 'combo', cellVec(e.to)); break;
       case 'stun': a.knock(e.dst); break;
       case 'dodge': a.anim('hero', e.text === 'L' ? 'weaveL' : 'weaveR'); { const p = at('hero'); if (p) this.fx.number('회피', 'miss', p); } break;
       case 'parry': a.anim('hero', 'parry'); { const p = at('hero'); if (p) { this.fx.number('패링!', 'combo', p); this.particles.spray(p, '#e8f0ff', 12); } } break;

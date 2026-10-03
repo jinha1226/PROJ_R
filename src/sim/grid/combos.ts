@@ -45,12 +45,15 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
   if (seen(near) && has(s, 'dash')) {
     fire(s, t, 'dash');
     stepTo(s, t, a, 'dash');
+    // a trap on the way (teleported off, or killed) ends the lunge there
+    if (!h.alive || !same(h.pos, a)) return COST.move + DASH_TIME;
     return meleeAttack(s, t, d, near, hooks) + DASH_TIME;
   }
   const far = foeAt(s, add(b, d));
   if (!seen(far) || !has(s, 'leap') || !open(b) || !canStep(s.map, b, d)) return null;
   fire(s, t, 'leap');
   stepTo(s, t, b, 'leap');
+  if (!h.alive || !same(h.pos, b)) return COST.move + LEAP_TIME;
   h.target = far.id;
   h.fx.acted = 'melee';
   const dmg = heroDmg(s, w);
