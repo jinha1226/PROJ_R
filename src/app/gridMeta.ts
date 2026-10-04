@@ -1,3 +1,4 @@
+import { migrateBaseMeta, savedMaterials } from '../sim/grid/baseMigration';
 import { validElements } from '../sim/grid/rounds';
 import { BASE_IDS, type EngraveId } from '../sim/grid/engraveCore';
 import { freshMeta, type MetaState } from '../sim/grid/meta';
@@ -17,8 +18,8 @@ export function loadMeta(): MetaState {
       const facilities = { ...defaults.facilities,
         chargePlus: m.facilities.chargePlus ?? 0, navCrypt: !!m.facilities.navCrypt, navRuins: !!m.facilities.navRuins,
         suitSlots: ([2, 3, 4].includes(slots) ? slots : 2) as 2 | 3 | 4 };
-      return { ...defaults, ...m, facilities, rounds: validElements(m.rounds), records: ids(m.records, defaults.records),
-        startCandidates: ids(m.startCandidates, []), suit: m.suit ? { ...m.suit, ids: ids(m.suit.ids, []) } : undefined, unlocked: ids(m.unlocked, defaults.unlocked), tasted: ids(m.tasted, []), energy: nonnegative(m.energy), best: nonnegative(m.best), wins: nonnegative(m.wins) };
+      return { ...defaults, ...m, ...migrateBaseMeta({ ...m, facilities: { ...m.facilities, ...facilities } }), facilities, rounds: validElements(m.rounds), records: ids(m.records, defaults.records),
+        startCandidates: ids(m.startCandidates, []), suit: m.suit ? { ...m.suit, materials: savedMaterials(m.suit.materials), ids: ids(m.suit.ids, []) } : undefined, unlocked: ids(m.unlocked, defaults.unlocked), tasted: ids(m.tasted, []), energy: nonnegative(m.energy), best: nonnegative(m.best), wins: nonnegative(m.wins) };
     }
     const old = JSON.parse(localStorage.getItem('projr.grid.v1') ?? 'null') as { best?: number; wins?: number } | null;
     const m = { ...freshMeta(), best: nonnegative(old?.best), wins: nonnegative(old?.wins) };

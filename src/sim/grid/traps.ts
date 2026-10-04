@@ -1,3 +1,4 @@
+import { distanceMap } from './path';
 import { addBuff } from './buffs';
 import { noise } from './danger';
 import { applyElement, hurt } from './status';
@@ -13,9 +14,10 @@ const SEARCH_RANGE = 2;
 /** A free floor cell at least `min` cells from `from` (no body, chest, barrel, trap or stairs); null if none. */
 export function farCell(s: GridState, from: Cell, min: number): Cell | null {
   const out: Cell[] = [];
+  const reachable = distanceMap(s.map, s.map.start);
   for (let y = 0; y < s.map.h; y++) for (let x = 0; x < s.map.w; x++) {
     const c = { x, y };
-    if (tileAt(s.map, c) !== 'floor' || dist(c, from) < min) continue;
+    if (tileAt(s.map, c) !== 'floor' || reachable[idx(s.map, c)]! < 0 || dist(c, from) < min) continue;
     if ([s.hero, ...s.foes].some((e) => e.alive && same(e.pos, c)) || s.chests.some((ch) => same(ch.pos, c)) || s.barrels.some((b) => same(b, c))) continue;
     if (s.traps.some((tr) => same(tr.pos, c)) || (s.map.stairs && same(c, s.map.stairs)) || s.tiles.some((tl) => same(tl.pos, c))) continue;
     out.push(c);

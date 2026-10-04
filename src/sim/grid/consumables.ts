@@ -1,3 +1,4 @@
+import { zoneMaterial } from './materials';
 import { createRng, type Rng } from '../../core/rng';
 import { addBuff, clearBuff } from './buffs';
 import { noise } from './danger';
@@ -111,5 +112,9 @@ export function scatterLoot(s: GridState): FloorItem[] {
     if (s.foes.some((f) => same(f.pos, c)) || (s.map.stairs && same(c, s.map.stairs)) || s.floorItems.some((f) => same(f.pos, c))) continue;
     cells.push(c);
   }
-  return rng.shuffle(cells).slice(0, 2 + Math.floor((s.run.floor - 1) / 5)).map((pos) => ({ pos, item: rollConsumable(rng) }));
+  const shuffled = rng.shuffle(cells), count = 2 + Math.floor((s.run.floor - 1) / 5);
+  const loot: FloorItem[] = shuffled.slice(0, count).map(pos => ({ pos, item: rollConsumable(rng) }));
+  for (const pos of shuffled.slice(count, count + 2)) loot.push({ pos, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: 1 } });
+  for (const spot of s.map.toolSpots ?? []) loot.push({ pos: { ...spot.reward }, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: spot.n } });
+  return loot;
 }

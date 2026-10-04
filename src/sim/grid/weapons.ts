@@ -6,7 +6,7 @@ import { emit } from './kataBus';
 import { resonance } from './resonance';
 import { gunCost } from './kataTargets';
 import { canSwingAt } from './combos';
-import { absorbOffer } from './absorb';
+import { gainMaterial } from './materials';
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { afterShot, rapidStep } from './shotCombos';
@@ -176,7 +176,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
   if (!isGun(w.group)) return null;
   const eventStart = s.events.length;
-  const base = WEAPONS[w.group].hit;
+  const base = WEAPONS[w.group].hit + (h.modStats?.hit ?? 0);
   const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base);
   const round = takeRound(s);
   const elementMult = roundMult(s, t, round);
@@ -186,7 +186,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   foe.awake = true;
   const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
   h.charge -= cost;
-  hooks.noise(h.pos, 4);
+  hooks.noise(h.pos, Math.max(0, 4 + (h.modStats?.noise ?? 0)));
   h.fx.nextMult = 1;
   if (hit) roundHit(s, t, foe, round);
   afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w));
@@ -208,7 +208,7 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
   if (isGun(w.group)) h.charge -= gunCost(s, w);
-  noise?.(h.pos, 4);
+  noise?.(h.pos, Math.max(0, 4 + (h.modStats?.noise ?? 0)));
   takeRound(s);
   explode(at);
   return WEAPONS[w.group].time;
@@ -225,12 +225,7 @@ export function pickUp(s: GridState, t: number): void {
       s.events.push({ t, type: 'suit', text: it.ids.join(',') });
       return false;
     }
-    if (it.kind === 'echo') {
-      const offer = absorbOffer(s, it.family);
-      s.events.push({ t, type: 'absorb', src: s.hero.id, text: it.family });
-      if (offer.length) s.offers.push(offer);
-      return false;
-    }
+    if (it.kind === 'material') { gainMaterial(s, t, it.mat, it.n); return false; }
     if (it.kind === 'core') {
       s.outcome = 'won';
       s.run.won = true;

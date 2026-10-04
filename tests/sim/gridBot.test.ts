@@ -47,11 +47,11 @@ it('pistol-only routes around melee pickups without opening chests', () => {
   expect(g.s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '요원 칼' });
 });
 
-it('descends onto a boss echo once the floor is explored', () => {
+it('descends onto boss remains once the floor is explored', () => {
   const g = sim(OPEN, { x: 5, y: 7 });
   g.s.seen.fill(1);
   g.s.map.stairs = { x: 7, y: 7 };
-  g.s.floorItems = [{ pos: { x: 7, y: 7 }, item: { kind: 'echo', family: 'fusion', name: '잔향' } }];
+  g.s.floorItems = [{ pos: { x: 7, y: 7 }, item: { kind: 'material', mat: 'remains', n: 3 } }];
   for (let i = 0; i < 2; i++) g.act(gridBotAction(g.s, 'decent'));
   expect(g.s.run.floor).toBe(2);
 });

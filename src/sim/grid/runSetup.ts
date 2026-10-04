@@ -1,3 +1,5 @@
+import { applyMods } from './mods';
+import { refreshSight } from './state';
 import { placeDeathSuit } from './deathSuit';
 import type { EngraveId } from './engraveCore';
 import type { Round } from './rounds';
@@ -11,6 +13,8 @@ import type { GridState } from './types';
 export interface RunOptions { gun: 'pistol'; round?: Round; start: 1 | 6 | 11; startSuit: EngraveId[] }
 export function newRunState(seed: number, meta: MetaState, opts: RunOptions): GridState {
   const s = newState(generateMap(opts.start === 1 ? seed : seed * 31 + opts.start, opts.start), seed, 'pistol', opts.start);
+  s.run.stock = { ...meta.materials };
+  s.run.tools = [...meta.tools];
   s.records = [...meta.records];
   s.run.unlocked = [...meta.unlocked];
   const h = s.hero;
@@ -21,6 +25,8 @@ export function newRunState(seed: number, meta: MetaState, opts: RunOptions): Gr
   h.maxHp += (h.level - 1) * LEVEL_HP;
   h.hp = h.maxHp;
   h.suit = opts.start === 1 ? [...new Set(opts.startSuit.length ? opts.startSuit : meta.unlocked)].filter(id => meta.unlocked.includes(id)).slice(0, meta.facilities.suitSlots) : [];
+  applyMods(h, meta);
+  refreshSight(s);
   s.floorItems.push(...scatterLoot(s));
   if (meta.suit) s.run.leftSuit = structuredClone(meta.suit);
   placeDeathSuit(s);

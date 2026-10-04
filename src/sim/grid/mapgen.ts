@@ -1,3 +1,4 @@
+import { placeToolSpots } from './toolSpots';
 import { isBossFloor } from './zones';
 import { placeTraps } from './traps';
 import { createRng, type Rng } from '../../core/rng';
@@ -119,5 +120,6 @@ export function generateMap(seed: number, floor = 1): GridMap {
     const pool = elites.shuffle(m.spawns.filter((sp) => sp.kind !== 'champion'));
     for (const sp of pool.slice(0, count)) sp.elite = true;
   }
+  placeToolSpots(m, createRng((seed ^ 0x7a01) + floor * 8191));
   return m;
 }

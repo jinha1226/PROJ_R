@@ -41,8 +41,8 @@ describe('floors', () => {
     expect(s.tiles).toEqual([]);
     expect(s.telegraphs).toEqual([]);
     expect(s.foes.every((f) => f.alive && !f.awake)).toBe(true);
-    // only the new floor's scattered potions and scrolls lie about
-    expect(s.floorItems.every((f) => f.item.kind === 'potion' || f.item.kind === 'scroll')).toBe(true);
+    // only the new floor's scattered consumables and materials lie about
+    expect(s.floorItems.every((f) => f.item.kind === 'potion' || f.item.kind === 'scroll' || f.item.kind === 'material')).toBe(true);
   });
 
   it('stepping onto the stairs goes down', () => {

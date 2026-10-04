@@ -33,7 +33,9 @@ function batchim(word: string): boolean {
 /** Log lines for traps, searching and learning what a potion or scroll is. */
 function eventLine(e: GEvent): string | undefined {
   if (e.type === 'upgrade') return `슈트 강화 — ${UPGRADES[e.text as UpgradeId]?.name ?? e.text ?? ''}`;
-  if (e.type === 'absorb') return '잔향을 흡수했다';
+  if (e.type === 'absorb') return '각인 제안';
+  if (e.type === 'blocked' && e.text === 'seal') return '절단기 필요';
+  if (e.type === 'blocked' && e.text === 'chasm') return '갈고리 필요';
   if (e.type === 'record') return `새 각인 기록 — ${ENGRAVES[e.text as EngraveId]?.name ?? e.text ?? ''}`;
   if (e.type === 'stairs') return '계단이 열렸다';
   if (e.type === 'suitHere') return '이 층에 남겨진 슈트';

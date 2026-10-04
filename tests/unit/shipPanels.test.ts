@@ -6,9 +6,9 @@ const setup = { gun: 'pistol', start: 1, startSuit: [] } as const;
 const opts = () => ({ ...setup, startSuit: [] });
 it('lights basic facilities and powers purchased areas', () => {
   const m = freshMeta();
-  for (const id of ['pod', 'core', 'hatch', 'records'] as const) expect(stationLit(m, id)).toBe(true);
-  for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(false);
-  m.energy = 1000; m.bossesKilled = [5];
+  for (const id of ['pod', 'hatch', 'records'] as const) expect(stationLit(m, id)).toBe(true);
+  for (const id of ['armory', 'suitlab', 'nav', 'core'] as const) expect(stationLit(m, id)).toBe(false);
+  m.repairs = ['workbench', 'suitlab', 'nav']; m.energy = 1000; m.bossesKilled = [5];
   for (const id of ['round:fire', 'chargePlus1', 'navCrypt']) buy(m, id);
   for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(true);
 });
@@ -16,7 +16,7 @@ it('lists purchases with affordability, prerequisite and ownership gates', () =>
   const m = freshMeta();
   expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['plain']);
   expect(panelContents(m, 'armory', opts()).shop.every(c => !c.enabled)).toBe(true);
-  m.energy = 1000;
+  m.repairs = ['workbench', 'suitlab', 'nav']; m.energy = 1000;
   expect(panelContents(m, 'armory', opts()).shop.every(c => c.enabled)).toBe(true);
   expect(panelContents(m, 'nav', opts()).shop.every(c => !c.enabled)).toBe(true);
   m.bossesKilled = [5];
@@ -52,7 +52,7 @@ it('limits unlocked choices and clears shortcut engravings', () => {
   expect(panelContents(m, 'hatch', { ...opts(), start: 11 }).choices).toEqual([]);
 });
 it('lists locked engravings with tasted prices and unlocked hatch choices', () => {
-  const m = freshMeta(); m.energy = 60; m.tasted = ['flow']; m.startCandidates = ['rapid'];
+  const m = freshMeta(); m.repairs = ['suitlab']; m.energy = 60; m.tasted = ['flow']; m.startCandidates = ['rapid'];
   const shop = panelContents(m, 'suitlab', opts()).shop;
   expect(shop.find(e => e.id === 'engrave:flow')).toMatchObject({ label: '흐름 ⚡60', enabled: true });
   expect(shop.find(e => e.id === 'engrave:execute')).toMatchObject({ label: '처형 ⚡90', enabled: false });
@@ -62,7 +62,7 @@ it('lists locked engravings with tasted prices and unlocked hatch choices', () =
   expect(choices.every(e => e.selected)).toBe(true);
 });
 it('offers only unlocked rounds, keeps the chosen round and falls back to plain', () => {
-  const m = freshMeta(); m.energy = 500;
+  const m = freshMeta(); m.repairs = ['workbench']; m.energy = 500;
   expect(buy(m, 'round:fire')).toBe(true); expect(buy(m, 'round:shock')).toBe(true);
   const chosen = { ...opts(), round: 'fire' as const };
   expect(launchOptions(m, chosen).round).toBe('fire');

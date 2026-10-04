@@ -70,7 +70,7 @@ export class GridSim {
     let cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
     // a stumble into a wall still spends the turn (no free re-rolls of the confusion)
     if (cost === null && astray) { s.events.push({ t: t0, type: 'stumble', src: s.hero.id, to: { ...s.hero.pos } }); cost = 1; }
-    if (cost === null) { fx.momentum = boosted; return [{ t: t0, type: 'blocked', src: s.hero.id }]; }
+    if (cost === null) { fx.momentum = boosted; return s.events.length ? s.events : [{ t: t0, type: 'blocked', src: s.hero.id }]; }
     if (!frozen && a.kind === 'move' && s.events.some(e => e.type === 'move' && e.src === s.hero.id)) emit(s, 'afterMove', { t: t0 });
     if (!frozen && a.kind === 'swap') emit(s, 'afterSwap', { t: t0 });
     if (!frozen && a.kind === 'wait') emit(s, 'afterWait', { t: t0 });
@@ -139,6 +139,6 @@ export class GridSim {
     const f = this.s.foes.find((x) => x.id === id && x.alive);
     const w = activeWeapon(this.s.hero.gear);
     if (!f || !w || WEAPONS[w.group].melee) return null;
-    return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit);
+    return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit + (this.s.hero.modStats?.hit ?? 0));
   }
 }
