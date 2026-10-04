@@ -1,3 +1,4 @@
+import { foeDmg } from '../../../src/sim/grid/foes';
 import { describe, it, expect } from 'vitest';
 import { makeWeapon, type WeaponGroup } from '../../../src/sim/grid/items';
 import { activeWeapon, addToBag } from '../../../src/sim/grid/gear';
@@ -128,7 +129,7 @@ describe('gear actions and armour', () => {
     const dmg: number[] = [];
     for (let i = 0; i < 30; i++) for (const e of g.act({ kind: 'wait' })) if (e.type === 'hit' && e.dst === 'hero') dmg.push(e.amount!);
     expect(dmg.length).toBeGreaterThan(0);
-    expect(Math.max(...dmg)).toBeLessThanOrEqual(FOES.minion.dmg[1] - g.s.hero.gear.armor.reduce);
+    expect(Math.max(...dmg)).toBeLessThanOrEqual(foeDmg(g.s.foes[0]!)[1] - g.s.hero.gear.armor.reduce);
     expect(Math.min(...dmg)).toBeGreaterThanOrEqual(1);
   });
 

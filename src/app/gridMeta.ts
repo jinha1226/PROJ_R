@@ -1,3 +1,4 @@
+import { BASE_IDS, type EngraveId } from '../sim/grid/engraveCore';
 import { freshMeta, type MetaState } from '../sim/grid/meta';
 const KEY = 'projr.grid.meta.v1';
 const nonnegative = (v: unknown): number => typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0;
@@ -7,7 +8,14 @@ export function loadMeta(): MetaState {
     if (text !== null) {
       const m = JSON.parse(text) as MetaState;
       if (!m || !m.facilities || !Array.isArray(m.records) || !Array.isArray(m.startCandidates) || !Array.isArray(m.bossesKilled)) return freshMeta();
-      return { ...freshMeta(), ...m, energy: nonnegative(m.energy), best: nonnegative(m.best), wins: nonnegative(m.wins) };
+      const defaults = freshMeta();
+      const ids = (v: unknown, fallback: EngraveId[]): EngraveId[] => Array.isArray(v)
+        ? [...new Set(v.filter((id): id is EngraveId => BASE_IDS.includes(id as EngraveId)))] : fallback;
+      const legacy = !Object.hasOwn(m, 'unlocked');
+      const slots = Number(m.facilities.suitSlots) + (legacy ? 1 : 0);
+      const facilities = { ...defaults.facilities, ...m.facilities,
+        suitSlots: ([2, 3, 4].includes(slots) ? slots : 2) as 2 | 3 | 4 };
+      return { ...defaults, ...m, facilities, unlocked: ids(m.unlocked, defaults.unlocked), tasted: ids(m.tasted, []), energy: nonnegative(m.energy), best: nonnegative(m.best), wins: nonnegative(m.wins) };
     }
     const old = JSON.parse(localStorage.getItem('projr.grid.v1') ?? 'null') as { best?: number; wins?: number } | null;
     const m = { ...freshMeta(), best: nonnegative(old?.best), wins: nonnegative(old?.wins) };

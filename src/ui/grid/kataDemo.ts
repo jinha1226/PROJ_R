@@ -85,7 +85,6 @@ export class KataDemo implements Screen {
     this.sim = GridSim.fromState(this.current.setup());
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, isTouchDevice());
     this.rt.pixelated = pixel;
-    this.rt.actors.autoHands = true;
     this.rt.setZoom(10);
     this.show();
   }

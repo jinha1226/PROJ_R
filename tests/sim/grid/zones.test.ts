@@ -62,7 +62,7 @@ describe('fifteen floors in three zones', () => {
   });
 
   it('scales ordinary foes gently and bosses by zone', () => {
-    expect(scaleFoe('minion', 11).hp).toBe(38);
+    expect(scaleFoe('minion', 11).hp).toBe(39);
     for (const floor of [5, 10, 15] as const) {
       const power = BOSS_POWER[floor];
       expect(scaleFoe('champion', floor)).toEqual({ hp: Math.round(FOES.champion.hp * power), dmg: FOES.champion.dmg.map((d) => Math.round(d * power)), power });

@@ -1,3 +1,4 @@
+import { scaleFoe } from '../../../src/sim/grid/foes';
 import { expect, it } from 'vitest';
 import { freshMeta, settleRun } from '../../../src/sim/grid/meta';
 import { newRunState } from '../../../src/sim/grid/runSetup';
@@ -47,7 +48,7 @@ it.each([['minion', 'minion'], ['champion', 'brute'], ['trap', 'minion']])('uses
   const guardian = s.foes.at(-1)!;
   expect(guardian.kind).toBe(kind);
   expect(guardian.elite).toBe(true);
-  expect(guardian.power).toBe(1.6);
+  expect(guardian.power).toBeCloseTo(scaleFoe(guardian.kind as Exclude<typeof guardian.kind, 'hero'>, 1).power * 1.6);
   guardian.alive = false;
   settleKills(s, new Set([guardian.id]));
   expect(s.floorItems.some(f => f.item.kind === 'echo' && same(f.pos, guardian.pos))).toBe(true);
@@ -67,7 +68,9 @@ it('walking onto the suit takes a turn, transmits it, and settlement clears the 
   expect(s.floorItems.some(f => f.item.kind === 'suit')).toBe(false);
   s.outcome = 'won';
   const result = settleRun(m, s);
-  expect(result.startCandidates).toEqual(['dash', 'rapid']);
+  expect(result.startCandidates).toEqual([]);
+  expect(result.tasted).toContain('dash');
+  expect(result.energy).toBe(s.run.energy + 20);
   expect(result.suit).toBeUndefined();
   s.outcome = 'dead'; s.hero.suit = ['chain'];
   expect(settleRun(m, s).suit?.ids).toEqual(['chain']);

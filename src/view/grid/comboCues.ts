@@ -37,6 +37,10 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'engrave':
       k.pops.engrave(e.text ?? '');
       return true;
+    case 'chain':
+      k.fx.slow(1.4, 0.35);
+      k.pops.hits(e.amount ?? 0, true);
+      return true;
     case 'combo': {
       const fin = e.text === 'finisher';
       k.pops.hits(e.amount ?? 0, fin);

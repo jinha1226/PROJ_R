@@ -18,7 +18,11 @@ export const GRID_BOT_CAP = 10_000;
 export function gridBotAction(s: GridState, mode: GridBotMode): GAction {
   const h = s.hero, g = h.gear;
   if (s.upgrades.length) return { kind: 'upgrade', i: 0 };
-  if (s.offers.length) return { kind: 'choose', i: 0, slot: 0 };
+  if (s.offers.length) {
+    const i = mode === 'pistol-only' ? s.offers[0]!.findIndex(id => id !== 'bladeRelay') : 0;
+    return { kind: 'choose', i: i < 0 ? null : i, slot: 0 };
+  }
+  if (mode === 'pistol-only' && g.hands[g.active] && WEAPONS[g.hands[g.active]!.group].melee) return { kind: 'swap' };
   if (h.hp < h.maxHp * 0.4 && g.belt.potion > 0) return { kind: 'use', item: 'potion' };
   if (mode === 'decent' && g.hands.includes(null)) {
     const bag = g.bag.findIndex(w => w.kind === 'weapon' && WEAPONS[w.group].melee);

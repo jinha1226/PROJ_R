@@ -22,7 +22,7 @@ it('restores every field, typed collections and RNG without sharing state', () =
   nextFloor(restored); nextFloor(g.s);
   expect(toSave(restored)).toBe(toSave(g.s));
   restored.hero.suit.push('dash');
-  expect(g.s.hero.suit).toEqual([]);
+  expect(g.s.hero.suit).toEqual(meta.unlocked);
 });
 it('continues with identical combat events and state after N actions', () => {
   const original = sim(OPEN, { x: 3, y: 3 }, [{ kind: 'brute', pos: { x: 6, y: 3 } }], 722);

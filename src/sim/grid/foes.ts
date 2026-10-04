@@ -6,11 +6,13 @@ import { FOES, type Cell, type Ent, type FoeKind, type GridState } from './types
 /** Stats per foe kind (with experience for a kill). */
 export const FOE_TABLE = FOES;
 export const FOE_XP: Record<FoeKind, number> = { minion: 3, brute: 6, ghoul: 4, archer: 4, mage: 6, champion: 30 };
-const PER_FLOOR = 0.17;
+/** ordinary foes start a notch tougher (the agent starts with a blade) and grow more gently per floor */
+const BASE_POWER = 1.25;
+const PER_FLOOR = 0.15;
 
-/** Deeper floors add 16% health and damage; champions use zone power. */
+/** Ordinary foes: a base toughness plus a share per floor; champions use zone power. */
 export function scaleFoe(kind: FoeKind, floor: number): { hp: number; dmg: [number, number]; power: number } {
-  const power = kind === 'champion' ? (isBossFloor(floor) ? BOSS_POWER[floor as 5 | 10 | 15] : 1) : 1 + PER_FLOOR * Math.max(0, floor - 1);
+  const power = kind === 'champion' ? (isBossFloor(floor) ? BOSS_POWER[floor as 5 | 10 | 15] : 1) : BASE_POWER + PER_FLOOR * Math.max(0, floor - 1);
   const d = FOES[kind].dmg;
   return { hp: Math.round(FOES[kind].hp * power), dmg: [Math.round(d[0] * power), Math.round(d[1] * power)], power };
 }

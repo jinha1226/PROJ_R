@@ -25,3 +25,16 @@ it('survives corrupt data and unavailable storage', () => {
   expect(loadMeta()).toEqual(freshMeta());
   expect(() => saveMeta(freshMeta())).not.toThrow();
 });
+it.each([1, 2, 3])('migrates old slot count %i once', slots => {
+  const old: Partial<ReturnType<typeof freshMeta>> = freshMeta();
+  delete old.unlocked; delete old.tasted;
+  data.set('projr.grid.meta.v1', JSON.stringify({ ...old, facilities: { ...old.facilities, suitSlots: slots } }));
+  const m = loadMeta();
+  expect(m.facilities.suitSlots).toBe(slots + 1);
+  expect(m.unlocked).toEqual(['gunRelay', 'spinShot']); expect(m.tasted).toEqual([]);
+  saveMeta(m); expect(loadMeta()).toEqual(m);
+});
+it('validates new engraving arrays and fills partial facilities', () => {
+  data.set('projr.grid.meta.v1', JSON.stringify({ ...freshMeta(), unlocked: ['flow', 'flow', 'bogus', 'rapid'], tasted: ['execute', 42], facilities: { suitSlots: 4 } }));
+  expect(loadMeta()).toMatchObject({ unlocked: ['flow'], tasted: ['execute'], facilities: { suitSlots: 4, chargePlus: 0 } });
+});

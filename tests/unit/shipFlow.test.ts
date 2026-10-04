@@ -16,8 +16,24 @@ it('launches ship selections, resumes, settles, and launches again with returned
 it('continues the saved run independently of new ship equipment selections', () => {
   const data = new Map<string, string>();
   vi.stubGlobal('localStorage', { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => data.set(k, v), removeItem: (k: string) => data.delete(k) });
-  const meta = freshMeta(); meta.facilities.armoryShotgun = true; meta.startCandidates = ['rapid'];
-  startGridRun(9, { gun: 'shotgun', start: 1, startSuit: ['rapid'] }, meta);
-  expect(loadRun()?.hero.suit).toEqual(['rapid']);
+  const meta = freshMeta(); meta.facilities.armoryShotgun = true; meta.unlocked = ['counter'];
+  startGridRun(9, { gun: 'shotgun', start: 1, startSuit: ['counter'] }, meta);
+  expect(loadRun()?.hero.suit).toEqual(['counter']);
   expect(continueGridRun()?.sim.s.hero.gear.hands[0]?.group).toBe('shotgun');
+});
+it('resumes a legacy run without retrofitting its gear or suit', () => {
+  const data = new Map<string, string>();
+  vi.stubGlobal('localStorage', { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => data.set(k, v), removeItem: (k: string) => data.delete(k) });
+  startGridRun(9);
+  const old = JSON.parse(data.get('projr.grid.run.v1')!);
+  delete old.state.run.unlocked; delete old.state.run.tasted; delete old.state.hero.fx.free;
+  old.state.hero.gear.hands[1] = null; old.state.hero.suit = ['rapid'];
+  data.set('projr.grid.run.v1', JSON.stringify(old));
+  const continued = continueGridRun()!;
+  expect(continued.sim.s.hero.gear.hands[1]).toBeNull();
+  expect(continued.sim.s.hero.suit).toEqual(['rapid']);
+  expect(continued.sim.s.hero.fx.free).toBe(false);
+  expect(() => continued.sim.act({ kind: 'wait' })).not.toThrow();
+  continued.checkpoint();
+  expect(loadRun()?.hero.suit).toEqual(['rapid']);
 });

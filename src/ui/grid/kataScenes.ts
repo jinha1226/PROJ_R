@@ -31,12 +31,12 @@ const foe = (s: GridState, id: string) => s.foes.find((f) => f.id === id)!;
 const hurt = (s: GridState, id: string, frac: number) => { const f = foe(s, id); f.hp = Math.max(0, Math.round(f.maxHp * frac)); f.alive = f.hp > 0; };
 const pop = (t: number, name: string): GEvent => ({ t, type: 'engrave', src: 'hero', text: name });
 const shoot = (t: number, dst: string, from: Cell, to: Cell, kill: boolean, text = 'pistol', src = 'hero'): GEvent[] => [
-  { t, type: 'shoot', src, dst, from: { ...from }, to: { ...to }, text },
+  { t, type: 'shoot', group: 'pistol', src, dst, from: { ...from }, to: { ...to }, text },
   { t: t + 0.02, type: 'hit', src, dst, amount: 6, crit: kill, to: { ...to } },
   ...(kill ? [{ t: t + 0.02, type: 'die' as const, src, dst, to: { ...to } }] : []),
 ];
 const slash = (t: number, dst: string, from: Cell, to: Cell, kill: boolean, amount = 8): GEvent[] => [
-  { t, type: 'bump', src: 'hero', dst, from: { ...from }, to: { ...to } },
+  { t, type: 'bump', group: 'dagger', src: 'hero', dst, from: { ...from }, to: { ...to } },
   { t: t + 0.08, type: 'hit', src: 'hero', dst, amount, crit: kill, to: { ...to } },
   ...(kill ? [{ t: t + 0.08, type: 'die' as const, src: 'hero', dst, to: { ...to } }] : []),
 ];
@@ -46,9 +46,9 @@ const relay: Scene = {
   name: '칼 → 총 → 칼',
   setup: () => room({ x: 2, y: 3 }, [{ kind: 'minion', pos: { x: 3, y: 3 } }, { kind: 'minion', pos: { x: 4, y: 1 } }, { kind: 'brute', pos: { x: 5, y: 3 } }]),
   steps: [
-    { input: '권총을 든 요원, 왼손엔 요원 칼. 고블린이 붙었고 홉고블린이 다가온다.', chain: [],
+    { input: '권총 · 요원 칼 · 적 접근', chain: [],
       tags: { f1: { intent: '공격' }, f2: { intent: '접근' }, f3: { intent: '접근' } }, aims: [] },
-    { input: '입력: 붙은 고블린 베기 (한 번)', chain: ['칼로 처치 → 총 연계: 가장 가까운 적에게 한 발', '총으로 처치 → 칼 연계: 2칸 앞 적에게 돌진 베기', '연쇄 ×3 → 슬로모, 다음 행동 0턴'], slowAt: 0.9,
+    { input: '입력: 인접 베기', chain: ['칼 처치 → 총 연계', '총 처치 → 2칸 돌진 베기', '3연계 · 감속 · 다음 행동 0턴'], slowAt: 0.9,
       run: (s) => {
         hurt(s, 'f1', 0); hurt(s, 'f2', 0); hurt(s, 'f3', 0.55);
         s.hero.pos = { x: 4, y: 3 };
@@ -63,7 +63,7 @@ const relay: Scene = {
         ];
       },
       tags: { f3: { intent: '내려치기' } }, aims: [] },
-    { input: '홉고블린의 내려치기 — 칼로 받아낸다', chain: ['패링 → 칼 반격 + 기절', '기절한 적 옆 → 처형: 총구를 대고 한 발'], slowAt: 0.5,
+    { input: '내려치기 → 패링', chain: ['패링 → 반격 · 기절', '인접 기절 → 처형'], slowAt: 0.5,
       run: (s) => {
         hurt(s, 'f3', 0);
         return [
@@ -73,7 +73,7 @@ const relay: Scene = {
           ...slash(0.3, 'f3', { x: 4, y: 3 }, { x: 5, y: 3 }, false, 5),
           { t: 0.42, type: 'stun', src: 'hero', dst: 'f3', to: { x: 5, y: 3 } },
           pop(0.6, '처형'),
-          ...shoot(0.75, 'f3', { x: 4, y: 3 }, { x: 5, y: 3 }, true),
+          ...shoot(0.75, 'f3', { x: 4, y: 3 }, { x: 5, y: 3 }, true, 'execute'),
         ];
       },
       tags: {}, aims: [] },
@@ -85,9 +85,9 @@ const ring: Scene = {
   name: '포위 · 회피',
   setup: () => room({ x: 4, y: 3 }, [{ kind: 'minion', pos: { x: 3, y: 3 } }, { kind: 'minion', pos: { x: 5, y: 3 } }, { kind: 'minion', pos: { x: 4, y: 4 } }, { kind: 'archer', pos: { x: 7, y: 1 } }]),
   steps: [
-    { input: '고블린 셋에게 포위, 구석의 석궁병이 조준 중.', chain: [],
+    { input: '포위 ×3 · 석궁 조준', chain: [],
       tags: { f1: { intent: '공격' }, f2: { intent: '공격' }, f3: { intent: '공격' }, f4: { intent: '조준' } }, aims: [[{ x: 7, y: 1 }, { x: 4, y: 3 }]] },
-    { input: '입력: 왼쪽 고블린 베기 (한 번)', chain: ['적이 둘 이상 붙은 채 베기 → 회전 사격 (충전 2)', '칼로 처치 → 총 연계: 석궁병에게 한 발', '연쇄 ×3 → 슬로모'], slowAt: 0.25,
+    { input: '입력: 왼쪽 베기', chain: ['다수 인접 베기 → 회전 사격 · 충전 2', '칼 처치 → 총 연계', '3연계 · 감속'], slowAt: 0.25,
       run: (s) => {
         hurt(s, 'f1', 0); hurt(s, 'f2', 0); hurt(s, 'f3', 0); hurt(s, 'f4', 0.5);
         const h = { x: 4, y: 3 };
@@ -102,7 +102,7 @@ const ring: Scene = {
         ];
       },
       tags: { f4: { intent: '조준' } }, aims: [[{ x: 7, y: 1 }, { x: 4, y: 3 }]] },
-    { input: '석궁병의 화살 — 굴러서 피한다', chain: ['회피 성공 → 반격 사격'], slowAt: 0.35,
+    { input: '석궁 사격 → 구르기', chain: ['회피 → 반격 사격'], slowAt: 0.35,
       run: (s) => {
         hurt(s, 'f4', 0);
         s.hero.pos = { x: 4, y: 2 };

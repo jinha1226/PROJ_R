@@ -42,7 +42,7 @@ describe('ship guns and suit charge', () => {
     expect(g.s.hero.charge).toBe(8);
     g.s.foes.forEach((f, i) => {
       const p = positions[i]!;
-      expect(f.hp).toBe(FOES.brute.hp - Math.round(5 * shotgunFalloff(Math.max(Math.abs(p.x - 4), Math.abs(p.y - 5)))));
+      expect(f.hp).toBe(f.maxHp - Math.round(5 * shotgunFalloff(Math.max(Math.abs(p.x - 4), Math.abs(p.y - 5)))));
       expect(f.pos).toEqual({ x: p.x + Math.sign(p.x - 4), y: p.y + Math.sign(p.y - 5) });
     });
   });
@@ -127,7 +127,8 @@ describe('ship guns and suit charge', () => {
     g.s.foes[2]!.hp = 1;
     rangedAttack(g.s, 0, g.s.foes[0]!, hooks);
     expect(rolls).toEqual([]);
-    expect(g.s.foes.map((f) => f.hp)).toEqual([FOES.brute.hp, FOES.brute.hp - Math.round(5 * shotgunFalloff(3)), 0]);
+    const full = g.s.foes[0]!.maxHp;
+    expect(g.s.foes.map((f) => f.hp)).toEqual([full, full - Math.round(5 * shotgunFalloff(3)), 0]);
     expect(g.s.events.filter((e) => e.type === 'push').map((e) => e.src)).toEqual(['f2']);
     expect(g.s.hero.charge).toBe(8); // Shot kills never refill the suit.
   });

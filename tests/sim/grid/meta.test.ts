@@ -19,7 +19,7 @@ describe('meta energy and facilities', () => {
     expect(buy(m, 'armoryShotgun')).toBe(false);
     m.energy = 2000;
     expect(buy(m, 'missing')).toBe(false);
-    expect(buy(m, 'suitSlots3')).toBe(false);
+    expect(buy(m, 'suitSlots4')).toBe(false);
     expect(buy(m, 'chargePlus2')).toBe(false);
     expect(buy(m, 'navCrypt')).toBe(false);
     expect(buy(m, 'navRuins')).toBe(false);
@@ -31,13 +31,13 @@ describe('meta energy and facilities', () => {
       expect(buy(m, entry.id)).toBe(false);
     }
     expect(unlockedGuns(m)).toEqual(['pistol', 'shotgun', 'rifle']);
-    expect(freshMeta().facilities.suitSlots).toBe(1);
+    expect(freshMeta().facilities.suitSlots).toBe(2);
   });
   it.each([1, 6, 11] as const)('sets up floor %i with level HP, charge, gear and copied records', start => {
     const m = freshMeta();
     Object.assign(m.facilities, { suitSlots: 2, chargePlus: 2, armoryRifle: true, navCrypt: true, navRuins: true });
-    m.startCandidates = ['dash', 'rapid', 'chain'];
-    const s = newRunState(12, m, { gun: 'rifle', start, startSuit: m.startCandidates });
+    m.unlocked = ['dash', 'rapid', 'chain'];
+    const s = newRunState(12, m, { gun: 'rifle', start, startSuit: m.unlocked });
     const level = start === 1 ? 1 : start === 6 ? 4 : 7;
     expect(s.run.floor).toBe(start);
     expect(s.hero.level).toBe(level);

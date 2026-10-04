@@ -25,29 +25,39 @@ it('lists purchases with affordability, prerequisite and ownership gates', () =>
   expect(panelContents(m, 'nav', opts()).choices.map(c => c.id)).toEqual(['1', '6']);
   expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['pistol', 'shotgun']);
   expect(panelContents(m, 'armory', opts()).shop[0]?.enabled).toBe(false);
-  expect(panelContents(m, 'suitlab', opts()).shop.map(c => c.enabled)).toEqual([true, false, true, false]);
+  expect(panelContents(m, 'suitlab', opts()).shop.slice(0, 4).map(c => c.enabled)).toEqual([true, false, true, false]);
 });
 it('describes records, candidates, energy, pod and hatch in Korean', () => {
   const m = freshMeta(); m.energy = 42; m.startCandidates = ['rapid'];
   expect(panelContents(m, 'records', opts()).lines).toHaveLength(4);
   expect(panelContents(m, 'records', opts()).lines[0]).toContain('돌진 베기');
   expect(panelContents(m, 'records', opts()).lines[0]).toContain('2칸');
-  expect(panelContents(m, 'suitlab', opts()).lines.join()).toContain('연사');
+  expect(panelContents(m, 'suitlab', opts()).lines).toEqual(['시작 각인 2칸 · 최대 충전 10']);
   expect(panelContents(m, 'core', opts(), 12).lines.join()).toContain('42');
   expect(panelContents(m, 'core', opts(), 12).lines.join()).toContain('12');
   expect(panelContents(m, 'pod', opts()).lines.join()).toContain('최고');
   expect(panelContents(m, 'hatch', opts()).lines.join()).toContain('권총');
   expect(panelContents(m, 'hatch', opts()).choices[0]?.enabled).toBe(true);
 });
-it('limits and sanitizes starting choices, clears shortcut engravings, and permits deselection at capacity', () => {
-  const m = freshMeta(); m.startCandidates = ['dash', 'rapid'];
-  const o = { gun: 'rifle', start: 11, startSuit: ['dash', 'dash', 'chain', 'rapid'] } as const;
-  expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] })).toEqual({ gun: 'pistol', start: 1, startSuit: ['dash'] });
-  const selected = { ...opts(), startSuit: ['dash'] as ('dash' | 'rapid')[] };
-  expect(panelContents(m, 'hatch', selected).choices.map(c => c.enabled)).toEqual([true, false]);
-  expect(toggleStartSuit(m, selected, 'rapid').startSuit).toEqual(['dash']);
-  expect(toggleStartSuit(m, selected, 'dash').startSuit).toEqual([]);
+it('limits unlocked choices and clears shortcut engravings', () => {
+  const m = freshMeta(); m.unlocked = ['dash', 'counter', 'flow'];
+  const o = { gun: 'rifle', start: 11, startSuit: ['dash', 'dash', 'chain', 'counter'] } as const;
+  expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] })).toEqual({ gun: 'pistol', start: 1, startSuit: ['dash', 'counter'] });
+  const selected = { ...opts(), startSuit: ['dash', 'counter'] as typeof m.unlocked };
+  expect(panelContents(m, 'hatch', selected).choices.map(c => c.enabled)).toEqual([true, true, false]);
+  expect(toggleStartSuit(m, selected, 'flow').startSuit).toEqual(['dash', 'counter']);
+  expect(toggleStartSuit(m, selected, 'dash').startSuit).toEqual(['counter']);
   m.facilities.navRuins = true;
   expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] }).startSuit).toEqual([]);
   expect(panelContents(m, 'hatch', { ...opts(), start: 11 }).choices).toEqual([]);
+});
+it('lists locked engravings with tasted prices and unlocked hatch choices', () => {
+  const m = freshMeta(); m.energy = 60; m.tasted = ['flow']; m.startCandidates = ['rapid'];
+  const shop = panelContents(m, 'suitlab', opts()).shop;
+  expect(shop.find(e => e.id === 'engrave:flow')).toMatchObject({ label: '흐름 ⚡60', enabled: true });
+  expect(shop.find(e => e.id === 'engrave:execute')).toMatchObject({ label: '처형 ⚡90', enabled: false });
+  expect(shop.some(e => e.id === 'engrave:gunRelay')).toBe(false);
+  const choices = panelContents(m, 'hatch', opts()).choices;
+  expect(choices.map(e => e.id)).toEqual(m.unlocked);
+  expect(choices.every(e => e.selected)).toBe(true);
 });

@@ -61,3 +61,16 @@ it('revisits enemies on explored ground instead of waiting forever', () => {
   s.seen.fill(1); s.visible.clear();
   expect(gridBotAction(s, 'decent').kind).toBe('move');
 });
+
+it('pistol-only switches away from the starting knife before attacking', () => {
+  const { s } = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'minion', pos: { x: 6, y: 7 } }]);
+  s.hero.gear.active = 1;
+  expect(gridBotAction(s, 'pistol-only')).toEqual({ kind: 'swap' });
+});
+it('pistol-only declines blade relay to prevent automatic knife strikes', () => {
+  const { s } = sim(OPEN, { x: 5, y: 7 });
+  s.offers = [['bladeRelay', 'counterShot']];
+  expect(gridBotAction(s, 'pistol-only')).toEqual({ kind: 'choose', i: 1, slot: 0 });
+  s.offers = [['bladeRelay']];
+  expect(gridBotAction(s, 'pistol-only')).toEqual({ kind: 'choose', i: null, slot: 0 });
+});

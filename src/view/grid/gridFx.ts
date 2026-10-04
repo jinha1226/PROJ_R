@@ -21,6 +21,8 @@ export class GridFx {
   private readonly iconLayer = document.createElement('div');
   private readonly hurtEl = document.createElement('div');
   private stop = 0;
+  private slowLeft = 0;
+  private slowScale = 1;
   private shakeT = 0;
   private shakeAmp = 0;
 
@@ -65,6 +67,13 @@ export class GridFx {
     void this.hurtEl.offsetWidth;
     this.hurtEl.classList.add('on');
   }
+
+  slow(sec: number, scale: number): void {
+    this.slowLeft = sec;
+    this.slowScale = scale;
+  }
+
+  get timeScale(): number { return this.slowLeft > 0 ? this.slowScale : 1; }
 
   hitStop(): void {
     this.stop = HITSTOP;
@@ -114,7 +123,9 @@ export class GridFx {
   }
 
   update(dt: number): void {
-    this.flashes.update(dt);
+    const scaled = dt * this.timeScale;
+    this.slowLeft = Math.max(0, this.slowLeft - dt);
+    this.flashes.update(scaled);
     for (let i = this.beams.length - 1; i >= 0; i--) {
       const b = this.beams[i]!; b.life -= dt;
       b.mesh.scale.y = 1 + (0.5 - b.life) * 10; b.mesh.position.y = b.mesh.scale.y / 2;
@@ -123,7 +134,7 @@ export class GridFx {
     }
     this.stop = Math.max(0, this.stop - dt);
     this.shakeT = Math.max(0, this.shakeT - dt);
-    const step = this.stop > 0 ? 0 : dt;
+    const step = this.stop > 0 ? 0 : scaled;
     this.transient.update(step);
     for (let i = this.bolts.length - 1; i >= 0; i--) {
       const b = this.bolts[i]!;

@@ -1,3 +1,5 @@
+import { handSwap } from './handSwap';
+import type { WeaponGroup } from '../../sim/grid/items';
 import { HpBars } from './hpBars';
 import * as THREE from 'three';
 import type { Ent, GridState } from '../../sim/grid/types';
@@ -120,10 +122,10 @@ export class GridActors {
   }
 
   /** Melee: step into the target and back, swinging (a dash's own slash is not cut off). */
-  lunge(id: string | undefined, at: THREE.Vector3, anim?: UalAnim): void {
+  lunge(id: string | undefined, at: THREE.Vector3, anim?: UalAnim, group?: WeaponGroup): void {
     const v = this.v(id);
     if (!v) return;
-    this.handFor(id, false);
+    this.handFor(id, group);
     this.face(id, at);
     this.nudge(v, at, LUNGE);
     if (v.actor.busyWith !== 'dash') v.actor.play(anim ?? this.meleeAnim(id!), anim === 'finisher' ? 1.5 : 1.7);
@@ -152,13 +154,13 @@ export class GridActors {
 
   /** Ranged: aim, fire, kick back a little. */
   /** Fires: the motion follows the weapon (gun shot, bow draw, crossbow, staff spell). */
-  shoot(id: string | undefined, at: THREE.Vector3, group?: string): void {
+  shoot(id: string | undefined, at: THREE.Vector3, group?: WeaponLook, spin = false): void {
     const v = this.v(id);
     if (!v) return;
-    this.handFor(id, true);
+    this.handFor(id, group);
     this.face(id, at);
     // a spin shot snaps round to each target instead of turning
-    if (group === 'spin') v.yaw = v.facing;
+    if (spin) v.yaw = v.facing;
     this.nudge(v, at, -0.1);
     const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'staff' ? 'cast' : 'shoot';
     v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
@@ -204,16 +206,13 @@ export class GridActors {
     this.v(id)?.actor.setOffhand(off);
   }
 
-  /** The hero brings the right weapon to the main hand for the move (gun to shoot, blade to strike), the other goes to the left. */
-  private handFor(id: string | undefined, ranged: boolean): void {
-    const isGun = (k: WeaponLook | null) => k === 'pistol' || k === 'shotgun' || k === 'rifle';
-    if (!this.autoHands || id !== 'hero' || !this.heroWeapon || this.heroOff === 'none' || isGun(this.heroWeapon) === ranged || isGun(this.heroOff) !== ranged) return;
-    this.setWeapon('hero', this.heroOff, this.heroWeapon);
+  private handFor(id: string | undefined, group?: WeaponLook): void {
+    if (id !== 'hero' || !this.heroWeapon) return;
+    const swap = handSwap(this.heroWeapon, this.heroOff, group);
+    if (swap) this.setWeapon('hero', ...swap);
   }
 
   private heroOff: WeaponLook = 'none';
-  /** scripted scenes swap hands per move; the game shows the sim's own hand */
-  autoHands = false;
 
   /** Lamps on the hero's suit for its filled engraving slots. */
   setSuitLights(id: string, filled: number): void {

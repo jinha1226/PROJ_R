@@ -1,3 +1,4 @@
+import { cellAtScreen, cellVec, shotGroup } from './runtimeHelpers';
 import { ShipTerrain } from './shipTerrain';
 import { heroLook } from './heroLook';
 import { speciesOf } from './species';
@@ -168,7 +169,7 @@ export class GridRuntime {
       case 'move': if (e.to) a.moveTo(e.src, e.to.x, e.to.y); break;
       case 'bump': {
         const p = at(e.dst);
-        if (p) { a.lunge(e.src, p, e.text === 'finisher' ? 'finisher' : undefined); const from = at(e.src)!; this.fx.transient.slash(p.x, p.z, Math.atan2(p.z - from.z, p.x - from.x)); }
+        if (p) { a.lunge(e.src, p, e.text === 'finisher' ? 'finisher' : undefined, e.group); const from = at(e.src)!; this.fx.transient.slash(p.x, p.z, Math.atan2(p.z - from.z, p.x - from.x)); }
         break;
       }
       case 'shoot': {
@@ -177,7 +178,8 @@ export class GridRuntime {
         const quiet = e.text === 'ricochet' || e.text === 'chain' || e.text === 'volley' || e.text === 'burst';
         const from = quiet && e.from ? cellVec(e.from) : at(e.src);
         if (!p || !from) break;
-        if (!quiet) a.shoot(e.src, p, e.text === 'spell' || e.text === 'echo' ? 'staff' : e.text);
+        if (!quiet) a.shoot(e.src, p, shotGroup(e), e.text === 'spin');
+        if (e.text === 'execute') this.punch = 0.16;
         if (!e.dst) break;
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
@@ -230,15 +232,16 @@ export class GridRuntime {
   }
   update(dt: number): void {
     this.clock += dt;
-    for (const e of this.playback.update(this.fx.frozen ? 0 : dt)) this.cue(e);
+    const scaled = dt * this.fx.timeScale;
+    for (const e of this.playback.update(this.fx.frozen ? 0 : scaled)) this.cue(e);
     this.fx.update(dt);
     this.pops.update(dt);
     if (this.terrain instanceof ShipTerrain) this.terrain.update(dt);
-    this.actors.update(dt, this.fx.frozen);
+    this.actors.update(scaled, this.fx.frozen);
     this.torches.update(dt);
     this.items.update(dt);
     this.elements.update(dt);
-    this.particles.update(this.fx.frozen ? 0 : dt, this.center);
+    this.particles.update(this.fx.frozen ? 0 : scaled, this.center);
     this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
     // the small ship deck stays framed in the middle; in the dungeon the camera follows the hero
@@ -271,16 +274,9 @@ export class GridRuntime {
   }
   /** The grid cell under a screen point (null off the map). */
   cellAt(clientX: number, clientY: number): Cell | null {
-    const r = this.el.getBoundingClientRect();
-    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(ndc, this.h.camera);
-    const hit = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
-    if (!hit) return null;
-    const c = { x: Math.round(hit.x / CELL), y: Math.round(hit.z / CELL) };
-    const m = this.sim.s.map;
-    return c.x >= 0 && c.y >= 0 && c.x < m.w && c.y < m.h ? c : null;
+    return cellAtScreen(this.el, this.h.camera, this.sim.s.map, clientX, clientY);
   }
+
   dispose(): void {
     this.actors.dispose();
     this.fx.dispose();
@@ -295,4 +291,3 @@ export class GridRuntime {
     this.h.dispose();
   }
 }
-const cellVec = (c: Cell): THREE.Vector3 => new THREE.Vector3(c.x * CELL, 0, c.y * CELL);

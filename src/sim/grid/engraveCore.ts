@@ -13,7 +13,7 @@ export type Fit = 'melee' | 'ranged' | 'magic' | 'any' | 'kata';
 
 /** Name, one line, and which weapons it suits (for absorption and scroll offers). */
 export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit; base: boolean; cost: number }> = {
-  dash: { name: '돌진 베기', note: '2칸 앞 적에게 뛰어들며 벤다', fits: 'melee', base: true, cost: 50 },
+  dash: { name: '돌진 베기', note: '2칸 돌진 베기', fits: 'melee', base: true, cost: 50 },
   finisher: { name: '3연타 마무리', note: '같은 적 3타째 ×1.5 + 밀치기', fits: 'melee', base: false, cost: 0 },
   shoveShot: { name: '밀치고 쏘기', note: '벤 적을 밀치고 다른 손 총으로 한 발', fits: 'melee', base: true, cost: 50 },
   leap: { name: '도약 내려찍기', note: '3칸 앞 적에게 도약, 착지 주변 공격', fits: 'melee', base: false, cost: 0 },
