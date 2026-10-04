@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>안무 건카타 시연</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap">
+<style>
+/* layout: a terminal-monitor page — short verdict up top, two step-through boards side by side, the damage rules underneath */
+:root {
+  --bg: #070c0e;
+  --panel: #0b1417;
+  --fg: #c8f0e0;
+  --dim: #6f8f86;
+  --line: #24393a;
+  --floor: #142024;
+  --wall: #050809;
+  --hp: #ff5d4a;
+  --charge: #62d4ff;
+  --warn: #ffb54a;
+  --gob: #8ccf5a;
+  --hero: #62d4ff;
+  --mono: 'Nanum Gothic Coding', ui-monospace, 'Menlo', monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 28px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+h1 span { background: var(--fg); color: var(--bg); padding: 1px 8px; }
+h2 { font-size: 16px; margin: 0; font-weight: 700; }
+.lede { display: grid; gap: 10px; max-width: 70ch; }
+.lede p { margin: 0; color: var(--fg); }
+.lede .dim { color: var(--dim); }
+.examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+.ex { border: 1px solid var(--line); background: var(--panel); display: grid; gap: 12px; padding: 0 0 14px; min-width: 0; }
+.ex header { background: var(--fg); color: var(--bg); padding: 3px 10px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ex header b { font-weight: 700; }
+.ex .body { padding-inline: 12px; display: grid; gap: 12px; min-width: 0; }
+.board { position: relative; width: 100%; aspect-ratio: 7 / 5; max-width: 100%; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(5, 1fr); gap: 2px; background: var(--wall); border: 1px solid var(--line); }
+.cell { background: var(--floor); position: relative; display: grid; place-items: center; }
+.cell.wall { background: var(--wall); background-image: repeating-linear-gradient(45deg, #0d1517 0 3px, transparent 3px 7px); }
+.unit { display: grid; justify-items: center; gap: 2px; z-index: 2; transition: opacity 0.3s; }
+.tok { width: clamp(22px, 5.2vw, 34px); aspect-ratio: 1; display: grid; place-items: center; font-weight: 700; font-size: clamp(11px, 2.4vw, 15px); border: 2px solid currentColor; background: #0a1214; }
+.unit.hero { color: var(--hero); }
+.unit.hero .tok { transform: rotate(45deg); }
+.unit.hero .tok span { transform: rotate(-45deg); }
+.unit.foe { color: var(--gob); }
+.unit.dead { opacity: 0.25; }
+.unit.dead .tok::after { content: '×'; position: absolute; color: var(--hp); font-size: 1.6em; }
+.unit .tok { position: relative; }
+.pips { font-size: clamp(8px, 1.8vw, 11px); letter-spacing: 1px; color: var(--hp); line-height: 1; white-space: nowrap; }
+.pips i { font-style: normal; color: #3a2a2a; }
+.hpnum { font-size: clamp(8px, 1.8vw, 11px); color: var(--hp); line-height: 1; white-space: nowrap; }
+.stun { position: absolute; top: -10px; font-size: 10px; background: var(--warn); color: var(--bg); padding: 0 3px; z-index: 3; }
+svg.over { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: visible; }
+.intent-label { font-family: var(--mono); font-size: 2.6px; fill: var(--warn); }
+.status { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+.status b { color: var(--fg); font-weight: 400; }
+.status .hp { color: var(--hp); }
+.status .ch { color: var(--charge); }
+.step-tag { color: var(--warn); }
+.caption { border-left: 2px solid var(--line); padding: 4px 10px; min-height: 4.8em; display: grid; gap: 6px; }
+.caption p { margin: 0; }
+.opts { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.opts li { display: flex; gap: 8px; color: var(--dim); }
+.opts li.pick { color: var(--fg); }
+.opts li.pick::before { content: '▸'; color: var(--warn); }
+.opts li:not(.pick)::before { content: ' '; white-space: pre; }
+.replay { display: inline-block; background: var(--warn); color: var(--bg); padding: 0 6px; font-weight: 700; }
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+button { font-family: var(--mono); font-size: 13px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--fg); }
+button:focus-visible { outline: 2px solid var(--charge); outline-offset: 2px; }
+button[disabled] { opacity: 0.35; cursor: default; }
+.dots { display: flex; gap: 4px; margin-left: auto; }
+.dots span { width: 18px; height: 6px; background: var(--line); }
+.dots span.on { background: var(--fg); }
+.modebar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+.modebar button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.rules { display: grid; gap: 14px; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--dim); font-weight: 400; }
+td.good { color: var(--fg); }
+td.bad { color: var(--dim); }
+.ruleslist { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; max-width: 75ch; }
+.ruleslist li { padding-left: 14px; position: relative; }
+.ruleslist li::before { content: '-'; position: absolute; left: 0; color: var(--dim); }
+.ruleslist b { color: var(--warn); font-weight: 400; }
+@media (prefers-reduced-motion: reduce) { .unit { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <section class="lede">
+    <h1><span>안무 건카타</span> 턴 예시 두 개</h1>
+    <p>적 체력은 하트 1~4칸, 공격은 1~2칸 고정 피해로 두는 안이에요. 한눈에 "이건 죽는다"가 보여야 한 수로 여러 마리를 엮는 계획이 서요.</p>
+    <p class="dim">각 예시의 다음 ▸ 를 눌러 한 턴을 따라가 보세요. 아래 표시 방식을 HP로 바꾸면 같은 장면이 숫자로 어떻게 보이는지 비교할 수 있어요.</p>
+    <div class="modebar" role="group" aria-label="체력 표시">
+      <span>체력 표시</span>
+      <button type="button" id="mode-heart" aria-pressed="true">하트</button>
+      <button type="button" id="mode-hp" aria-pressed="false">HP 숫자</button>
+    </div>
+  </section>
+
+  <section class="examples" id="examples"></section>
+
+  <section class="rules">
+    <h2>피해 규칙 제안</h2>
+    <ul class="ruleslist">
+      <li>적 하트: 고블린 졸개 <b>1</b> · 석궁병 <b>2</b> · 홉고블린 <b>3</b> · 정예 <b>+1</b> · 구간 수호자 <b>6~8</b></li>
+      <li>근접은 확정 <b>1</b>칸. 무기는 칸 수가 아니라 모양으로 차이: 도끼는 앞 3칸에 1씩, 창은 2칸 관통, 철퇴는 밀치기</li>
+      <li>총은 충전을 쓰고 <b>1~2</b>칸. 산탄총 2칸 거리 2, 소총 3연발은 1씩 세 번(여러 적에게 나눠 쏠 수 있음)</li>
+      <li>기절한 적에게 처형 사격(충전 3)은 <b>즉사</b>. 벽에 밀어 박기, 돌진 충돌로 기절을 만든다</li>
+      <li>요원은 하트 <b>6</b>칸, 회복은 드물게. 성장은 숫자가 아니라 조건부 +1과 새 기술로</li>
+      <li>명중률은 원거리에만 남기거나(엄폐·거리) 아예 없애는 두 안. 계획을 중시하면 없애는 쪽</li>
+    </ul>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th></th><th>HP 숫자 (지금)</th><th>하트 칸 (제안)</th></tr></thead>
+        <tbody>
+          <tr><th>죽는지 미리 알기</th><td class="bad">14 HP에 4~6 피해: 세 번일지 네 번일지 모름</td><td class="good">하트 2칸에 2 피해: 확실히 죽음</td></tr>
+          <tr><th>한 턴 여러 처치</th><td class="bad">운이 좋을 때만</td><td class="good">설계해서 만들 수 있음</td></tr>
+          <tr><th>성장 표현</th><td class="good">피해 +5 같은 숫자 성장이 쉬움</td><td class="bad">숫자 성장 여지가 적어 기술·조건으로 성장</td></tr>
+          <tr><th>도트 화면 가독성</th><td class="bad">작은 숫자, 체력바</td><td class="good">칸 몇 개만 보면 됨</td></tr>
+          <tr><th>다른 게임</th><td>쥬피터헬, 픽셀 던전</td><td>Into the Breach, Hoplite, 쇼군 쇼다운</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // HP-mode equivalents of each heart count, and the damage line shown with them
+  const HP = { 1: 14, 2: 18, 3: 30 };
+  let mode = 'heart';
+
+  const W = [[0,0],[0,4],[6,0],[6,4]];
+  const EXAMPLES = [
+    {
+      name: '사선 비틀기',
+      sub: '고블린을 걷어차 석궁의 방패로',
+      walls: [[0,0],[0,1],[6,4],[0,4],[4,0]],
+      frames: [
+        {
+          tag: '상황',
+          hero: { x: 1, y: 2, hp: 4, ch: 2 },
+          foes: [
+            { id: 'g', k: '고', x: 2, y: 1, h: 1, m: 1 },
+            { id: 'a', k: '궁', x: 5, y: 2, h: 2, m: 2 },
+          ],
+          intents: [ { from: [5,2], to: [1,2], label: '조준' }, { from: [2,1], to: [1,2], label: '공격' } ],
+          cap: '석궁병이 내 칸을 조준 중이에요. 다음 적 차례에 이 줄로 2칸짜리 화살이 날아와요. 대각선의 고블린도 날 노려요.',
+          capHp: '석궁병이 조준 중(피해 4~6). 고블린(14 HP)도 공격 의도.',
+        },
+        {
+          tag: '선택',
+          hero: { x: 1, y: 2, hp: 4, ch: 2 },
+          foes: [
+            { id: 'g', k: '고', x: 2, y: 2, h: 1, m: 1, moved: [2,1] },
+            { id: 'a', k: '궁', x: 5, y: 2, h: 2, m: 2 },
+          ],
+          intents: [ { from: [5,2], to: [1,2], label: '조준' } ],
+          opts: [
+            ['석궁병을 쏜다: 충전 1, 1칸만 깎여 살아남음. 화살 맞고 고블린에게도 맞음', false],
+            ['고블린을 벤다: 처치, 하지만 화살 2칸 맞음', false],
+            ['고블린을 걷어차 사선 위로 밀어 넣는다', true],
+          ],
+          optsHp: [
+            ['석궁병을 쏜다: 18 HP에 4~6, 안 죽음', false],
+            ['고블린을 벤다: 14 HP에 6~9, 죽을 수도 아닐 수도', false],
+            ['고블린을 걷어차 사선 위로', true],
+          ],
+          cap: '',
+        },
+        {
+          tag: '적 차례',
+          hero: { x: 1, y: 2, hp: 4, ch: 3 },
+          foes: [
+            { id: 'g', k: '고', x: 2, y: 2, h: 0, m: 1, dead: true },
+            { id: 'a', k: '궁', x: 5, y: 2, h: 2, m: 2 },
+          ],
+          fx: [ { from: [5,2], to: [2,2], kind: 'bolt' } ],
+          cap: '석궁이 고블린 등에 꽂혀요. 하트 1칸뿐이라 처치. 고블린은 공격하기 전에 쓰러졌어요. 걷어차기로 충전 +1.',
+          capHp: '화살 피해 4~6이 고블린(14 HP)에게. 남은 체력 8~10, 아직 살아서 나를 공격.',
+        },
+        {
+          tag: '결과',
+          hero: { x: 1, y: 2, hp: 4, ch: 3 },
+          foes: [
+            { id: 'g', k: '고', x: 2, y: 2, h: 0, m: 1, dead: true },
+            { id: 'a', k: '궁', x: 5, y: 2, h: 2, m: 2 },
+          ],
+          intents: [ { from: [5,2], to: [1,2], label: '재장전' } ],
+          replay: true,
+          cap: '피해 없이 한 마리 처리, 석궁병은 재장전. 다음 턴 충전 3으로 석궁병을 마무리할 수 있어요.',
+          capHp: 'HP 방식이면 같은 수를 둬도 고블린이 살아남아 결과가 운에 달려요.',
+        },
+      ],
+    },
+    {
+      name: '돌진 받아넘기기',
+      sub: '비켜서면 홉고블린이 고블린을 들이받는다',
+      walls: [[0,0],[0,1],[0,3],[0,4],[6,0],[6,4]],
+      frames: [
+        {
+          tag: '상황',
+          hero: { x: 3, y: 2, hp: 4, ch: 3 },
+          foes: [
+            { id: 'b', k: '홉', x: 6, y: 2, h: 3, m: 3 },
+            { id: 'g', k: '고', x: 2, y: 2, h: 1, m: 1 },
+          ],
+          intents: [ { from: [6,2], to: [1,2], label: '돌진' }, { from: [2,2], to: [3,2], label: '공격' } ],
+          cap: '홉고블린이 이 줄로 돌진을 준비해요. 부딪히는 것까지 달려와요. 뒤에는 고블린이 붙어 있어요.',
+          capHp: '홉고블린(30 HP) 돌진 준비, 뒤에 고블린(14 HP).',
+        },
+        {
+          tag: '선택',
+          hero: { x: 3, y: 1, hp: 4, ch: 3, moved: [3,2] },
+          foes: [
+            { id: 'b', k: '홉', x: 6, y: 2, h: 3, m: 3 },
+            { id: 'g', k: '고', x: 2, y: 2, h: 1, m: 1 },
+          ],
+          intents: [ { from: [6,2], to: [1,2], label: '돌진' } ],
+          opts: [
+            ['홉고블린을 쏜다: 3칸 중 1칸. 돌진 2칸 + 고블린 1칸을 맞음', false],
+            ['고블린을 벤다: 처치, 하지만 돌진에 정면으로 맞음', false],
+            ['위로 한 칸 비켜선다', true],
+          ],
+          optsHp: [
+            ['홉고블린을 쏜다: 30 HP에 4~6', false],
+            ['고블린을 벤다: 14 HP에 6~9', false],
+            ['위로 한 칸 비켜선다', true],
+          ],
+          cap: '',
+        },
+        {
+          tag: '적 차례',
+          hero: { x: 3, y: 1, hp: 4, ch: 3 },
+          foes: [
+            { id: 'b', k: '홉', x: 3, y: 2, h: 3, m: 3, stun: true, moved: [6,2] },
+            { id: 'g', k: '고', x: 2, y: 2, h: 0, m: 1, dead: true },
+          ],
+          fx: [ { from: [6,2], to: [3,2], kind: 'dash' } ],
+          cap: '홉고블린이 빈자리를 지나 고블린을 들이받아요. 고블린 처치, 홉고블린은 충돌로 기절.',
+          capHp: '충돌 피해가 고블린에게 들어가지만, HP 숫자로는 죽을지 미리 알 수 없어요.',
+        },
+        {
+          tag: '다음 턴',
+          hero: { x: 3, y: 1, hp: 4, ch: 0 },
+          foes: [
+            { id: 'b', k: '홉', x: 3, y: 2, h: 0, m: 3, dead: true },
+            { id: 'g', k: '고', x: 2, y: 2, h: 0, m: 1, dead: true },
+          ],
+          fx: [ { from: [3,1], to: [3,2], kind: 'bolt' } ],
+          replay: true,
+          cap: '기절한 홉고블린에게 처치 사격(충전 3): 즉사. 비켜선 한 수와 충전 3으로 두 마리를 정리했어요.',
+          capHp: 'HP 방식이면 30 HP를 한 발로 못 끊어요. 처형 같은 확정 마무리가 있어야 계획이 성립해요.',
+        },
+      ],
+    },
+  ];
+
+  const root = document.getElementById('examples');
+  const views = [];
+
+  const center = ([x, y]) => [x * 10 + 5, y * 10 + 5];
+
+  function arrow(svg, from, to, color, dash, label, width) {
+    const [x1, y1] = center(from), [x2, y2] = center(to);
+    const ns = 'http://www.w3.org/2000/svg';
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+    const sx = x1 + ux * 3.5, sy = y1 + uy * 3.5, ex = x2 - ux * 3.5, ey = y2 - uy * 3.5;
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', sx); line.setAttribute('y1', sy); line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+    line.setAttribute('stroke', color); line.setAttribute('stroke-width', width || 0.7);
+    if (dash) line.setAttribute('stroke-dasharray', dash);
+    svg.appendChild(line);
+    const head = document.createElementNS(ns, 'polygon');
+    const px = -uy, py = ux;
+    head.setAttribute('points', `${ex + ux * 1.8},${ey + uy * 1.8} ${ex + px * 1.3},${ey + py * 1.3} ${ex - px * 1.3},${ey - py * 1.3}`);
+    head.setAttribute('fill', color);
+    svg.appendChild(head);
+    if (label) {
+      const t = document.createElementNS(ns, 'text');
+      t.setAttribute('x', (sx + ex) / 2 + px * 2.2 - 3); t.setAttribute('y', (sy + ey) / 2 + py * 2.2 + 1);
+      t.setAttribute('class', 'intent-label');
+      t.setAttribute('fill', color);
+      t.textContent = label;
+      svg.appendChild(t);
+    }
+  }
+
+  function pips(h, m) {
+    if (mode === 'hp') {
+      const max = HP[m] || m * 10;
+      const now = h <= 0 ? 0 : h === m ? max : Math.round(max * h / m);
+      return `<span class="hpnum">${now}/${max}</span>`;
+    }
+    return `<span class="pips">${'♥'.repeat(Math.max(0, h))}<i>${'♥'.repeat(Math.max(0, m - h))}</i></span>`;
+  }
+
+  function build(ex, n) {
+    const el = document.createElement('article');
+    el.className = 'ex';
+    el.innerHTML = `<header><b>예시 ${n + 1} · ${ex.name}</b><span>${ex.sub}</span></header>
+      <div class="body">
+        <div class="board" aria-label="격자 보드"></div>
+        <div class="status"></div>
+        <div class="caption" aria-live="polite"></div>
+        <div class="controls">
+          <button type="button" id="prev-${n}">◂ 이전</button>
+          <button type="button" id="next-${n}">다음 ▸</button>
+          <div class="dots"></div>
+        </div>
+      </div>`;
+    root.appendChild(el);
+    const v = { ex, el, i: 0 };
+    el.querySelector(`#prev-${n}`).addEventListener('click', () => { v.i = Math.max(0, v.i - 1); draw(v); });
+    el.querySelector(`#next-${n}`).addEventListener('click', () => { v.i = Math.min(ex.frames.length - 1, v.i + 1); draw(v); });
+    views.push(v);
+    draw(v);
+  }
+
+  function draw(v) {
+    const f = v.ex.frames[v.i];
+    const board = v.el.querySelector('.board');
+    board.innerHTML = '';
+    const walls = new Set(v.ex.walls.map(([x, y]) => `${x},${y}`));
+    const cells = [];
+    for (let y = 0; y < 5; y++) for (let x = 0; x < 7; x++) {
+      const c = document.createElement('div');
+      c.className = 'cell' + (walls.has(`${x},${y}`) ? ' wall' : '');
+      board.appendChild(c);
+      cells.push(c);
+    }
+    const at = (x, y) => cells[y * 7 + x];
+    const hero = document.createElement('div');
+    hero.className = 'unit hero';
+    hero.innerHTML = `<div class="tok"><span>나</span></div>${pips(f.hero.hp, 6)}`;
+    at(f.hero.x, f.hero.y).appendChild(hero);
+    for (const u of f.foes) {
+      const d = document.createElement('div');
+      d.className = 'unit foe' + (u.dead ? ' dead' : '');
+      d.innerHTML = `${u.stun ? '<span class="stun">기절</span>' : ''}<div class="tok">${u.k}</div>${pips(u.h, u.m)}`;
+      at(u.x, u.y).appendChild(d);
+    }
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'over');
+    svg.setAttribute('viewBox', '0 0 70 50');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    for (const it of f.intents || []) arrow(svg, it.from, it.to, 'var(--warn)', '1.4 1', it.label);
+    if (f.hero.moved) arrow(svg, f.hero.moved, [f.hero.x, f.hero.y], 'var(--hero)', '0.8 0.8');
+    for (const u of f.foes) if (u.moved) arrow(svg, u.moved, [u.x, u.y], u.stun ? 'var(--hp)' : 'var(--hero)', '0.8 0.8', u.stun ? '' : '걷어차기');
+    for (const x of f.fx || []) arrow(svg, x.from, x.to, x.kind === 'dash' ? 'var(--hp)' : '#fff', null, x.kind === 'dash' ? '돌진' : '', x.kind === 'dash' ? 1.2 : 0.6);
+    board.appendChild(svg);
+
+    v.el.querySelector('.status').innerHTML = `<span class="step-tag">${f.tag}</span><span>요원 <b class="hp">${mode === 'hp' ? `${f.hero.hp * 10}/60 HP` : `하트 ${f.hero.hp}/6`}</b></span><span>충전 <b class="ch">${f.hero.ch}/6</b></span>`;
+    const cap = v.el.querySelector('.caption');
+    const opts = mode === 'hp' ? f.optsHp : f.opts;
+    if (opts) {
+      cap.innerHTML = `<p>이번 턴 선택지</p><ul class="opts">${opts.map(([t, pick]) => `<li class="${pick ? 'pick' : ''}">${t}</li>`).join('')}</ul>`;
+    } else {
+      const text = mode === 'hp' ? f.capHp : f.cap;
+      cap.innerHTML = `${f.replay ? '<p><span class="replay">슬로모 다시보기</span></p>' : ''}<p>${text}</p>`;
+    }
+    v.el.querySelector('.dots').innerHTML = v.ex.frames.map((_, k) => `<span class="${k === v.i ? 'on' : ''}"></span>`).join('');
+    const n = views.indexOf(v);
+    v.el.querySelector(`#prev-${n < 0 ? views.length : n}`)?.toggleAttribute('disabled', v.i === 0);
+    v.el.querySelector(`#next-${n < 0 ? views.length : n}`)?.toggleAttribute('disabled', v.i === v.ex.frames.length - 1);
+  }
+
+  EXAMPLES.forEach(build);
+  views.forEach(draw);
+
+  const setMode = (m) => {
+    mode = m;
+    document.getElementById('mode-heart').setAttribute('aria-pressed', String(m === 'heart'));
+    document.getElementById('mode-hp').setAttribute('aria-pressed', String(m === 'hp'));
+    views.forEach(draw);
+  };
+  document.getElementById('mode-heart').addEventListener('click', () => setMode('heart'));
+  document.getElementById('mode-hp').addEventListener('click', () => setMode('hp'));
+})();
+</script>
+</body>
+</html>
