@@ -32,7 +32,7 @@ export class ShipDeck {
   mount(root: HTMLElement, runtime: GridRuntime): void { this.runtime = runtime; root.classList.add('ship'); root.append(this.el); this.drawHud(); }
   private drawHud(): void {
     const m = this.api.meta;
-    this.hud.innerHTML = `<b>⚡${m.energy}</b><span>최고 ${m.best}층</span>${m.suit ? `<em>${m.suit.floor}층에 슈트</em>` : ''}<div class="row"></div><p>${this.api.wake ? '복제 포드에서 깨어났다 · ' : ''}시설에 부딪치면 창이 열린다</p>`;
+    this.hud.innerHTML = `<b>⚡${m.energy}</b><span>최고 ${m.best}층</span>${m.suit ? `<em>${m.suit.floor}층에 슈트</em>` : ''}<div class="row"></div>${this.api.wake ? '<p>복제 포드 기동</p>' : ''}`;
     const row = this.hud.querySelector('.row')!;
     if (this.api.saved) this.button(row, '이어하기', () => this.api.resume(), 'ship-continue');
     this.button(row, '타이틀', () => this.api.quit(), 'ship-quit');
@@ -71,7 +71,7 @@ export class ShipDeck {
       b.disabled = !choice.enabled; b.setAttribute('aria-pressed', String(choice.selected));
     }
     if (id === 'hatch') {
-      if (this.api.saved) { const p = document.createElement('p'); p.textContent = '진행 중인 출격이 있다. 이어하기로 돌아갈 수 있다.'; body.append(p); this.button(body, '이어하기', () => this.api.resume()); this.button(body, '출격 포기 (에너지는 남음)', () => this.api.abandon(), 'ship-abandon'); }
+      if (this.api.saved) { const p = document.createElement('p'); p.textContent = '진행 중인 출격'; body.append(p); this.button(body, '이어하기', () => this.api.resume()); this.button(body, '출격 포기 (에너지는 남음)', () => this.api.abandon(), 'ship-abandon'); }
       const launch = this.button(body, '출격', () => this.api.launch(launchOptions(this.api.meta, this.options)), 'ship-launch');
       launch.disabled = this.api.saved;
     }

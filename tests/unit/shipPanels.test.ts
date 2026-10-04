@@ -35,7 +35,7 @@ it('describes records, candidates, energy, pod and hatch in Korean', () => {
   expect(panelContents(m, 'suitlab', opts()).lines.join()).toContain('연사');
   expect(panelContents(m, 'core', opts(), 12).lines.join()).toContain('42');
   expect(panelContents(m, 'core', opts(), 12).lines.join()).toContain('12');
-  expect(panelContents(m, 'pod', opts()).lines.join()).toContain('복제');
+  expect(panelContents(m, 'pod', opts()).lines.join()).toContain('최고');
   expect(panelContents(m, 'hatch', opts()).lines.join()).toContain('권총');
   expect(panelContents(m, 'hatch', opts()).choices[0]?.enabled).toBe(true);
 });

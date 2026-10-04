@@ -34,13 +34,13 @@ function eventLine(e: GEvent): string | undefined {
   if (e.type === 'absorb') return '잔향을 흡수했다';
   if (e.type === 'record') return `새 각인 기록 — ${ENGRAVES[e.text as EngraveId]?.name ?? e.text ?? ''}`;
   if (e.type === 'stairs') return '계단이 열렸다';
-  if (e.type === 'suitHere') return '이 층에 남겨진 슈트가 있다 — 지키는 적을 조심';
-  if (e.type === 'suit') return `남겨진 슈트 회수 — 각인 ${(e.text ?? '').split(',').filter(Boolean).length}개가 기지로 전송됐다`;
+  if (e.type === 'suitHere') return '이 층에 남겨진 슈트';
+  if (e.type === 'suit') return `슈트 회수 — 각인 ${(e.text ?? '').split(',').filter(Boolean).length}개 전송`;
   if (e.type === 'core') return '에너지원을 손에 넣었다';
   if (e.type === 'identify') return identifyLine(e.text ?? '|');
   if (e.type === 'trap' && e.src === 'hero') return `함정 작동 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;
   if (e.type === 'trapFound') return `함정을 발견했다 — ${TRAP_NAME[e.text ?? ''] ?? ''}`;
-  if (e.type === 'root') return '그물에 걸려 움직일 수 없다';
+  if (e.type === 'root') return '그물에 걸림';
   if (e.type === 'stumble') return '비틀거렸다';
   return undefined;
 }
@@ -69,7 +69,7 @@ export class GridHud {
       <div class="gh-target" hidden></div>
       <div class="gh-danger"></div>
       <div class="ghud-log" hidden></div>
-      <div class="ghud-help muted">WASD·QEZC 이동(꾹 누르면 연속) · F 사격 · X 교체 · I 가방 · Tab 표적 · Space 쉬기 · V 살피기(자신 탭) · 1 물약 · 클릭 이동 · 휠 확대</div>`;
+`;
   }
 
   message(text: string): void {
@@ -118,7 +118,7 @@ export class GridHud {
       const card = q('.gh-target');
       card.hidden = !t;
       if (t) card.innerHTML = `${icon('skull')}<b>${t.elite ? '정예 ' : ''}${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${target!.chance === null ? '근접 무기' : `${Math.round(target!.chance * 100)}% 명중`}</span><small class="gh-intent">${intent}</small>`;
-      q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills} · ⚡전송 ${s.run.energy}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 에너지원을 지키는 수호자' : ' · 구간 수호자가 기다린다' : ''}`;
+      q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills} · ⚡전송 ${s.run.energy}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 최종 수호자' : ' · 구간 수호자' : ''}`;
     }
     this.drawLog();
     const now = performance.now() / 1000;

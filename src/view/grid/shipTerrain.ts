@@ -5,16 +5,20 @@ import type { StationId } from '../../sim/grid/ship';
 import { stationLit } from './stationLit';
 import type { ShipKit } from './shipKit';
 
-const WALL_H = 1.6;
-const STRIP = '#3ae0ff';
+/** MegaKit modules sit on a 4 m grid; the deck's cells are 1 m. */
+const K = 0.25;
+/** walls a little taller than a flat quarter so the bays read from above */
+const WALL_Y = 0.42;
 const POWERED = '#bfe8ff';
 const EMERGENCY = '#ff3a2a';
+const SIDES: { dx: number; dz: number; rot: number }[] = [
+  { dx: -1, dz: 0, rot: 0 }, { dx: 1, dz: 0, rot: Math.PI }, { dx: 0, dz: -1, rot: -Math.PI / 2 }, { dx: 0, dz: 1, rot: Math.PI / 2 },
+];
 
-/** The crashed ship's deck: trimmed bulkheads with glowing strips, metal floor panels, station pads and props, red emergency light until a station is powered. */
+/** The crashed ship's deck built from the Modular Sci-Fi MegaKit: plated floors, walls on every edge, door frames, pipe columns, station props; red emergency light until a station is powered. */
 export class ShipTerrain {
   readonly root = new THREE.Group();
   private readonly lights = new Map<StationId, THREE.PointLight>();
-  private readonly pads = new Map<StationId, THREE.MeshStandardMaterial>();
   private readonly owned: THREE.Mesh[] = [];
   private readonly mats: THREE.Material[] = [];
   private core: THREE.Object3D | null = null;
@@ -23,41 +27,33 @@ export class ShipTerrain {
   private t = 0;
 
   constructor(map: GridMap, private readonly kit: ShipKit, meta: MetaState) {
-    const tex = (name: 'floor' | 'wall' | 'red', repeat = 1) => {
-      const t = kit.textures[name].clone();
-      t.repeat.set(repeat, repeat);
-      t.needsUpdate = true;
-      return t;
+    const at = (x: number, z: number) => (x < 0 || z < 0 || x >= map.w || z >= map.h ? 'wall' : map.tiles[z * map.w + x]);
+    const station = (x: number, z: number) => map.stations?.find((s) => s.pos.x === x && s.pos.y === z);
+    const hall = (x: number, z: number) => (x >= 6 && x <= 14) || (z >= 5 && z <= 7);
+    const put = (name: string, x: number, z: number, rot = 0, sy = K) => {
+      const o = this.kit.module(name);
+      o.scale.set(K, sy, K);
+      o.position.set(x, 0, z);
+      o.rotation.y = rot;
+      this.root.add(o);
+      return o;
     };
-    const mat = (o: THREE.MeshStandardMaterialParameters) => { const m = new THREE.MeshStandardMaterial(o); this.mats.push(m); return m; };
-    const floorMat = mat({ map: tex('floor'), color: '#8aa0b0', roughness: 0.55, metalness: 0.4 });
-    const wallMat = mat({ map: tex('wall'), color: '#c8d8e4', roughness: 0.55, metalness: 0.3 });
-    // bulkhead tops catch little light from above: a faint self-glow keeps the bays readable
-    const capMat = mat({ color: '#3e4e5c', emissive: '#16222e', emissiveIntensity: 1, roughness: 0.6, metalness: 0.3 });
-    const hullMat = mat({ color: '#141c24', roughness: 0.9 });
-    const stripMat = mat({ color: STRIP, emissive: STRIP, emissiveIntensity: 1.6 });
-    const hazardMat = mat({ map: tex('red'), color: '#ffd0a0', roughness: 0.6 });
-    const box = (x: number, y: number, z: number, w: number, h: number, d: number, m: THREE.Material) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-      mesh.position.set(x, y, z);
-      mesh.receiveShadow = true;
-      this.root.add(mesh);
-      this.owned.push(mesh);
-      return mesh;
-    };
-    const at = (x: number, z: number) => map.tiles[z * map.w + x];
-    const open = (x: number, z: number) => x >= 0 && z >= 0 && x < map.w && z < map.h && at(x, z) !== 'wall';
     map.tiles.forEach((t, i) => {
+      if (t === 'wall') return;
       const x = i % map.w;
       const z = Math.floor(i / map.w);
-      if (t !== 'wall') { box(x, -0.08, z, 1, 0.16, 1, floorMat); return; }
-      // only walls that face the deck are drawn tall; the rest stay a dark hull
-      const faces = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dz]) => open(x + dx!, z + dz!));
-      const tall = faces.length > 0 || [[1, 1], [1, -1], [-1, 1], [-1, -1]].some(([dx, dz]) => open(x + dx!, z + dz!));
-      if (!tall) { box(x, 0.05, z, 1, 0.1, 1, hullMat); return; }
-      box(x, WALL_H / 2, z, 1, WALL_H, 1, wallMat);
-      box(x, WALL_H + 0.02, z, 1.01, 0.05, 1.01, capMat);
-      for (const [dx, dz] of faces) box(x + dx! * 0.505, WALL_H - 0.12, z + dz! * 0.505, dz ? 0.86 : 0.03, 0.05, dx ? 0.86 : 0.03, stripMat);
+      const st = station(x, z);
+      put(st?.id === 'hatch' ? 'Platform_X' : st ? 'Platform_CenterPlate' : hall(x, z) ? 'Platform_Metal2' : 'Platform_DarkPlates', x, z);
+      // a wall on every edge that meets the hull or a bulkhead; the outer hull gets the heavier panels
+      for (const s of SIDES) {
+        if (at(x + s.dx, z + s.dz) !== 'wall') continue;
+        const outer = x + s.dx <= 0 || z + s.dz <= 0 || x + s.dx >= map.w - 1 || z + s.dz >= map.h - 1;
+        put(outer ? ((x + z) % 3 ? 'WallAstra_Straight' : 'WallAstra_Straight_Divided') : 'WallBand_Straight', x, z, s.rot, WALL_Y);
+      }
+      // a doorway between two bulkheads gets a frame across it
+      const wallX = at(x - 1, z) === 'wall' && at(x + 1, z) === 'wall';
+      const wallZ = at(x, z - 1) === 'wall' && at(x, z + 1) === 'wall';
+      if (wallX !== wallZ) put('Door_Frame_Square', x, z, wallX ? 0 : Math.PI / 2, WALL_Y * 0.62);
     });
     const prop = (name: string, x: number, z: number, height: number, width = 0.9, rot = 0, y = 0) => {
       const obj = this.kit.make(name, height, width);
@@ -65,38 +61,26 @@ export class ShipTerrain {
       obj.rotation.y = rot;
       this.root.add(obj);
     };
-    // crates and barrels on the pillar cells
+    const mod = (name: string, x: number, z: number, rot = 0, s = K) => { const o = put(name, x, z, rot, s); o.scale.set(s, s, s); };
+    // crates on the cargo cells, pipe columns at the power hall's corners
     map.tiles.forEach((t, i) => {
       if (t !== 'pillar') return;
       const x = i % map.w;
       const z = Math.floor(i / map.w);
-      if ((x + z) % 2) prop('Prop_Crate_Large', x, z, 0.8, 0.95, Math.PI / 2);
-      else { prop('Prop_Crate', x - 0.15, z, 0.55, 0.55); prop('Prop_Barrel2_Closed', x + 0.25, z + 0.2, 0.6, 0.35); }
+      if ((x + z) % 2) mod('Prop_Crate4', x, z, Math.PI / 5, 0.62);
+      else { mod('Prop_Crate3', x - 0.12, z, 0, 0.5); mod('Prop_Barrel_Large', x + 0.28, z + 0.22, 0, 0.5); }
     });
+    for (const [x, z] of [[6, 5], [14, 5], [6, 7], [14, 7]] as const) mod('Column_Pipes', x + (x === 6 ? -0.38 : 0.38), z + (z === 5 ? -0.38 : 0.38), 0, 0.3);
     for (const { id, pos: { x, y: z } } of map.stations ?? []) {
-      // a glowing pad marks every station cell (the hatch gets hazard stripes instead)
-      if (id === 'hatch') {
-        box(x, 0.01, z, 0.96, 0.02, 0.96, hazardMat);
-        box(x + 0.42, WALL_H / 2, z - 0.48, 0.12, WALL_H, 0.12, wallMat);
-        box(x + 0.42, WALL_H / 2, z + 0.48, 0.12, WALL_H, 0.12, wallMat);
-        box(x + 0.42, WALL_H, z, 0.14, 0.14, 1.08, stripMat);
-      } else {
-        const pad = mat({ color: '#0e2a36', emissive: '#22c8ff', emissiveIntensity: 0.25, transparent: true, opacity: 0.85 });
-        const ring = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.46, 32), pad);
-        ring.rotation.x = -Math.PI / 2;
-        ring.position.set(x, 0.015, z);
-        this.root.add(ring);
-        this.owned.push(ring);
-        this.pads.set(id, pad);
-      }
-      if (id === 'pod') { prop('Prop_HealthPack_Tube', x, z - 0.05, 1.9, 0.85); prop('Prop_Chair', x + 0.4, z + 0.35, 0.65, 0.35, -Math.PI / 4); }
-      if (id === 'armory') { prop('Prop_Locker', x - 0.22, z + 0.05, 1.5, 0.42); prop('Prop_Locker', x + 0.22, z + 0.05, 1.5, 0.42); prop('Prop_Ammo_Closed', x - 0.6, z - 0.1, 0.3, 0.35); }
-      if (id === 'suitlab') { prop('Prop_Desk_L', x + 0.05, z - 0.05, 0.8, 0.95); prop('Prop_Chair', x + 0.35, z - 0.45, 0.6, 0.35, Math.PI); }
-      if (id === 'records') { prop('Prop_Shelves_WideTall', x - 0.5, z - 0.2, 1.55, 0.95); prop('Prop_Shelves_ThinTall', x + 0.55, z - 0.2, 1.55, 0.6); }
-      if (id === 'nav') { prop('Prop_Desk_Medium', x, z - 0.1, 0.6, 0.95); prop('Prop_SatelliteDish', x, z - 0.15, 1.3, 0.75, 0, 0.55); prop('Prop_Chair', x - 0.3, z + 0.4, 0.6, 0.35); }
-      if (id === 'core') this.buildCore(x, z, mat);
+      if (id === 'pod') { prop('Prop_HealthPack_Tube', x, z - 0.05, 1.7, 0.8); mod('Prop_Cable_1', x + 0.4, z + 0.3, Math.PI / 2, 0.35); }
+      if (id === 'armory') { prop('Prop_Locker', x - 0.22, z + 0.1, 1.35, 0.42); prop('Prop_Locker', x + 0.22, z + 0.1, 1.35, 0.42); mod('Prop_ItemHolder', x - 0.55, z - 0.15, Math.PI / 2, 0.45); }
+      if (id === 'suitlab') { prop('Prop_Desk_L', x + 0.05, z - 0.05, 0.75, 0.9); mod('Prop_AccessPoint', x - 0.45, z + 0.25, Math.PI / 2, 0.55); }
+      if (id === 'records') { prop('Prop_Shelves_WideTall', x - 0.5, z - 0.2, 1.4, 0.9); mod('Prop_Computer', x + 0.45, z - 0.22, 0, 0.55); }
+      if (id === 'nav') { mod('Prop_Computer', x - 0.25, z - 0.25, 0, 0.6); prop('Prop_SatelliteDish', x + 0.25, z - 0.1, 1.2, 0.65); }
+      if (id === 'core') this.buildCore(x, z);
+      if (id !== 'hatch') mod('Prop_Light_Floor', x, z + 0.42, 0, 0.32);
       const light = new THREE.PointLight(EMERGENCY, 0, 4.5, 1.6);
-      light.position.set(x, 2.4, z);
+      light.position.set(x, 2.2, z);
       this.root.add(light);
       this.lights.set(id, light);
     }
@@ -104,14 +88,15 @@ export class ShipTerrain {
   }
 
   /** The energy core: a glowing crystal on a plinth inside a slowly turning ring. */
-  private buildCore(x: number, z: number, mat: (o: THREE.MeshStandardMaterialParameters) => THREE.MeshStandardMaterial): void {
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.25, 8), mat({ color: '#2a3a46', metalness: 0.6, roughness: 0.4 }));
-    base.position.set(x, 0.12, z);
-    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.32), mat({ color: '#8af4ff', emissive: '#18d8ff', emissiveIntensity: 2.4 }));
+  private buildCore(x: number, z: number): void {
+    const mat = (o: THREE.MeshStandardMaterialParameters) => { const m = new THREE.MeshStandardMaterial(o); this.mats.push(m); return m; };
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.46, 0.22, 8), mat({ color: '#2a3a46', metalness: 0.6, roughness: 0.4 }));
+    base.position.set(x, 0.11, z);
+    const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), mat({ color: '#8af4ff', emissive: '#18d8ff', emissiveIntensity: 2.4 }));
     crystal.scale.set(1, 1.7, 1);
-    crystal.position.set(x, 0.95, z);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.035, 8, 40), mat({ color: STRIP, emissive: STRIP, emissiveIntensity: 1.4 }));
-    ring.position.set(x, 0.95, z);
+    crystal.position.set(x, 0.9, z);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.03, 8, 40), mat({ color: '#3ae0ff', emissive: '#3ae0ff', emissiveIntensity: 1.4 }));
+    ring.position.set(x, 0.9, z);
     ring.rotation.x = Math.PI / 2.4;
     this.root.add(base, crystal, ring);
     this.owned.push(base, crystal, ring);
@@ -122,14 +107,12 @@ export class ShipTerrain {
     this.root.add(this.coreLight);
   }
 
-  /** Powered stations get white-blue light and a bright pad; the rest glow emergency red. */
+  /** Powered stations get white-blue light; the rest glow emergency red. */
   power(meta: MetaState): void {
     for (const [id, light] of this.lights) {
       const lit = stationLit(meta, id);
       light.color.set(lit ? POWERED : EMERGENCY);
-      light.intensity = lit ? 8 : 2.2;
-      const pad = this.pads.get(id);
-      if (pad) pad.emissiveIntensity = lit ? 1.1 : 0.2;
+      light.intensity = lit ? 8 : 2.4;
     }
   }
 
@@ -148,7 +131,7 @@ export class ShipTerrain {
 
   dispose(): void {
     for (const mesh of this.owned) mesh.geometry.dispose();
-    for (const m of this.mats) { (m as THREE.MeshStandardMaterial).map?.dispose(); m.dispose(); }
+    for (const m of this.mats) m.dispose();
     for (const light of this.lights.values()) light.dispose();
     this.coreLight?.dispose();
   }

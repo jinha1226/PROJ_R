@@ -235,7 +235,7 @@ export class GridScreen implements Screen {
     this.hold.update(null, dt);
     if (!this.walk && this.exploring) {
       const target = exploreTarget(this.s);
-      if (!target || same(target, this.s.hero.pos)) { this.stopWalk(); this.hud.message('더 갈 곳이 없다'); }
+      if (!target || same(target, this.s.hero.pos)) { this.stopWalk(); this.hud.message('탐색 완료'); }
       else this.walkTo(target);
     }
     if (!this.walk) return;
