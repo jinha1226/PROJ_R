@@ -1,19 +1,25 @@
+import type { Materials } from './materials';
+import type { ToolId } from './repairs';
+import type { ModStat } from './mods';
+import type { ToolSpot } from './toolSpots';
 import type { OfferCard } from './rounds';
 import type { StationId } from './ship';
 import type { MetaState } from './meta';
 import type { UpgradeId } from './upgrades';
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
-import type { WeaponGroup, BeltItem, Consumable, Core, Echo, Equipment, LostSuit } from './items';
+import type { WeaponGroup, BeltItem, Consumable, Core, MaterialItem, Equipment, LostSuit } from './items';
 import type { Lore, PotionKind, ScrollKind } from './lore';
 import type { EngraveId, HeroFx } from './engraveCore';
 
 /** 'open' is a door that has been opened. */
-export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar';
+export type Tile = 'floor' | 'wall' | 'door' | 'open' | 'pillar' | 'seal' | 'chasm';
 export interface Cell { x: number; y: number }
 export type FoeKind = 'minion' | 'brute' | 'ghoul' | 'archer' | 'mage' | 'champion';
 export interface Room { x: number; y: number; w: number; h: number }
 export interface GridMap {
+  hidden?: Cell[];
+  toolSpots?: ToolSpot[];
   stations?: { pos: Cell; id: StationId }[];
   w: number;
   h: number;
@@ -39,7 +45,7 @@ export const idx = (m: { w: number }, c: Cell): number => c.y * m.w + c.x;
 export const inBounds = (m: GridMap, c: Cell): boolean => c.x >= 0 && c.y >= 0 && c.x < m.w && c.y < m.h;
 export const tileAt = (m: GridMap, c: Cell): Tile => (inBounds(m, c) ? m.tiles[idx(m, c)]! : 'wall');
 export const walkable = (t: Tile): boolean => t === 'floor' || t === 'open' || t === 'door';
-export const opaque = (t: Tile): boolean => t === 'wall' || t === 'door' || t === 'pillar';
+export const opaque = (t: Tile): boolean => t === 'wall' || t === 'door' || t === 'pillar' || t === 'seal';
 export const same = (a: Cell, b: Cell): boolean => a.x === b.x && a.y === b.y;
 export const add = (a: Cell, b: Cell): Cell => ({ x: a.x + b.x, y: a.y + b.y });
 /** Chebyshev distance: diagonal steps cost the same as straight ones. */
@@ -64,6 +70,7 @@ export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
 export interface Hero extends Ent {
+  modStats?: Partial<Record<ModStat, number>>;
   shield?: number;
   rounds: import('./items').Element[];
   roundIdx: number;
@@ -125,8 +132,8 @@ export interface GridState {
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
-export interface RunState { unlocked?: EngraveId[]; tasted?: EngraveId[]; leftSuit?: MetaState['suit']; suitPlaced?: boolean; recovered?: EngraveId[]; energy: number; bossesKilled: number[]; killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
-export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | Echo | LostSuit }
+export interface RunState { materials: Materials; stock: Materials; tools: ToolId[]; unlocked?: EngraveId[]; tasted?: EngraveId[]; leftSuit?: MetaState['suit']; suitPlaced?: boolean; recovered?: EngraveId[]; energy: number; bossesKilled: number[]; killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
+export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | MaterialItem | LostSuit }
 export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }

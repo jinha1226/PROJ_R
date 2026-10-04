@@ -14,6 +14,12 @@ import { generateMap } from '../../../src/sim/grid/mapgen';
 it('preserves the existing floor layout, spawns and contents apart from elite flags', () => {
   const hashes = [1, 6, 11].map((floor) => {
     const m = generateMap(21, floor);
+    for (const spot of m.toolSpots ?? []) {
+      for (let y = spot.room.y; y < spot.room.y + spot.room.h; y++) for (let x = spot.room.x; x < spot.room.x + spot.room.w; x++) m.tiles[y * m.w + x] = 'wall';
+      m.tiles[spot.pos.y * m.w + spot.pos.x] = 'wall';
+      m.chests = m.chests.filter(c => c.x < spot.room.x || c.x >= spot.room.x + spot.room.w || c.y < spot.room.y || c.y >= spot.room.y + spot.room.h);
+    }
+    delete m.hidden; delete m.toolSpots;
     const plain = { ...m, spawns: m.spawns.map(({ kind, pos, group }) => ({ kind, pos, group })) };
     return createHash('sha256').update(JSON.stringify(plain)).digest('hex');
   });
@@ -76,7 +82,7 @@ it('keeps records across floors and applies generated elite flags on descent', (
   }
 });
 
-it.each(['minion', 'brute', 'archer', 'mage', 'ghoul', 'champion'] as const)('a defeated %s leaves the right echo alongside existing items', (kind) => {
+it.each(['minion', 'brute', 'archer', 'mage', 'ghoul', 'champion'] as const)('a defeated %s immediately offers its family and leaves remains alongside existing items', (kind) => {
   const map = handMap(OPEN);
   map.spawns = [{ kind, pos: { x: 2, y: 1 }, group: 1, elite: kind !== 'champion' }];
   const s = newState(map, 3, 'pistol', kind === 'champion' ? 15 : 1);
@@ -85,30 +91,35 @@ it.each(['minion', 'brute', 'archer', 'mage', 'ghoul', 'champion'] as const)('a 
   sureHits(g);
   s.foes[0]!.hp = 1;
   g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-  expect(s.floorItems).toContainEqual({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: FAMILY[kind], name: '잔향' } });
+  expect(s.offers).toHaveLength(1);
+  expect(s.offers[0]!.every(id => typeof id === 'object' || ENGRAVES[id].family === FAMILY[kind])).toBe(true);
+  expect(s.floorItems).toContainEqual({ pos: { x: 2, y: 1 }, item: { kind: 'material', mat: 'remains', n: kind === 'champion' ? 3 : 1 } });
+  expect(s.floorItems.some(f => (f.item.kind as string) === 'echo')).toBe(false);
   expect(s.floorItems.some((f) => f.item.kind === 'weapon')).toBe(true);
   if (kind === 'champion') expect(s.floorItems.some((f) => f.item.kind === 'core')).toBe(true);
 });
 
-it('ordinary foes on hand maps leave no echoes and give normal XP', () => {
+it('ordinary foes give material drops and normal XP without offers', () => {
   const g = sim(OPEN, { x: 1, y: 1 }, [{ kind: 'minion', pos: { x: 2, y: 1 } }]);
   expect(g.s.foes[0]!.elite).toBeFalsy();
   g.s.foes[0]!.hp = 1;
   sureHits(g);
   g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-  expect(g.s.floorItems).toEqual([]);
+  expect(g.s.offers).toEqual([]);
+  expect(g.s.floorItems[0]?.item).toEqual({ kind: 'material', mat: 'scrap', n: 1 });
   expect(g.s.hero.xp).toBe(FOE_XP.minion);
 });
 
-it('absorbs on a step with no added time, queues three fitting engravings, and excludes suit engravings', () => {
+it('offers on death with no added time, queues three fitting engravings, and excludes suit engravings', () => {
   const g = sim(OPEN, { x: 1, y: 1 });
   g.s.records = ['dash', 'finisher', 'leap'];
   g.s.hero.suit = ['dash'];
   g.s.offers = [['rapid']];
-  g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'melee', name: '잔향' } });
-  const events = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-  expect(g.s.time).toBe(1);
-  expect(g.s.floorItems).toEqual([]);
+  const f = newState({ ...handMap(OPEN), spawns: [{ kind: 'minion', pos: { x: 2, y: 1 }, group: 1, elite: true }] }, 3).foes[0]!;
+  f.alive = false; g.s.foes = [f];
+  settleKills(g.s, new Set([f.id]));
+  const events = g.s.events;
+  expect(g.s.time).toBe(0);
   expect(events).toContainEqual({ t: 0, type: 'absorb', src: 'hero', text: 'melee' });
   expect(g.s.offers[0]).toEqual(['rapid']);
   const offer = g.s.offers[1]!;
@@ -145,13 +156,15 @@ it('uses only the requested family with deterministic draws', () => {
   expect(absorbOffer(s, 'fusion')).toHaveLength(3);
 });
 
-it('consumes exhausted echoes without queuing empty offers', () => {
+it('leaves remains without queuing empty offers when the family is exhausted', () => {
   const g = sim(OPEN, { x: 1, y: 1 });
   g.s.hero.rounds = ['fire', 'frost'];
   g.s.hero.suit = ENGRAVE_IDS.filter(id => ENGRAVES[id].family === 'element');
-  g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'element', name: '잔향' } });
-  expect(g.act({ kind: 'move', dir: { x: 1, y: 0 } }).some((e) => e.type === 'absorb')).toBe(true);
-  expect(g.s.floorItems).toEqual([]);
+  const f = newState({ ...handMap(OPEN), spawns: [{ kind: 'mage', pos: { x: 2, y: 1 }, group: 1, elite: true }] }, 3).foes[0]!;
+  f.alive = false; g.s.foes = [f];
+  settleKills(g.s, new Set([f.id]));
+  expect(g.s.events.some(e => e.type === 'absorb')).toBe(true);
+  expect(g.s.floorItems[0]?.item).toEqual({ kind: 'material', mat: 'remains', n: 1 });
   expect(g.s.offers).toEqual([]);
 });
 

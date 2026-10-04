@@ -1,3 +1,4 @@
+import { savedMaterials } from './baseMigration';
 import { ENGRAVE_IDS, type EngraveId } from './engraveCore';
 import { makeWeapon, type Equipment } from './items';
 import { ELEMENTS, validElements, type OfferCard } from './rounds';
@@ -16,6 +17,9 @@ const card = (c: OfferCard): boolean => typeof c === 'string' ? ENGRAVE_IDS.incl
 
 /** Normalize removed content before any gameplay or UI code reads it. */
 export function migrateRun(s: Pick<GridState, 'hero' | 'run' | 'records' | 'offers' | 'floorItems'>): void {
+  s.run.materials = savedMaterials(s.run.materials);
+  s.run.stock = savedMaterials(s.run.stock);
+  s.run.tools ??= [];
   const h = s.hero, g = h.gear;
   g.hands = [equipment(g.hands[0]), equipment(g.hands[1])];
   g.bag = g.bag.flatMap(item => { const migrated = equipment(item); return migrated ? [migrated] : []; });
@@ -28,6 +32,7 @@ export function migrateRun(s: Pick<GridState, 'hero' | 'run' | 'records' | 'offe
   if (s.run.leftSuit) s.run.leftSuit.ids = savedIds(s.run.leftSuit.ids);
   s.offers = s.offers.map(offer => offer.filter(card)).filter(offer => offer.length);
   s.floorItems = s.floorItems.flatMap(f => {
+    if ((f.item.kind as string) === 'echo') return [];
     if (f.item.kind === 'weapon' || f.item.kind === 'armor') {
       const item = equipment(f.item); return item ? [{ ...f, item }] : [];
     }

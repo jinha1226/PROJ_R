@@ -1,3 +1,5 @@
+import { gainMaterial, zoneMaterial } from './materials';
+import { toolMove } from './toolActions';
 import { availableCard } from './rounds';
 import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
@@ -31,6 +33,7 @@ export const walkBlocked = (s: GridState, c: Cell): boolean =>
 function openChest(s: GridState, t: number, c: Cell): void {
   const ch = chestAt(s, c)!;
   ch.opened = true;
+  gainMaterial(s, t, zoneMaterial(s.run.floor), s.rng.int(2, 3));
   const g = s.hero.gear;
   s.events.push({ t, type: 'open', src: 'hero', to: { ...c } });
   // with the bag full a find is left at the hero's feet, never lost
@@ -90,6 +93,8 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       if (far) return melee(meleeAttack(s, t, a.dir, far, hooks));
       // caught in a net: struggling costs the turn
       if (buffOn(h, 'root', t)) { s.events.push({ t, type: 'root', src: h.id, to: { ...h.pos } }); return COST.move; }
+      const tool = toolMove(s, t, a.dir, hooks);
+      if (tool !== undefined) return tool;
       // tap-walking (plain steps) never turns into a dash or a leap
       const lunged = a.plain ? null : lunge(s, t, a.dir, hooks);
       if (lunged !== null) return melee(lunged);

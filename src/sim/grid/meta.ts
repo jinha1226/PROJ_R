@@ -1,3 +1,6 @@
+import { emptyMaterials, MATERIALS, type Materials } from './materials';
+import type { SystemId, ToolId } from './repairs';
+import type { ModSlot } from './mods';
 import { BASE_IDS, ENGRAVES, type EngraveId } from './engraveCore';
 import { ELEMENTS, ROUND_NAMES } from './rounds';
 import type { Element } from './items';
@@ -5,6 +8,12 @@ import type { FoeKind, GridState } from './types';
 
 export type FacilityId = 'armory' | 'suitlab' | 'nav';
 export interface MetaState {
+  materials: Materials;
+  repairs: SystemId[];
+  tools: ToolId[];
+  coreSecured: boolean;
+  departed: boolean;
+  mods: { owned: string[]; fitted: Partial<Record<ModSlot, string>> };
   energy: number;
   rounds: Element[];
   facilities: { suitSlots: 2 | 3 | 4; chargePlus: 0 | 1 | 2; navCrypt: boolean; navRuins: boolean };
@@ -12,13 +21,14 @@ export interface MetaState {
   tasted: EngraveId[];
   records: EngraveId[];
   startCandidates: EngraveId[];
-  suit?: { floor: number; ids: EngraveId[]; killer: { kind: string; elite?: boolean } };
+  suit?: { materials?: Materials; floor: number; ids: EngraveId[]; killer: { kind: string; elite?: boolean } };
   bossesKilled: number[];
   best: number;
   wins: number;
 }
 export function freshMeta(): MetaState {
   return {
+    materials: emptyMaterials(), repairs: [], tools: [], coreSecured: false, departed: false, mods: { owned: [], fitted: {} },
     energy: 0, rounds: [], facilities: { suitSlots: 2, chargePlus: 0, navCrypt: false, navRuins: false },
     unlocked: ['gunRelay', 'spinShot'], tasted: [],
     records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0,
@@ -26,13 +36,13 @@ export function freshMeta(): MetaState {
 }
 export const SHOP: { id: string; name: string; cost: number; can(m: MetaState): boolean; apply(m: MetaState): void }[] = [
   ...ELEMENTS.map(el => ({ id: `round:${el}`, name: `${ROUND_NAMES[el]}탄 해금`, cost: el === 'shock' ? 100 : 80,
-    can: (m: MetaState) => !m.rounds.includes(el), apply: (m: MetaState) => { m.rounds.push(el); } })),
-  { id: 'suitSlots3', name: '시작 각인 칸 3', cost: 100, can: m => m.facilities.suitSlots === 2, apply: m => { m.facilities.suitSlots = 3; } },
-  { id: 'suitSlots4', name: '시작 각인 칸 4', cost: 250, can: m => m.facilities.suitSlots === 3, apply: m => { m.facilities.suitSlots = 4; } },
-  { id: 'chargePlus1', name: '충전 최대치 +2', cost: 60, can: m => m.facilities.chargePlus === 0, apply: m => { m.facilities.chargePlus = 1; } },
-  { id: 'chargePlus2', name: '충전 최대치 +4', cost: 140, can: m => m.facilities.chargePlus === 1, apply: m => { m.facilities.chargePlus = 2; } },
-  { id: 'navCrypt', name: '지하 묘지 지름길', cost: 150, can: m => !m.facilities.navCrypt && m.bossesKilled.includes(5), apply: m => { m.facilities.navCrypt = true; } },
-  { id: 'navRuins', name: '고대 유적 지름길', cost: 300, can: m => !m.facilities.navRuins && m.bossesKilled.includes(10), apply: m => { m.facilities.navRuins = true; } },
+    can: (m: MetaState) => m.repairs.includes('workbench') && !m.rounds.includes(el), apply: (m: MetaState) => { m.rounds.push(el); } })),
+  { id: 'suitSlots3', name: '시작 각인 칸 3', cost: 100, can: m => m.repairs.includes('suitlab') && m.facilities.suitSlots === 2, apply: m => { m.facilities.suitSlots = 3; } },
+  { id: 'suitSlots4', name: '시작 각인 칸 4', cost: 250, can: m => m.repairs.includes('suitlab') && m.facilities.suitSlots === 3, apply: m => { m.facilities.suitSlots = 4; } },
+  { id: 'chargePlus1', name: '충전 최대치 +2', cost: 60, can: m => m.repairs.includes('suitlab') && m.facilities.chargePlus === 0, apply: m => { m.facilities.chargePlus = 1; } },
+  { id: 'chargePlus2', name: '충전 최대치 +4', cost: 140, can: m => m.repairs.includes('suitlab') && m.facilities.chargePlus === 1, apply: m => { m.facilities.chargePlus = 2; } },
+  { id: 'navCrypt', name: '지하 묘지 지름길', cost: 150, can: m => m.repairs.includes('nav') && !m.facilities.navCrypt && m.bossesKilled.includes(5), apply: m => { m.facilities.navCrypt = true; } },
+  { id: 'navRuins', name: '고대 유적 지름길', cost: 300, can: m => m.repairs.includes('nav') && !m.facilities.navRuins && m.bossesKilled.includes(10), apply: m => { m.facilities.navRuins = true; } },
 ];
 export function engraveShop(m: MetaState): { id: string; name: string; cost: number }[] {
   return BASE_IDS.filter(id => !m.unlocked.includes(id)).map(id => ({
@@ -42,6 +52,7 @@ export function engraveShop(m: MetaState): { id: string; name: string; cost: num
 }
 export function buy(m: MetaState, id: string): boolean {
   if (id.startsWith('engrave:')) {
+    if (!m.repairs.includes('suitlab')) return false;
     const offer = engraveShop(m).find(e => e.id === id);
     if (!offer || m.energy < offer.cost) return false;
     const engraving = id.slice(8) as EngraveId;
@@ -71,13 +82,21 @@ export function settleRun(meta: MetaState, s: GridState): MetaState {
   m.bossesKilled = [...new Set([...m.bossesKilled, ...s.run.bossesKilled])];
   m.tasted = [...new Set([...m.tasted, ...(s.run.tasted ?? []), ...(s.run.recovered ?? [])])]
     .filter(id => BASE_IDS.includes(id) && !m.unlocked.includes(id));
+  m.coreSecured ||= s.outcome === 'won';
+  const lost = emptyMaterials();
+  for (const mat of MATERIALS) {
+    const total = s.run.materials[mat];
+    const kept = s.outcome === 'dead' ? Math.floor(total / 2) : total;
+    m.materials[mat] += kept; lost[mat] = total - kept;
+    if (s.run.recovered) m.materials[mat] += s.run.leftSuit?.materials?.[mat] ?? m.suit?.materials?.[mat] ?? 0;
+  }
   if (s.run.recovered) {
     m.energy += 10 * s.run.recovered.length;
     delete m.suit;
   }
   // an empty-handed death (say after a shortcut start) leaves the older suit where it lies
-  if (s.outcome === 'dead' && s.hero.suit.length) {
-    m.suit = { floor: s.run.floor, ids: [...s.hero.suit], killer: { ...(s.run.killedBy ?? { kind: 'self' }) } };
+  if (s.outcome === 'dead' && (s.hero.suit.length || MATERIALS.some(mat => lost[mat] > 0))) {
+    m.suit = { materials: lost, floor: s.run.floor, ids: [...s.hero.suit], killer: { ...(s.run.killedBy ?? { kind: 'self' }) } };
   }
   return m;
 }

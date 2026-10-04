@@ -92,7 +92,8 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   const before = handKind(activeWeapon(g));
   swapHands(g);
   s.events.push({ t, type: 'swap', src: h.id, text: activeWeapon(g)?.name });
-  let cost = COST.swap;
+  const swapTime = COST.swap + (h.modStats?.swap ?? 0);
+  let cost = swapTime;
   const after = handKind(activeWeapon(g));
   // free and charged only between two real weapons of different kinds, once per attack (no empty-hand or back-and-forth loops)
   if (has(s, 'quickswap') && h.fx.swapReady && before !== after && before !== 'empty' && after !== 'empty') {
@@ -103,7 +104,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   }
   if (!has(s, 'swapstrike')) return cost;
   // a swap that strikes is never free (else quick swap + swap strike would land endless blows in no time)
-  cost = COST.swap;
+  cost = swapTime;
   const w = activeWeapon(g);
   if (!w) return cost;
   const want = (f: Ent) => (f.id === h.target ? 0 : 1);
@@ -113,7 +114,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
     fire(s, t, 'swapstrike');
     h.fx.nextMult *= SWAP_STRIKE;
     meleeAttack(s, t, { x: f.pos.x - h.pos.x, y: f.pos.y - h.pos.y }, f, hooks);
-    return COST.swap;
+    return swapTime;
   }
   const f = s.foes.filter((x) => x.alive && s.visible.has(idx(s.map, x.pos)) && dist(h.pos, x.pos) <= weaponRange(w) && shotClear(s, h.pos, x.pos))
     .sort((x, y) => want(x) - want(y) || dist(h.pos, x.pos) - dist(h.pos, y.pos))[0];
@@ -121,7 +122,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
   fire(s, t, 'swapstrike');
   h.fx.nextMult *= SWAP_STRIKE;
   rangedAttack(s, t, f, hooks);
-  return COST.swap;
+  return swapTime;
 }
 
 /** After a dodge (counter) or a parry (riposte): a blow straight back at the attacker beside the hero. */

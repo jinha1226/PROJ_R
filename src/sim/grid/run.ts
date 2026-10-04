@@ -1,6 +1,7 @@
 import { placeDeathSuit } from './deathSuit';
 import { energyFor } from './meta';
-import { FAMILY } from './absorb';
+import { dropChance, zoneMaterial } from './materials';
+import { absorbOffer, FAMILY } from './absorb';
 import { scatterLoot } from './consumables';
 import { upgradeOffer } from './upgrades';
 import { FOE_XP, makeFoe, spawnFoe } from './foes';
@@ -52,7 +53,13 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     if (f.kind === 'champion' && (s.run.floor === 5 || s.run.floor === 10) && !s.run.bossesKilled.includes(s.run.floor)) s.run.bossesKilled.push(s.run.floor);
     s.hero.xp += (FOE_XP[f.kind as FoeKind] ?? 3) * (f.elite ? 3 : 1);
     if (f.elite || f.kind === 'champion') {
-      s.floorItems.push({ pos: { ...f.pos }, item: { kind: 'echo', family: FAMILY[f.kind as FoeKind], name: '잔향' } });
+      const family = FAMILY[f.kind as FoeKind];
+      const offer = absorbOffer(s, family);
+      if (offer.length) s.offers.push(offer);
+      s.events.push({ t: s.time, type: 'absorb', src: s.hero.id, text: family });
+      s.floorItems.push({ pos: { ...f.pos }, item: { kind: 'material', mat: 'remains', n: f.kind === 'champion' ? 3 : 1 } });
+    } else if (s.rng.chance(dropChance({ materials: s.run.stock }, zoneMaterial(s.run.floor)))) {
+      s.floorItems.push({ pos: { ...f.pos }, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: 1 } });
     }
     if (f.kind === 'champion' && !s.outcome) {
       const pos = { ...f.pos };

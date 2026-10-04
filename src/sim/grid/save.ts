@@ -20,11 +20,6 @@ export function fromSave(text: string): GridState {
   s.fired = savedIds(s.fired);
   s.hero.fx.free ??= false;
   s.hero.shield ??= 0;
-  for (const { item } of s.floorItems) if (item.kind === 'echo') {
-    const family: string = item.family;
-    if (family === 'magic') item.family = 'element';
-    if (family === 'any' || family === 'all') item.family = 'fusion';
-  }
   // mulberry32's seed is its full state, so constructing from getState resumes the next draw.
   return { ...s, rng: createRng(s.rng), seen: new Uint8Array(s.seen), visible: new Set(s.visible), fired: new Set(s.fired) };
 }

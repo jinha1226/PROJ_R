@@ -5,7 +5,7 @@ import { panelContents } from '../../src/ui/grid/ship/panelContents';
 import { resonanceMarks } from '../../src/ui/grid/suitTiles';
 import { OPEN, sim } from '../sim/grid/kit';
 it('groups the suit shop by family with terse headers and actual prices', () => {
-  const m = freshMeta(); m.tasted = ['bloodlust']; m.energy = 30;
+  const m = freshMeta(); m.repairs = ['suitlab']; m.tasted = ['bloodlust']; m.energy = 30;
   const model = panelContents(m, 'suitlab', { gun: 'pistol', start: 1, startSuit: [] });
   expect(model.groups.map(g => g.label)).toEqual(['근접', '원거리', '퓨전', '원소']);
   for (const group of model.groups) for (const entry of group.shop) {

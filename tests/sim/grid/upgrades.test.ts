@@ -131,10 +131,10 @@ describe('level-up suit upgrades', () => {
     expect(s.hero.bonus.gunDmg).toBe(5);
   });
 
-  it('echo absorption still queues engravings independently of upgrades', () => {
-    const g = sim(OPEN, { x: 5, y: 7 });
+  it('elite death still queues engravings independently of upgrades', () => {
+    const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'minion', pos: { x: 6, y: 7 } }]);
     g.s.upgrades = [['hp', 'charge', 'evasion']];
-    g.s.floorItems.push({ pos: { x: 6, y: 7 }, item: { kind: 'echo', family: 'melee', name: '잔향' } });
+    g.s.foes[0]!.elite = true; g.s.foes[0]!.hp = 1; sureHits(g);
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
     expect(ev.some((e) => e.type === 'absorb')).toBe(true);
     expect(g.s.offers).toHaveLength(1);

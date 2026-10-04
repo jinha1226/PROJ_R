@@ -92,7 +92,7 @@ describe('fifteen floors in three zones', () => {
     expect(g.s.outcome).toBeUndefined();
     expect(g.s.map.stairs).toBeUndefined();
     expect(g.s.floorItems).toEqual([
-      { pos: { x: 8, y: 7 }, item: { kind: 'echo', family: 'fusion', name: '잔향' } },
+      { pos: { x: 8, y: 7 }, item: { kind: 'material', mat: 'remains', n: 3 } },
       { pos: { x: 8, y: 7 }, item: { kind: 'core', name: '에너지원' } },
     ]);
     g.s.hero.gear.bag = Array.from({ length: 20 }, () => makeWeapon('sword', 1));

@@ -43,7 +43,7 @@ it('chooses the farthest eligible room and free adjacent cells', () => {
   expect(dist(s.foes[0]!.pos, item.pos)).toBe(1);
   expect(same(s.foes[0]!.pos, item.pos)).toBe(false);
 });
-it.each([['minion', 'minion'], ['champion', 'brute'], ['trap', 'minion']])('uses %s killer guardian %s, elite scaling and echo', (killer, kind) => {
+it.each([['minion', 'minion'], ['champion', 'brute'], ['trap', 'minion']])('uses %s killer guardian %s, elite scaling, offer and remains', (killer, kind) => {
   const s = newRunState(5, meta(1, killer), { gun: 'pistol', start: 1, startSuit: [] });
   const guardian = s.foes.at(-1)!;
   expect(guardian.kind).toBe(kind);
@@ -51,7 +51,8 @@ it.each([['minion', 'minion'], ['champion', 'brute'], ['trap', 'minion']])('uses
   expect(guardian.power).toBeCloseTo(scaleFoe(guardian.kind as Exclude<typeof guardian.kind, 'hero'>, 1).power * 1.6);
   guardian.alive = false;
   settleKills(s, new Set([guardian.id]));
-  expect(s.floorItems.some(f => f.item.kind === 'echo' && same(f.pos, guardian.pos))).toBe(true);
+  expect(s.offers).toHaveLength(1);
+  expect(s.floorItems.some(f => f.item.kind === 'material' && f.item.mat === 'remains' && same(f.pos, guardian.pos))).toBe(true);
 });
 it('walking onto the suit takes a turn, transmits it, and settlement clears the old suit', () => {
   const m = meta(1);
@@ -79,7 +80,7 @@ it('a new death replaces the old suit; an empty-handed death keeps the old one (
   const m = meta(8);
   const s = newRunState(5, m, { gun: 'pistol', start: 1, startSuit: [] });
   s.hero.suit = ['chain']; s.outcome = 'dead';
-  expect(settleRun(m, s).suit).toEqual({ floor: 1, ids: ['chain'], killer: { kind: 'self' } });
+  expect(settleRun(m, s).suit).toEqual({ materials: freshMeta().materials, floor: 1, ids: ['chain'], killer: { kind: 'self' } });
   s.hero.suit = [];
   const old = { ...m, suit: { floor: 3, ids: ['leap' as const], killer: { kind: 'minion' } } };
   expect(settleRun(old, s).suit).toEqual(old.suit);

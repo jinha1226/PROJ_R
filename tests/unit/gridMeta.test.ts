@@ -13,7 +13,7 @@ it('migrates legacy records once and round trips all meta fields', () => {
   expect(m).toEqual({ ...freshMeta(), best: 8, wins: 2 });
   expect(data.has('projr.grid.meta.v1')).toBe(true);
   m.energy = 90; m.rounds = ['fire'];
-  m.suit = { floor: 3, ids: ['dash'], killer: { kind: 'minion' } };
+  m.suit = { materials: freshMeta().materials, floor: 3, ids: ['dash'], killer: { kind: 'minion' } };
   saveMeta(m);
   data.set('projr.grid.v1', JSON.stringify({ best: 15, wins: 20 }));
   expect(loadMeta()).toEqual(m);
@@ -47,4 +47,21 @@ it('ignores old gun flags and validates round unlocks and all engraving lists', 
   expect(m.records).toEqual(['dash']); expect(m.startCandidates).toEqual([]); expect(m.suit?.ids).toEqual(['echo']);
   delete (old as { rounds?: unknown }).rounds; data.set('projr.grid.meta.v1', JSON.stringify(old));
   expect(loadMeta().rounds).toEqual([]);
+});
+it('round trips repaired systems, tools, crafted/fitted mods and suit materials', async () => {
+  const { repair } = await import('../../src/sim/grid/repairs');
+  const { craft, fit } = await import('../../src/sim/grid/mods');
+  const m = freshMeta(); m.materials = { scrap: 100, soul: 100, relic: 100, remains: 100 }; m.coreSecured = true;
+  for (const id of ['workbench', 'suitlab', 'nav', 'lifeSupport', 'pod', 'core'] as const) expect(repair(m, id)).toBe(true);
+  expect(craft(m, 'plating')).toBe(true); expect(fit(m, 'chest', 'plating')).toBe(true);
+  m.suit = { floor: 2, ids: [], materials: { scrap: 1, soul: 2, relic: 3, remains: 4 }, killer: { kind: 'minion' } };
+  saveMeta(m); expect(loadMeta()).toEqual(m);
+});
+it('preserves pre-round armory purchases and navigation progress as repairs', () => {
+  const old = JSON.parse(JSON.stringify(freshMeta())); delete old.repairs; delete old.tools;
+  old.facilities.armoryShotgun = true; old.facilities.navCrypt = true; old.facilities.chargePlus = 1;
+  data.set('projr.grid.meta.v1', JSON.stringify(old));
+  expect(loadMeta().repairs).toEqual(expect.arrayContaining(['workbench', 'suitlab', 'nav']));
+  old.facilities.navCrypt = false; old.facilities.chargePlus = 0;
+  data.set('projr.grid.meta.v1', JSON.stringify(old)); expect(loadMeta().repairs).toEqual(['workbench']);
 });

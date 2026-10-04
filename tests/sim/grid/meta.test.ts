@@ -17,7 +17,7 @@ describe('meta energy and facilities', () => {
     expect(m.records).toEqual(['dash', 'rapid', 'chain', 'momentum']);
     expect(m.rounds).toEqual([]);
     expect(buy(m, 'round:fire')).toBe(false);
-    m.energy = 2000;
+    m.energy = 2000; m.repairs = ['workbench', 'suitlab', 'nav'];
     expect(buy(m, 'missing')).toBe(false);
     expect(buy(m, 'suitSlots4')).toBe(false);
     expect(buy(m, 'chargePlus2')).toBe(false);
@@ -79,7 +79,7 @@ describe('meta energy and facilities', () => {
     expect(result.best).toBe(10);
     expect(result.wins).toBe(outcome === 'won' ? 1 : 0);
     expect(result.bossesKilled).toEqual([5, 10]);
-    expect(result.suit).toEqual(outcome === 'dead' ? { floor: 10, ids: ['dash'], killer: { kind: 'mage', elite: true } } : undefined);
+    expect(result.suit).toEqual(outcome === 'dead' ? { materials: freshMeta().materials, floor: 10, ids: ['dash'], killer: { kind: 'mage', elite: true } } : undefined);
   });
   it('does not leave an empty suit and defaults an unknown death to self', () => {
     const s = GridSim.create(3).s; s.outcome = 'dead';

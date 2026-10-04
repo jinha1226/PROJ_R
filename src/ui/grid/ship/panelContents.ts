@@ -17,12 +17,12 @@ export function toggleStartSuit(m: MetaState, o: RunOptions, id: EngraveId): Run
 }
 export function panelContents(m: MetaState, id: StationId, options: RunOptions, lastEnergy = 0) {
   const o = launchOptions(m, options);
-  const shop = SHOP.filter(e => id === 'armory' ? e.id.startsWith('round:') && e.can(m) : id === 'suitlab' ? /^(suitSlots|chargePlus)/.test(e.id) : id === 'nav' ? e.id.startsWith('nav') : false)
+  const shop = SHOP.filter(e => id === 'armory' ? e.id.startsWith('round:') && !m.rounds.some(el => e.id === `round:${el}`) : id === 'suitlab' ? /^(suitSlots|chargePlus)/.test(e.id) : id === 'nav' ? e.id.startsWith('nav') : false)
     .map(e => ({ id: e.id, label: `${e.name} · ⚡${e.cost}`, enabled: e.can(m) && m.energy >= e.cost }));
   const engravings = id === 'suitlab' ? engraveShop(m) : [];
   const groups = id === 'suitlab' ? FAMILIES.map(family => ({ id: family, label: FAMILY_NAMES[family],
     shop: engravings.filter(e => ENGRAVES[e.id.slice('engrave:'.length) as EngraveId].family === family)
-      .map(e => ({ id: e.id, label: `${e.name} ⚡${e.cost}`, enabled: m.energy >= e.cost })),
+      .map(e => ({ id: e.id, label: `${e.name} ⚡${e.cost}`, enabled: m.repairs.includes('suitlab') && m.energy >= e.cost })),
   })) : [];
   shop.push(...groups.flatMap(g => g.shop));
   const lines: string[] = [];
