@@ -20,7 +20,7 @@ const ROOM = ['#########', '#.......#', '#.......#', '#.......#', '#.......#', '
 
 function room(hero: Cell, foes: { kind: FoeKind; pos: Cell }[], rows: string[] = ROOM): GridState {
   const m: GridMap = { w: rows[0]!.length, h: rows.length, tiles: [], rooms: [], start: hero, exits: [], chests: [], spawns: foes.map((f, i) => ({ kind: f.kind, pos: f.pos, group: i + 1 })), barrels: [] };
-  for (const row of rows) for (const c of row) m.tiles.push(c === '#' ? 'wall' : 'floor');
+  for (const row of rows) for (const c of row) m.tiles.push(c === '#' ? 'wall' : c === 'S' ? 'seal' : c === 'C' ? 'chasm' : 'floor');
   const s = newState(m, 7, 'pistol', 2);
   s.hero.gear.hands[1] = { ...makeWeapon('dagger', 1), name: '요원 칼' };
   s.foes.forEach((f) => { f.awake = true; });
@@ -117,11 +117,11 @@ const ring: Scene = {
   ],
 };
 
-const HALL = ['###################', ...Array.from({ length: 9 }, () => '#.................#'), '###################'];
+const HALL = ['#####S#############', '#.................#', '#.................#', '#.................#', '#.................#', '#.......CC........#', '#.................#', '#.................#', '#.................#', '#.................#', '###################'];
 /** A big hall for judging figure size against the space. */
 const hall: Scene = {
   name: '넓은 방',
-  setup: () => room({ x: 9, y: 5 }, [
+  setup: () => room({ x: 9, y: 6 }, [
     { kind: 'minion', pos: { x: 11, y: 4 } }, { kind: 'minion', pos: { x: 12, y: 6 } }, { kind: 'brute', pos: { x: 6, y: 7 } },
     { kind: 'archer', pos: { x: 15, y: 2 } }, { kind: 'minion', pos: { x: 5, y: 3 } }, { kind: 'mage', pos: { x: 14, y: 8 } },
   ], HALL),

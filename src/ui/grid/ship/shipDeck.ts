@@ -7,6 +7,12 @@ import type { GEvent } from '../../../sim/grid/types';
 import type { GridRuntime } from '../../../view/grid/gridRuntime';
 import type { ShipKit } from '../../../view/grid/shipKit';
 import { launchOptions, panelContents, toggleStartSuit } from './panelContents';
+import { workbenchModel } from '../../../sim/grid/workbench';
+import { craft, fit } from '../../../sim/grid/mods';
+import { repair } from '../../../sim/grid/repairs';
+import { MATERIAL_NAME, MATERIALS } from '../../../sim/grid/materials';
+import { WorkbenchScreen } from './workbenchScreen';
+import { RepairScreen } from './repairScreen';
 import '../../styles/ship.css';
 export interface ShipDeckApi {
   meta: MetaState; kit: ShipKit; lastEnergy: number; wake: boolean; saved: boolean;
@@ -32,7 +38,8 @@ export class ShipDeck {
   mount(root: HTMLElement, runtime: GridRuntime): void { this.runtime = runtime; root.classList.add('ship'); root.append(this.el); this.drawHud(); }
   private drawHud(): void {
     const m = this.api.meta;
-    this.hud.innerHTML = `<b>⚡${m.energy}</b><span>최고 ${m.best}층</span>${m.suit ? `<em>${m.suit.floor}층에 슈트</em>` : ''}<div class="row"></div>${this.api.wake ? '<p>복제 포드 기동</p>' : ''}`;
+    const mats = MATERIALS.map((k) => `${MATERIAL_NAME[k]} ${m.materials[k]}`).join(' · ');
+    this.hud.innerHTML = `<b>⚡${m.energy}</b><span>최고 ${m.best}층</span>${m.suit ? `<em>${m.suit.floor}층에 슈트</em>` : ''}<small class="ship-mats">${mats}</small><div class="row"></div>${this.api.wake ? '<p>복제 포드 기동</p>' : ''}`;
     const row = this.hud.querySelector('.row')!;
     if (this.api.saved) this.button(row, '이어하기', () => this.api.resume(), 'ship-continue');
     this.button(row, '타이틀', () => this.api.quit(), 'ship-quit');
@@ -46,6 +53,17 @@ export class ShipDeck {
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = label;
     if (testid) b.dataset.testid = testid;
     b.onclick = click; parent.append(b); return b;
+  }
+  /** The workbench or the repair blueprint over the deck; closing returns to the station's panel. */
+  private openScreen(which: 'workbench' | 'repair'): void {
+    const m = this.api.meta;
+    const changed = () => { this.api.save(m); this.runtime?.powerShip(m); this.drawHud(); };
+    const close = () => { screen.el.remove(); this.drawPanel(); };
+    const screen = which === 'workbench'
+      ? new WorkbenchScreen({ model: () => workbenchModel(m), craft: (id) => { if (craft(m, id)) changed(); }, fit: (slot, id) => { if (fit(m, slot, id)) changed(); }, close })
+      : new RepairScreen({ meta: () => m, repair: (id) => { if (repair(m, id)) changed(); }, close });
+    this.panel.hidden = true;
+    this.el.append(screen.el);
   }
   private drawPanel(): void {
     const id = this.selected!;
@@ -72,6 +90,8 @@ export class ShipDeck {
       }, `ship-choice-${choice.id}`);
       b.disabled = !choice.enabled; b.setAttribute('aria-pressed', String(choice.selected));
     }
+    if (id === 'armory') this.button(body, '작업대 열기', () => this.openScreen('workbench'), 'ship-workbench');
+    if (id === 'core') this.button(body, '우주선 수리', () => this.openScreen('repair'), 'ship-repair');
     if (id === 'hatch') {
       if (this.api.saved) { const p = document.createElement('p'); p.textContent = '진행 중인 출격'; body.append(p); this.button(body, '이어하기', () => this.api.resume()); this.button(body, '출격 포기 (에너지는 남음)', () => this.api.abandon(), 'ship-abandon'); }
       const launch = this.button(body, '출격', () => this.api.launch(launchOptions(this.api.meta, this.options)), 'ship-launch');

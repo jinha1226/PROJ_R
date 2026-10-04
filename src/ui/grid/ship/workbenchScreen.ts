@@ -12,6 +12,8 @@ export class WorkbenchScreen {
   private preview: string | null | undefined;
   private flash: ModSlot | null = null;
   private flashT: ReturnType<typeof setTimeout> | undefined;
+  /** crafting needs the workbench repaired; fitting owned mods does not */
+  private open = true;
 
   constructor(private readonly api: WorkbenchApi) {
     this.el.className = 'wb';
@@ -66,7 +68,7 @@ export class WorkbenchScreen {
     }).join('');
     const btn = o.fitted ? `<button type="button" class="btn" data-act="unfit" data-id="${o.mod.id}">해제</button>`
       : o.owned ? `<button type="button" class="btn primary" data-act="fit" data-id="${o.mod.id}">장착</button>`
-      : `<button type="button" class="btn" data-act="craft" data-id="${o.mod.id}" ${o.craftable ? '' : 'disabled'}>제작</button>`;
+      : `<button type="button" class="btn" data-act="craft" data-id="${o.mod.id}" ${o.craftable && this.open ? '' : 'disabled'}>제작</button>`;
     const state = o.fitted ? '<em>장착됨</em>' : o.owned ? '<em class="own">보유</em>' : '';
     return `<li class="wb-opt${this.preview === o.mod.id ? ' on' : ''}${o.fitted ? ' fitted' : ''}" data-row="${o.mod.id}">
       <div class="wb-opt-top"><b>${o.mod.name}</b>${state}</div>
@@ -76,6 +78,7 @@ export class WorkbenchScreen {
 
   render(): void {
     const m = this.api.model();
+    this.open = m.open;
     const slots = m.slots.filter((s) => s.part === this.tab);
     const sel = slots.find((s) => s.slot === this.slot) ?? slots[0]!;
     const opts = m.options(sel.slot);
@@ -88,7 +91,7 @@ export class WorkbenchScreen {
     }).join('');
     const mats = (Object.keys(m.materials) as Material[]).map((k) => `<span><i>${MATERIAL_NAME[k]}</i> ${m.materials[k]}</span>`).join('');
     this.el.innerHTML = `
-      <header class="wb-head"><b>작업대</b>
+      <header class="wb-head"><b>작업대</b>${m.open ? '' : '<em class="wb-locked">고장 · 수리 필요</em>'}
         <div class="wb-tabs" role="tablist">
           <button type="button" role="tab" data-tab="pistol" aria-selected="${this.tab === 'pistol'}">권총</button>
           <button type="button" role="tab" data-tab="suit" aria-selected="${this.tab === 'suit'}">슈트</button>

@@ -3,6 +3,7 @@ import { idx, type GridMap, type GridState } from '../../sim/grid/types';
 import type { DungeonKit, DungeonPiece } from './dungeonKit';
 import { wallFaces, type WallFace } from './gridLayout';
 import { addDecor, cornerColumns } from './gridDecor';
+import { chasmMesh, sealMesh } from './toolGates';
 
 /** Metres per grid cell. */
 export const CELL = 1.0;
@@ -20,15 +21,20 @@ export class GridTerrain {
   readonly root = new THREE.Group();
   private readonly instanced: { mesh: THREE.InstancedMesh; cells: number[]; tint?: THREE.Color }[] = [];
   /** props shown only where the hero has seen (keyed by the cell that reveals them) */
-  private readonly props: [number, THREE.Object3D][] = [];
+  private props: [number, THREE.Object3D][] = [];
+  private readonly seals = new Map<number, THREE.Object3D>();
+  private readonly facesOf = new Map<number, number[]>();
+  private faceMesh: THREE.InstancedMesh | null = null;
+  private readonly built: string[];
   private readonly doors = new Map<number, THREE.Object3D>();
   private readonly chests = new Map<number, THREE.Object3D>();
   private readonly exits: THREE.Mesh[] = [];
   private readonly tmp = new THREE.Color();
 
   constructor(private readonly m: GridMap, private readonly kit: DungeonKit, decal?: string) {
+    this.built = [...m.tiles];
     const faces = wallFaces(m);
-    const floors = m.tiles.map((t, i) => [t, i] as const).filter(([t]) => t !== 'wall').map(([, i]) => i);
+    const floors = m.tiles.map((t, i) => [t, i] as const).filter(([t]) => t !== 'wall' && t !== 'chasm').map(([, i]) => i);
     const q = new THREE.Quaternion();
     const up = new THREE.Vector3(0, 1, 0);
     this.instance('Floor_Modular', floors, (i, p) => {
@@ -99,6 +105,33 @@ export class GridTerrain {
     });
     this.root.add(mesh);
     this.instanced.push({ mesh, cells: faces.map((f) => idx(this.m, f.floor)) });
+    this.faceMesh = mesh;
+    faces.forEach((f, k) => { const w = idx(this.m, f.wall); this.facesOf.set(w, [...(this.facesOf.get(w) ?? []), k]); });
+  }
+
+  /** Tiles the sim changed since the floor was built: a cut seal or a scanned wall becomes a doorway. */
+  syncTiles(): void {
+    const m = this.m;
+    m.tiles.forEach((t, i) => {
+      if (this.built[i] === t) return;
+      this.built[i] = t;
+      if (t !== 'door') return;
+      for (const k of this.facesOf.get(i) ?? []) this.faceMesh?.setMatrixAt(k, new THREE.Matrix4().makeScale(0, 0, 0));
+      if (this.faceMesh) this.faceMesh.instanceMatrix.needsUpdate = true;
+      const seal = this.seals.get(i);
+      if (seal) { seal.removeFromParent(); this.props = this.props.filter(([, o]) => o !== seal); }
+      this.addDoor(i);
+    });
+  }
+
+  private addDoor(i: number): void {
+    const m = this.m;
+    const door = this.kit.clone('Arch_Door', { width: CELL });
+    door.scale.y *= 0.85;
+    door.rotation.y = m.tiles[i - 1] === 'wall' && m.tiles[i + 1] === 'wall' ? 0 : Math.PI / 2;
+    door.position.copy(toWorld(i % m.w, Math.floor(i / m.w)));
+    this.doors.set(i, door);
+    this.addProp(i, door);
   }
 
   private addProp(cell: number, obj: THREE.Object3D): void {
@@ -116,13 +149,13 @@ export class GridTerrain {
         col.position.copy(p);
         this.addProp(i, col);
       }
-      if (t === 'door') {
-        const door = this.kit.clone('Arch_Door', { width: CELL });
-        door.scale.y *= 0.85;
-        door.rotation.y = m.tiles[i - 1] === 'wall' && m.tiles[i + 1] === 'wall' ? 0 : Math.PI / 2;
-        door.position.copy(p);
-        this.doors.set(i, door);
-        this.addProp(i, door);
+      if (t === 'door') this.addDoor(i);
+      if (t === 'chasm') { const pit = chasmMesh(); pit.position.copy(p); this.addProp(i, pit); }
+      if (t === 'seal') {
+        const seal = sealMesh(this.kit, m.tiles[i - 1] === 'wall' && m.tiles[i + 1] === 'wall');
+        seal.position.copy(p);
+        this.seals.set(i, seal);
+        this.addProp(i, seal);
       }
     });
     for (const c of m.chests) {

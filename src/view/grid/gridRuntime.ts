@@ -137,6 +137,7 @@ export class GridRuntime {
   /** Sight shading, which foes show, aim lines and intent marks. */
   private refresh(): void {
     const s = this.sim.s;
+    if (this.terrain instanceof GridTerrain) this.terrain.syncTiles();
     this.terrain.shade(s);
     this.items.sync(s);
     this.elements.sync(s);

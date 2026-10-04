@@ -14,3 +14,4 @@
 /* the deck has no fighting: only walking (stick / keys / taps) and the zoom buttons stay */
 .screen.grid.ship .ghud, .screen.grid.ship .gbelt, .screen.grid.ship .gt-buttons { display: none !important; }
 .grid-icon.label { margin: -12px 0 0 -44px; width: 88px; white-space: nowrap; text-align: center; font-size: 10px; font-weight: 700; color: #bdf0ff; background: #0a1b29c0; border: 1px solid #65b9dc55; border-radius: 6px; padding: 1px 4px; }
+.ship-overlay > .wb { pointer-events: auto; }

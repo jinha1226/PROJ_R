@@ -60,3 +60,24 @@
   .wb-main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr); }
   .wb-draw { border-right: 0; border-bottom: 1px solid var(--t-line); }
 }
+
+/* ship repair: the hull blueprint and its system rooms */
+.rp-hull { fill: #061014; stroke: var(--t-line); stroke-width: 1.4; }
+.rp-hull.thin { fill: none; stroke-width: 1; }
+.rp-link { stroke: var(--t-line); stroke-width: 1; stroke-dasharray: 3 3; }
+.rp-link.on { stroke: var(--t-ch); stroke-dasharray: none; }
+.rp-room rect { fill: #050c10; stroke: var(--t-line); stroke-width: 1.2; cursor: pointer; }
+.rp-room.done rect { fill: #0c2226; stroke: var(--t-ch); }
+.rp-room.ready rect { stroke: var(--t-warn); animation: rp-blink 1.2s steps(2) infinite; }
+.rp-room.locked text { fill: #3e5450; }
+.rp-room.sel rect { stroke: #fff; stroke-width: 2; }
+.rp-room.flash rect { animation: wb-flash 0.7s steps(4); }
+.rp-room:focus-visible rect { stroke: var(--t-warn); }
+@keyframes rp-blink { 50% { stroke: var(--t-line); } }
+.rp-count { color: var(--t-dim); }
+.rp-list { display: grid; gap: 1px; }
+.rp-list i { font-style: normal; color: var(--t-dim); }
+.rp-note { margin: 0; color: var(--t-warn); }
+.rp-go { justify-self: start; min-height: 30px !important; padding: 0 18px; }
+.rp-go[disabled] { opacity: 0.35; }
+.wb-locked { font-style: normal; color: var(--t-hp); }
