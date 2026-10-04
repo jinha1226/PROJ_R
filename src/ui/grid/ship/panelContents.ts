@@ -1,3 +1,4 @@
+import { FAMILIES, FAMILY_NAMES } from '../../../sim/grid/resonance';
 import { ENGRAVES, type EngraveId } from '../../../sim/grid/engraveCore';
 import { SHOP, engraveShop, type MetaState } from '../../../sim/grid/meta';
 import type { RunOptions } from '../../../sim/grid/runSetup';
@@ -18,7 +19,12 @@ export function panelContents(m: MetaState, id: StationId, options: RunOptions, 
   const o = launchOptions(m, options);
   const shop = SHOP.filter(e => id === 'armory' ? e.id.startsWith('round:') && e.can(m) : id === 'suitlab' ? /^(suitSlots|chargePlus)/.test(e.id) : id === 'nav' ? e.id.startsWith('nav') : false)
     .map(e => ({ id: e.id, label: `${e.name} · ⚡${e.cost}`, enabled: e.can(m) && m.energy >= e.cost }));
-  if (id === 'suitlab') shop.push(...engraveShop(m).map(e => ({ id: e.id, label: `${e.name} ⚡${e.cost}`, enabled: m.energy >= e.cost })));
+  const engravings = id === 'suitlab' ? engraveShop(m) : [];
+  const groups = id === 'suitlab' ? FAMILIES.map(family => ({ id: family, label: FAMILY_NAMES[family],
+    shop: engravings.filter(e => ENGRAVES[e.id.slice('engrave:'.length) as EngraveId].family === family)
+      .map(e => ({ id: e.id, label: `${e.name} ⚡${e.cost}`, enabled: m.energy >= e.cost })),
+  })) : [];
+  shop.push(...groups.flatMap(g => g.shop));
   const lines: string[] = [];
   let choices: PanelChoice[] = [];
   if (id === 'armory') choices = (['plain', ...m.rounds] as const).map(r => ({ id: r, label: `${ROUND_NAMES[r]}탄`, enabled: true, selected: o.round === r }));
@@ -34,5 +40,5 @@ export function panelContents(m: MetaState, id: StationId, options: RunOptions, 
     lines.push(`${GUN_NAMES[o.gun]} · ${ROUND_NAMES[o.round ?? 'plain']}탄 · ${o.start}층 출발`, o.start === 1 ? `시작 각인 ${o.startSuit.length}/${m.facilities.suitSlots}` : '시작 각인 없음');
     if (o.start === 1) choices = m.unlocked.map(i => ({ id: i, label: `${ENGRAVES[i].name} — ${ENGRAVES[i].note}`, selected: o.startSuit.includes(i), enabled: o.startSuit.includes(i) || o.startSuit.length < m.facilities.suitSlots }));
   }
-  return { title: STATIONS[id], shop, lines, choices };
+  return { title: STATIONS[id], shop, groups, lines, choices };
 }

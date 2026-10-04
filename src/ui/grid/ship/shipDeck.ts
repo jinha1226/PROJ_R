@@ -55,6 +55,8 @@ export class ShipDeck {
     const title = document.createElement('h2'); title.textContent = model.title; body.append(title);
     for (const line of model.lines) { const p = document.createElement('p'); p.textContent = line; body.append(p); }
     for (const item of model.shop) {
+      const group = model.groups.find(g => g.shop[0]?.id === item.id);
+      if (group) { const heading = document.createElement('h3'); heading.textContent = group.label; body.append(heading); }
       const b = this.button(body, item.label, () => {
         if (!buy(this.api.meta, item.id)) return;
         this.api.save(this.api.meta); this.runtime?.powerShip(this.api.meta); this.drawHud(); this.drawPanel();

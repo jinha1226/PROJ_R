@@ -1,3 +1,5 @@
+import { slashFoe, meleeExecute } from './meleeEffects';
+import { emitKills } from './attackTriggers';
 import { takeRound, roundMult, roundHit } from './rounds';
 import { strike } from './combat';
 import { canSwingAt, stepTo } from './combos';
@@ -11,7 +13,7 @@ import { dist, same, type GridState } from './types';
 import { heroDmg, meleeAttack, pushFoe, rangedAttack } from './weapons';
 
 export type EffectId = 'shootNearest' | 'shootFoe' | 'dashSlash' | 'spinShot' | 'slashFoe' | 'execute'
-  | 'charge' | 'heal' | 'shield' | 'nextMult' | 'freeNext' | 'push' | 'stun' | 'elementBurst' | 'refund';
+  | 'charge' | 'heal' | 'shield' | 'nextMult' | 'freeNext' | 'push' | 'stun' | 'elementBurst' | 'refund' | 'delay';
 
 /** Read-only eligibility: failed effects neither fire nor consume RNG or resources. */
 export function canRun(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boolean {
@@ -20,16 +22,22 @@ export function canRun(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boolea
   const gun = gunInHand(s), blade = otherHand(s), f = shotTarget(s, c);
   switch (id) {
     case 'shootNearest': return !!c.hooks && !!blade && isGun(blade.group) && h.charge >= gunCost(s, blade) && !!nearest(s);
-    case 'shootFoe': return !!gun && h.charge >= gunCost(s, gun) && inShot(s, gun, c);
+    case 'shootFoe': return !!gun && h.charge >= (c.chargeCost ?? gunCost(s, gun)) && inShot(s, gun, c);
     case 'dashSlash': return !!c.hooks && !!blade && WEAPONS[blade.group].melee && blade.group !== 'spear' && !!dashTarget(s);
     case 'spinShot': return !!gun && h.charge >= 1 && (c.neighbours?.length ?? spinTargets(s, c).length + Number(!!c.foe)) >= 2 && spinTargets(s, c).length > 0;
-    case 'slashFoe': return !!blade && WEAPONS[blade.group].melee && !!f?.alive && canSwingAt(s, h.pos, f.pos);
-    case 'execute': return !!gun && h.charge >= 1 && !!f?.alive && dist(h.pos, f.pos) === 1;
+    case 'slashFoe': {
+      const w = c.activeBlade ? activeWeapon(h.gear) : blade;
+      return !!w && WEAPONS[w.group].melee && !!f?.alive && canSwingAt(s, h.pos, f.pos);
+    }
+    case 'execute': return !!f?.alive && (c.meleeExecute
+      ? f !== h && f.kind !== 'champion'
+      : !!gun && h.charge >= 1 && dist(h.pos, f.pos) === 1);
     case 'charge': case 'refund': return h.charge < h.maxCharge && (id === 'refund' ? c.shotCost ?? p : p) > 0;
     case 'heal': return h.hp < h.maxHp && p > 0;
     case 'shield': return p > 0;
     case 'nextMult': return p > h.fx.nextMult;
-    case 'freeNext': return !h.fx.free;
+    case 'freeNext': return c.shotOnly ? !h.fx.freeShot : !h.fx.free;
+    case 'delay': return !!f?.alive && f !== h && p > 0;
     case 'push': case 'stun': return !!f?.alive && f !== h && (id === 'push' ? dist(h.pos, f.pos) > 0 : p > 0);
     case 'elementBurst': return !!c.element && !!f?.alive && p >= 0;
   }
@@ -45,7 +53,7 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
       withOtherHand(s, () => rangedAttack(s, t, target, c.hooks!)); break;
     }
     case 'shootFoe': {
-      const shot = () => rangedAttack(s, t, f!, c.hooks ?? REFLEX_HOOKS);
+      const shot = () => rangedAttack(s, t, f!, c.hooks ?? REFLEX_HOOKS, c);
       if (activeWeapon(h.gear) === gunInHand(s)) shot(); else withOtherHand(s, shot);
       break;
     }
@@ -66,16 +74,21 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
         h.charge--;
         const round = takeRound(s);
         s.events.push({ t, type: 'shoot', src: h.id, dst: target.id, from: { ...h.pos }, to: { ...target.pos }, text: 'spin', group: gun.group });
+        const start = s.events.length;
         target.awake = true;
         const hit = strike(s, t, h, target, 1, heroDmg(s, gun), roundMult(s, t, round));
         if (hit) roundHit(s, t, target, round, true);
         if (hit) emit(s, 'gunHit', { ...c, foe: target, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: 1 });
-        if (!target.alive) emit(s, 'gunKill', { ...c, foe: target, hooks: c.hooks ?? REFLEX_HOOKS, count: 1, shotCost: 1 });
+        emitKills(s, t, start, 'gunKill', c.hooks ?? REFLEX_HOOKS, 1);
       }
       break;
     }
-    case 'slashFoe': withOtherHand(s, () => meleeAttack(s, t, { x: f!.pos.x - h.pos.x, y: f!.pos.y - h.pos.y }, f!, c.hooks)); break;
+    case 'slashFoe':
+      if (c.activeBlade) slashFoe(s, { ...c, foe: f }); else withOtherHand(s, () => slashFoe(s, { ...c, foe: f }));
+      break;
     case 'execute': {
+      if (c.meleeExecute) { meleeExecute(s, { ...c, foe: f }); break; }
+      const start = s.events.length;
       h.charge--;
       const round = takeRound(s);
       s.events.push({ t, type: 'shoot', src: h.id, dst: f!.id, from: { ...h.pos }, to: { ...f!.pos }, text: 'execute', group: gunInHand(s)!.group });
@@ -90,14 +103,17 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
       roundHit(s, t, f!, round, true);
       const shot = { ...c, foe: f, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: 1 };
       emit(s, 'gunHit', shot);
-      if (!f!.alive) emit(s, 'gunKill', { ...shot, count: 1 });
+      emitKills(s, t, start, 'gunKill', shot.hooks, 1);
       break;
     }
     case 'charge': case 'refund': h.charge = Math.min(h.maxCharge, h.charge + (id === 'refund' ? c.shotCost ?? p : p)); break;
     case 'heal': h.hp = Math.min(h.maxHp, h.hp + p); break;
     case 'shield': h.shield = (h.shield ?? 0) + p; break;
     case 'nextMult': h.fx.nextMult = Math.max(h.fx.nextMult, p); break;
-    case 'freeNext': h.fx.free = true; break;
+    case 'freeNext':
+      if (c.shotOnly) h.fx.freeShot = true; else h.fx.free = true;
+      break;
+    case 'delay': f!.nextAt += p; break;
     case 'push': pushFoe(s, t, f!, { x: Math.sign(f!.pos.x - h.pos.x), y: Math.sign(f!.pos.y - h.pos.y) }); break;
     case 'stun':
       f!.stun = Math.min(f!.kind === 'champion' ? 1 : Infinity, (f!.stun ?? 0) + p);

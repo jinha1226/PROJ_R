@@ -37,6 +37,9 @@ it('uses exactly the planned unlock costs', () => {
   const costs = { dash: 50, finisher: 40, leap: 60, counter: 60, riposte: 70, wallslam: 50, laststand: 50,
     rapid: 50, mark: 60, ricochet: 60, kite: 40, volley: 70, gunRelay: 60, bladeRelay: 60, spinShot: 90,
     counterShot: 70, execute: 90, flow: 120, shoveShot: 50, quickswap: 60, swapstrike: 50, momentum: 80,
-    alternate: 60, echo: 60, chain: 60, elemArrow: 60 };
+    alternate: 60, echo: 60, chain: 60, elemArrow: 60,
+    bloodlust: 50, fury: 60, shoulder: 50, ironwall: 60, cull: 90, tempest: 90, gale: 100, rebound: 50,
+    quickdraw: 50, pierce: 70, sniper: 60, headshot: 80, covering: 70, suppress: 60, barrage: 120, thrift: 60, steady: 50,
+    bayonet: 70, reverseCut: 70, reclaim: 40, muzzleShove: 40, executionRush: 60, trance: 80 };
   expect(Object.fromEntries(ENGRAVE_IDS.map(id => [id, ENGRAVES[id].cost]))).toEqual(costs);
 });

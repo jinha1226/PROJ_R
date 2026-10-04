@@ -8,7 +8,7 @@ import { icon, weaponIcon } from './icons';
 import { weaponLabel, weaponState } from './weaponInfo';
 import { intentOf } from './intent';
 import { pushLog, visibleLog, LOG_SECONDS, type HudLine } from './hudLog';
-import { suitTiles } from './suitTiles';
+import { resonanceMarks, suitTiles } from './suitTiles';
 import { termArms, termVitals, textBar } from './gridTerm';
 import { foeName } from './foeNames';
 
@@ -106,7 +106,8 @@ export class GridHud {
       q('.gh-progress b').textContent = `Lv${h.level}`;
       q('.gh-charge span').textContent = `⚡ ${h.charge}/${h.maxCharge}`;
       q('.gh-charge i').style.width = `${Math.max(0, Math.min(1, h.charge / Math.max(1, h.maxCharge))) * 100}%`;
-      q('.gh-suit').innerHTML = tiles.map((tile, i) => `<div class="gh-tile ${tile.lit ? 'lit' : 'dim'}${tile.id ? '' : ' empty'}" data-id="${tile.id ?? ''}" data-testid="grid-suit-tile-${i}" title="${tile.name}">${tile.name}</div>`).join('');
+      q('.gh-suit').innerHTML = tiles.map((tile, i) => `<div class="gh-tile ${tile.lit ? 'lit' : 'dim'}${tile.id ? '' : ' empty'}" data-id="${tile.id ?? ''}" data-testid="grid-suit-tile-${i}" title="${tile.name}">${tile.name}</div>`).join('')
+        + `<div class="gh-resonance">${resonanceMarks(s).map(mark => `<span class="${mark.lit ? 'lit' : 'dim'}" data-family="${mark.id}">${mark.label}</span>`).join('')}</div>`;
       const frac = Math.max(0, h.hp / h.maxHp);
       q('.gh-hp-fill').style.width = `${frac * 100}%`;
       q('.gh-hp-fill').classList.toggle('low', frac < 0.35);

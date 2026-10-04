@@ -17,7 +17,7 @@ export const gunCost = (s: GridState, w: Weapon): number =>
 export const shotTarget = (s: GridState, c: TriggerCtx) => c.foe ?? s.foes.find(f => f.id === c.src);
 export const inShot = (s: GridState, w: Weapon, c: TriggerCtx): boolean => {
   const f = shotTarget(s, c);
-  return !!f?.alive && dist(s.hero.pos, f.pos) <= weaponRange(w) && shotClear(s, s.hero.pos, f.pos);
+  return !!f?.alive && dist(s.hero.pos, f.pos) <= weaponRange(w) && shotClear(s, s.hero.pos, f.pos, c.through);
 };
 export function nearest(s: GridState) {
   const gun = otherHand(s);

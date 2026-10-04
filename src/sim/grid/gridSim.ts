@@ -55,8 +55,9 @@ export class GridSim {
     const safeAtStart = canRegenerate(s);
     const fx = s.hero.fx;
     fx.free ??= false;
-    const free = fx.free;
+    const free = fx.free, freeShot = fx.freeShot ?? false;
     fx.acted = null;
+    fx.kills = { melee: [], gun: [] };
     const boosted = fx.momentum;
     fx.momentum = false;
     const alive = new Set(s.foes.filter((f) => f.alive).map((f) => f.id));
@@ -80,6 +81,7 @@ export class GridSim {
     if (boosted && cost > 0) cost *= MOMENTUM;
     else if (boosted) fx.momentum = true;
     if (free && cost > 0) { cost = 0; fx.free = false; }
+    else if (freeShot && !frozen && a.kind === 'shoot' && cost > 0) { cost = 0; fx.freeShot = false; }
     if (cost > 0) discover(s, t0);
     if (fx.acted) fx.swapReady = true;
     if (fx.acted !== 'melee') fx.combo = { hits: 0 };
@@ -90,6 +92,10 @@ export class GridSim {
     if (n >= (resonance(s).fusion ? 2 : 3)) {
       s.events.push({ t: t0, type: 'chain', src: s.hero.id, amount: n });
       emit(s, 'chain', { t: t0, count: n });
+    }
+    if (a.kind !== 'choose' && a.kind !== 'upgrade') {
+      fx.lastAction = !frozen && a.kind === 'wait' ? 'wait'
+        : !frozen && a.kind === 'move' && !fx.acted && s.events.some(e => e.type === 'move' && e.src === s.hero.id) ? 'move' : 'other';
     }
     // a free action (quick swap, a level-up pick) takes no time, so nothing ticks
     if (cost > 0) tickStatuses(s, s.hero, t0);

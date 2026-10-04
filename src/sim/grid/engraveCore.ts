@@ -8,7 +8,10 @@ export type EngraveId =
   | 'momentum' | 'quickswap' | 'swapstrike' | 'wallslam' | 'laststand'
   | 'rapid' | 'mark' | 'ricochet' | 'kite' | 'volley'
   | 'gunRelay' | 'bladeRelay' | 'spinShot' | 'counterShot' | 'execute' | 'flow'
-  | 'alternate' | 'echo' | 'chain' | 'elemArrow';
+  | 'alternate' | 'echo' | 'chain' | 'elemArrow'
+  | 'bloodlust' | 'fury' | 'shoulder' | 'ironwall' | 'cull' | 'tempest' | 'gale' | 'rebound'
+  | 'quickdraw' | 'pierce' | 'sniper' | 'headshot' | 'covering' | 'suppress' | 'barrage' | 'thrift' | 'steady'
+  | 'bayonet' | 'reverseCut' | 'reclaim' | 'muzzleShove' | 'executionRush' | 'trance';
 export const SUIT_SLOTS = 6;
 export type Fit = 'melee' | 'ranged' | 'any' | 'kata';
 
@@ -40,6 +43,29 @@ export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit
   counterShot: { name: '반격 사격', note: '회피 → 반격 사격', fits: 'any', base: true, cost: 70, family: 'fusion', tags: ['회피'] },
   execute: { name: '처형', note: '인접 기절 → 처형', fits: 'any', base: true, cost: 90, family: 'fusion', tags: ['기절', '처치'] },
   flow: { name: '흐름', note: '각인 연쇄 → 다음 행동 0턴', fits: 'any', base: true, cost: 120, family: 'fusion', tags: ['연쇄'] },
+  bloodlust: { name: '피의 갈증', note: '칼 처치 → 체력 +2', fits: 'melee', base: true, cost: 50, family: 'melee', tags: ['처치', '회복'] },
+  fury: { name: '광폭', note: '칼 처치 → 다음 공격 ×1.5', fits: 'melee', base: true, cost: 60, family: 'melee', tags: ['처치'] },
+  shoulder: { name: '어깨치기', note: '이동 직후 근접 → 밀치기', fits: 'melee', base: true, cost: 50, family: 'melee', tags: ['밀치기'] },
+  ironwall: { name: '철벽', note: '패링 → 보호막 3', fits: 'melee', base: true, cost: 60, family: 'melee', tags: ['패링', '방어'] },
+  cull: { name: '처단', note: '체력 30% 이하 적 근접 → 처치', fits: 'melee', base: true, cost: 90, family: 'melee', tags: ['처치'] },
+  tempest: { name: '칼날 폭풍', note: '포위 → 붙은 적 전부 베기', fits: 'melee', base: true, cost: 90, family: 'melee', tags: ['포위'] },
+  gale: { name: '질풍', note: '칼 처치 → 다음 행동 0턴', fits: 'melee', base: true, cost: 100, family: 'melee', tags: ['처치'] },
+  rebound: { name: '반동', note: '벽에 박음 → 충전 +2', fits: 'melee', base: true, cost: 50, family: 'melee', tags: ['기절'] },
+  quickdraw: { name: '속사', note: '사격 처치 → 충전 +1', fits: 'ranged', base: true, cost: 50, family: 'ranged', tags: ['처치'] },
+  pierce: { name: '관통탄', note: '사격 → 뒤의 적 하나 더', fits: 'ranged', base: true, cost: 70, family: 'ranged', tags: ['관통'] },
+  sniper: { name: '저격', note: '4칸 이상 사격 → ×1.5', fits: 'ranged', base: true, cost: 60, family: 'ranged', tags: ['거리'] },
+  headshot: { name: '헤드샷', note: '무상처 적 첫 사격 → 치명', fits: 'ranged', base: true, cost: 80, family: 'ranged', tags: ['치명'] },
+  covering: { name: '엄호 사격', note: '회피 → 다음 사격 0턴', fits: 'ranged', base: true, cost: 70, family: 'ranged', tags: ['회피'] },
+  suppress: { name: '견제', note: '사격 명중 → 적 행동 지연', fits: 'ranged', base: true, cost: 60, family: 'ranged', tags: ['지연'] },
+  barrage: { name: '탄막', note: '연쇄 → 보이는 적마다 한 발', fits: 'ranged', base: true, cost: 120, family: 'ranged', tags: ['연쇄'] },
+  thrift: { name: '절약', note: '사격 처치 → 충전 환급', fits: 'ranged', base: true, cost: 60, family: 'ranged', tags: ['처치'] },
+  steady: { name: '조준', note: '대기 후 사격 → 치명', fits: 'ranged', base: true, cost: 50, family: 'ranged', tags: ['치명'] },
+  bayonet: { name: '총검', note: '칼 타격 → 같은 적에게 한 발', fits: 'kata', base: true, cost: 70, family: 'fusion', tags: ['연계'] },
+  reverseCut: { name: '역수 베기', note: '붙은 적 사격 → 칼로 한 번', fits: 'kata', base: true, cost: 70, family: 'fusion', tags: ['연계'] },
+  reclaim: { name: '칼날 회수', note: '칼 처치 → 충전 +1', fits: 'kata', base: true, cost: 40, family: 'fusion', tags: ['처치'] },
+  muzzleShove: { name: '총구 밀치기', note: '총 타격 → 밀치기', fits: 'kata', base: true, cost: 40, family: 'fusion', tags: ['밀치기'] },
+  executionRush: { name: '처형 연계', note: '처형 → 충전 +2', fits: 'kata', base: true, cost: 60, family: 'fusion', tags: ['기절', '처치'] },
+  trance: { name: '무아지경', note: '칼·총 둘 다 처치 → 체력 +3', fits: 'kata', base: true, cost: 80, family: 'fusion', tags: ['연쇄', '회복'] },
 };
 export const ENGRAVE_IDS = Object.keys(ENGRAVES) as EngraveId[];
 
@@ -55,10 +81,16 @@ export interface HeroFx {
   nextMult: number;
   momentum: boolean;
   free: boolean;
+  /** Covering banks a shot, so moves and waits do not spend it. */
+  freeShot?: boolean;
   /** what the current hero action was (a blow keeps the melee combo, a shot the rapid chain) */
   acted: 'melee' | 'shot' | null;
   /** quick swap pays out once per attack (a blow or a shot re-arms it) */
   swapReady: boolean;
+  /** Previous completed gameplay action; absent in old saves. */
+  lastAction?: 'move' | 'wait' | 'other';
+  /** Unique kills attributed to each attack kind in this action. */
+  kills?: { melee: string[]; gun: string[] };
 }
 export const freshFx = (): HeroFx => ({ combo: { hits: 0 }, rapid: { n: 0 }, shots: 0, roundShots: 0, nextMult: 1, momentum: false, free: false, acted: null, swapReady: true });
 

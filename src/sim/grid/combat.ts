@@ -38,8 +38,8 @@ export const freeCell = (s: GridState, c: Cell): boolean =>
   walkable(tileAt(s.map, c)) && tileAt(s.map, c) !== 'door' && !bodyAt(s, c) && !s.chests.some((ch) => !ch.opened && same(ch.pos, c)) && !s.barrels.some((b) => same(b, c));
 
 /** A shot line, the same both ways (a line traced from either end counts), bodies in between block it. */
-export function shotClear(s: GridState, from: Cell, to: Cell): boolean {
-  const bodies = (c: Cell) => !!bodyAt(s, c) || s.barrels.some((b) => same(b, c));
+export function shotClear(s: GridState, from: Cell, to: Cell, through?: Ent): boolean {
+  const bodies = (c: Cell) => (!!bodyAt(s, c) && bodyAt(s, c) !== through) || s.barrels.some((b) => same(b, c));
   return losClear(s.map, from, to, bodies, s) || losClear(s.map, to, from, bodies, s);
 }
 

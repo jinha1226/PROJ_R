@@ -126,3 +126,7 @@
 .screen.grid .gh-tile { justify-content: flex-start; padding: 0 2px; }
 .grid.landscape:has(.gt-desktop) .gbelt { right: calc(var(--hud-right) + 298px); }
 .grid.landscape:has(.gt-desktop) .gh-arms { width: 290px; }
+
+.gh-resonance { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 4px; font-size: 10px; }
+.gh-resonance .dim { color: var(--t-dim); opacity: 0.5; }
+.gh-resonance .lit { color: var(--t-warn); text-shadow: 0 0 5px currentColor; }

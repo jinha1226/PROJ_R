@@ -87,7 +87,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
     foe.awake = true;
     const landed = strike(s, t, h, foe, HERO.bashHit, HERO.bash);
     refillMelee(s, landed, eventStart);
-    if (landed) emit(s, 'meleeHit', { t, foe, hooks });
+    if (landed) emit(s, 'meleeHit', { t, foe, hooks, src: w && isGun(w.group) ? 'bash' : 'unarmed' });
     afterBlow.forEach(resolve => resolve());
     emitKills(s, t, eventStart, 'meleeKill', hooks);
     return COST.bash;
@@ -124,7 +124,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   if (w.group === 'mace' && landed) shove();
   if (combo.finisher && landed && fire(s, t, 'finisher')) shove();
   refillMelee(s, landed, eventStart);
-  for (const f of hits) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks }); }
+  for (const f of hits) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks, src: 'blade' }); }
   afterBlow.forEach(resolve => resolve());
   if (landed && foe.alive && hooks && has(s, 'shoveShot')) shoveShot(s, t, foe, hooks, shove);
   emitKills(s, t, eventStart, 'meleeKill', hooks);
@@ -164,10 +164,12 @@ export function canFire(s: GridState): boolean {
 }
 
 /** Fires the ranged weapon in hand at a foe; null if it cannot. */
-export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks): number | null {
+export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shot: { chargeCost?: number; through?: Ent } = {}): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
-  if (!h.alive || !foe.alive || !w || !canFire(s) || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos)) return null;
+  const cost = shot.chargeCost ?? (w ? gunCost(s, w) : Infinity);
+  if (!h.alive || !foe.alive || !w || !isGun(w.group) || h.charge < cost || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos, shot.through)) return null;
+  emit(s, 'preShot', { t, foe, hooks, shotCost: cost });
   h.target = foe.id;
   h.fx.acted = 'shot';
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
@@ -182,13 +184,13 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   const mult = (foe.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe) * elementMult;
   foe.awake = true;
   const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
-  h.charge -= gunCost(s, w);
+  h.charge -= cost;
   hooks.noise(h.pos, 4);
   h.fx.nextMult = 1;
   if (hit) roundHit(s, t, foe, round);
   afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w));
-  if (hit) emit(s, 'gunHit', { t, foe, hooks, shotCost: gunCost(s, w) });
-  return WEAPONS[w.group].time * rapid.time + emitKills(s, t, eventStart, 'gunKill', hooks, gunCost(s, w));
+  if (hit) emit(s, 'gunHit', { t, foe, hooks, shotCost: cost });
+  return WEAPONS[w.group].time * rapid.time + emitKills(s, t, eventStart, 'gunKill', hooks, cost);
 }
 
 /** A ranged shot at a barrel (it goes off); null if the weapon in hand cannot reach it. */
