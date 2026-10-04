@@ -1,18 +1,23 @@
 import type { HemisphereLight } from 'three';
 import { zoneOf, type ZoneId } from '../../sim/grid/zones';
 
-const LOOKS: Record<ZoneId, { color: string; intensity: number; density: number }> = {
+/** What sets a zone apart at pixel size: ambient light, a tint over the stone, the colour of its fires, its floor litter and dust. */
+export interface ZoneLook { color: string; intensity: number; density: number; tint: string; torch: string; flame: string; decal: string; dust: string }
+
+const LOOKS: Record<ZoneId, ZoneLook> = {
   // dark, but never so dark the floor and foes cannot be read: the hero's own light and torches carry the scene
-  cave: { color: '#6f8a8a', intensity: 0.4, density: 0.5 },
-  crypt: { color: '#8a96b8', intensity: 0.46, density: 1 },
-  ruins: { color: '#c8bfa0', intensity: 0.54, density: 1 },
+  cave: { color: '#6f8a8a', intensity: 0.4, density: 0.5, tint: '#b09a82', torch: '#ff9a40', flame: '#ffb347', decal: '#1c2a30', dust: '#ffcf9a' },
+  crypt: { color: '#7d8ab8', intensity: 0.46, density: 1, tint: '#8a93b4', torch: '#7fa8ff', flame: '#b0ccff', decal: '#d8d2c0', dust: '#b8c8ff' },
+  ruins: { color: '#a8b890', intensity: 0.54, density: 1, tint: '#a8aa84', torch: '#5fe8b0', flame: '#a8ffd8', decal: '#3e6a32', dust: '#c0ffd8' },
 };
 
-/** Apply the zone's ambient light and return its torch density and light budget. */
-export function applyZoneLook(hemi: HemisphereLight, floor: number, mobile: boolean): { density: number; lights: number } {
-  const look = LOOKS[zoneOf(floor).id];
+export const zoneLook = (floor: number): ZoneLook => LOOKS[zoneOf(Math.max(1, floor)).id];
+
+/** Apply the zone's ambient light and return its look, torch density and light budget. */
+export function applyZoneLook(hemi: HemisphereLight, floor: number, mobile: boolean): ZoneLook & { lights: number } {
+  const look = zoneLook(floor);
   hemi.color.set(look.color);
   hemi.intensity = look.intensity;
   // the light count never changes between zones (three.js recompiles every material when it does); only torch models thin out
-  return { density: look.density, lights: mobile ? 3 : 6 };
+  return { ...look, lights: mobile ? 3 : 6 };
 }

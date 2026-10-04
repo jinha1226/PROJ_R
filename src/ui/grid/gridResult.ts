@@ -32,7 +32,7 @@ export class GridResult implements Screen {
     this.el.dataset.testid = 'grid-result';
     this.el.innerHTML = `<div class="panel">
       <h2 class="${d.won ? 'ok' : 'lost'}">${d.won ? '에너지원을 손에 넣었다' : '쓰러졌다'}</h2>
-      ${d.won ? '' : `<p>${deathLine(d.killedBy)}</p>`}
+      ${d.won ? '' : `<p>${deathLine(d.killedBy, d.floor)}</p>`}
       <p>${d.floor}층 · ${zoneOf(d.floor).name}</p>
       <div class="gres-engravings">${(d.suit ?? []).map((id) => `<span>${ENGRAVES[id].name}</span>`).join('')}</div>
       <ul class="gres-stats">

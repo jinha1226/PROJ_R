@@ -4,13 +4,15 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import { weaponMesh, type WeaponLook } from './weaponMeshes';
 import { buildBlockBody, type BlockLook } from './blockBody';
 import { buildSuitArmor, lightSuit } from './suitArmor';
+import { shapeBones, type BodyShape, type Species } from './species';
+import { buildSpeciesParts } from './speciesParts';
 
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
 export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
-export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook; suit?: boolean }
+export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook; suit?: boolean; shape?: BodyShape; species?: Species }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
@@ -82,6 +84,9 @@ export class UalActor {
   private held: THREE.Object3D | null = null;
   private heldKind: WeaponLook | null = null;
   private lamps: THREE.MeshStandardMaterial[] = [];
+  private shaped: [THREE.Object3D, THREE.Vector3][] = [];
+  private hunch: [THREE.Object3D, THREE.Quaternion] | null = null;
+  private readonly hunched = new THREE.Quaternion(0, 0, 0, 0);
 
   constructor(private readonly lib: UalLibrary, private readonly look: UalLook) {
     this.idleClip = look.idle;
@@ -104,6 +109,14 @@ export class UalActor {
       m.material = Array.isArray(m.material) ? tinted : tinted[0]!;
     });
     if (look.suit) { const parts = buildSuitArmor(model); this.mats.push(...parts.mats); this.lamps = parts.lights; }
+    if (look.species) this.mats.push(...buildSpeciesParts(model, look.species, look.body));
+    if (look.shape) {
+      const { bones, spine } = shapeBones(model, look.shape);
+      this.shaped = bones;
+      // hunch about the body's side-to-side axis, expressed in the spine's own frame at rest
+      const rel = spine ? spine.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion())) : null;
+      if (spine && rel) this.hunch = [spine, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0).applyQuaternion(rel), look.shape.hunch)];
+    }
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
@@ -238,6 +251,10 @@ export class UalActor {
 
   update(dt: number): void {
     this.mixer.update(dt);
+    // the species build rides on top of whatever the clip set this frame
+    for (const [b, k] of this.shaped) b.scale.copy(k);
+    // only on a fresh pose: a frame where no clip touched the spine must not stack another hunch
+    if (this.hunch && !this.hunch[0].quaternion.equals(this.hunched)) this.hunched.copy(this.hunch[0].quaternion.multiply(this.hunch[1]));
     if (this.flashLeft > 0) this.flashLeft = Math.max(0, this.flashLeft - dt);
     const k = this.flashLeft / this.flashTotal;
     for (const m of this.mats) m.emissive.copy(this.tint).lerp(this.flashColor, k * 0.9);

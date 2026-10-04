@@ -26,7 +26,7 @@ export class GridTerrain {
   private readonly exits: THREE.Mesh[] = [];
   private readonly tmp = new THREE.Color();
 
-  constructor(private readonly m: GridMap, private readonly kit: DungeonKit) {
+  constructor(private readonly m: GridMap, private readonly kit: DungeonKit, decal?: string) {
     const faces = wallFaces(m);
     const floors = m.tiles.map((t, i) => [t, i] as const).filter(([t]) => t !== 'wall').map(([, i]) => i);
     const q = new THREE.Quaternion();
@@ -49,6 +49,23 @@ export class GridTerrain {
     }
     this.addProps();
     for (const [cell, obj] of addDecor(m, faces, kit)) this.addProp(cell, obj);
+    if (decal) this.addLitter(floors, decal);
+  }
+
+  /** Floor litter in the zone's colour (puddles, bone chips, moss) on a fixed scatter of cells. */
+  private addLitter(floors: number[], color: string): void {
+    const cells = floors.filter((i) => ((i * 2654435761) >>> 0) % 100 < 22 && this.m.tiles[i] === 'floor');
+    if (!cells.length) return;
+    const mesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 7).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.35, metalness: 0.1 }), cells.length);
+    cells.forEach((i, k) => {
+      const h = ((i * 40503) >>> 0) % 1000 / 1000;
+      const p = toWorld(i % this.m.w, Math.floor(i / this.m.w));
+      const r = CELL * (0.1 + h * 0.22);
+      mesh.setMatrixAt(k, new THREE.Matrix4().compose(new THREE.Vector3(p.x + (h - 0.5) * CELL * 0.5, 0.012, p.z + (((i * 7) % 10) / 10 - 0.5) * CELL * 0.5), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h * 6), new THREE.Vector3(r * (0.7 + h * 0.6), 1, r)));
+      mesh.setColorAt(k, new THREE.Color(0, 0, 0));
+    });
+    this.root.add(mesh);
+    this.instanced.push({ mesh, cells, tint: new THREE.Color(color) });
   }
 
   /** One instanced mesh of a pack piece over many cells; matrices come from `place`. */

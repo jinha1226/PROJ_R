@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { boneParts } from './boneParts';
 
 /** The armour pieces' materials: shell and plates take hit flashes; `lights` are the engraving lamps on the backpack. */
 export interface SuitParts { mats: THREE.MeshStandardMaterial[]; lights: THREE.MeshStandardMaterial[] }
@@ -21,37 +22,7 @@ export function buildSuitArmor(model: THREE.Object3D): SuitParts {
   const dark = mat('#1a222b', 0.4, 0.6);
   // the glow keeps its own emissive (hit flashes would overwrite it), so it is not handed back
   const glow = new THREE.MeshStandardMaterial({ color: GLOW, emissive: GLOW, emissiveIntensity: 2.2 });
-  model.updateMatrixWorld(true);
-  const rootQ = model.getWorldQuaternion(new THREE.Quaternion());
-  const s = model.getWorldScale(new THREE.Vector3()).y;
-  const bone = (n: string) => model.getObjectByName(n);
-  const at = (n: string) => bone(n)?.getWorldPosition(new THREE.Vector3()) ?? new THREE.Vector3();
-  const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z).multiplyScalar(s);
-
-  /** A piece square to the body, centred at a world point, sized in metres of a full-size figure. */
-  const piece = (boneName: string, geo: THREE.BufferGeometry, m: THREE.Material, center: THREE.Vector3) => {
-    const b = bone(boneName);
-    if (!b) return;
-    const bs = b.getWorldScale(new THREE.Vector3());
-    const mesh = new THREE.Mesh(geo.scale(s / bs.x, s / bs.y, s / bs.z), m);
-    mesh.position.copy(center.clone().applyMatrix4(b.matrixWorld.clone().invert()));
-    mesh.quaternion.copy(b.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(rootQ));
-    mesh.castShadow = true;
-    b.add(mesh);
-  };
-  /** A sleeve along a bone toward its child, covering `from`–`to` of its length. */
-  const sleeve = (boneName: string, childName: string, thick: number, m: THREE.Material, from = 0, to = 1) => {
-    const b = bone(boneName);
-    const c = bone(childName);
-    if (!b || !c) return;
-    const dir = c.position.clone();
-    const len = dir.length();
-    const t = thick * s / b.getWorldScale(new THREE.Vector3()).x;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(t, len * (to - from), t).translate(0, len * (from + to) / 2, 0), m);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-    mesh.castShadow = true;
-    b.add(mesh);
-  };
+  const { at, v, piece, sleeve } = boneParts(model);
   const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
 
   const head = at('Head');

@@ -42,6 +42,16 @@ export class DungeonKit {
     return new DungeonKit(g.scene);
   }
 
+  /** Tints every pack material (the stone of a zone); the pack's own colours are kept to tint from. */
+  tint(color: string): void {
+    const c = new THREE.Color(color);
+    for (const p of this.pieces.values()) for (const m of [p.material].flat() as THREE.MeshStandardMaterial[]) {
+      if (!m.color) continue;
+      const base = (m.userData.base ??= m.color.clone()) as THREE.Color;
+      m.color.copy(base).multiply(c);
+    }
+  }
+
   piece(name: DungeonPiece): Piece | undefined {
     return this.pieces.get(name);
   }

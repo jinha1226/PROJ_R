@@ -66,11 +66,12 @@ export class GridRuntime {
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer);
-    this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit);
+    if (!theme) kit.tint(look.tint);
+    this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
     if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.62; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
     this.actors = new GridActors(lib);
-    this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density);
+    this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density, look);
     this.elements = new GridElements(kit, sim.s);
     this.mapRef = sim.s.map;
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
@@ -101,9 +102,10 @@ export class GridRuntime {
     const s = this.sim.s;
     const scene = this.h.scene;
     for (const part of [this.terrain, this.torches, this.elements, this.actors]) { scene.remove(part.root); part.dispose(); }
-    this.terrain = new GridTerrain(s.map, this.kit);
     const look = applyZoneLook(this.hemi, s.run.floor, this.mobile);
-    this.torches = new GridTorches(s.map, this.kit, look.lights, look.density);
+    this.kit.tint(look.tint);
+    this.terrain = new GridTerrain(s.map, this.kit, look.decal);
+    this.torches = new GridTorches(s.map, this.kit, look.lights, look.density, look);
     this.elements = new GridElements(this.kit, s);
     this.actors = new GridActors(this.lib);
     scene.add(this.terrain.root, this.torches.root, this.elements.root, this.actors.root);
