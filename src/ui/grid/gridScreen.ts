@@ -28,6 +28,8 @@ import { GridControls, type GridCmd } from './gridControls';
 import { GridHud } from './gridHud';
 import { GridTouch } from './gridTouch';
 import { attachFoePress } from './foePress';
+import { attackChoice } from './attackChoice';
+import { attachMouseAim, mouseClickChoice } from './mouseAim';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
 export interface GridApi { ship?: ShipDeck; sim: GridSim; lib: UalLibrary; kit: DungeonKit; end(): void; afterAction?(): void; fatal(e: unknown): void }
@@ -83,6 +85,9 @@ export class GridScreen implements Screen {
     this.touch = new GridTouch((c) => this.controls.push(c), mobile);
     this.el.appendChild(this.touch.el);
     const rt = this.rt;
+    this.cleanup.push(attachMouseAim(stage, () => this.s, (x, y) => rt.cellAt(x, y),
+      () => !this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim && !this.api.ship?.blocked,
+      () => { this.stopWalk(); this.throwing.command('cancel', null); }));
     this.cleanup.push(attachFoePress(this.el, () => this.s, (x, y) => rt.cellAt(x, y), (id) => {
       if (!this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim) { this.stopWalk(); this.touch?.releaseStick(); this.s.hero.target = id; }
     }));
@@ -104,11 +109,11 @@ export class GridScreen implements Screen {
       // the whole deck fits on screen in either orientation
       if (this.api.ship) rt.setZoom(shipZoom(this.s.map.w, this.s.map.h, stage.clientWidth / Math.max(1, stage.clientHeight)));
     }));
-    stage.addEventListener('pointerdown', (e) => { this.tap = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now() }; });
+    stage.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse' && e.button !== 0) return; this.tap = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now() }; });
     stage.addEventListener('pointerup', (e) => {
       const t = this.tap;
       this.tap = null;
-      if (t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) < TAP_PX && performance.now() - t.at < TAP_MS) this.onTap(e.clientX, e.clientY);
+      if ((e.pointerType !== 'mouse' || e.button === 0) && t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) < TAP_PX && performance.now() - t.at < TAP_MS) this.onTap(e.clientX, e.clientY, e.pointerType === 'mouse');
     });
     (window as unknown as { __PROJR_GRID__: unknown }).__PROJR_GRID__ = { state: () => this.s, act: (a: GAction) => this.doAction(a), walkTo: (c: Cell) => this.walkTo(c), walking: () => !!this.walk, toStairs: () => { if (this.s.map.stairs) this.walkTo(this.s.map.stairs); } };
     let last = performance.now();
@@ -161,11 +166,9 @@ export class GridScreen implements Screen {
     if (c === 'potion') { this.doAction({ kind: 'use', item: 'potion' }); return; }
     if (c === 'swap') { this.doAction({ kind: 'swap' }); return; }
     if (c === 'shoot') {
-      const w = activeWeapon(s.hero.gear);
-      const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
-      if (!w || WEAPONS[w.group].melee) { if (other && !WEAPONS[other.group].melee) this.doAction({ kind: 'swap' }); return; }
-      const target = this.api.sim.autoTarget();
-      if (target) this.doAction({ kind: 'shoot', target });
+      const choice = attackChoice(s, this.api.sim.autoTarget() ?? s.hero.target);
+      if (choice?.kind === 'swap') this.doAction({ kind: 'swap' });
+      else if (choice) { s.hero.target = choice.foe; this.doAction(choice.action); }
       return;
     }
     if (c === 'wait') this.doAction({ kind: 'wait' });
@@ -191,12 +194,18 @@ export class GridScreen implements Screen {
     this.el.appendChild(panel.el);
     return true;
   }
-  private onTap(x: number, y: number): void {
+  private onTap(x: number, y: number, mouse = false): void {
     this.stopWalk();
     const s = this.s;
     const c = this.rt?.cellAt(x, y);
-    if (!c || this.levelUp || this.api.ship?.blocked) return;
+    if (!c || this.levelUp || this.api.ship?.blocked || (mouse && (this.bag || s.outcome))) return;
     if (this.throwing.aim) { this.throwing.tap(c); return; }
+    const choice = mouse ? mouseClickChoice(s, c) : null;
+    if (choice && choice.kind !== 'walk') {
+      s.hero.target = choice.foe;
+      if (choice.kind !== 'target') this.doAction(choice.action);
+      return;
+    }
     if (same(c, s.hero.pos)) { this.doAction({ kind: 'search' }); return; }
     const foe = s.foes.find((f) => f.alive && same(f.pos, c) && s.visible.has(idx(s.map, c)));
     if (foe) { s.hero.target = foe.id; return; }
@@ -262,7 +271,9 @@ export class GridScreen implements Screen {
     const melee = !w || WEAPONS[w.group].melee;
     const other = s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
     this.touch?.setSwap(other?.group, other?.name);
-    this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : `사격 ${w?.name ?? ''}`, melee ? '원거리로' : w ? `${weaponState(w, s.hero)}${canFire(s) && chance !== null ? ` · ${Math.round(chance * 100)}%` : ''}` : '-');
+    const choice = attackChoice(s, target ?? s.hero.target);
+    if (choice?.kind === 'melee') this.touch?.setFire(w?.group, '근접', w?.name ?? '맨손');
+    else this.touch?.setFire(melee ? other?.group : w?.group, melee ? '교체' : `사격 ${w?.name ?? ''}`, melee ? '원거리로' : w ? `${weaponState(w, s.hero)}${canFire(s) && chance !== null ? ` · ${Math.round(chance * 100)}%` : ''}` : '-');
     this.touch?.setStairs(!!s.map.stairs && !!s.seen[idx(s.map, s.map.stairs)]);
     this.touch?.setPotions(s.hero.gear.belt.potion);
     if (this.throwing.aim) this.touch?.setFire(undefined, '던지기', this.throwing.label());
