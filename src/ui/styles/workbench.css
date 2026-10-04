@@ -84,3 +84,6 @@
 .rp-go { justify-self: start; min-height: 30px !important; padding: 0 18px; }
 .rp-go[disabled] { opacity: 0.35; }
 .wb-locked { font-style: normal; color: var(--t-hp); }
+
+.wb-zone { fill: transparent; stroke: none; cursor: pointer; }
+.wb-part.sel .wb-zone { stroke: var(--t-warn); stroke-width: 0.8; stroke-dasharray: 2 2; }
