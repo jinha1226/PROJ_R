@@ -100,7 +100,9 @@ test('engravings: absorb an echo onto the suit, pick a suit upgrade on level-up,
   await page.click('[data-testid="to-grid"]');
   await launch(page);
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
-  expect((await st()).hero.suit).toEqual([]);
+  // a fresh run starts with the two engravings the ship owns; clear them so this test fills the suit itself
+  expect((await st()).hero.suit).toEqual(['gunRelay', 'spinShot']);
+  await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.suit = []; });
   // an echo at the hero's feet-to-be: stepping in offers three engravings of that family; pick one onto the suit
   await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
