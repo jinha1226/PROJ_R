@@ -3,7 +3,7 @@ import type { MetaState } from './meta';
 import type { UpgradeId } from './upgrades';
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
-import type { BeltItem, Consumable, Core, Echo, Equipment, LostSuit } from './items';
+import type { WeaponGroup, BeltItem, Consumable, Core, Echo, Equipment, LostSuit } from './items';
 import type { Lore, PotionKind, ScrollKind } from './lore';
 import type { EngraveId, HeroFx } from './engraveCore';
 
@@ -121,7 +121,7 @@ export interface GridState {
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
-export interface RunState { leftSuit?: MetaState['suit']; suitPlaced?: boolean; recovered?: EngraveId[]; energy: number; bossesKilled: number[]; killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
+export interface RunState { unlocked?: EngraveId[]; tasted?: EngraveId[]; leftSuit?: MetaState['suit']; suitPlaced?: boolean; recovered?: EngraveId[]; energy: number; bossesKilled: number[]; killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
 export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | Echo | LostSuit }
 export type GAction =
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
@@ -130,12 +130,12 @@ export type GAction =
   | { kind: 'upgrade'; i: number | null }
   | { kind: 'drink'; p: PotionKind } | { kind: 'read'; sc: ScrollKind } | { kind: 'throwPotion'; p: PotionKind; at: Cell };
 export type GEventType =
-  | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
+  | 'chain' | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'
   | 'station' | 'suit' | 'energy' | 'upgrade' | 'absorb' | 'record' | 'stairs' | 'core' | 'telegraph' | 'summon' | 'floor' | 'victory' | 'levelUp' | 'react' | 'dodge' | 'parry' | 'engrave' | 'combo' | 'trap' | 'trapFound' | 'root' | 'buff' | 'teleport' | 'search' | 'drink' | 'read' | 'identify' | 'stumble' | 'suitHere';
 /** t: the game time the acting entity started this action (the view plays events in this order). */
-export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
+export interface GEvent { group?: WeaponGroup; t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
 export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1, search: 1 };
 export const HERO = { hp: 35, sight: 8, heal: 25, bash: [2, 4] as const, bashHit: 0.9 };

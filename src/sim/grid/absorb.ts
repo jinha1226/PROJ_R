@@ -7,18 +7,16 @@ export const FAMILY: Record<FoeKind, Family> = {
 };
 export const ELITE_MULT = 1.6;
 
-/** Up to two records and one discovery from the family, filling shortages from the other pool. */
+/** Three fitting choices, reserving the first for a locked base engraving when available. */
 export function absorbOffer(s: GridState, family: Family): EngraveId[] {
-  const pool = ENGRAVE_IDS.filter((id) => (family === 'all' || ENGRAVES[id].fits === family) && !s.hero.suit.includes(id));
-  const known = s.rng.shuffle(pool.filter((id) => s.records.includes(id)));
-  const fresh = s.rng.shuffle(pool.filter((id) => !s.records.includes(id)));
-  const recorded = known.splice(0, 2);
-  const discovered = fresh.splice(0, 1);
-  while (recorded.length + discovered.length < 3 && (known.length || fresh.length)) {
-    if (known.length) recorded.push(known.shift()!);
-    else discovered.push(fresh.shift()!);
-  }
-  return [...recorded, ...discovered];
+  const pool = ENGRAVE_IDS.filter(id => {
+    const fit = ENGRAVES[id].fits;
+    return (family === 'all' || fit === family || (fit === 'kata' && (family === 'melee' || family === 'ranged'))) && !s.hero.suit.includes(id);
+  });
+  const locked = s.rng.shuffle(pool.filter(id => ENGRAVES[id].base && s.run.unlocked !== undefined && !s.run.unlocked.includes(id)));
+  const first = locked[0];
+  const rest = s.rng.shuffle(pool.filter(id => id !== first));
+  return first ? [first, ...rest.slice(0, 2)] : rest.slice(0, 3);
 }
 
 /** Remember an engraving the first time a choice puts it on the suit this run. */

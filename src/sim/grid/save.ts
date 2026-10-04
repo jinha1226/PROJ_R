@@ -15,6 +15,7 @@ export function fromSave(text: string): GridState {
     || !Array.isArray(s.visible) || !Array.isArray(s.fired)
     || !Array.isArray(s.foes) || !Array.isArray(s.floorItems) || !Array.isArray(s.records)
     || !Array.isArray(s.run.bossesKilled) || !Number.isFinite(s.run.energy)) throw new Error('Invalid grid run save');
+  s.hero.fx.free ??= false;
   // mulberry32's seed is its full state, so constructing from getState resumes the next draw.
   return { ...s, rng: createRng(s.rng), seen: new Uint8Array(s.seen), visible: new Set(s.visible), fired: new Set(s.fired) };
 }

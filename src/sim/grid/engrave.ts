@@ -10,9 +10,15 @@ const FIT_WEIGHT = 4;
 export function putOnSuit(s: GridState, id: EngraveId, slot?: number): boolean {
   const suit = s.hero.suit;
   if (suit.includes(id)) return false;
-  if (suit.length < SUIT_SLOTS) { suit.push(id); return true; }
-  if (slot === undefined || !Number.isInteger(slot) || slot < 0 || slot >= SUIT_SLOTS) return false;
-  suit[slot] = id;
+  if (suit.length < SUIT_SLOTS) suit.push(id);
+  else {
+    if (slot === undefined || !Number.isInteger(slot) || slot < 0 || slot >= SUIT_SLOTS) return false;
+    suit[slot] = id;
+  }
+  if (ENGRAVES[id].base && s.run.unlocked !== undefined && !s.run.unlocked.includes(id)) {
+    s.run.tasted ??= [];
+    if (!s.run.tasted.includes(id)) s.run.tasted.push(id);
+  }
   return true;
 }
 

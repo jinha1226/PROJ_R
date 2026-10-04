@@ -1,3 +1,4 @@
+import { gunRelay, onStunned, REFLEX_HOOKS } from './kata';
 import { foeAt, freeCell, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { activeWeapon, swapHands } from './gear';
@@ -14,12 +15,12 @@ const QUICK_MULT = 1.5;
 const SWAP_STRIKE = 0.5;
 
 /** May the hero swing at this neighbour (not through a wall corner)? */
-const canSwingAt = (s: GridState, from: Cell, to: Cell): boolean => {
+export const canSwingAt = (s: GridState, from: Cell, to: Cell): boolean => {
   const d = { x: to.x - from.x, y: to.y - from.y };
   return dist(from, to) === 1 && (d.x === 0 || d.y === 0 || canStep(s.map, from, d));
 };
 
-function stepTo(s: GridState, t: number, to: Cell, text: string): void {
+export function stepTo(s: GridState, t: number, to: Cell, text: string): void {
   const h = s.hero;
   s.events.push({ t, type: 'move', src: h.id, from: { ...h.pos }, to: { ...to }, text });
   h.pos = to;
@@ -68,6 +69,7 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
     if (f === far) landed = hit;
   }
   refillMelee(s, landed, eventStart);
+  gunRelay(s, t, eventStart, hooks);
   h.fx.nextMult = 1;
   return WEAPONS[w.group].time + LEAP_TIME;
 }
@@ -114,14 +116,20 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
 }
 
 /** After a dodge (counter) or a parry (riposte): a blow straight back at the attacker beside the hero. */
-export function counterBlow(s: GridState, t: number, src: string, how: 'dodge' | 'parry'): void {
+export function counterBlow(s: GridState, t: number, src: string, how: 'dodge' | 'parry', hooks: ShotHooks = REFLEX_HOOKS): void {
   const h = s.hero;
   const id = how === 'dodge' ? 'counter' : 'riposte';
   const f = s.foes.find((x) => x.id === src && x.alive);
   const w = activeWeapon(h.gear);
   if (!f || !w || !WEAPONS[w.group].melee || !has(s, id) || !canSwingAt(s, h.pos, f.pos) || !fire(s, t, id)) return;
-  s.events.push({ t, type: 'bump', src: h.id, dst: f.id, from: { ...h.pos }, to: { ...f.pos }, text: id });
+  s.events.push({ t, type: 'bump', group: w.group, src: h.id, dst: f.id, from: { ...h.pos }, to: { ...f.pos }, text: id });
   const eventStart = s.events.length;
   const landed = strike(s, t, h, f, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, t, f));
+  if (how === 'parry' && landed) {
+    f.stun = Math.max(f.stun ?? 0, 1);
+    s.events.push({ t, type: 'stun', src: h.id, dst: f.id, to: { ...f.pos } });
+    onStunned(s, t, f);
+  }
   refillMelee(s, landed, eventStart);
+  gunRelay(s, t, eventStart, hooks);
 }

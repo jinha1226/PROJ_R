@@ -15,11 +15,11 @@ export interface Gear {
   staffClock?: number;
 }
 
-/** Ship loadout: one gun, the agent's suit and two potions. */
+/** Ship loadout: a gun, an agent knife, the agent's suit and two potions. */
 export function startGear(gun: GunGroup = 'pistol'): Gear {
   const weapon = makeWeapon(gun, 1);
   const belt = { potion: 2, bomb: 0, fireFlask: 0, frostFlask: 0, shockFlask: 0, poisonFlask: 0 };
-  return { hands: [weapon, null], active: 0, bag: [], armor: agentSuit(), belt, potions: {}, scrolls: {} };
+  return { hands: [weapon, { ...makeWeapon('dagger', 1), name: '요원 칼' }], active: 0, bag: [], armor: agentSuit(), belt, potions: {}, scrolls: {} };
 }
 
 export const activeWeapon = (g: Gear): Weapon | null => g.hands[g.active];

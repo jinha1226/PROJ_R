@@ -8,7 +8,7 @@ import { handMap, OPEN } from './kit';
 describe('starting guns', () => {
   it.each(['pistol', 'shotgun', 'rifle'] as const)('starts with %s and the same neutral stats', (gun) => {
     const g = startGear(gun);
-    expect(g.hands.map((w) => w?.group ?? null)).toEqual([gun, null]);
+    expect(g.hands.map((w) => w?.group ?? null)).toEqual([gun, 'dagger']);
     expect(g.hands[0]).not.toHaveProperty('engraves');
     expect(g.armor).toMatchObject({ kind: 'armor', name: '요원 슈트', reduce: 1 });
     expect(g.belt.potion).toBe(2);
@@ -35,7 +35,7 @@ describe('hands and bag', () => {
     const g = startGear('pistol');
     expect(activeWeapon(g)?.group).toBe('pistol');
     swapHands(g);
-    expect(activeWeapon(g)).toBeNull();
+    expect(activeWeapon(g)?.group).toBe('dagger');
   });
 
   it('a weapon from the bag goes into the hand in use and the old one into the bag', () => {

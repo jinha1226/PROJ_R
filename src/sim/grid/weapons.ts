@@ -1,3 +1,5 @@
+import { bladeRelay, gunRelay, onStunned, spinShot, withOtherHand, otherHand } from './kata';
+import { canSwingAt } from './combos';
 import { absorbOffer } from './absorb';
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
@@ -50,6 +52,7 @@ export function pushFoe(s: GridState, t: number, foe: Ent, d: Cell): void {
   foe.stun = Math.max(foe.stun ?? 0, 1);
   s.events.push({ t, type: 'stun', src: s.hero.id, dst: foe.id, amount: SLAM, to: { ...foe.pos } });
   if (foe.hp <= 0) { foe.hp = 0; foe.alive = false; s.events.push({ t, type: 'die', src: s.hero.id, dst: foe.id, to: { ...foe.pos } }); }
+  onStunned(s, t, foe);
   if (has(s, 'wallslam') && fire(s, t, 'wallslam')) {
     for (const f of s.foes) if (f !== foe && f.alive && dist(f.pos, foe.pos) === 1) hurt(s, t, s.hero.id, f, SLAM_WAVE, 'slam');
   }
@@ -67,14 +70,17 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   const h = s.hero;
   const w = activeWeapon(h.gear);
   const armed = !!w && WEAPONS[w.group].melee;
+  const neighbours = s.foes.filter(f => f.alive && canSwingAt(s, h.pos, f.pos));
   const combo = comboStep(s, foe);
-  s.events.push({ t, type: 'bump', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: armed && combo.finisher ? 'finisher' : undefined });
+  s.events.push({ t, type: 'bump', group: w?.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: armed && combo.finisher ? 'finisher' : undefined });
   h.target = foe.id;
   h.fx.acted = 'melee';
   const eventStart = s.events.length;
   if (!w || !armed) {
     foe.awake = true;
     refillMelee(s, strike(s, t, h, foe, HERO.bashHit, HERO.bash), eventStart);
+    spinShot(s, t, foe, neighbours);
+    gunRelay(s, t, eventStart, hooks);
     return COST.bash;
   }
   const def = WEAPONS[w.group];
@@ -106,27 +112,20 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   if (w.group === 'mace' && landed) shove();
   if (combo.finisher && landed && fire(s, t, 'finisher')) shove();
   refillMelee(s, landed, eventStart);
+  spinShot(s, t, foe, neighbours);
   if (landed && foe.alive && hooks && has(s, 'shoveShot')) shoveShot(s, t, foe, hooks, shove);
+  gunRelay(s, t, eventStart, hooks);
   return def.time;
 }
 
 /** Shove the foe off, then the ranged weapon in the other hand fires at it (the hand in use stays). */
 function shoveShot(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shove: () => void): void {
-  const g = s.hero.gear;
-  const other = g.hands[g.active === 0 ? 1 : 0];
-  if (!other || !isGun(other.group)) return;
-  const was = g.active;
-  g.active = was === 0 ? 1 : 0;
-  const ready = canFire(s);
-  g.active = was;
-  // no charge: no shove either (a pointless push would only break the fight up)
-  if (!ready) return;
+  const other = otherHand(s);
+  if (!other || !isGun(other.group) || s.fired.has('shoveShot') || !withOtherHand(s, () => canFire(s))) return;
   shove();
-  g.active = was === 0 ? 1 : 0;
-  const shot = foe.alive && !s.fired.has('shoveShot') && rangedAttack(s, t, foe, hooks) !== null;
-  g.active = was;
+  if (!foe.alive || !s.hero.alive || !withOtherHand(s, () => canFire(s)) || !fire(s, t, 'shoveShot')) return;
+  withOtherHand(s, () => rangedAttack(s, t, foe, hooks));
   s.hero.fx.acted = 'melee';
-  if (shot) fire(s, t, 'shoveShot');
 }
 
 /** A spear reaches a foe two cells away when the cell between is empty. */
@@ -158,7 +157,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   if (!w || !canFire(s) || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos)) return null;
   h.target = foe.id;
   h.fx.acted = 'shot';
-  s.events.push({ t, type: 'shoot', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
+  s.events.push({ t, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
   if (w.group === 'staff') {
     w.charges = (w.charges ?? 1) - 1;
     const k = hooks.cast(w, foe.pos);
@@ -166,6 +165,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
     return WEAPONS.staff.time * k;
   }
   if (!isGun(w.group)) return null;
+  const eventStart = s.events.length;
   const base = WEAPONS[w.group].hit;
   const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base, w.group === 'rifle' ? 0.5 : 1);
   const rapid = rapidStep(s, t, foe);
@@ -188,7 +188,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   // the rifle's burst: the rest of the bullets follow at the same target until it falls
   if (w.group === 'rifle') for (let k = 1; k < RIFLE_BURST && foe.alive; k++) {
     const at = t + k * BURST_GAP;
-    s.events.push({ t: at, type: 'shoot', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: 'burst' });
+    s.events.push({ t: at, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: 'burst' });
     if (strike(s, at, h, foe, chanceAt(h.pos, foe.pos), dmg, rapid.mult * blowMult(s, at, foe))) hits[0] = true;
   }
   h.charge -= GUN_COST[w.group];
@@ -198,7 +198,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
     if (hits[i] && f.alive) pushFoe(s, t, f, { x: Math.sign(f.pos.x - h.pos.x), y: Math.sign(f.pos.y - h.pos.y) });
   });
   afterShot(s, t, foe, hits[0]!, dmg, chanceAt, weaponRange(w));
-  return WEAPONS[w.group].time * rapid.time;
+  return WEAPONS[w.group].time * rapid.time + bladeRelay(s, t, eventStart, hooks);
 }
 
 /** A ranged shot at a barrel (it goes off); null if the weapon in hand cannot reach it. */
@@ -212,7 +212,7 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   const clear = shotClear(s, h.pos, at);
   s.barrels = saved;
   if (!clear) return null;
-  s.events.push({ t, type: 'shoot', src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
+  s.events.push({ t, type: 'shoot', group: w.group, src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
   if (w.group === 'staff') w.charges = (w.charges ?? 1) - 1;
   else if (isGun(w.group)) h.charge -= GUN_COST[w.group];

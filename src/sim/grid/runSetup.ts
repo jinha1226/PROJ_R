@@ -1,4 +1,3 @@
-import { placeFirstMelee } from './firstMelee';
 import { placeDeathSuit } from './deathSuit';
 import type { EngraveId } from './engraveCore';
 import type { GunGroup } from './items';
@@ -23,6 +22,5 @@ export function newRunState(seed: number, meta: MetaState, opts: RunOptions): Gr
   s.floorItems.push(...scatterLoot(s));
   if (meta.suit) s.run.leftSuit = structuredClone(meta.suit);
   placeDeathSuit(s);
-  placeFirstMelee(s);
   return s;
 }

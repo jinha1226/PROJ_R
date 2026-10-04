@@ -11,12 +11,12 @@ import { handMap, OPEN, sim, sureHits } from './kit';
 
 const hooks = { noise: () => {}, cast: () => 1 };
 describe('ship guns and suit charge', () => {
-  it('starts with an engraved pistol, empty second hand, full suit and no rack', () => {
+  it('starts with a pistol, agent knife, full suit and no rack', () => {
     const s = GridSim.create(7).s;
     expect(s.hero).toMatchObject({ hp: 35, maxHp: 35, charge: 10, maxCharge: 10 });
     expect(s.hero.gear.hands[0]).toMatchObject({ group: 'pistol', tier: 1 });
     expect(s.hero.suit).toEqual([]);
-    expect(s.hero.gear.hands[1]).toBeNull();
+    expect(s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '요원 칼' });
     expect(s.hero.gear.armor?.tier).toBe(1);
     expect(s.hero.gear.belt.potion).toBe(2);
     expect(s.floorItems.filter((f) => f.item.kind === 'weapon')).toEqual([]);
@@ -206,7 +206,7 @@ describe('ship guns and suit charge', () => {
   });
 
 
-  it('can equip a found melee weapon in the initially empty second hand', () => {
+  it('can equip a found melee weapon in place of the agent knife', () => {
     const g = sim(OPEN, { x: 3, y: 7 });
     const gun = g.s.hero.gear.hands[0];
     const sword = makeWeapon('sword', 1);
@@ -216,7 +216,7 @@ describe('ship guns and suit charge', () => {
     expect(g.s.hero.gear.active).toBe(1);
     g.act({ kind: 'equip', bag: 0 });
     expect(g.s.hero.gear.hands).toEqual([gun, sword]);
-    expect(g.s.hero.gear.bag).toEqual([]);
+    expect(g.s.hero.gear.bag).toEqual([{ ...makeWeapon('dagger', 1), name: '요원 칼' }]);
     g.act({ kind: 'swap' });
     expect(g.s.hero.gear.active).toBe(0);
   });

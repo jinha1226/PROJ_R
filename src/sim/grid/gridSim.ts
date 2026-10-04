@@ -53,6 +53,8 @@ export class GridSim {
     const t0 = s.hero.nextAt;
     const safeAtStart = canRegenerate(s);
     const fx = s.hero.fx;
+    fx.free ??= false;
+    const free = fx.free;
     fx.acted = null;
     const boosted = fx.momentum;
     fx.momentum = false;
@@ -73,12 +75,18 @@ export class GridSim {
     if (fx.acted || (a.kind === 'use' && a.item !== 'potion') || a.kind === 'throwPotion') clearBuff(s.hero, 'invis');
     if (boosted && cost > 0) cost *= MOMENTUM;
     else if (boosted) fx.momentum = true;
+    if (free && cost > 0) { cost = 0; fx.free = false; }
     if (cost > 0) discover(s, t0);
     if (fx.acted) fx.swapReady = true;
     if (fx.acted !== 'melee') fx.combo = { hits: 0 };
     if (fx.acted !== 'shot') fx.rapid = { n: 0 };
     passMarks(s, t0);
     if (s.foes.some((f) => alive.has(f.id) && !f.alive) && has(s, 'momentum') && fire(s, t0, 'momentum')) fx.momentum = true;
+    const n = s.fired.size;
+    if (n >= 3) {
+      s.events.push({ t: t0, type: 'chain', src: s.hero.id, amount: n });
+      if (has(s, 'flow') && fire(s, t0, 'flow')) fx.free = true;
+    }
     // a free action (quick swap, a level-up pick) takes no time, so nothing ticks
     if (cost > 0) tickStatuses(s, s.hero, t0);
     s.hero.nextAt += cost;

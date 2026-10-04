@@ -12,6 +12,7 @@ it.each(['decent', 'pistol-only'] as const)('%s finishes a deterministic bounded
 
 it('takes first choices, heals below 40%, equips the empty hand and switches for melee', () => {
   const { s } = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'minion', pos: { x: 6, y: 7 } }]);
+  s.hero.gear.hands[1] = null;
   s.upgrades = [['charge']]; s.offers = [['dash']];
   expect(gridBotAction(s, 'decent')).toEqual({ kind: 'upgrade', i: 0 });
   s.upgrades = [];
@@ -43,7 +44,7 @@ it('pistol-only routes around melee pickups without opening chests', () => {
   g.s.floorItems = [{ pos: { x: 6, y: 7 }, item: makeWeapon('sword', 1) }];
   for (let i = 0; i < 4; i++) g.act(gridBotAction(g.s, 'pistol-only'));
   expect(g.s.hero.gear.bag).toEqual([]);
-  expect(g.s.hero.gear.hands[1]).toBeNull();
+  expect(g.s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '요원 칼' });
 });
 
 it('descends onto a boss echo once the floor is explored', () => {
