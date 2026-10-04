@@ -13,6 +13,7 @@ import { Router } from './router';
 import { WeekFlow } from './weekFlow';
 import { ExtractFlow } from './extractFlow';
 import { GridFlow } from './gridFlow';
+import '../ui/styles/pipTheme.css';
 import { UalLibrary } from '../view/grid/ualActor';
 import { DungeonKit } from '../view/grid/dungeonKit';
 import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
@@ -21,6 +22,8 @@ import { clearRun, loadHall, loadRun } from './save';
 const root = document.getElementById('app')!;
 const router = new Router(root);
 const params = new URLSearchParams(location.search);
+// the pixel phosphor terminal look (trial: ?ui=pip)
+if (params.get('ui') === 'pip' || params.get('pip')) document.documentElement.classList.add('ui-pip');
 const urlSeed = Number(params.get('seed')) || 0;
 let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: urlSeed || 1 };
 
@@ -79,13 +82,11 @@ async function workbenchDemo(): Promise<void> {
   const [{ WorkbenchScreen }, { MockBench }] = await Promise.all([import('../ui/grid/ship/workbenchScreen'), import('../ui/grid/ship/workbenchMock')]);
   await import('../ui/styles/grid.css');
   await import('../ui/styles/gridSf.css');
-  if (params.get('pip')) await import('../ui/styles/pipCrt.css');
   const bench = new MockBench();
   const host = document.createElement('div');
   host.className = 'screen grid';
   root.replaceChildren(host);
   const screen = new WorkbenchScreen({ model: () => bench.model(), craft: (id) => bench.craft(id), fit: (slot, id) => bench.fit(slot, id), close: () => screen.render() });
-  if (params.get('pip')) screen.el.classList.add('pip');
   host.appendChild(screen.el);
 }
 

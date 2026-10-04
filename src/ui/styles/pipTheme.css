@@ -1,0 +1,26 @@
+/* Pixel phosphor terminal: one green (health keeps an amber), hard pixel corners and lines, a tube of scanlines. Applies under html.ui-pip. */
+.ui-pip .screen.grid, .ui-pip .grid-result, .ui-pip .wb {
+  --t-fg: #5dff8a; --t-dim: #34a85c; --t-line: #1f7a3e; --t-warn: #e6ffb0; --t-ch: #9dffb8; --t-hp: #ffc94a; --t-bg: #021407e8;
+  --pix: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+}
+.ui-pip .screen.grid .ghud, .ui-pip .wb { text-shadow: 0 0 3px #3dff7a88; }
+/* the whole screen behind a green-tinted tube */
+.ui-pip .screen.grid .ghud::before { background: repeating-linear-gradient(to bottom, #00000000 0 2px, #00140840 2px 3px), radial-gradient(ellipse at center, #0000 55%, #000c 100%); }
+/* stepped pixel corners on every boxed element */
+.ui-pip .screen.grid .gh-term, .ui-pip .screen.grid .gh-target, .ui-pip .screen.grid .gt-btn, .ui-pip .screen.grid .gbelt-b, .ui-pip .screen.grid .gh-tile, .ui-pip .screen.grid .xzoom .btn, .ui-pip .screen.grid .grid-pixel,
+.ui-pip .screen.grid .kata-panel, .ui-pip .screen.grid .ship-hud, .ui-pip .screen.grid .ship-modal .panel, .ui-pip .screen.grid .gbag-panel, .ui-pip .screen.grid .glvl-panel, .ui-pip .screen.grid .glvl-card,
+.ui-pip .wb-opt, .ui-pip .wb .btn, .ui-pip .wb-tabs button, .ui-pip .wb-close { clip-path: var(--pix); border-radius: 0 !important; }
+.ui-pip .screen.grid .gh-term, .ui-pip .screen.grid .gh-target, .ui-pip .screen.grid .gt-btn, .ui-pip .screen.grid .ship-modal .panel, .ui-pip .screen.grid .glvl-panel, .ui-pip .screen.grid .gbag-panel { border-width: 2px !important; }
+.ui-pip .screen.grid .gh-target > b, .ui-pip .screen.grid .gt-btn:active, .ui-pip .screen.grid .gt-btn.on { color: #021006; }
+
+/* the workbench and repair blueprints: a pixel tube, crisp unsmoothed lines */
+.ui-pip .wb { background: radial-gradient(ellipse at center, #062a10 0%, #021006 70%, #010603 100%); clip-path: polygon(0 12px, 12px 12px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 12px, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 12px calc(100% - 12px), 0 calc(100% - 12px)); }
+.ui-pip .wb::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, #00000000 0 2px, #00000050 2px 3px), radial-gradient(ellipse at center, #0000 55%, #000b 100%); }
+.ui-pip .wb-svg { shape-rendering: crispEdges; text-rendering: optimizeSpeed; }
+.ui-pip .wb-body path, .ui-pip .wb-part path, .ui-pip .rp-room rect, .ui-pip .rp-hull { stroke-width: 2; fill: #04200b; }
+.ui-pip .wb-part.fitted path, .ui-pip .rp-room.done rect { stroke: var(--t-fg); fill: #073a16; }
+.ui-pip .wb-head > b, .ui-pip .wb-slot span, .ui-pip .wb-tabs button[aria-selected="true"] { background: var(--t-fg); color: #021006; text-shadow: none; }
+.ui-pip .wb-opt { background: #04200b; }
+.ui-pip .wb .btn { background: #04200b !important; border-color: var(--t-dim) !important; color: var(--t-fg) !important; }
+.ui-pip .wb .btn.primary { background: var(--t-fg) !important; color: #021006 !important; text-shadow: none; }
+.ui-pip .wb-grid { stroke: #1f7a3e40; }
