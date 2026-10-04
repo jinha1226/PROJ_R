@@ -34,12 +34,12 @@ describe('waking', () => {
     expect(open.s.foes.every((f) => f.awake)).toBe(true);
   });
 
-  it('a rifle shot wakes sleepers within six tiles', () => {
+  it('a pistol shot wakes sleepers within four tiles', () => {
     const closet = ['###############', '#.....#.......#', '#.....#.......#', '#.............#', '#######.......#', '#..#..#.......#', '###############'];
-    const g = sim(closet, { x: 4, y: 3 }, [{ kind: 'minion', pos: { x: 1, y: 5 }, awake: false }, { kind: 'brute', pos: { x: 9, y: 3 }, awake: false }]);
+    const g = sim(closet, { x: 4, y: 3 }, [{ kind: 'minion', pos: { x: 2, y: 3 }, awake: false }, { kind: 'brute', pos: { x: 9, y: 3 }, awake: false }]);
     g.s.foes[0]!.group = 7;
     g.s.foes[1]!.group = 8;
-    g.s.hero.gear.hands[0] = makeWeapon('rifle', 1);
+    g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
     g.act({ kind: 'shoot', target: g.s.foes[1]!.id });
     expect(g.s.foes[0]!.awake).toBe(true);
   });

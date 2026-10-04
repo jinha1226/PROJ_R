@@ -10,11 +10,11 @@ describe('suit engravings', () => {
     const { s } = sim(OPEN, { x: 3, y: 3 });
     expect(s.hero.suit).toEqual([]);
     s.hero.suit = ['dash', 'rapid', 'momentum', 'chain'];
-    for (const group of ['sword', 'pistol', 'staff', null] as const) {
+    for (const group of ['sword', 'pistol', null] as const) {
       s.hero.gear.hands[0] = group ? makeWeapon(group, 1) : null;
       expect(has(s, 'dash')).toBe(group === 'sword');
       expect(has(s, 'rapid')).toBe(group === 'pistol');
-      expect(has(s, 'chain')).toBe(group === 'staff');
+      expect(has(s, 'chain')).toBe(true);
       expect(has(s, 'momentum')).toBe(true);
       expect(has(s, 'laststand')).toBe(false);
       expect(fitsHand(s, 'laststand')).toBe(true);
@@ -30,7 +30,7 @@ describe('suit engravings', () => {
     expect(putOnSuit(s, id, 2)).toBe(true);
     expect(s.hero.suit[2]).toBe(id);
     expect(putOnSuit(s, id, 0)).toBe(false);
-    for (let n = 0; n < 50; n++) expect(offerFor(s).every((x) => !s.hero.suit.includes(x))).toBe(true);
+    for (let n = 0; n < 50; n++) expect(offerFor(s).every((x) => typeof x === 'object' || !s.hero.suit.includes(x))).toBe(true);
   });
 
   it('blocks a full-suit choice without consuming the offer, then replaces for no time', () => {
@@ -67,8 +67,7 @@ describe('suit engravings', () => {
   });
 
   it.each([
-    ['sword', 'pistol', 0], ['staff', 'pistol', 0], ['pistol', 'staff', 0],
-    ['staff', 'staff', 0.5], ['pistol', 'rifle', 0.5], [null, 'sword', 0.5], ['sword', null, 0.5],
+    ['sword', 'pistol', 0], ['pistol', 'sword', 0], ['sword', 'dagger', 0.5], ['pistol', 'pistol', 0.5], [null, 'sword', 0.5], ['sword', null, 0.5],
   ] as [WeaponGroup | null, WeaponGroup | null, number][])('quickswap %s to %s costs %s', (from, to, cost) => {
     const g = sim(OPEN, { x: 3, y: 3 });
     g.s.hero.suit = ['quickswap'];

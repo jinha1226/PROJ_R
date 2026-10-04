@@ -16,10 +16,11 @@ describe('final review fixes (2)', () => {
     expect(path.some((c) => c.x === 3 && c.y === 1)).toBe(false);
   });
 
-  it('a staff spell at an adjacent foe never hits the caster', () => {
+  it('a fire round at an adjacent foe never hits the caster', () => {
     const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
     sureHits(g);
-    g.s.hero.gear.hands[0] = makeWeapon('staff', 1, 'fire');
+    g.s.hero.rounds = ['fire'];
+    sureHits(g);
     const hp = g.s.hero.hp;
     const ev = g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
     expect(ev.some((e) => e.dst === 'hero' && e.src === 'hero')).toBe(false);

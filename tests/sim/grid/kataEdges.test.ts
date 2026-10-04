@@ -7,7 +7,7 @@ import { makeWeapon } from '../../../src/sim/grid/items';
 import { idx } from '../../../src/sim/grid/types';
 import { fromSave, toSave } from '../../../src/sim/grid/save';
 import { OPEN, sim, sureHits } from './kit';
-const hooks = { noise: () => {}, cast: () => 1 };
+const hooks = { noise: () => {} };
 
 it('restores both nested hand switches when a callback throws or the hero dies', () => {
   const g = sim(OPEN, { x: 5, y: 7 });
@@ -31,8 +31,8 @@ it('relay picks the lowest id at equal range regardless of foe array order', () 
 it.each(['charge', 'range', 'wall', 'dead'] as const)('counterShot refuses %s without spending charge', reason => {
   const g = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'archer', pos: { x: reason === 'range' ? 13 : 6, y: 7 } }]);
   sureHits(g); g.s.hero.suit = ['counterShot'];
-  g.s.hero.gear.hands[0] = makeWeapon('rifle', 1);
-  if (reason === 'charge') g.s.hero.charge = 1;
+  g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
+  if (reason === 'charge') g.s.hero.charge = 0;
   if (reason === 'wall') g.s.map.tiles[idx(g.s.map, { x: 4, y: 7 })] = 'wall';
   if (reason === 'dead') g.s.foes[0]!.alive = false;
   const before = g.s.hero.charge;

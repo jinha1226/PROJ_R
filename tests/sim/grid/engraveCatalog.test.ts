@@ -18,12 +18,12 @@ it('archer echoes offer only ranged engravings, reserving a locked choice first'
   s.run.unlocked = ENGRAVE_IDS.filter(id => id !== 'volley');
   const offer = absorbOffer(s, FAMILY.archer);
   expect(offer).toHaveLength(3); expect(offer[0]).toBe('volley');
-  expect(offer.every(id => ENGRAVES[id].family === 'ranged' && id !== 'rapid')).toBe(true);
+  expect(offer.every(id => typeof id === 'object' || (ENGRAVES[id].family === 'ranged' && id !== 'rapid'))).toBe(true);
 });
 
 it.each([
   ['pistol', 'dagger', true], ['pistol', null, false],
-  ['dagger', 'sword', false], ['pistol', 'rifle', false],
+  ['dagger', 'sword', false], ['pistol', 'pistol', false],
 ] as const)('kata fits %s / %s in either active hand', (a, b, expected) => {
   const s = sim(OPEN, { x: 3, y: 3 }).s;
   s.hero.gear.hands = [makeWeapon(a as WeaponGroup, 1), b ? makeWeapon(b, 1) : null];

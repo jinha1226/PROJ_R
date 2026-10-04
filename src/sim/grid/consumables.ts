@@ -3,7 +3,7 @@ import { addBuff, clearBuff } from './buffs';
 import { noise } from './danger';
 import { offerFor } from './engrave';
 import { canThrow } from './explosives';
-import { STAFF_CHARGES, type Consumable, type Element } from './items';
+import { type Consumable, type Element } from './items';
 import { identify, isKnown, potionKey, POTIONS, scrollKey, SCROLLS, type PotionKind, type ScrollKind } from './lore';
 import { addStatus, applyElement, areaCells, entsAt } from './status';
 import { teleport } from './traps';
@@ -81,7 +81,7 @@ export function readScroll(s: GridState, t: number, sc: ScrollKind): number | nu
       if (pool.length) identify(s, s.rng.pick(pool), t);
       break;
     }
-    case 'engrave': s.offers.push(offerFor(s)); break;
+    case 'engrave': s.offers.push(offerFor(s, false)); break;
     case 'teleport': teleport(s, h, t); break;
     case 'map':
       s.seen.fill(1);
@@ -96,7 +96,6 @@ export function readScroll(s: GridState, t: number, sc: ScrollKind): number | nu
       break;
     case 'recharge':
       h.charge = h.maxCharge;
-      for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.max(w.charges ?? 0, STAFF_CHARGES);
       break;
   }
   return 1;

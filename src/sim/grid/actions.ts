@@ -1,3 +1,4 @@
+import { availableCard } from './rounds';
 import { bodyAt, shotClear } from './combat';
 import { activeWeapon, addToBag, equipFromBag, wearFromBag } from './gear';
 import { lunge, swapCombo } from './combos';
@@ -153,12 +154,18 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       // an engraving pick: put on the suit at once (no time); null passes it up
       const offer = s.offers[0];
       const id = a.i === null ? undefined : offer?.[a.i];
-      if (!offer || (a.i !== null && !id) || (id && !putOnSuit(s, id, a.slot))) return null;
-      if (id) record(s, t, id);
+      if (!offer || (a.i !== null && !id)) return null;
+      if (typeof id === 'object') {
+        if (!availableCard(s, id)) return null;
+        s.hero.rounds.push(id.element);
+      } else if (id) {
+        if (!putOnSuit(s, id, a.slot)) return null;
+        record(s, t, id);
+      }
       s.offers.shift();
       // offers still waiting lose cards that are now on the suit; an emptied one goes away
       while (s.offers[0]) {
-        const left = s.offers[0].filter((x) => !s.hero.suit.includes(x));
+        const left = s.offers[0].filter((x) => availableCard(s, x));
         if (left.length) { s.offers[0] = left; break; }
         s.offers.shift();
       }

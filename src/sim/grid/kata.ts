@@ -4,7 +4,7 @@ import type { Weapon } from './items';
 import type { Ent, GridState } from './types';
 import type { ShotHooks } from './weapons';
 
-export const REFLEX_HOOKS: ShotHooks = { noise: () => {}, cast: () => 1 };
+export const REFLEX_HOOKS: ShotHooks = { noise: () => {} };
 export const otherHand = (s: GridState): Weapon | null => s.hero.gear.hands[s.hero.gear.active === 0 ? 1 : 0];
 
 /** Restore the original hand even if a nested attack or hook throws. */

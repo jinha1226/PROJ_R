@@ -5,7 +5,7 @@ import { isBossFloor, zoneOf } from '../../sim/grid/zones';
 import { FLOORS, XP_STEPS } from '../../sim/grid/run';
 import type { GEvent, GridState } from '../../sim/grid/types';
 import { icon, weaponIcon } from './icons';
-import { weaponState } from './weaponInfo';
+import { weaponLabel, weaponState } from './weaponInfo';
 import { intentOf } from './intent';
 import { pushLog, visibleLog, LOG_SECONDS, type HudLine } from './hudLog';
 import { suitTiles } from './suitTiles';
@@ -119,7 +119,7 @@ export class GridHud {
       const lo = XP_STEPS[h.level - 2] ?? 0;
       const hi = XP_STEPS[h.level - 1] ?? lo + 1;
       q('.gh-xp div').style.width = `${Math.min(1, (h.xp - lo) / Math.max(1, hi - lo)) * 100}%`;
-      q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, h) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
+      q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${weaponLabel(w, h)}</b><small>${weaponState(w, h) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
       const card = q('.gh-target');
       card.hidden = !t;
       if (t) card.innerHTML = `${icon('skull')}<b>${t.elite ? '정예 ' : ''}${foeName(t.kind, s.run.floor) ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><div class="gh-t-txt">${textBar(t.hp / t.maxHp)}</div><span>${target!.chance === null ? '근접 무기' : `${Math.round(target!.chance * 100)}% 명중`}</span><small class="gh-intent">${intent}</small>`;

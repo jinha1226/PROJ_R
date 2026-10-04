@@ -6,7 +6,7 @@ import { generateMap } from '../../../src/sim/grid/mapgen';
 import { scatterLoot } from '../../../src/sim/grid/consumables';
 
 it.each([1, 6, 11] as const)('starts floor %i with the chosen gun and agent knife', start => {
-  for (const gun of ['pistol', 'shotgun', 'rifle'] as const) {
+  for (const gun of ['pistol'] as const) {
     const s = newRunState(7, freshMeta(), { gun, start, startSuit: [] });
     expect(s.hero.gear.active).toBe(0);
     expect(s.hero.gear.hands[0]).toMatchObject({ group: gun, tier: 1 });

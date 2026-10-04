@@ -21,7 +21,7 @@ const LOOK: Record<Ent['kind'], UalLook> = {
   archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Idle_Loop' },
   brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
   ghoul: { body: '#6a8a4a', trim: '#3a2a1a', scale: 0.95, weapon: 'none', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop' },
-  mage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'staff', idle: 'Spell_Simple_Idle_Loop' },
+  mage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'none', idle: 'Spell_Simple_Idle_Loop' },
   champion: { body: '#3a3a44', trim: '#d8b040', scale: 1.45, weapon: 'sword', shield: true, idle: 'Sword_Idle' },
 };
 const LUNGE = 0.3;
@@ -153,7 +153,7 @@ export class GridActors {
   }
 
   /** Ranged: aim, fire, kick back a little. */
-  /** Fires: the motion follows the weapon (gun shot, bow draw, crossbow, staff spell). */
+  /** Fires: the motion follows the weapon (gun shot, bow draw, crossbow). */
   shoot(id: string | undefined, at: THREE.Vector3, group?: WeaponLook, spin = false): void {
     const v = this.v(id);
     if (!v) return;
@@ -162,7 +162,7 @@ export class GridActors {
     // a spin shot snaps round to each target instead of turning
     if (spin) v.yaw = v.facing;
     this.nudge(v, at, -0.1);
-    const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'staff' ? 'cast' : 'shoot';
+    const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'none' ? 'cast' : 'shoot';
     v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
   }
 
@@ -229,7 +229,7 @@ export class GridActors {
     const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
     if (this.kindOf(id) === 'ghoul') return 'scratch';
     if (w === 'blade' || w === 'none') return 'jab';
-    if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'pistol' || w === 'shotgun' || w === 'rifle') return 'bash';
+    if (w === 'bow' || w === 'crossbow' || w === 'pistol') return 'bash';
     return 'swing';
   }
 

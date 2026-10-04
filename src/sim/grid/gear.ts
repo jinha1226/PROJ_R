@@ -11,8 +11,6 @@ export interface Gear {
   belt: Record<BeltItem, number>;
   potions: Partial<Record<PotionKind, number>>;
   scrolls: Partial<Record<ScrollKind, number>>;
-  /** time banked toward the next staff charge */
-  staffClock?: number;
 }
 
 /** Ship loadout: a gun, an agent knife, the agent's suit and two potions. */

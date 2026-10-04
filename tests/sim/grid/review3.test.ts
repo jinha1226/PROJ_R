@@ -9,7 +9,7 @@ describe('final review fixes (combos)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     g.s.hero.suit = ['quickswap', 'swapstrike'];
-    g.s.hero.gear.hands = [makeWeapon('rifle', 1), makeWeapon('sword', 1)];
+    g.s.hero.gear.hands = [makeWeapon('pistol', 1), makeWeapon('sword', 1)];
     g.s.hero.gear.active = 0;
     g.s.foes[0]!.hp = 99;
     const t = g.s.time;
@@ -29,13 +29,13 @@ describe('final review fixes (combos)', () => {
     expect(g.s.hero.pos).toEqual({ x: 6, y: 7 });
   });
 
-  it('shove-shot does not shove when the other hand cannot fire (not enough charge after the melee refill)', () => {
+  it('shove-shot does not shove when the other hand cannot fire (no capacity for charge after the melee refill)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     g.s.hero.suit = ['shoveShot'];
-    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('rifle', 1)];
+    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('pistol', 1)];
     g.s.hero.gear.active = 0;
-    g.s.hero.charge = 0;
+    g.s.hero.maxCharge = g.s.hero.charge = 0;
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: R });
     expect(ev.some((e) => e.type === 'push')).toBe(false);

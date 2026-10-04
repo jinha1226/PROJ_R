@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buy, energyFor, freshMeta, SHOP, settleRun, unlockedGuns } from '../../../src/sim/grid/meta';
+import { buy, energyFor, freshMeta, SHOP, settleRun } from '../../../src/sim/grid/meta';
 import { newRunState } from '../../../src/sim/grid/runSetup';
 import { GridSim } from '../../../src/sim/grid/gridSim';
 import { settleKills, XP_STEPS } from '../../../src/sim/grid/run';
@@ -15,8 +15,8 @@ describe('meta energy and facilities', () => {
   it('has independent defaults and purchases every upgrade once with prerequisites', () => {
     const m = freshMeta();
     expect(m.records).toEqual(['dash', 'rapid', 'chain', 'momentum']);
-    expect(unlockedGuns(m)).toEqual(['pistol']);
-    expect(buy(m, 'armoryShotgun')).toBe(false);
+    expect(m.rounds).toEqual([]);
+    expect(buy(m, 'round:fire')).toBe(false);
     m.energy = 2000;
     expect(buy(m, 'missing')).toBe(false);
     expect(buy(m, 'suitSlots4')).toBe(false);
@@ -30,14 +30,14 @@ describe('meta energy and facilities', () => {
       expect(m.energy).toBe(before - entry.cost);
       expect(buy(m, entry.id)).toBe(false);
     }
-    expect(unlockedGuns(m)).toEqual(['pistol', 'shotgun', 'rifle']);
+    expect(m.rounds).toEqual(['fire', 'frost', 'shock', 'poison']);
     expect(freshMeta().facilities.suitSlots).toBe(2);
   });
   it.each([1, 6, 11] as const)('sets up floor %i with level HP, charge, gear and copied records', start => {
     const m = freshMeta();
-    Object.assign(m.facilities, { suitSlots: 2, chargePlus: 2, armoryRifle: true, navCrypt: true, navRuins: true });
+    Object.assign(m.facilities, { suitSlots: 2, chargePlus: 2, navCrypt: true, navRuins: true });
     m.unlocked = ['dash', 'rapid', 'chain'];
-    const s = newRunState(12, m, { gun: 'rifle', start, startSuit: m.unlocked });
+    const s = newRunState(12, m, { gun: 'pistol', start, startSuit: m.unlocked });
     const level = start === 1 ? 1 : start === 6 ? 4 : 7;
     expect(s.run.floor).toBe(start);
     expect(s.hero.level).toBe(level);
@@ -47,7 +47,7 @@ describe('meta energy and facilities', () => {
     expect(s.hero.maxCharge).toBe(14);
     expect(s.hero.charge).toBe(14);
     expect(s.hero.suit).toEqual(start === 1 ? ['dash', 'rapid'] : []);
-    expect(s.hero.gear.hands[0]?.group).toBe('rifle');
+    expect(s.hero.gear.hands[0]?.group).toBe('pistol');
     expect(s.upgrades).toEqual([]);
     s.records.push('finisher');
     expect(m.records).not.toContain('finisher');

@@ -35,7 +35,7 @@ it('kill-trigger ping-pong fires both engravings once despite nested attacks', (
   const g = sim(OPEN, { x: 5, y: 7 }, [{ x: 6, y: 7 }, { x: 5, y: 5 }, { x: 7, y: 7 }, { x: 9, y: 7 }].map(pos => ({ kind: 'minion', pos })));
   sureHits(g); g.s.hero.gear.active = 1; g.s.hero.suit = ['gunRelay', 'bladeRelay'];
   g.s.foes.forEach(f => { f.hp = 1; });
-  meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, { noise: () => {}, cast: () => 1 });
+  meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, { noise: () => {} });
   expect(g.s.events.filter(e => e.type === 'engrave').map(e => e.text)).toEqual(['gunRelay', 'bladeRelay']);
   expect(g.s.foes.filter(f => !f.alive)).toHaveLength(3);
 });

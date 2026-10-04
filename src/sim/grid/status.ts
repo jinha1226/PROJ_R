@@ -2,7 +2,7 @@ import { resonance } from './resonance';
 import { absorbShield } from './shield';
 import { emit } from './kataBus';
 import { losClear } from './fov';
-import { reactOn, reactOnTile, type ReactionKit } from './reactions';
+import { reactOn, reactOnTile, spreadShock, type ReactionKit } from './reactions';
 import type { Element } from './items';
 import { springTrap } from './traps';
 import { dist, same, tileAt, walkable, type Cell, type Ent, type GridState, type Statuses } from './types';
@@ -75,6 +75,7 @@ export function applyElement(s: GridState, t: number, el: Element, at: Cell, rad
     const r = reactOn(s, t, 'shock', target, src, kit, engraving);
     hurt(s, t, src, target, r === 'shatter' ? amount * 2 : amount, 'shock');
     for (const f of s.foes) if (f !== target && f.alive && dist(f.pos, target.pos) === 1) hurt(s, t, src, f, Math.round(amount / 2), 'shock');
+    if (r === 'shatter' || r === 'paralyse') spreadShock(s, t, at, src, r, amount, kit);
     if (src === s.hero.id) emit(s, 'elementApplied', { t, foe: target, src, element: el });
     return;
   }

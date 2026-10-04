@@ -12,7 +12,7 @@ it('migrates legacy records once and round trips all meta fields', () => {
   const m = loadMeta();
   expect(m).toEqual({ ...freshMeta(), best: 8, wins: 2 });
   expect(data.has('projr.grid.meta.v1')).toBe(true);
-  m.energy = 90; m.facilities.armoryShotgun = true;
+  m.energy = 90; m.rounds = ['fire'];
   m.suit = { floor: 3, ids: ['dash'], killer: { kind: 'minion' } };
   saveMeta(m);
   data.set('projr.grid.v1', JSON.stringify({ best: 15, wins: 20 }));
@@ -37,4 +37,14 @@ it.each([1, 2, 3])('migrates old slot count %i once', slots => {
 it('validates new engraving arrays and fills partial facilities', () => {
   data.set('projr.grid.meta.v1', JSON.stringify({ ...freshMeta(), unlocked: ['flow', 'flow', 'bogus', 'rapid'], tasted: ['execute', 42], facilities: { suitSlots: 4 } }));
   expect(loadMeta()).toMatchObject({ unlocked: ['flow', 'rapid'], tasted: ['execute'], facilities: { suitSlots: 4, chargePlus: 0 } });
+});
+it('ignores old gun flags and validates round unlocks and all engraving lists', () => {
+  const old = { ...freshMeta(), rounds: ['fire', 'bogus', 'fire', 'shock'],
+    facilities: { ...freshMeta().facilities, armoryShotgun: true, armoryRifle: true },
+    records: ['dash', 'gone'], startCandidates: ['gone'], suit: { floor: 2, ids: ['echo', 'gone'], killer: { kind: 'mage' } } };
+  data.set('projr.grid.meta.v1', JSON.stringify(old)); const m = loadMeta();
+  expect(m.rounds).toEqual(['fire', 'shock']); expect(m.facilities).not.toHaveProperty('armoryShotgun');
+  expect(m.records).toEqual(['dash']); expect(m.startCandidates).toEqual([]); expect(m.suit?.ids).toEqual(['echo']);
+  delete (old as { rounds?: unknown }).rounds; data.set('projr.grid.meta.v1', JSON.stringify(old));
+  expect(loadMeta().rounds).toEqual([]);
 });

@@ -6,7 +6,7 @@ import { newState } from '../../../src/sim/grid/state';
 import { handMap, OPEN } from './kit';
 
 describe('starting guns', () => {
-  it.each(['pistol', 'shotgun', 'rifle'] as const)('starts with %s and the same neutral stats', (gun) => {
+  it.each(['pistol'] as const)('starts with %s and the same neutral stats', (gun) => {
     const g = startGear(gun);
     expect(g.hands.map((w) => w?.group ?? null)).toEqual([gun, 'dagger']);
     expect(g.hands[0]).not.toHaveProperty('engraves');
@@ -17,14 +17,13 @@ describe('starting guns', () => {
 });
 
 describe('loot', () => {
-  it('found equipment is about five sixths melee, and better on deeper floors', () => {
+  it('found equipment is always melee, and better on deeper floors', () => {
     const rng = createRng(5);
     const rolls = (floor: number) => Array.from({ length: 400 }, () => rollEquipment(rng, floor));
     const f1 = rolls(1);
     const weapons = f1.filter((e) => e.kind === 'weapon');
     const melee = weapons.filter((w) => w.kind === 'weapon' && WEAPONS[w.group].melee).length / weapons.length;
-    expect(melee).toBeGreaterThan(0.77);
-    expect(melee).toBeLessThan(0.9);
+    expect(melee).toBe(1);
     const t2 = (list: ReturnType<typeof rolls>) => list.filter((e) => e.tier >= 2).length / list.length;
     expect(t2(rolls(3))).toBeGreaterThan(t2(f1));
   });

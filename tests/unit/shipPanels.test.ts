@@ -9,22 +9,22 @@ it('lights basic facilities and powers purchased areas', () => {
   for (const id of ['pod', 'core', 'hatch', 'records'] as const) expect(stationLit(m, id)).toBe(true);
   for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(false);
   m.energy = 1000; m.bossesKilled = [5];
-  for (const id of ['armoryShotgun', 'chargePlus1', 'navCrypt']) buy(m, id);
+  for (const id of ['round:fire', 'chargePlus1', 'navCrypt']) buy(m, id);
   for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(true);
 });
 it('lists purchases with affordability, prerequisite and ownership gates', () => {
   const m = freshMeta();
-  expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['pistol']);
+  expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['plain']);
   expect(panelContents(m, 'armory', opts()).shop.every(c => !c.enabled)).toBe(true);
   m.energy = 1000;
   expect(panelContents(m, 'armory', opts()).shop.every(c => c.enabled)).toBe(true);
   expect(panelContents(m, 'nav', opts()).shop.every(c => !c.enabled)).toBe(true);
   m.bossesKilled = [5];
   expect(panelContents(m, 'nav', opts()).shop.map(c => c.enabled)).toEqual([true, false]);
-  buy(m, 'navCrypt'); buy(m, 'armoryShotgun');
+  buy(m, 'navCrypt'); buy(m, 'round:fire');
   expect(panelContents(m, 'nav', opts()).choices.map(c => c.id)).toEqual(['1', '6']);
-  expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['pistol', 'shotgun']);
-  expect(panelContents(m, 'armory', opts()).shop[0]?.enabled).toBe(false);
+  expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['plain', 'fire']);
+  expect(panelContents(m, 'armory', opts()).shop.some(c => c.id === 'round:fire')).toBe(false);
   expect(panelContents(m, 'suitlab', opts()).shop.slice(0, 4).map(c => c.enabled)).toEqual([true, false, true, false]);
 });
 it('describes records, candidates, energy, pod and hatch in Korean', () => {
@@ -41,8 +41,8 @@ it('describes records, candidates, energy, pod and hatch in Korean', () => {
 });
 it('limits unlocked choices and clears shortcut engravings', () => {
   const m = freshMeta(); m.unlocked = ['dash', 'counter', 'flow'];
-  const o = { gun: 'rifle', start: 11, startSuit: ['dash', 'dash', 'chain', 'counter'] } as const;
-  expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] })).toEqual({ gun: 'pistol', start: 1, startSuit: ['dash', 'counter'] });
+  const o = { gun: 'pistol', round: 'frost', start: 11, startSuit: ['dash', 'dash', 'chain', 'counter'] } as const;
+  expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] })).toEqual({ gun: 'pistol', round: 'plain', start: 1, startSuit: ['dash', 'counter'] });
   const selected = { ...opts(), startSuit: ['dash', 'counter'] as typeof m.unlocked };
   expect(panelContents(m, 'hatch', selected).choices.map(c => c.enabled)).toEqual([true, true, false]);
   expect(toggleStartSuit(m, selected, 'flow').startSuit).toEqual(['dash', 'counter']);
@@ -60,4 +60,14 @@ it('lists locked engravings with tasted prices and unlocked hatch choices', () =
   const choices = panelContents(m, 'hatch', opts()).choices;
   expect(choices.map(e => e.id)).toEqual(m.unlocked);
   expect(choices.every(e => e.selected)).toBe(true);
+});
+it('offers only unlocked rounds, keeps the chosen round and falls back to plain', () => {
+  const m = freshMeta(); m.energy = 500;
+  expect(buy(m, 'round:fire')).toBe(true); expect(buy(m, 'round:shock')).toBe(true);
+  const chosen = { ...opts(), round: 'fire' as const };
+  expect(launchOptions(m, chosen).round).toBe('fire');
+  expect(panelContents(m, 'armory', chosen).choices.filter(c => c.selected).map(c => c.id)).toEqual(['fire']);
+  expect(panelContents(m, 'armory', chosen).choices.map(c => c.label)).toEqual(['기본탄', '화염탄', '전격탄']);
+  expect(panelContents(m, 'armory', chosen).shop.map(c => c.id)).toEqual(['round:frost', 'round:poison']);
+  expect(launchOptions(m, { ...opts(), round: 'poison' }).round).toBe('plain');
 });

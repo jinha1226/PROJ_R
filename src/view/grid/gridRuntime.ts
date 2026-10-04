@@ -183,10 +183,8 @@ export class GridRuntime {
         if (!e.dst) break;
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
-        const magic = e.text === 'staff' || e.text === 'spell' || e.text === 'echo';
-        // a shotgun blast flares wide, burst rounds flicker, a pistol pops
-        this.fx.flash(from, magic ? '#b48aff' : '#ffd890', e.text === 'shotgun' ? 46 : e.text === 'burst' || e.text === 'rifle' ? 16 : 22, e.text === 'shotgun' ? 0.18 : 0.08);
-        if (e.text === 'shotgun') this.particles.spray(from.clone().setY(1.1), '#ffcf7a', 14);
+        const magic = e.text === 'spell';
+        this.fx.flash(from, magic ? '#b48aff' : '#ffd890', 22, 0.08);
         this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); });
         break;
       }

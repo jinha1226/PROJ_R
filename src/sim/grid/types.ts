@@ -1,3 +1,4 @@
+import type { OfferCard } from './rounds';
 import type { StationId } from './ship';
 import type { MetaState } from './meta';
 import type { UpgradeId } from './upgrades';
@@ -64,6 +65,8 @@ export interface Statuses { burn: number; freeze: number; poison: number }
 export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
 export interface Hero extends Ent {
   shield?: number;
+  rounds: import('./items').Element[];
+  roundIdx: number;
   suit: EngraveId[];
   bonus: { killCharge: number; evasion: number; gunDmg: number; meleeDmg: number };
   charge: number;
@@ -112,7 +115,7 @@ export interface GridState {
   /** Level-up suit upgrades waiting for the player (shown before engravings). */
   upgrades: UpgradeId[][];
   /** Absorption and scroll engraving choices waiting for the player. */
-  offers: EngraveId[][];
+  offers: OfferCard[][];
   /** Engravings discovered this run, including the four starting records. */
   records: EngraveId[];
   /** traps on this floor (found ones are shown) */

@@ -27,7 +27,7 @@ it('pistol resonance reduces costs above one and never makes shots free', () => 
   const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]); sureHits(g);
   g.s.hero.suit = ['rapid', 'mark']; expect(pistolCost(g.s, 3)).toBe(3);
   g.s.hero.suit.push('ricochet'); expect(pistolCost(g.s, 3)).toBe(2); expect(pistolCost(g.s, 1)).toBe(1);
-  rangedAttack(g.s, 0, g.s.foes[0]!, { noise: () => {}, cast: () => 1 }); expect(g.s.hero.charge).toBe(9);
+  rangedAttack(g.s, 0, g.s.foes[0]!, { noise: () => {} }); expect(g.s.hero.charge).toBe(9);
 });
 it.each(['fire', 'frost', 'poison'] as const)('element resonance extends hero %s only', el => {
   const { s } = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);

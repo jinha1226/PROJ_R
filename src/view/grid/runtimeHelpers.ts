@@ -9,8 +9,8 @@ export const cellVec = (c: Cell): THREE.Vector3 => new THREE.Vector3(c.x * CELL,
 /** Older saves and foe events may only carry a shot label. */
 export function shotGroup(e: GEvent): WeaponLook | undefined {
   if (e.group) return e.group;
+  if (e.text === 'spell') return 'none';
   if (e.text === 'bow' || e.text === 'crossbow') return e.text;
-  if (e.text === 'spell' || e.text === 'echo') return 'staff';
   return e.text && Object.hasOwn(WEAPONS, e.text) ? e.text as WeaponLook : undefined;
 }
 

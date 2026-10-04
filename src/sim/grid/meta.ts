@@ -1,11 +1,13 @@
 import { BASE_IDS, ENGRAVES, type EngraveId } from './engraveCore';
-import type { GunGroup } from './items';
+import { ELEMENTS, ROUND_NAMES } from './rounds';
+import type { Element } from './items';
 import type { FoeKind, GridState } from './types';
 
 export type FacilityId = 'armory' | 'suitlab' | 'nav';
 export interface MetaState {
   energy: number;
-  facilities: { armoryShotgun: boolean; armoryRifle: boolean; suitSlots: 2 | 3 | 4; chargePlus: 0 | 1 | 2; navCrypt: boolean; navRuins: boolean };
+  rounds: Element[];
+  facilities: { suitSlots: 2 | 3 | 4; chargePlus: 0 | 1 | 2; navCrypt: boolean; navRuins: boolean };
   unlocked: EngraveId[];
   tasted: EngraveId[];
   records: EngraveId[];
@@ -17,14 +19,14 @@ export interface MetaState {
 }
 export function freshMeta(): MetaState {
   return {
-    energy: 0, facilities: { armoryShotgun: false, armoryRifle: false, suitSlots: 2, chargePlus: 0, navCrypt: false, navRuins: false },
+    energy: 0, rounds: [], facilities: { suitSlots: 2, chargePlus: 0, navCrypt: false, navRuins: false },
     unlocked: ['gunRelay', 'spinShot'], tasted: [],
     records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0,
   };
 }
 export const SHOP: { id: string; name: string; cost: number; can(m: MetaState): boolean; apply(m: MetaState): void }[] = [
-  { id: 'armoryShotgun', name: '산탄총 해금', cost: 80, can: m => !m.facilities.armoryShotgun, apply: m => { m.facilities.armoryShotgun = true; } },
-  { id: 'armoryRifle', name: '소총 해금', cost: 120, can: m => !m.facilities.armoryRifle, apply: m => { m.facilities.armoryRifle = true; } },
+  ...ELEMENTS.map(el => ({ id: `round:${el}`, name: `${ROUND_NAMES[el]}탄 해금`, cost: el === 'shock' ? 100 : 80,
+    can: (m: MetaState) => !m.rounds.includes(el), apply: (m: MetaState) => { m.rounds.push(el); } })),
   { id: 'suitSlots3', name: '시작 각인 칸 3', cost: 100, can: m => m.facilities.suitSlots === 2, apply: m => { m.facilities.suitSlots = 3; } },
   { id: 'suitSlots4', name: '시작 각인 칸 4', cost: 250, can: m => m.facilities.suitSlots === 3, apply: m => { m.facilities.suitSlots = 4; } },
   { id: 'chargePlus1', name: '충전 최대치 +2', cost: 60, can: m => m.facilities.chargePlus === 0, apply: m => { m.facilities.chargePlus = 1; } },
@@ -58,12 +60,6 @@ export function energyFor(kind: FoeKind, floor: number, elite: boolean): number 
   if (kind === 'champion') return floor === 15 ? 150 : 60;
   const base = { minion: 2, ghoul: 3, archer: 3, brute: 4, mage: 4 }[kind];
   return Math.round(base * (1 + 0.15 * (floor - 1)) * (elite ? 3 : 1));
-}
-export function unlockedGuns(m: MetaState): GunGroup[] {
-  const guns: GunGroup[] = ['pistol'];
-  if (m.facilities.armoryShotgun) guns.push('shotgun');
-  if (m.facilities.armoryRifle) guns.push('rifle');
-  return guns;
 }
 /** Settlement returns independent meta data; the caller persists it once when the run ends. */
 export function settleRun(meta: MetaState, s: GridState): MetaState {
