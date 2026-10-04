@@ -98,7 +98,7 @@ export class WorkbenchScreen {
         </div>
         <button type="button" class="wb-close" data-close aria-label="닫기">✕</button></header>
       <div class="wb-main">
-        <div class="wb-draw"><div class="wb-stage"><canvas class="wb-px" width="200" height="122"></canvas>${overlaySvg(this.tab, m.slots, sel.slot)}</div></div>
+        <div class="wb-draw"><div class="wb-stage"><canvas class="wb-px" width="240" height="146"></canvas>${overlaySvg(this.tab, m.slots, sel.slot)}</div></div>
         <aside class="wb-side">
           <div class="wb-slot"><span>${sel.label}</span>${sel.fitted ? sel.fitted.name : '비어 있음'}</div>
           <ul class="wb-opts">${opts.map((o) => this.option(o)).join('')}</ul>

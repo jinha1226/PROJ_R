@@ -20,21 +20,26 @@ const PISTOL: Part[] = [
     anchor: [124, 216], mount: [126, 180], callout: [150, 226] },
 ];
 
-// front view of the agent suit (as the 3D suit: helmet and visor, chest core, pauldrons, backpack lamps, greaves)
+// front view of the agent suit (after the reference outline in public/assets/ui/pip): octagonal helmet, collar and chest plate,
+// broad pauldrons, armoured limbs, a thigh pouch; the backpack floats off to the right
 const SUIT: Part[] = [
   { slot: null, paths: [
-    'M200 10 L214 16 L218 34 L208 42 L192 42 L182 34 L186 16 Z', 'M188 26 L212 26 L212 31 L188 31 Z', 'M200 10 L200 6',
-    'M180 52 L220 52 L226 132 L174 132 Z', 'M186 132 L190 204 L174 226 L194 226 L198 204 M214 132 L210 204 L226 226 L206 226 L202 204',
-    'M174 56 L150 64 L144 116 L152 120 L160 72 M226 56 L250 64 L256 116 L248 120 L240 72',
+    'M192 6 L208 6 L214 12 L214 22 L210 30 L190 30 L186 22 L186 12 Z', 'M190 18 L210 18', 'M194 30 L206 30 L206 36 L194 36 Z',
+    'M176 40 L224 40 L232 52 L228 98 L218 112 L182 112 L172 98 L168 52 Z', 'M182 112 L218 112 L222 126 L178 126 Z',
+    'M178 126 L198 126 L196 168 L192 200 L194 232 L176 232 L178 200 L176 168 Z', 'M202 126 L222 126 L224 168 L222 200 L224 232 L206 232 L208 200 L204 168 Z',
   ], anchor: [200, 90], mount: [200, 90], callout: [0, 0] },
-  { slot: 'chest', paths: ['M170 50 L230 50 L224 108 L176 108 Z', 'M192 62 L208 62 L208 78 L192 78 Z', 'M196 66 L204 66 L204 74 L196 74 Z', 'M180 92 L220 92 M184 100 L216 100'],
-    anchor: [200, 80], mount: [200, 80], callout: [238, 36] },
-  { slot: 'arms', paths: ['M104 54 L136 50 L140 66 L108 72 Z', 'M110 80 L132 78 L136 120 L114 122 Z', 'M296 54 L264 50 L260 66 L292 72 Z', 'M290 80 L268 78 L264 120 L286 122 Z', 'M112 60 L132 57 M268 57 L288 60'],
-    anchor: [122, 90], mount: [166, 66], callout: [30, 44] },
-  { slot: 'legs', paths: ['M166 150 L190 150 L188 228 L168 228 Z', 'M210 150 L234 150 L232 228 L212 228 Z', 'M170 170 L186 170 M214 170 L230 170', 'M170 196 L186 196 M214 196 L230 196'],
-    anchor: [200, 190], mount: [200, 134], callout: [244, 214] },
-  { slot: 'back', paths: ['M312 58 L352 58 L356 64 L356 128 L312 128 Z', 'M322 70 L330 70 L330 78 L322 78 Z M336 70 L344 70 L344 78 L336 78 Z', 'M322 86 L330 86 L330 94 L322 94 Z M336 86 L344 86 L344 94 L336 94 Z', 'M322 102 L330 102 L330 110 L322 110 Z M336 102 L344 102 L344 110 L336 110 Z'],
-    anchor: [334, 94], mount: [228, 94], callout: [310, 40] },
+  { slot: 'chest', paths: ['M184 38 L216 38 L222 46 L214 54 L186 54 L178 46 Z', 'M182 56 L218 56 L216 84 L200 90 L184 84 Z', 'M195 60 L205 60 L205 67 L195 67 Z', 'M188 72 L212 72 M190 78 L210 78'],
+    anchor: [200, 70], mount: [200, 70], callout: [250, 22] },
+  { slot: 'arms', paths: [
+    'M140 40 L164 36 L170 50 L160 62 L140 58 Z', 'M140 66 L158 66 L156 104 L146 116 L136 110 L138 80 Z', 'M138 116 L148 116 L146 126 L138 124 Z', 'M142 84 L156 84',
+    'M260 40 L236 36 L230 50 L240 62 L260 58 Z', 'M260 66 L242 66 L244 104 L254 116 L264 110 L262 80 Z', 'M262 116 L252 116 L254 126 L262 124 Z', 'M258 84 L244 84',
+  ], anchor: [150, 80], mount: [170, 56], callout: [40, 44] },
+  { slot: 'legs', paths: [
+    'M180 134 L196 134 L194 160 L182 160 Z', 'M204 134 L220 134 L218 160 L206 160 Z', 'M222 138 L232 140 L230 158 L222 160 Z',
+    'M182 168 L194 168 L193 176 L183 176 Z', 'M206 168 L218 168 L217 176 L207 176 Z', 'M180 184 L194 184 L192 222 L180 222 Z', 'M206 184 L220 184 L220 222 L208 222 Z',
+  ], anchor: [200, 190], mount: [200, 128], callout: [250, 212] },
+  { slot: 'back', paths: ['M300 50 L340 50 L346 58 L346 120 L300 120 Z', 'M310 62 L318 62 L318 70 L310 70 Z M326 62 L334 62 L334 70 L326 70 Z', 'M310 78 L318 78 L318 86 L310 86 Z M326 78 L334 78 L334 86 L326 86 Z', 'M310 94 L318 94 L318 102 L310 102 Z M326 94 L334 94 L334 102 L326 102 Z', 'M304 112 L342 112'],
+    anchor: [322, 86], mount: [232, 80], callout: [306, 30] },
 ];
 
 export interface ArtColors { fg: string; dim: string; line: string; warn: string; ch: string; fill: string; fitted: string }
