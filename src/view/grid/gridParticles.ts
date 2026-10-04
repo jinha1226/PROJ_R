@@ -2,20 +2,20 @@ import * as THREE from 'three';
 
 const DEBRIS = 96;
 const SPARKS = 160;
-const DUST = 140;
+const DROPS = 120;
 const GRAVITY = 9;
 
 interface Bit { alive: boolean; p: THREE.Vector3; v: THREE.Vector3; life: number; spin: number }
 
-/** Bone chips that bounce, sparks that fly, and slow dust in the torchlight. */
+/** Bone chips that bounce, blood that sprays and spatters, sparks that fly. */
 export class GridParticles {
   readonly root = new THREE.Group();
   private readonly chips: THREE.InstancedMesh;
   private readonly bits: Bit[] = [];
   private readonly sparkGeo = new THREE.BufferGeometry();
   private readonly sparks: { p: THREE.Vector3; v: THREE.Vector3; life: number; total: number; c: THREE.Color }[] = [];
-  private readonly dust: THREE.Points;
-  private readonly dustV: number[] = [];
+  private readonly drops: THREE.InstancedMesh;
+  private readonly blobs: Bit[] = [];
   private readonly m = new THREE.Matrix4();
   private readonly q = new THREE.Quaternion();
 
@@ -28,13 +28,11 @@ export class GridParticles {
     this.sparkGeo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(SPARKS * 3), 3));
     const spark = new THREE.Points(this.sparkGeo, new THREE.PointsMaterial({ size: 0.09, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
     spark.frustumCulled = false;
-    const dustGeo = new THREE.BufferGeometry();
-    const dp = new Float32Array(DUST * 3);
-    for (let i = 0; i < DUST; i++) { dp[i * 3] = (Math.random() - 0.5) * 24; dp[i * 3 + 1] = Math.random() * 2.2; dp[i * 3 + 2] = (Math.random() - 0.5) * 30; this.dustV.push(0.05 + Math.random() * 0.1); }
-    dustGeo.setAttribute('position', new THREE.Float32BufferAttribute(dp, 3));
-    this.dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: 0.035, color: '#ffd9a0', transparent: true, opacity: 0.35, depthWrite: false }));
-    this.dust.frustumCulled = false;
-    this.root.add(this.chips, spark, this.dust);
+    this.drops = new THREE.InstancedMesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), new THREE.MeshBasicMaterial({ color: '#9a0d0d' }), DROPS);
+    this.drops.count = 0;
+    this.drops.frustumCulled = false;
+    for (let i = 0; i < DROPS; i++) this.blobs.push({ alive: false, p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0, spin: 0 });
+    this.root.add(this.chips, spark, this.drops);
   }
 
   /** Bone chips bursting from a hit skeleton (more when it falls apart). */
@@ -60,10 +58,18 @@ export class GridParticles {
     }
   }
 
-  /** Keeps the dust box around the camera focus. */
-  /** Dust reads as noise once pixelated: it can be switched off. */
-  set dustOn(on: boolean) {
-    this.dust.visible = on;
+  /** Blood sprayed away from the blow; drops spatter flat on the floor and fade. */
+  blood(at: THREE.Vector3, n: number, from?: THREE.Vector3): void {
+    const away = from ? at.clone().sub(from).setY(0).normalize() : new THREE.Vector3();
+    for (let k = 0; k < n; k++) {
+      const b = this.blobs.find((x) => !x.alive);
+      if (!b) return;
+      b.alive = true;
+      b.life = 1.6 + Math.random() * 0.8;
+      b.p.set(at.x, 0.8 + Math.random() * 0.5, at.z);
+      b.v.set((Math.random() - 0.5) * 2.4 + away.x * 3, 1 + Math.random() * 2.2, (Math.random() - 0.5) * 2.4 + away.z * 3);
+      b.spin = 0.6 + Math.random() * 0.9;
+    }
   }
 
   update(dt: number, focus: THREE.Vector3): void {
@@ -93,19 +99,26 @@ export class GridParticles {
     this.sparks.forEach((s, i) => { pos.setXYZ(i, s.p.x, s.p.y, s.p.z); const k = s.life / s.total; col.setXYZ(i, s.c.r * k, s.c.g * k, s.c.b * k); });
     this.sparkGeo.setDrawRange(0, this.sparks.length);
     pos.needsUpdate = col.needsUpdate = true;
-    const dp = this.dust.geometry.getAttribute('position') as THREE.BufferAttribute;
-    for (let i = 0; i < DUST; i++) {
-      let y = dp.getY(i) + this.dustV[i]! * dt;
-      if (y > 2.2) y = 0;
-      dp.setY(i, y);
+    let d = 0;
+    for (const b of this.blobs) {
+      if (!b.alive) continue;
+      b.life -= dt;
+      if (b.p.y > 0.015) { b.v.y -= GRAVITY * dt; b.p.addScaledVector(b.v, dt); }
+      if (b.p.y <= 0.015) { b.p.y = 0.015; b.v.set(0, 0, 0); }
+      if (b.life <= 0) { b.alive = false; continue; }
+      // in the air a drop; on the floor a flat spatter that shrinks away
+      const k = Math.min(1, b.life);
+      const flat = b.p.y <= 0.015;
+      this.drops.setMatrixAt(d++, this.m.compose(b.p, this.q.identity(), flat ? new THREE.Vector3(b.spin * 2.2 * k, 0.15, b.spin * 2.2 * k) : new THREE.Vector3(1, 1, 1)));
     }
-    dp.needsUpdate = true;
-    this.dust.position.set(focus.x, 0, focus.z);
+    this.drops.count = d;
+    this.drops.instanceMatrix.needsUpdate = true;
+    void focus;
   }
 
   dispose(): void {
     this.chips.geometry.dispose();
     this.sparkGeo.dispose();
-    this.dust.geometry.dispose();
+    this.drops.geometry.dispose();
   }
 }
