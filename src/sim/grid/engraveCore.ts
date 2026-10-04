@@ -11,7 +11,11 @@ export type EngraveId =
   | 'alternate' | 'echo' | 'chain' | 'elemArrow'
   | 'bloodlust' | 'fury' | 'shoulder' | 'ironwall' | 'cull' | 'tempest' | 'gale' | 'rebound'
   | 'quickdraw' | 'pierce' | 'sniper' | 'headshot' | 'covering' | 'suppress' | 'barrage' | 'thrift' | 'steady'
-  | 'bayonet' | 'reverseCut' | 'reclaim' | 'muzzleShove' | 'executionRush' | 'trance';
+  | 'bayonet' | 'reverseCut' | 'reclaim' | 'muzzleShove' | 'executionRush' | 'trance'
+  | 'fireSpread' | 'fireBlade' | 'fireStoke' | 'fireEmber'
+  | 'frostShatter' | 'frostVeil' | 'frostBite' | 'frostSnap'
+  | 'shockArc' | 'shockCharge' | 'shockCut' | 'shockDischarge'
+  | 'poisonBurst' | 'poisonVenom' | 'poisonParalyze' | 'poisonSiphon';
 export const SUIT_SLOTS = 6;
 export type Fit = 'melee' | 'ranged' | 'any' | 'kata';
 
@@ -66,6 +70,22 @@ export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit
   muzzleShove: { name: '총구 밀치기', note: '총 타격 → 밀치기', fits: 'kata', base: true, cost: 40, family: 'fusion', tags: ['밀치기'] },
   executionRush: { name: '처형 연계', note: '처형 → 충전 +2', fits: 'kata', base: true, cost: 60, family: 'fusion', tags: ['기절', '처치'] },
   trance: { name: '무아지경', note: '칼·총 둘 다 처치 → 체력 +3', fits: 'kata', base: true, cost: 80, family: 'fusion', tags: ['연쇄', '회복'] },
+  fireSpread: { name: '화염 확산', note: '불붙은 적 처치 → 주변 화상', fits: 'any', base: true, cost: 70, family: 'element', tags: ['화염'] },
+  fireBlade: { name: '불길 베기', note: '불붙은 적 근접 → ×1.5', fits: 'any', base: true, cost: 60, family: 'element', tags: ['화염'] },
+  fireStoke: { name: '소각', note: '화상 피해 → +1', fits: 'any', base: true, cost: 50, family: 'element', tags: ['화염'] },
+  fireEmber: { name: '불씨', note: '불붙은 적 사격 처치 → 충전 +1', fits: 'any', base: true, cost: 50, family: 'element', tags: ['화염'] },
+  frostShatter: { name: '빙결 파쇄', note: '얼어붙은 적 근접 → ×2 · 해빙', fits: 'any', base: true, cost: 90, family: 'element', tags: ['빙결'] },
+  frostVeil: { name: '서리 장막', note: '빙결 부여 → 보호막 2', fits: 'any', base: true, cost: 60, family: 'element', tags: ['빙결'] },
+  frostBite: { name: '동상', note: '얼어붙은 적 사격 → ×1.3', fits: 'any', base: true, cost: 50, family: 'element', tags: ['빙결'] },
+  frostSnap: { name: '한파', note: '연쇄 → 붙은 적 빙결', fits: 'any', base: true, cost: 90, family: 'element', tags: ['빙결'] },
+  shockArc: { name: '전격 연쇄', note: '전격 → 한 번 더 튐', fits: 'any', base: true, cost: 70, family: 'element', tags: ['전격'] },
+  shockCharge: { name: '과충전', note: '전격 부여 → 충전 +1', fits: 'any', base: true, cost: 60, family: 'element', tags: ['전격'] },
+  shockCut: { name: '감전 베기', note: '근접 → 전격 부여', fits: 'any', base: true, cost: 60, family: 'element', tags: ['전격'] },
+  shockDischarge: { name: '방전', note: '회피 → 주변 전격', fits: 'any', base: true, cost: 80, family: 'element', tags: ['전격'] },
+  poisonBurst: { name: '독 폭발', note: '중독된 적 처치 → 독구름', fits: 'any', base: true, cost: 70, family: 'element', tags: ['독'] },
+  poisonVenom: { name: '맹독', note: '칼 타격 → 독 2배', fits: 'any', base: true, cost: 60, family: 'element', tags: ['독'] },
+  poisonParalyze: { name: '마비독', note: '중독된 적 기절 → 기절 +1', fits: 'any', base: true, cost: 70, family: 'element', tags: ['독'] },
+  poisonSiphon: { name: '해독 흡수', note: '독 피해 → 체력 +1', fits: 'any', base: true, cost: 60, family: 'element', tags: ['독'] },
 };
 export const ENGRAVE_IDS = Object.keys(ENGRAVES) as EngraveId[];
 
@@ -75,6 +95,8 @@ export const BASE_IDS: EngraveId[] = ENGRAVE_IDS.filter(id => ENGRAVES[id].base)
 export interface HeroFx {
   combo: { target?: string; hits: number };
   rapid: { target?: string; n: number };
+  /** Last integer simulation turn healed by poison ticks; absent in old saves. */
+  poisonSiphonTurn?: number;
   shots: number;
   roundShots: number;
   lastEl?: Element;

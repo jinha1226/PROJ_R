@@ -1,3 +1,4 @@
+import { preMelee } from './preMelee';
 import { bladeRound, takeRound, roundMult, roundHit } from './rounds';
 import { withOtherHand, otherHand } from './kata';
 import { emitKills } from './attackTriggers';
@@ -85,7 +86,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   const eventStart = s.events.length;
   if (!w || !armed) {
     foe.awake = true;
-    const landed = strike(s, t, h, foe, HERO.bashHit, HERO.bash);
+    const landed = preMelee(s, t, foe, () => strike(s, t, h, foe, HERO.bashHit, HERO.bash, h.fx.nextMult), 1);
     refillMelee(s, landed, eventStart);
     if (landed) emit(s, 'meleeHit', { t, foe, hooks, src: w && isGun(w.group) ? 'bash' : 'unarmed' });
     afterBlow.forEach(resolve => resolve());
@@ -97,13 +98,13 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   // an invisible hero's blows land like sneak attacks
   const unseen = buffOn(h, 'invis', t);
   const hits: Ent[] = [];
-  const blow = (f: Ent, k = 1) => {
+  const blow = (f: Ent, k = 1) => preMelee(s, t, f, () => {
     const mult = (f.awake && !unseen ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
     f.awake = true;
     const hit = strike(s, t, h, f, def.hit, dmg, mult);
     if (hit) hits.push(f);
     return hit;
-  };
+  });
   const landed = blow(foe, combo.finisher ? FINISH_MULT : 1);
   if (w.group === 'axe') for (const c of sweepCells(h.pos, d)) {
     const f = foeAt(s, c);

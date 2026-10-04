@@ -40,6 +40,10 @@ it('uses exactly the planned unlock costs', () => {
     alternate: 60, echo: 60, chain: 60, elemArrow: 60,
     bloodlust: 50, fury: 60, shoulder: 50, ironwall: 60, cull: 90, tempest: 90, gale: 100, rebound: 50,
     quickdraw: 50, pierce: 70, sniper: 60, headshot: 80, covering: 70, suppress: 60, barrage: 120, thrift: 60, steady: 50,
-    bayonet: 70, reverseCut: 70, reclaim: 40, muzzleShove: 40, executionRush: 60, trance: 80 };
+    bayonet: 70, reverseCut: 70, reclaim: 40, muzzleShove: 40, executionRush: 60, trance: 80,
+    fireSpread: 70, fireBlade: 60, fireStoke: 50, fireEmber: 50,
+    frostShatter: 90, frostVeil: 60, frostBite: 50, frostSnap: 90,
+    shockArc: 70, shockCharge: 60, shockCut: 60, shockDischarge: 80,
+    poisonBurst: 70, poisonVenom: 60, poisonParalyze: 70, poisonSiphon: 60 };
   expect(Object.fromEntries(ENGRAVE_IDS.map(id => [id, ENGRAVES[id].cost]))).toEqual(costs);
 });

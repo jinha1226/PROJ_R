@@ -8,12 +8,12 @@ import { isGun, WEAPONS } from './items';
 import { otherHand, REFLEX_HOOKS, withOtherHand } from './kata';
 import { emit, type TriggerCtx } from './kataBus';
 import { dashTarget, gunCost, gunInHand, inShot, nearest, shotTarget, spinTargets } from './kataTargets';
-import { applyElement } from './status';
+import { applyElement, areaCells } from './status';
 import { dist, same, type GridState } from './types';
 import { heroDmg, meleeAttack, pushFoe, rangedAttack } from './weapons';
 
 export type EffectId = 'shootNearest' | 'shootFoe' | 'dashSlash' | 'spinShot' | 'slashFoe' | 'execute'
-  | 'charge' | 'heal' | 'shield' | 'nextMult' | 'freeNext' | 'push' | 'stun' | 'elementBurst' | 'refund' | 'delay';
+  | 'charge' | 'heal' | 'shield' | 'nextMult' | 'freeNext' | 'push' | 'stun' | 'elementBurst' | 'refund' | 'delay' | 'doublePoison';
 
 /** Read-only eligibility: failed effects neither fire nor consume RNG or resources. */
 export function canRun(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boolean {
@@ -35,11 +35,18 @@ export function canRun(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boolea
     case 'charge': case 'refund': return h.charge < h.maxCharge && (id === 'refund' ? c.shotCost ?? p : p) > 0;
     case 'heal': return h.hp < h.maxHp && p > 0;
     case 'shield': return p > 0;
-    case 'nextMult': return p > h.fx.nextMult;
+    case 'nextMult': return p > h.fx.nextMult || !!c.thaw;
     case 'freeNext': return c.shotOnly ? !h.fx.freeShot : !h.fx.free;
     case 'delay': return !!f?.alive && f !== h && p > 0;
     case 'push': case 'stun': return !!f?.alive && f !== h && (id === 'push' ? dist(h.pos, f.pos) > 0 : p > 0);
-    case 'elementBurst': return !!c.element && !!f?.alive && p >= 0;
+    case 'doublePoison': return !!f?.alive && (f.status?.poison ?? 0) > 0;
+    case 'elementBurst': {
+      const at = c.at ?? f?.pos;
+      if (!c.element || !at || p < 0) return false;
+      const cells = areaCells(s, at, p);
+      if (p > 0 && (c.element === 'fire' || c.element === 'poison')) return cells.length > 0;
+      return cells.some(cell => s.foes.some(e => e.alive && same(e.pos, cell)));
+    }
   }
 }
 
@@ -109,7 +116,10 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
     case 'charge': case 'refund': h.charge = Math.min(h.maxCharge, h.charge + (id === 'refund' ? c.shotCost ?? p : p)); break;
     case 'heal': h.hp = Math.min(h.maxHp, h.hp + p); break;
     case 'shield': h.shield = (h.shield ?? 0) + p; break;
-    case 'nextMult': h.fx.nextMult = Math.max(h.fx.nextMult, p); break;
+    case 'nextMult':
+      h.fx.nextMult = Math.max(h.fx.nextMult, p);
+      if (c.thaw) c.afterHit?.push(() => { if (f?.status) f.status.freeze = 0; });
+      break;
     case 'freeNext':
       if (c.shotOnly) h.fx.freeShot = true; else h.fx.free = true;
       break;
@@ -119,7 +129,18 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
       f!.stun = Math.min(f!.kind === 'champion' ? 1 : Infinity, (f!.stun ?? 0) + p);
       s.events.push({ t, type: 'stun', src: h.id, dst: f!.id, to: { ...f!.pos } });
       emit(s, 'stunned', { ...c, foe: f, src: 'engraving' }); break;
-    case 'elementBurst': applyElement(s, t, c.element!, f!.pos, p, null, h.id, undefined, h.id, true); break;
+    case 'doublePoison':
+      f!.status!.poison *= 2;
+      s.events.push({ t, type: 'status', src: h.id, dst: f!.id, text: 'poison', to: { ...f!.pos } });
+      emit(s, 'elementApplied', { t, foe: f, src: h.id, element: 'poison' }); break;
+    case 'elementBurst': {
+      const at = c.at ?? f!.pos;
+      // Existing shock resolves one cell plus its normal splash; an area needs explicit centres.
+      const cells = c.element === 'shock' && p > 0
+        ? areaCells(s, at, p).filter(cell => s.foes.some(e => e.alive && same(e.pos, cell))) : [at];
+      for (const cell of cells) applyElement(s, t, c.element!, cell, c.element === 'shock' ? 0 : p, null, h.id, undefined, h.id, true);
+      break;
+    }
   }
   return true;
 }
