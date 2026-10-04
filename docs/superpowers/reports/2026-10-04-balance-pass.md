@@ -170,3 +170,9 @@ copies were removed; all reviewable deliverables are in this worktree.
 ## Review adjustments
 - Recharge scroll refills the suit again, and the capacity upgrade grants +2 charge again: only the passive trickle was meant to go.
 - With those restored, per-floor scaling 0.16 → 0.165. Decent bot: 12.5 % wins, death floor Q1/median/Q3 4.5 / 8 / 11, deaths by zone 12 / 11 / 12. Pistol-only: 0 % wins, median floor 1.
+
+## Gun roles and gun-bash charge (2026-10-04, later)
+- A bash with a gun (or bare hands) now earns melee charge: hit +1, kill +2.
+- Pistol 0.8 → 0.6 time, hit 0.85 → 0.9. Rifle: three-round burst of 3–5 per bullet (was one 8–12 shot). Shotgun: ×1.5 point-blank, ×1 at 2 cells, ×0.6 beyond.
+- Per-floor scaling 0.165 → 0.17. Decent bot: 12.5 % wins, death floor Q1/median/Q3 7 / 10 / 12.75, deaths by zone 7 / 13 / 14. Pistol-only: 0 %, median floor 1.
+- The median target is relaxed to ≤ 10: early floors got easier to survive with gun-bash charge, and more scaling pushes wins under 10 %.

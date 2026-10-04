@@ -1,4 +1,5 @@
 import { ShipTerrain } from './shipTerrain';
+import { heroLook } from './heroLook';
 import type { ShipKit } from './shipKit';
 import type { MetaState } from '../../sim/grid/meta';
 import { STATIONS } from '../../sim/grid/ship';
@@ -134,8 +135,9 @@ export class GridRuntime {
     this.items.sync(s);
     this.elements.sync(s);
     for (const e of [s.hero, ...s.foes]) this.actors.setStatus(e.id, e.status);
-    this.actors.setWeapon('hero', activeWeapon(s.hero.gear)?.group ?? 'blade');
+    this.actors.setWeapon('hero', heroLook(activeWeapon(s.hero.gear)?.group, this.terrain instanceof ShipTerrain));
     this.actors.setGhost('hero', buffOn(s.hero, 'invis', s.time));
+    this.actors.setSuitLights('hero', s.hero.suit.length);
     this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));
     for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
     const hero = new THREE.Vector3(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
@@ -164,15 +166,18 @@ export class GridRuntime {
       case 'shoot': {
         const p = at(e.dst) ?? (e.to ? cellVec(e.to) : undefined);
         // a bounce, a chain jump or a volley's extra bullets fly on their own; the shooter does not draw again
-        const quiet = e.text === 'ricochet' || e.text === 'chain' || e.text === 'volley';
+        const quiet = e.text === 'ricochet' || e.text === 'chain' || e.text === 'volley' || e.text === 'burst';
         const from = quiet && e.from ? cellVec(e.from) : at(e.src);
         if (!p || !from) break;
         if (!quiet) a.shoot(e.src, p, e.text === 'spell' || e.text === 'echo' ? 'staff' : e.text);
         if (!e.dst) break;
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
-        this.fx.flash(from, e.text === 'staff' || e.text === 'spell' || e.text === 'echo' ? '#b48aff' : '#ffd890', 22, 0.12);
-        this.fx.bolt(from, p, () => { entry.ready = true; this.pending.delete(key); for (const q of entry.queue) this.cue(q); });
+        const magic = e.text === 'staff' || e.text === 'spell' || e.text === 'echo';
+        // a shotgun blast flares wide, burst rounds flicker, a pistol pops
+        this.fx.flash(from, magic ? '#b48aff' : '#ffd890', e.text === 'shotgun' ? 46 : e.text === 'burst' || e.text === 'rifle' ? 16 : 22, e.text === 'shotgun' ? 0.18 : 0.08);
+        if (e.text === 'shotgun') this.particles.spray(from.clone().setY(1.1), '#ffcf7a', 14);
+        this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); });
         break;
       }
       case 'hit': {

@@ -65,7 +65,7 @@ describe('melee weapon groups', () => {
 
 describe('ranged weapon groups', () => {
   it('guns fire repeatedly at their neutral times and charge costs', () => {
-    for (const [group, time, cost] of [['pistol', 0.8, 1], ['shotgun', 1, 2], ['rifle', 1.2, 2]] as const) {
+    for (const [group, time, cost] of [['pistol', 0.6, 1], ['shotgun', 1, 2], ['rifle', 1.2, 2]] as const) {
       const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
       hold(g, group);
       g.s.hero.charge = 5;

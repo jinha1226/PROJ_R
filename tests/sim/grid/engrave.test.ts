@@ -154,7 +154,7 @@ describe('ranged and magic engravings', () => {
     g.act({ kind: 'shoot', target: f.id });
     const t = g.s.time;
     g.act({ kind: 'shoot', target: f.id });
-    expect(g.s.time - t).toBeCloseTo(0.8 * 0.7);
+    expect(g.s.time - t).toBeCloseTo(0.6 * 0.7);
     const third = g.act({ kind: 'shoot', target: f.id });
     expect(fired(third, 'rapid')).toBeGreaterThan(0);
     expect(third.find((e) => e.type === 'hit' && e.src === 'hero')!.crit).toBe(true);

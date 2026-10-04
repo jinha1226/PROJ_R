@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import type { Ent, GridState } from '../../sim/grid/types';
 import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActor';
 import type { WeaponLook } from './weaponMeshes';
+import { stanceFor } from './heroLook';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
 
@@ -12,7 +13,7 @@ const LEAP_HEIGHT = 0.9;
 
 /** Every kind is the same mannequin: colour, size and the weapon tell them apart. */
 const LOOK: Record<Ent['kind'], UalLook> = {
-  hero: { body: '#3f6fb0', trim: '#e0a64a', scale: 1, weapon: 'sword', idle: 'Sword_Idle' },
+  hero: { body: '#1d2630', trim: '#2c3946', scale: 1, weapon: 'sword', idle: 'Sword_Idle', suit: true },
   minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' },
   archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Idle_Loop' },
   brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
@@ -185,10 +186,14 @@ export class GridActors {
 
   /** Shows the weapon group a figure is holding. */
   setWeapon(id: string, kind: WeaponLook): void {
-    // ranged weapons rest at ease; melee keeps a guard stance
-    const idle = ['pistol', 'shotgun', 'rifle'].includes(kind) ? 'Pistol_Idle_Loop' : kind === 'bow' || kind === 'crossbow' || kind === 'staff' ? 'Idle_Loop' : 'Sword_Idle';
+    const idle = stanceFor(kind);
     if (id === 'hero') this.heroWeapon = kind;
     this.v(id)?.actor.setWeapon(kind, idle);
+  }
+
+  /** Lamps on the hero's suit for its filled engraving slots. */
+  setSuitLights(id: string, filled: number): void {
+    this.v(id)?.actor.setSuitLights(filled);
   }
 
   /** A one-off action (reload, opening a chest). */
@@ -200,7 +205,7 @@ export class GridActors {
   private meleeAnim(id: string): UalAnim {
     const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
     if (this.kindOf(id) === 'ghoul') return 'scratch';
-    if (w === 'dagger' || w === 'blade') return 'jab';
+    if (w === 'dagger' || w === 'blade' || w === 'none') return 'jab';
     if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'pistol' || w === 'shotgun' || w === 'rifle') return 'bash';
     return 'swing';
   }

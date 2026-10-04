@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '../../../src/core/rng';
 import { GridSim } from '../../../src/sim/grid/gridSim';
 import { hitChance } from '../../../src/sim/grid/combat';
-import { GUN_COST, GUNS, makeWeapon, rollEquipment } from '../../../src/sim/grid/items';
+import { GUN_COST, GUNS, makeWeapon, RIFLE_BURST, rollEquipment, shotgunFalloff, WEAPONS } from '../../../src/sim/grid/items';
 import { canFire, meleeAttack, rangedAttack, shootCell } from '../../../src/sim/grid/weapons';
 import { counterBlow } from '../../../src/sim/grid/combos';
 import { FOES } from '../../../src/sim/grid/types';
@@ -22,15 +22,15 @@ describe('ship guns and suit charge', () => {
     expect(s.floorItems.filter((f) => f.item.kind === 'weapon')).toEqual([]);
   });
 
-  it('spends one charge and 0.8 turns; empty charge refuses without time', () => {
+  it('spends one charge and 0.6 turns; empty charge refuses without time', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 7, y: 7 } }]);
     g.s.foes[0]!.nextAt = 100;
     g.act({ kind: 'shoot', target: 'f1' });
     expect(g.s.hero.charge).toBe(9);
-    expect(g.s.time).toBeCloseTo(0.8);
+    expect(g.s.time).toBeCloseTo(0.6);
     g.s.hero.charge = 0;
     expect(g.act({ kind: 'shoot', target: 'f1' }).map((e) => e.type)).toContain('blocked');
-    expect(g.s.time).toBeCloseTo(0.8);
+    expect(g.s.time).toBeCloseTo(0.6);
   });
 
   it.each([false, true])('shotgun hits and pushes three cells (diagonal=%s) for two charge', (diagonal) => {
@@ -42,7 +42,7 @@ describe('ship guns and suit charge', () => {
     expect(g.s.hero.charge).toBe(8);
     g.s.foes.forEach((f, i) => {
       const p = positions[i]!;
-      expect(f.hp).toBe(FOES.brute.hp - 5);
+      expect(f.hp).toBe(FOES.brute.hp - Math.round(5 * shotgunFalloff(Math.max(Math.abs(p.x - 4), Math.abs(p.y - 5)))));
       expect(f.pos).toEqual({ x: p.x + Math.sign(p.x - 4), y: p.y + Math.sign(p.y - 5) });
     });
   });
@@ -57,7 +57,7 @@ describe('ship guns and suit charge', () => {
     ['sword', 100, 0, true, 1], ['sword', 1, 0, true, 3],
     ['axe', 100, 0, true, 1], ['axe', 1, 0, true, 7],
     ['sword', 1, 9, true, 10], ['sword', 100, 0, false, 0],
-    ['pistol', 1, 0, true, 0],
+    ['pistol', 1, 0, true, 3],
   ] as const)('%s melee hp=%s charge=%s hit=%s ends at %s', (group, hp, charge, hit, expected) => {
     const g = sim(OPEN, { x: 5, y: 5 }, [4, 5, 6].map((y) => ({ kind: 'brute', pos: { x: 6, y } })));
     g.s.hero.gear.hands[0] = makeWeapon(group, 1);
@@ -112,9 +112,9 @@ describe('ship guns and suit charge', () => {
     g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
     const pistol = g.shotChance('f1')!;
     g.s.hero.gear.hands[0] = makeWeapon('rifle', 1);
-    expect(g.shotChance('f1')).toBeCloseTo(pistol + 0.15);
+    expect(g.shotChance('f1')).toBeCloseTo(pistol + 0.15 + WEAPONS.rifle.hit - WEAPONS.pistol.hit);
     expect(rangedAttack(g.s, 0, g.s.foes[0]!, hooks)).toBe(1.2);
-    expect(chances).toEqual([g.shotChance('f1')]);
+    expect(chances).toEqual(Array(RIFLE_BURST).fill(g.shotChance('f1')));
     expect(g.s.hero.charge).toBe(8);
   });
 
@@ -127,9 +127,20 @@ describe('ship guns and suit charge', () => {
     g.s.foes[2]!.hp = 1;
     rangedAttack(g.s, 0, g.s.foes[0]!, hooks);
     expect(rolls).toEqual([]);
-    expect(g.s.foes.map((f) => f.hp)).toEqual([FOES.brute.hp, FOES.brute.hp - 5, 0]);
+    expect(g.s.foes.map((f) => f.hp)).toEqual([FOES.brute.hp, FOES.brute.hp - Math.round(5 * shotgunFalloff(3)), 0]);
     expect(g.s.events.filter((e) => e.type === 'push').map((e) => e.src)).toEqual(['f2']);
     expect(g.s.hero.charge).toBe(8); // Shot kills never refill the suit.
+  });
+
+  it.each([['pistol', 'pistol'], ['empty hand', null]] as const)('a bash with a %s still earns melee hit and kill charge', (_, group) => {
+    const g = sim(OPEN, { x: 5, y: 5 }, [{ kind: 'minion', pos: { x: 6, y: 5 } }]);
+    g.s.hero.gear.hands[0] = group ? makeWeapon(group, 1) : null;
+    g.s.hero.charge = 0;
+    g.s.foes[0]!.hp = 1;
+    sureHits(g);
+    meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!);
+    expect(g.s.foes[0]!.alive).toBe(false);
+    expect(g.s.hero.charge).toBe(3);
   });
 
   it('a missed main sweep gives no hit charge even if both sides die', () => {

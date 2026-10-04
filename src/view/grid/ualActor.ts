@@ -3,13 +3,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { weaponMesh, type WeaponLook } from './weaponMeshes';
 import { buildBlockBody, type BlockLook } from './blockBody';
+import { buildSuitArmor, lightSuit } from './suitArmor';
 
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
 export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
-export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook }
+export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook; suit?: boolean }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
@@ -80,6 +81,7 @@ export class UalActor {
   private offHand: THREE.Object3D | undefined;
   private held: THREE.Object3D | null = null;
   private heldKind: WeaponLook | null = null;
+  private lamps: THREE.MeshStandardMaterial[] = [];
 
   constructor(private readonly lib: UalLibrary, private readonly look: UalLook) {
     this.idleClip = look.idle;
@@ -101,6 +103,7 @@ export class UalActor {
       });
       m.material = Array.isArray(m.material) ? tinted : tinted[0]!;
     });
+    if (look.suit) { const parts = buildSuitArmor(model); this.mats.push(...parts.mats); this.lamps = parts.lights; }
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
@@ -202,6 +205,11 @@ export class UalActor {
   flash(color: number, ms: number): void {
     this.flashColor.set(color);
     this.flashLeft = this.flashTotal = ms / 1000;
+  }
+
+  /** The suit's engraving lamps: one lit per filled slot. */
+  setSuitLights(filled: number): void {
+    lightSuit(this.lamps, filled);
   }
 
   /** See-through while invisible. */

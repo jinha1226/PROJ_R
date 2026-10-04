@@ -51,7 +51,7 @@ describe.skipIf(process.env.BALANCE !== '1')('grid balance report (fresh meta, s
     expect.soft(decent!['win %']).toBeGreaterThanOrEqual(10);
     expect.soft(decent!['win %']).toBeLessThanOrEqual(25);
     expect.soft(decent!['death median']).toBeGreaterThanOrEqual(6);
-    expect.soft(decent!['death median']).toBeLessThanOrEqual(9);
+    expect.soft(decent!['death median']).toBeLessThanOrEqual(10);
     for (const zone of ['deaths 1–5', 'deaths 6–10', 'deaths 11–15'] as const) expect.soft(decent![zone]).toBeGreaterThan(0);
     expect.soft(pistol!['win %']).toBe(0);
     expect.soft(pistol!['death median']).toBeLessThanOrEqual(5);

@@ -39,11 +39,17 @@ export const WEAPONS: Record<WeaponGroup, { melee: boolean; dmg: Range2; hit: nu
   axe: { melee: true, dmg: [[7, 11], [9, 14]], hit: 0.85, time: 1.4 },
   spear: { melee: true, dmg: [[5, 8], [7, 11]], hit: 0.88, time: 1 },
   mace: { melee: true, dmg: [[6, 9], [8, 12]], hit: 0.85, time: 1.2 },
-  pistol: { melee: false, dmg: [[4, 6], [4, 6]], hit: 0.85, time: 0.8, range: 7 },
+  pistol: { melee: false, dmg: [[4, 6], [4, 6]], hit: 0.9, time: 0.6, range: 7 },
   shotgun: { melee: false, dmg: [[5, 8], [5, 8]], hit: 0.9, time: 1, range: 4 },
-  rifle: { melee: false, dmg: [[8, 12], [8, 12]], hit: 0.85, time: 1.2, range: 9 },
+  // per bullet: a rifle shot is a burst of RIFLE_BURST
+  rifle: { melee: false, dmg: [[3, 5], [3, 5]], hit: 0.85, time: 1.2, range: 9 },
   staff: { melee: false, dmg: [[5, 8], [7, 10]], hit: 0.85, time: 1, range: 6 },
 };
+export const RIFLE_BURST = 3;
+/** game time between a burst's bullets (they play out one after another) */
+export const BURST_GAP = 0.4;
+/** A shotgun blast by distance: brutal point-blank, weak at the edge of its reach. */
+export const shotgunFalloff = (cells: number): number => (cells <= 1 ? 1.5 : cells === 2 ? 1 : 0.6);
 export const STAFF_CHARGES = 3;
 export const STAFF_RECHARGE = 8;
 

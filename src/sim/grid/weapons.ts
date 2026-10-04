@@ -7,7 +7,7 @@ import { buffOn } from './buffs';
 import { stow } from './consumables';
 import { potionName, scrollName } from './lore';
 import { activeWeapon, addToBag } from './gear';
-import { GUN_COST, isGun, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
+import { BURST_GAP, GUN_COST, isGun, RIFLE_BURST, shotgunFalloff, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
 import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
@@ -71,12 +71,12 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   s.events.push({ t, type: 'bump', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: armed && combo.finisher ? 'finisher' : undefined });
   h.target = foe.id;
   h.fx.acted = 'melee';
+  const eventStart = s.events.length;
   if (!w || !armed) {
     foe.awake = true;
-    strike(s, t, h, foe, HERO.bashHit, HERO.bash);
+    refillMelee(s, strike(s, t, h, foe, HERO.bashHit, HERO.bash), eventStart);
     return COST.bash;
   }
-  const eventStart = s.events.length;
   const def = WEAPONS[w.group];
   const dmg = heroDmg(s, w);
   // an invisible hero's blows land like sneak attacks
@@ -180,10 +180,17 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
     : [foe];
   // Resolve every hit at the original cells before pushes can move bodies into the blast.
   const hits = targets.map((f) => {
-    const mult = (f.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, f);
+    const spread = w.group === 'shotgun' ? shotgunFalloff(dist(h.pos, f.pos)) : 1;
+    const mult = (f.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, f) * spread;
     f.awake = true;
     return strike(s, t, h, f, chanceAt(h.pos, f.pos), dmg, mult);
   });
+  // the rifle's burst: the rest of the bullets follow at the same target until it falls
+  if (w.group === 'rifle') for (let k = 1; k < RIFLE_BURST && foe.alive; k++) {
+    const at = t + k * BURST_GAP;
+    s.events.push({ t: at, type: 'shoot', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: 'burst' });
+    if (strike(s, at, h, foe, chanceAt(h.pos, foe.pos), dmg, rapid.mult * blowMult(s, at, foe))) hits[0] = true;
+  }
   h.charge -= GUN_COST[w.group];
   hooks.noise(h.pos, w.group === 'pistol' ? 4 : 6);
   h.fx.nextMult = 1;

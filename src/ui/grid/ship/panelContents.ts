@@ -2,6 +2,7 @@ import { ENGRAVES, type EngraveId } from '../../../sim/grid/engraveCore';
 import { SHOP, unlockedGuns, type MetaState } from '../../../sim/grid/meta';
 import type { RunOptions } from '../../../sim/grid/runSetup';
 import { STATIONS, type StationId } from '../../../sim/grid/ship';
+import { GROUP_NOTE } from '../weaponInfo';
 export const GUN_NAMES = { pistol: '권총', shotgun: '산탄총', rifle: '소총' };
 export interface PanelChoice { id: string; label: string; enabled: boolean; selected: boolean }
 export function launchOptions(m: MetaState, o: RunOptions): RunOptions {
@@ -18,7 +19,7 @@ export function panelContents(m: MetaState, id: StationId, options: RunOptions, 
     .map(e => ({ id: e.id, label: `${e.name} · ⚡${e.cost}`, enabled: e.can(m) && m.energy >= e.cost }));
   const lines: string[] = [];
   let choices: PanelChoice[] = [];
-  if (id === 'armory') choices = unlockedGuns(m).map(g => ({ id: g, label: GUN_NAMES[g], enabled: true, selected: o.gun === g }));
+  if (id === 'armory') choices = unlockedGuns(m).map(g => ({ id: g, label: `${GUN_NAMES[g]} — ${GROUP_NOTE[g]}`, enabled: true, selected: o.gun === g }));
   if (id === 'nav') {
     choices = [1, ...(m.facilities.navCrypt ? [6] : []), ...(m.facilities.navRuins ? [11] : [])].map(n => ({ id: String(n), label: `${n}층 출발`, enabled: true, selected: o.start === n }));
     lines.push('지름길: 5층·10층 수호자 처치 필요');

@@ -17,6 +17,9 @@ const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: nu
   rifle: { name: 'Gun_Sniper', length: 0.95, grip: 0.4, gun: true },
 };
 
+/** hand_r-local turn that points a pack gun (muzzle −x, top +y) straight ahead of the body, measured in the pistol stance */
+const GUN_IN_HAND = new THREE.Quaternion(0.438, -0.576, -0.434, 0.536).normalize();
+
 /** The Quaternius weapon pack: pack models for the weapon looks it covers (the rest stay block-built). */
 export class WeaponKit {
   private constructor(private readonly src: Map<string, THREE.Object3D>) {}
@@ -59,7 +62,7 @@ export class WeaponKit {
     obj.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true; });
     const holder = new THREE.Group();
     holder.add(obj);
-    holder.rotation.y = Math.PI / 2;
+    holder.quaternion.copy(GUN_IN_HAND);
     return holder;
   }
 }
