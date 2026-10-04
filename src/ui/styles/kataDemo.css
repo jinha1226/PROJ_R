@@ -31,3 +31,13 @@
   .kata-head { flex-wrap: wrap; }
   .kata-btns { margin-top: auto; padding-top: 6px; }
 }
+.kata-tag u { text-decoration: none; color: #02080a; background: var(--t-fg); padding: 0 4px; }
+.kata-slots { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); transform: translateX(-50%); width: min(360px, 60vw); display: flex; gap: 4px; z-index: 5; font-size: 12px; }
+@media (orientation: landscape) { .kata-slots { left: calc(50% + 130px); } }
+.kata-slot { height: 40px; border: 1px dashed var(--t-line); background: var(--t-bg); color: var(--t-dim); display: grid; place-items: center; align-content: center; line-height: 1.2; }
+.kata-slot small { font-size: 10px; color: var(--t-dim); }
+.kata-slot.on { border-style: solid; border-color: var(--t-fg); color: var(--t-fg); }
+.kata-slot.on small { color: var(--t-ch); }
+.kata-slot.run { background: var(--t-fg); color: #02080a; }
+.kata-go { flex: 0 0 64px; height: 40px; display: grid; place-items: center; border: 1px solid var(--t-warn); color: var(--t-warn); background: var(--t-bg); }
+.kata-go.run { background: var(--t-warn); color: #02080a; }

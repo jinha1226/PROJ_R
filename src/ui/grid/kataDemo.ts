@@ -32,11 +32,10 @@ export class KataDemo implements Screen {
   mount(root: HTMLElement): void {
     this.el.className = 'screen grid landscape kata';
     this.el.innerHTML = `<div class="grid-stage"></div>
-      <div class="kata-bars"></div><div class="kata-slow">● 다시보기 ×0.3</div>
+      <div class="kata-bars"></div><div class="kata-slots"></div><div class="kata-slow">● 다시보기 ×0.3</div>
       <div class="kata-panel">
         <div class="kata-head"><b class="kata-name"></b><span class="kata-clock"></span><span class="kata-step"></span></div>
         <p class="kata-cap"></p>
-        <ul class="kata-opts"></ul>
         <div class="kata-btns">
           <button type="button" class="btn" data-k="next">다음 ▸</button>
           <button type="button" class="btn" data-k="replay">다시보기 ×0.3</button>
@@ -111,7 +110,7 @@ export class KataDemo implements Screen {
     this.load(this.scene);
     const play = () => {
       if (this.step >= this.current.steps.length - 1) { this.auto = setTimeout(() => { this.speed = 1; this.el.classList.remove('slow'); }, 1800); return; }
-      const slow = !!this.current.steps[this.step + 1]!.slow;
+      const slow = !!this.current.steps[this.step + 1]!.exec;
       this.next(slow ? SLOW : 1);
       this.auto = setTimeout(play, slow ? 2600 : 900);
     };
@@ -123,8 +122,13 @@ export class KataDemo implements Screen {
     this.el.querySelector('.kata-name')!.textContent = `예시 ${this.scene + 1} · ${this.current.name}`;
     this.el.querySelector('.kata-step')!.textContent = `${this.step + 1}/${this.current.steps.length}`;
     this.el.querySelector('.kata-cap')!.textContent = st.caption;
-    this.el.querySelector('.kata-clock')!.textContent = `시간 ${st.clock.toFixed(1)} · 충전 ${st.charge}/6`;
-    this.el.querySelector('.kata-opts')!.innerHTML = (st.opts ?? []).map(([t, pick]) => `<li class="${pick ? 'pick' : ''}">${t}</li>`).join('');
+    this.el.querySelector('.kata-clock')!.textContent = `충전 ${st.charge}/6`;
+    // the kata bar: three beats, filled by the plan; a two-beat move spans two cells
+    const used = st.slots.reduce((n, [, c]) => n + c, 0);
+    const cells = st.slots.map(([label, cost]) => `<div class="kata-slot on${st.exec ? ' run' : ''}" style="flex:${cost}">${label}<small>${'●'.repeat(cost)}</small></div>`);
+    for (let i = used; i < 3; i++) cells.push('<div class="kata-slot" style="flex:1"><small>○</small></div>');
+    const bar = this.el.querySelector<HTMLElement>('.kata-slots')!;
+    bar.innerHTML = `${cells.join('')}<div class="kata-go${st.exec ? ' run' : ''}">${st.exec ? '실행 중' : '실행 ▶'}</div>`;
     this.rt?.fx.setAim(st.aims.map(([a, b]) => [new THREE.Vector3(a.x * CELL, 0, a.y * CELL), new THREE.Vector3(b.x * CELL, 0, b.y * CELL)]));
   }
 
@@ -138,7 +142,7 @@ export class KataDemo implements Screen {
       const p = rt.actors.pos(id);
       if (!p) continue;
       const { left, top } = rt.project(p.clone().setY(2.1));
-      html.push(`<div class="kata-tag" style="left:${left}px;top:${top}px">${t.stun ? '<em>기절</em>' : ''}<span>${'♥'.repeat(t.h)}<i>${'♥'.repeat(t.m - t.h)}</i></span>${t.intent ? `<b>${t.intent}</b>` : ''}</div>`);
+      html.push(`<div class="kata-tag" style="left:${left}px;top:${top}px">${t.stun ? '<em>기절</em>' : ''}<span>${'♥'.repeat(t.h)}<i>${'♥'.repeat(t.m - t.h)}</i></span>${t.intent ? `<b>${t.intent}</b>` : ''}${t.fate ? `<u>${t.fate}</u>` : ''}</div>`);
     }
     const out = html.join('');
     if (this.tags.innerHTML !== out) this.tags.innerHTML = out;
