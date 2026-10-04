@@ -13,7 +13,10 @@
 .wb-tabs button:focus-visible, .wb-close:focus-visible, .wb-part:focus-visible { outline: 1px solid var(--t-warn); }
 
 .wb-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); min-height: 0; }
-.wb-draw { display: grid; place-items: center; padding: 6px; min-height: 0; border-right: 1px solid var(--t-line); }
+.wb-draw { display: grid; place-items: center; padding: 6px; min-height: 0; border-right: 1px solid var(--t-line); container-type: size; }
+.wb-stage { position: relative; width: min(100cqw, 164cqh); aspect-ratio: 400 / 244; }
+.wb-px, .wb-over { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wb-px { image-rendering: pixelated; image-rendering: crisp-edges; }
 .wb-svg { width: 100%; height: 100%; max-height: 100%; }
 .wb-grid { fill: none; stroke: #4b6b6422; stroke-width: 0.5; }
 .wb-body path { fill: #0b1a1c; stroke: var(--t-dim); stroke-width: 1.2; stroke-linejoin: round; }

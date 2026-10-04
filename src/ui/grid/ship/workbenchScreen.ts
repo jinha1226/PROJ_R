@@ -1,4 +1,4 @@
-import { schematic } from './workbenchArt';
+import { artSvg, overlaySvg, paintArt, type ArtColors } from './workbenchArt';
 import { MATERIAL_NAME, statLine, type Material, type ModSlot, type WorkbenchModel, type WorkbenchOption } from './workbenchTypes';
 import '../../styles/workbench.css';
 
@@ -98,7 +98,7 @@ export class WorkbenchScreen {
         </div>
         <button type="button" class="wb-close" data-close aria-label="닫기">✕</button></header>
       <div class="wb-main">
-        <div class="wb-draw">${schematic(this.tab, m.slots, sel.slot, this.flash)}</div>
+        <div class="wb-draw"><div class="wb-stage"><canvas class="wb-px" width="200" height="122"></canvas>${overlaySvg(this.tab, m.slots, sel.slot)}</div></div>
         <aside class="wb-side">
           <div class="wb-slot"><span>${sel.label}</span>${sel.fitted ? sel.fitted.name : '비어 있음'}</div>
           <ul class="wb-opts">${opts.map((o) => this.option(o)).join('')}</ul>
@@ -106,5 +106,16 @@ export class WorkbenchScreen {
         </aside>
       </div>
       <footer class="wb-mats">${mats}</footer>`;
+    const draw = () => paintArt(this.el.querySelector<HTMLCanvasElement>('.wb-px')!, artSvg(this.tab, m.slots, sel.slot, this.flash, this.colors()));
+    draw();
+    // once attached the theme's colours can be read
+    requestAnimationFrame(draw);
+  }
+
+  /** The theme's colours for the canvas drawing (CSS variables cannot reach into it). */
+  private colors(): ArtColors {
+    const css = getComputedStyle(this.el);
+    const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+    return { fg: v('--t-fg', '#5dff8a'), dim: v('--t-dim', '#34a85c'), line: v('--t-line', '#1f7a3e'), warn: v('--t-warn', '#e6ffb0'), ch: v('--t-ch', '#9dffb8'), fill: '#04200b', fitted: '#073a16' };
   }
 }

@@ -22,8 +22,8 @@ import { clearRun, loadHall, loadRun } from './save';
 const root = document.getElementById('app')!;
 const router = new Router(root);
 const params = new URLSearchParams(location.search);
-// the pixel phosphor terminal look (trial: ?ui=pip)
-if (params.get('ui') === 'pip' || params.get('pip')) document.documentElement.classList.add('ui-pip');
+// the pixel phosphor terminal look is the default (?ui=classic shows the older teal terminal)
+if (params.get('ui') !== 'classic') document.documentElement.classList.add('ui-pip');
 const urlSeed = Number(params.get('seed')) || 0;
 let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: urlSeed || 1 };
 
