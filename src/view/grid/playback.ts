@@ -16,6 +16,8 @@ interface Cue { at: number; ev: GEvent }
 function holdAfter(ev: GEvent): number {
   if (ev.type === 'move') return ev.text === 'leap' ? 0.26 : ev.text === 'dash' ? 0.1 : 0;
   if (ev.type === 'dodge' || ev.type === 'parry') return 0.14;
+  // an engraving's name shows a beat before the move it set off (a relay shot does not blur into the blow)
+  if (ev.type === 'engrave') return 0.12;
   return ev.type === 'push' ? 0.12 : 0;
 }
 

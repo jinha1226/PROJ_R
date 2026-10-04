@@ -69,6 +69,8 @@ export class GridFx {
   }
 
   slow(sec: number, scale: number): void {
+    // a short slow never cuts a longer one short; the slower of the two wins while both run
+    if (this.slowLeft > sec) { this.slowScale = Math.min(this.slowScale, scale); return; }
     this.slowLeft = sec;
     this.slowScale = scale;
   }
