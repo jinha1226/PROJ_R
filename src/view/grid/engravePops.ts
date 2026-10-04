@@ -22,15 +22,16 @@ export class EngravePops {
   }
 
   engrave(id: string): void {
-    const def = ENGRAVES[id as EngraveId];
-    if (!def) return;
+    // a name that is not an engraving id is shown as it is (scripted scenes)
+    const name = ENGRAVES[id as EngraveId]?.name ?? (/[가-힣]/.test(id) ? id : '');
+    if (!name) return;
     // the same name again just refreshes its line
     const had = this.pops.find((p) => p.el.dataset.id === id);
     if (had) { had.left = POP_SEC; this.list.prepend(had.el); return; }
     const el = document.createElement('div');
     el.className = 'gpop';
     el.dataset.id = id;
-    el.textContent = def.name;
+    el.textContent = name;
     this.list.prepend(el);
     this.pops.unshift({ el, left: POP_SEC });
     for (const p of this.pops.splice(MAX_POPS)) p.el.remove();

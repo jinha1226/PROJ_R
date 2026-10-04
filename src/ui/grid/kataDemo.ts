@@ -32,10 +32,11 @@ export class KataDemo implements Screen {
   mount(root: HTMLElement): void {
     this.el.className = 'screen grid landscape kata';
     this.el.innerHTML = `<div class="grid-stage"></div>
-      <div class="kata-bars"></div><div class="kata-slots"></div><div class="kata-slow">● 다시보기 ×0.3</div>
+      <div class="kata-bars"></div><div class="kata-slow">● 슬로모</div>
       <div class="kata-panel">
         <div class="kata-head"><b class="kata-name"></b><span class="kata-clock"></span><span class="kata-step"></span></div>
         <p class="kata-cap"></p>
+        <ol class="kata-chain"></ol>
         <div class="kata-btns">
           <button type="button" class="btn" data-k="next">다음 ▸</button>
           <button type="button" class="btn" data-k="replay">다시보기 ×0.3</button>
@@ -74,21 +75,22 @@ export class KataDemo implements Screen {
   /** Builds the scene from its first frame (a fresh runtime puts every figure in place at once). */
   private load(scene: number): void {
     clearTimeout(this.auto);
+    clearTimeout(this.slowT);
     this.scene = scene;
     this.step = 0;
-    this.speed = 1;
-    this.el.classList.remove('slow');
+    this.setSpeed(1);
     const pixel = this.rt?.pixelated ?? true;
     this.rt?.dispose();
     this.stage.replaceChildren();
     this.sim = GridSim.fromState(this.current.setup());
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, isTouchDevice());
     this.rt.pixelated = pixel;
+    this.rt.actors.autoHands = true;
     this.rt.setZoom(10);
     this.show();
   }
 
-  /** Plays the next step at the given speed. */
+  /** Plays the next step; a long chain turns to slow motion where it peaks (all of it in a replay). */
   private next(speed: number): void {
     const steps = this.current.steps;
     if (!this.sim || !this.rt || this.step >= steps.length - 1) return;
@@ -98,21 +100,31 @@ export class KataDemo implements Screen {
     const events = st.run?.(s) ?? [];
     for (const e of events) e.t += s.time;
     refreshSight(s);
-    this.speed = speed;
-    this.el.classList.toggle('slow', speed < 1);
+    this.setSpeed(speed);
+    if (st.slowAt !== undefined && speed === 1) {
+      clearTimeout(this.slowT);
+      // the show plays one game turn in TURN_SEC (0.18 s)
+      this.slowT = setTimeout(() => { this.setSpeed(SLOW); this.slowT = setTimeout(() => this.setSpeed(1), 1700); }, st.slowAt * 180);
+    }
     this.rt.apply(events, s.time);
-    s.time += 1;
+    s.time += 2;
     this.show();
+  }
+
+  private slowT: ReturnType<typeof setTimeout> | undefined;
+
+  private setSpeed(v: number): void {
+    this.speed = v;
+    this.el.classList.toggle('slow', v < 1);
   }
 
   /** The whole scene again from the top, the decisive steps in slow motion. */
   private replay(): void {
     this.load(this.scene);
     const play = () => {
-      if (this.step >= this.current.steps.length - 1) { this.auto = setTimeout(() => { this.speed = 1; this.el.classList.remove('slow'); }, 1800); return; }
-      const slow = !!this.current.steps[this.step + 1]!.exec;
-      this.next(slow ? SLOW : 1);
-      this.auto = setTimeout(play, slow ? 2600 : 900);
+      if (this.step >= this.current.steps.length - 1) { this.auto = setTimeout(() => this.setSpeed(1), 2600); return; }
+      this.next(SLOW);
+      this.auto = setTimeout(play, 4200);
     };
     this.auto = setTimeout(play, 600);
   }
@@ -121,14 +133,9 @@ export class KataDemo implements Screen {
     const st = this.current.steps[this.step]!;
     this.el.querySelector('.kata-name')!.textContent = `예시 ${this.scene + 1} · ${this.current.name}`;
     this.el.querySelector('.kata-step')!.textContent = `${this.step + 1}/${this.current.steps.length}`;
-    this.el.querySelector('.kata-cap')!.textContent = st.caption;
-    this.el.querySelector('.kata-clock')!.textContent = `충전 ${st.charge}/6`;
-    // the kata bar: three beats, filled by the plan; a two-beat move spans two cells
-    const used = st.slots.reduce((n, [, c]) => n + c, 0);
-    const cells = st.slots.map(([label, cost]) => `<div class="kata-slot on${st.exec ? ' run' : ''}" style="flex:${cost}">${label}<small>${'●'.repeat(cost)}</small></div>`);
-    for (let i = used; i < 3; i++) cells.push('<div class="kata-slot" style="flex:1"><small>○</small></div>');
-    const bar = this.el.querySelector<HTMLElement>('.kata-slots')!;
-    bar.innerHTML = `${cells.join('')}<div class="kata-go${st.exec ? ' run' : ''}">${st.exec ? '실행 중' : '실행 ▶'}</div>`;
+    this.el.querySelector('.kata-cap')!.textContent = st.input;
+    this.el.querySelector('.kata-clock')!.textContent = '';
+    this.el.querySelector('.kata-chain')!.innerHTML = st.chain.map((c) => `<li>${c}</li>`).join('');
     this.rt?.fx.setAim(st.aims.map(([a, b]) => [new THREE.Vector3(a.x * CELL, 0, a.y * CELL), new THREE.Vector3(b.x * CELL, 0, b.y * CELL)]));
   }
 
@@ -141,8 +148,8 @@ export class KataDemo implements Screen {
     for (const [id, t] of Object.entries(tags)) {
       const p = rt.actors.pos(id);
       if (!p) continue;
-      const { left, top } = rt.project(p.clone().setY(2.1));
-      html.push(`<div class="kata-tag" style="left:${left}px;top:${top}px">${t.stun ? '<em>기절</em>' : ''}<span>${'♥'.repeat(t.h)}<i>${'♥'.repeat(t.m - t.h)}</i></span>${t.intent ? `<b>${t.intent}</b>` : ''}${t.fate ? `<u>${t.fate}</u>` : ''}</div>`);
+      const { left, top } = rt.project(p.clone().setY(2.5));
+      if (t.intent || t.stun) html.push(`<div class="kata-tag" style="left:${left}px;top:${top}px">${t.stun ? '<em>기절</em>' : ''}${t.intent ? `<b>${t.intent}</b>` : ''}</div>`);
     }
     const out = html.join('');
     if (this.tags.innerHTML !== out) this.tags.innerHTML = out;

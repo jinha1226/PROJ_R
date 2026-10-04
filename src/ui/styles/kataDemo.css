@@ -41,3 +41,7 @@
 .kata-slot.run { background: var(--t-fg); color: #02080a; }
 .kata-go { flex: 0 0 64px; height: 40px; display: grid; place-items: center; border: 1px solid var(--t-warn); color: var(--t-warn); background: var(--t-bg); }
 .kata-go.run { background: var(--t-warn); color: #02080a; }
+.kata-chain { margin: 0 8px; padding: 0; list-style: none; display: grid; gap: 3px; counter-reset: c; }
+.kata-chain li { counter-increment: c; color: var(--t-fg); padding-left: 20px; position: relative; }
+.kata-chain li::before { content: counter(c); position: absolute; left: 0; color: #02080a; background: var(--t-warn); width: 14px; text-align: center; }
+.kata-slow { color: var(--t-warn); }

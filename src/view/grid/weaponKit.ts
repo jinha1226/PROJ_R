@@ -20,6 +20,10 @@ const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: nu
 /** hand_r-local turn that points a pack gun (muzzle −x, top +y) straight ahead of the body, measured in the pistol stance */
 const GUN_IN_HAND = new THREE.Quaternion(0.438, -0.576, -0.434, 0.536).normalize();
 
+/** hand_l-local turns for the off hand, measured in the stance of the other weapon: a gun held low and forward, a blade in reverse grip pointing down */
+const GUN_IN_LEFT = new THREE.Quaternion(0.766, -0.565, -0.213, 0.222).normalize();
+const BLADE_IN_LEFT = new THREE.Quaternion(0.364, -0.593, 0.663, 0.123).normalize();
+
 /** The Quaternius weapon pack: pack models for the weapon looks it covers (the rest stay block-built). */
 export class WeaponKit {
   private constructor(private readonly src: Map<string, THREE.Object3D>) {}
@@ -51,6 +55,15 @@ export class WeaponKit {
     holder.add(obj);
     if (!m.crosswise) holder.rotation.x = Math.PI / 2;
     return holder;
+  }
+
+  /** The same model for the off hand (left), turned to its own grip; null without a pack model. */
+  makeOff(kind: WeaponLook): THREE.Object3D | null {
+    const m = MODEL[kind];
+    const obj = this.make(kind);
+    if (!obj || !m || m.crosswise) return obj;
+    obj.quaternion.copy(m.gun ? GUN_IN_LEFT : BLADE_IN_LEFT);
+    return obj;
   }
 
   /** A gun in the hand: barrel forward (+z like the block guns), the grip a little below the hand. */

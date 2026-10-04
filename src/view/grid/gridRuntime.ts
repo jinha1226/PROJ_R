@@ -137,7 +137,8 @@ export class GridRuntime {
     this.items.sync(s);
     this.elements.sync(s);
     for (const e of [s.hero, ...s.foes]) this.actors.setStatus(e.id, e.status);
-    this.actors.setWeapon('hero', heroLook(activeWeapon(s.hero.gear)?.group, this.terrain instanceof ShipTerrain));
+    const g = s.hero.gear;
+    this.actors.setWeapon('hero', heroLook(activeWeapon(g)?.group, this.terrain instanceof ShipTerrain), heroLook(g.hands[g.active === 0 ? 1 : 0]?.group, this.terrain instanceof ShipTerrain));
     this.actors.setGhost('hero', buffOn(s.hero, 'invis', s.time));
     this.actors.setSuitLights('hero', s.hero.suit.length);
     this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));

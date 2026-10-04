@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { weaponMesh, type WeaponLook } from './weaponMeshes';
+import { weaponKit } from './weaponKit';
 import { buildBlockBody, type BlockLook } from './blockBody';
 import { buildSuitArmor, lightSuit } from './suitArmor';
 import { shapeBones, type BodyShape, type Species } from './species';
@@ -10,12 +11,12 @@ import { buildSpeciesParts } from './speciesParts';
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
-export type UalAnim = 'idle' | 'run' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
+export type UalAnim = 'idle' | 'run' | 'roll' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
 export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook; suit?: boolean; shape?: BodyShape; species?: Species }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
-  run: 'Jog_Fwd_Loop', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
+  run: 'Jog_Fwd_Loop', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
   dash: 'Sword_Dash_RM', leapUp: 'NinjaJump_Start', leapLand: 'NinjaJump_Land', finisher: 'Sword_Regular_C', shove: 'Shield_OneShot', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
   reload: 'Pistol_Reload', knockback: 'Hit_Knockback', death: 'Death01', interact: 'Chest_Open', drink: 'Consume',
 };
@@ -84,6 +85,8 @@ export class UalActor {
   private held: THREE.Object3D | null = null;
   private heldKind: WeaponLook | null = null;
   private lamps: THREE.MeshStandardMaterial[] = [];
+  private off: THREE.Object3D | null = null;
+  private offKind: WeaponLook = 'none';
   private shaped: [THREE.Object3D, THREE.Vector3][] = [];
   private hunch: [THREE.Object3D, THREE.Quaternion] | null = null;
   private readonly hunched = new THREE.Quaternion(0, 0, 0, 0);
@@ -188,6 +191,15 @@ export class UalActor {
     else this.hand.add(this.held);
   }
 
+  /** The weapon of the other hand, shown in the left hand ('none' clears it). */
+  setOffhand(kind: WeaponLook): void {
+    if (kind === this.offKind || !this.offHand) return;
+    this.off?.parent?.remove(this.off);
+    this.offKind = kind;
+    this.off = kind === 'none' ? null : weaponKit()?.makeOff(kind) ?? null;
+    if (this.off) this.offHand.add(this.off);
+  }
+
   /** The one-off action now playing (null while idling or running). */
   get busyWith(): UalAnim | null {
     return this.busyKind;
@@ -246,7 +258,7 @@ export class UalActor {
     if (this.dead) return;
     this.dead = true;
     // a body on its back reads like a raised-arms pose from above: darken it so the dead read as dead
-    for (const m of this.mats) m.color.multiplyScalar(0.45);
+    for (const m of this.mats) m.color.multiplyScalar(0.08); // linear colour: about a third as bright on screen
     this.dropUpper(0.05);
     this.start(CLIP.death, false, 1.3, 0.05);
   }

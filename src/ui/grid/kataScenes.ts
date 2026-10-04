@@ -2,18 +2,17 @@ import { makeWeapon } from '../../sim/grid/items';
 import { newState, refreshSight } from '../../sim/grid/state';
 import type { Cell, FoeKind, GEvent, GridMap, GridState } from '../../sim/grid/types';
 
-/** What the demo shows over each figure: hearts left of how many, and the move it declared (or what the plan will do to it). */
-export interface Tag { h: number; m: number; intent?: string; stun?: boolean; fate?: string }
+/** The move a foe has declared, shown over it. */
+export interface Tag { intent?: string; stun?: boolean }
 export interface Step {
-  caption: string;
-  /** the kata planned so far: label and slot cost */
-  slots: [string, number][];
-  charge: number;
+  /** what the player did, and what fired from it */
+  input: string;
+  chain: string[];
   run?: (s: GridState) => GEvent[];
   tags: Record<string, Tag>;
   aims: [Cell, Cell][];
-  /** the execute step: the whole round in one go */
-  exec?: boolean;
+  /** game time (from the step's start) where the chain turns to slow motion */
+  slowAt?: number;
 }
 export interface Scene { name: string; setup: () => GridState; steps: Step[] }
 
@@ -29,76 +28,94 @@ function room(hero: Cell, foes: { kind: FoeKind; pos: Cell }[]): GridState {
 }
 
 const foe = (s: GridState, id: string) => s.foes.find((f) => f.id === id)!;
-const killed = (s: GridState, id: string) => { const f = foe(s, id); f.hp = 0; f.alive = false; };
-const shot = (t: number, dst: string, to: Cell, from: Cell, dmg = 1, kill = true, src = 'hero', text = 'pistol'): GEvent[] => [
+const hurt = (s: GridState, id: string, frac: number) => { const f = foe(s, id); f.hp = Math.max(0, Math.round(f.maxHp * frac)); f.alive = f.hp > 0; };
+const pop = (t: number, name: string): GEvent => ({ t, type: 'engrave', src: 'hero', text: name });
+const shoot = (t: number, dst: string, from: Cell, to: Cell, kill: boolean, text = 'pistol', src = 'hero'): GEvent[] => [
   { t, type: 'shoot', src, dst, from: { ...from }, to: { ...to }, text },
-  { t: t + 0.02, type: 'hit', src, dst, amount: dmg, crit: kill, to: { ...to } },
+  { t: t + 0.02, type: 'hit', src, dst, amount: 6, crit: kill, to: { ...to } },
   ...(kill ? [{ t: t + 0.02, type: 'die' as const, src, dst, to: { ...to } }] : []),
 ];
+const slash = (t: number, dst: string, from: Cell, to: Cell, kill: boolean, amount = 8): GEvent[] => [
+  { t, type: 'bump', src: 'hero', dst, from: { ...from }, to: { ...to } },
+  { t: t + 0.08, type: 'hit', src: 'hero', dst, amount, crit: kill, to: { ...to } },
+  ...(kill ? [{ t: t + 0.08, type: 'die' as const, src: 'hero', dst, to: { ...to } }] : []),
+];
 
-/** Three goblins close in, a crossbow aims at the agent's cell: spin shot the ring, roll out of the line. */
+/** One slash: the blade kill fires the gun, the gun kill fires a dash; later a parry stuns and the stun calls the execution. */
+const relay: Scene = {
+  name: '칼 → 총 → 칼',
+  setup: () => room({ x: 2, y: 3 }, [{ kind: 'minion', pos: { x: 3, y: 3 } }, { kind: 'minion', pos: { x: 4, y: 1 } }, { kind: 'brute', pos: { x: 5, y: 3 } }]),
+  steps: [
+    { input: '권총을 든 요원, 왼손엔 요원 칼. 고블린이 붙었고 홉고블린이 다가온다.', chain: [],
+      tags: { f1: { intent: '공격' }, f2: { intent: '접근' }, f3: { intent: '접근' } }, aims: [] },
+    { input: '입력: 붙은 고블린 베기 (한 번)', chain: ['칼로 처치 → 총 연계: 가장 가까운 적에게 한 발', '총으로 처치 → 칼 연계: 2칸 앞 적에게 돌진 베기', '연쇄 ×3 → 슬로모, 다음 행동 0턴'], slowAt: 0.9,
+      run: (s) => {
+        hurt(s, 'f1', 0); hurt(s, 'f2', 0); hurt(s, 'f3', 0.55);
+        s.hero.pos = { x: 4, y: 3 };
+        return [
+          ...slash(0, 'f1', { x: 2, y: 3 }, { x: 3, y: 3 }, true),
+          pop(0.3, '총 연계'),
+          ...shoot(0.4, 'f2', { x: 2, y: 3 }, { x: 4, y: 1 }, true),
+          pop(0.75, '칼 연계'),
+          { t: 0.85, type: 'move', src: 'hero', from: { x: 2, y: 3 }, to: { x: 4, y: 3 }, text: 'dash' },
+          ...slash(1.05, 'f3', { x: 4, y: 3 }, { x: 5, y: 3 }, false, 9),
+          { t: 1.15, type: 'combo', src: 'hero', dst: 'f3', amount: 3 },
+        ];
+      },
+      tags: { f3: { intent: '내려치기' } }, aims: [] },
+    { input: '홉고블린의 내려치기 — 칼로 받아낸다', chain: ['패링 → 칼 반격 + 기절', '기절한 적 옆 → 처형: 총구를 대고 한 발'], slowAt: 0.5,
+      run: (s) => {
+        hurt(s, 'f3', 0);
+        return [
+          { t: 0, type: 'bump', src: 'f3', dst: 'hero', from: { x: 5, y: 3 }, to: { x: 4, y: 3 } },
+          { t: 0.1, type: 'parry', src: 'hero', dst: 'f3' },
+          pop(0.2, '되받아치기'),
+          ...slash(0.3, 'f3', { x: 4, y: 3 }, { x: 5, y: 3 }, false, 5),
+          { t: 0.42, type: 'stun', src: 'hero', dst: 'f3', to: { x: 5, y: 3 } },
+          pop(0.6, '처형'),
+          ...shoot(0.75, 'f3', { x: 4, y: 3 }, { x: 5, y: 3 }, true),
+        ];
+      },
+      tags: {}, aims: [] },
+  ],
+};
+
+/** Surrounded: one slash with two more foes adjacent fires the spin shot; a dodged bolt fires the counter shot. */
 const ring: Scene = {
-  name: '포위 탈출',
-  setup: () => room({ x: 3, y: 3 }, [{ kind: 'minion', pos: { x: 2, y: 3 } }, { kind: 'minion', pos: { x: 4, y: 2 } }, { kind: 'minion', pos: { x: 3, y: 4 } }, { kind: 'archer', pos: { x: 7, y: 3 } }]),
+  name: '포위 · 회피',
+  setup: () => room({ x: 4, y: 3 }, [{ kind: 'minion', pos: { x: 3, y: 3 } }, { kind: 'minion', pos: { x: 5, y: 3 } }, { kind: 'minion', pos: { x: 4, y: 4 } }, { kind: 'archer', pos: { x: 7, y: 1 } }]),
   steps: [
-    { caption: '적 선언: 고블린 셋이 덤비고, 석궁병이 내 칸을 노린다.', slots: [], charge: 6,
-      tags: { f1: { h: 1, m: 1, intent: '공격' }, f2: { h: 1, m: 1, intent: '공격' }, f3: { h: 1, m: 1, intent: '공격' }, f4: { h: 2, m: 2, intent: '조준' } }, aims: [[{ x: 7, y: 3 }, { x: 4, y: 3 }]] },
-    { caption: '1~2칸: 회전 사격 (충전 3). 붙은 셋에게 한 발씩.', slots: [['회전 사격', 2]], charge: 3,
-      tags: { f1: { h: 1, m: 1, fate: '처치' }, f2: { h: 1, m: 1, fate: '처치' }, f3: { h: 1, m: 1, fate: '처치' }, f4: { h: 2, m: 2, intent: '조준' } }, aims: [[{ x: 7, y: 3 }, { x: 4, y: 3 }]] },
-    { caption: '3칸: 위로 구르기. 화살은 빈 칸에 꽂힌다.', slots: [['회전 사격', 2], ['구르기', 1]], charge: 3,
-      tags: { f1: { h: 1, m: 1, fate: '처치' }, f2: { h: 1, m: 1, fate: '처치' }, f3: { h: 1, m: 1, fate: '처치' }, f4: { h: 2, m: 2, intent: '빗나감' } }, aims: [[{ x: 7, y: 3 }, { x: 4, y: 3 }]] },
-    { caption: '실행.', slots: [['회전 사격', 2], ['구르기', 1]], charge: 3, exec: true,
+    { input: '고블린 셋에게 포위, 구석의 석궁병이 조준 중.', chain: [],
+      tags: { f1: { intent: '공격' }, f2: { intent: '공격' }, f3: { intent: '공격' }, f4: { intent: '조준' } }, aims: [[{ x: 7, y: 1 }, { x: 4, y: 3 }]] },
+    { input: '입력: 왼쪽 고블린 베기 (한 번)', chain: ['적이 둘 이상 붙은 채 베기 → 회전 사격 (충전 2)', '칼로 처치 → 총 연계: 석궁병에게 한 발', '연쇄 ×3 → 슬로모'], slowAt: 0.25,
       run: (s) => {
-        const h = { ...s.hero.pos };
-        for (const id of ['f1', 'f2', 'f3']) killed(s, id);
-        s.hero.pos = { x: 3, y: 2 };
+        hurt(s, 'f1', 0); hurt(s, 'f2', 0); hurt(s, 'f3', 0); hurt(s, 'f4', 0.5);
+        const h = { x: 4, y: 3 };
         return [
-          ...shot(0, 'f1', { x: 2, y: 3 }, h), ...shot(0.22, 'f2', { x: 4, y: 2 }, h), ...shot(0.44, 'f3', { x: 3, y: 4 }, h),
-          { t: 0.8, type: 'move', src: 'hero', from: h, to: { x: 3, y: 2 }, text: 'dash' },
-          { t: 1.25, type: 'shoot', src: 'f4', from: { x: 7, y: 3 }, to: { x: 3, y: 3 }, text: 'crossbow' },
+          ...slash(0, 'f1', h, { x: 3, y: 3 }, true),
+          pop(0.2, '회전 사격'),
+          ...shoot(0.3, 'f2', h, { x: 5, y: 3 }, true, 'spin'),
+          ...shoot(0.48, 'f3', h, { x: 4, y: 4 }, true, 'spin'),
+          pop(0.7, '총 연계'),
+          ...shoot(0.8, 'f4', h, { x: 7, y: 1 }, false),
+          { t: 0.9, type: 'combo', src: 'hero', dst: 'f4', amount: 3 },
         ];
       },
-      tags: { f4: { h: 2, m: 2, intent: '재장전' } }, aims: [] },
+      tags: { f4: { intent: '조준' } }, aims: [[{ x: 7, y: 1 }, { x: 4, y: 3 }]] },
+    { input: '석궁병의 화살 — 굴러서 피한다', chain: ['회피 성공 → 반격 사격'], slowAt: 0.35,
+      run: (s) => {
+        hurt(s, 'f4', 0);
+        s.hero.pos = { x: 4, y: 2 };
+        return [
+          { t: 0, type: 'shoot', src: 'f4', from: { x: 7, y: 1 }, to: { x: 4, y: 3 }, text: 'crossbow' },
+          { t: 0.05, type: 'move', src: 'hero', from: { x: 4, y: 3 }, to: { x: 4, y: 2 }, text: 'roll' },
+          pop(0.4, '반격'),
+          ...shoot(0.55, 'f4', { x: 4, y: 2 }, { x: 7, y: 1 }, true),
+        ];
+      },
+      tags: {}, aims: [] },
   ],
 };
 
-/** A hobgoblin charges, a crossbow aims: put the goblin in the charge, step aside, and let the bolt find the hobgoblin. */
-const pile: Scene = {
-  name: '돌진 엮기',
-  setup: () => room({ x: 3, y: 3 }, [{ kind: 'brute', pos: { x: 7, y: 3 } }, { kind: 'minion', pos: { x: 3, y: 2 } }, { kind: 'archer', pos: { x: 3, y: 5 } }]),
-  steps: [
-    { caption: '적 선언: 홉고블린이 이 줄로 돌진, 석궁병은 아래에서 내 칸을 노린다. 고블린은 위에서 덤빈다.', slots: [], charge: 4,
-      tags: { f1: { h: 3, m: 3, intent: '돌진' }, f2: { h: 1, m: 1, intent: '공격' }, f3: { h: 2, m: 2, intent: '조준' } }, aims: [[{ x: 7, y: 3 }, { x: 1, y: 3 }], [{ x: 3, y: 5 }, { x: 3, y: 3 }]] },
-    { caption: '1칸: 잡기. 고블린을 돌진 줄 위(오른쪽 칸)로 끌어 놓는다.', slots: [['잡기', 1]], charge: 4,
-      tags: { f1: { h: 3, m: 3, intent: '돌진' }, f2: { h: 1, m: 1, fate: '돌진에 깔림' }, f3: { h: 2, m: 2, intent: '조준' } }, aims: [[{ x: 7, y: 3 }, { x: 1, y: 3 }], [{ x: 3, y: 5 }, { x: 3, y: 3 }]] },
-    { caption: '2칸: 왼쪽 위로 구르기. 돌진도 화살도 내 자리를 놓친다.', slots: [['잡기', 1], ['구르기', 1]], charge: 4,
-      tags: { f1: { h: 3, m: 3, fate: '충돌 → 기절' }, f2: { h: 1, m: 1, fate: '처치' }, f3: { h: 2, m: 2, intent: '조준' } }, aims: [[{ x: 7, y: 3 }, { x: 1, y: 3 }], [{ x: 3, y: 5 }, { x: 3, y: 3 }]] },
-    { caption: '3칸: 석궁병에게 권총 한 발. 기절한 홉고블린은 다음 라운드에 처형.', slots: [['잡기', 1], ['구르기', 1], ['권총', 1]], charge: 3,
-      tags: { f1: { h: 3, m: 3, fate: '충돌 → 기절' }, f2: { h: 1, m: 1, fate: '처치' }, f3: { h: 2, m: 2, fate: '♥ -1' } }, aims: [[{ x: 7, y: 3 }, { x: 1, y: 3 }], [{ x: 3, y: 5 }, { x: 3, y: 3 }]] },
-    { caption: '실행.', slots: [['잡기', 1], ['구르기', 1], ['권총', 1]], charge: 3, exec: true,
-      run: (s) => {
-        foe(s, 'f2').pos = { x: 4, y: 3 };
-        s.hero.pos = { x: 2, y: 2 };
-        killed(s, 'f2');
-        foe(s, 'f1').pos = { x: 5, y: 3 };
-        foe(s, 'f3').hp = 1;
-        return [
-          { t: 0, type: 'bump', src: 'hero', dst: 'f2', from: { x: 3, y: 3 }, to: { x: 3, y: 2 } },
-          { t: 0.12, type: 'push', src: 'f2', from: { x: 3, y: 2 }, to: { x: 4, y: 3 } },
-          { t: 0.45, type: 'move', src: 'hero', from: { x: 3, y: 3 }, to: { x: 2, y: 2 }, text: 'dash' },
-          ...shot(0.8, 'f3', { x: 3, y: 5 }, { x: 2, y: 2 }, 1, false),
-          { t: 1.2, type: 'move', src: 'f1', from: { x: 7, y: 3 }, to: { x: 6, y: 3 }, text: 'dash' },
-          { t: 1.3, type: 'move', src: 'f1', from: { x: 6, y: 3 }, to: { x: 5, y: 3 }, text: 'dash' },
-          { t: 1.42, type: 'bump', src: 'f1', dst: 'f2', from: { x: 5, y: 3 }, to: { x: 4, y: 3 } },
-          { t: 1.45, type: 'hit', src: 'f1', dst: 'f2', amount: 1, crit: true, to: { x: 4, y: 3 } },
-          { t: 1.45, type: 'die', src: 'f1', dst: 'f2', to: { x: 4, y: 3 } },
-          { t: 1.5, type: 'stun', src: 'f1', dst: 'f1', to: { x: 5, y: 3 } },
-          { t: 1.85, type: 'shoot', src: 'f3', from: { x: 3, y: 5 }, to: { x: 3, y: 3 }, text: 'crossbow' },
-        ];
-      },
-      tags: { f1: { h: 3, m: 3, stun: true }, f3: { h: 1, m: 2, intent: '재장전' } }, aims: [] },
-  ],
-};
-
-export const SCENES: Scene[] = [ring, pile];
+export const SCENES: Scene[] = [relay, ring];
 export { refreshSight };

@@ -29,6 +29,7 @@ function ring(color: string, scale: number): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.RingGeometry(0.32 * scale, 0.4 * scale, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, depthWrite: false }));
   m.rotation.x = -Math.PI / 2;
   m.position.y = 0.03;
+  m.userData.ring = true;
   return m;
 }
 const LUNGE_SEC = 0.12;
@@ -122,9 +123,16 @@ export class GridActors {
   lunge(id: string | undefined, at: THREE.Vector3, anim?: UalAnim): void {
     const v = this.v(id);
     if (!v) return;
+    this.handFor(id, false);
     this.face(id, at);
     this.nudge(v, at, LUNGE);
     if (v.actor.busyWith !== 'dash') v.actor.play(anim ?? this.meleeAnim(id!), anim === 'finisher' ? 1.5 : 1.7);
+  }
+
+  /** Roll: a tumble to the next cell. */
+  roll(id: string | undefined, cx: number, cy: number): void {
+    this.moveTo(id, cx, cy);
+    this.v(id)?.actor.play('roll', 2.4);
   }
 
   /** Dash: a slashing lunge one cell forward. */
@@ -147,7 +155,10 @@ export class GridActors {
   shoot(id: string | undefined, at: THREE.Vector3, group?: string): void {
     const v = this.v(id);
     if (!v) return;
+    this.handFor(id, true);
     this.face(id, at);
+    // a spin shot snaps round to each target instead of turning
+    if (group === 'spin') v.yaw = v.facing;
     this.nudge(v, at, -0.1);
     const anim: UalAnim = group === 'bow' ? 'shootBow' : group === 'staff' ? 'cast' : 'shoot';
     v.actor.play(anim, anim === 'shootBow' ? 2.2 : 1.7);
@@ -187,11 +198,22 @@ export class GridActors {
   }
 
   /** Shows the weapon group a figure is holding. */
-  setWeapon(id: string, kind: WeaponLook): void {
-    const idle = stanceFor(kind);
-    if (id === 'hero') this.heroWeapon = kind;
-    this.v(id)?.actor.setWeapon(kind, idle);
+  setWeapon(id: string, kind: WeaponLook, off: WeaponLook = 'none'): void {
+    if (id === 'hero') { this.heroWeapon = kind; this.heroOff = off; }
+    this.v(id)?.actor.setWeapon(kind, stanceFor(kind));
+    this.v(id)?.actor.setOffhand(off);
   }
+
+  /** The hero brings the right weapon to the main hand for the move (gun to shoot, blade to strike), the other goes to the left. */
+  private handFor(id: string | undefined, ranged: boolean): void {
+    const isGun = (k: WeaponLook | null) => k === 'pistol' || k === 'shotgun' || k === 'rifle';
+    if (!this.autoHands || id !== 'hero' || !this.heroWeapon || this.heroOff === 'none' || isGun(this.heroWeapon) === ranged || isGun(this.heroOff) !== ranged) return;
+    this.setWeapon('hero', this.heroOff, this.heroWeapon);
+  }
+
+  private heroOff: WeaponLook = 'none';
+  /** scripted scenes swap hands per move; the game shows the sim's own hand */
+  autoHands = false;
 
   /** Lamps on the hero's suit for its filled engraving slots. */
   setSuitLights(id: string, filled: number): void {
@@ -203,11 +225,11 @@ export class GridActors {
     this.v(id)?.actor.play(a, 1.6);
   }
 
-  /** Which close-quarters motion: daggers and skeleton blades jab, ranged weapons in hand bash, the rest swing. */
+  /** Which close-quarters motion: skeleton blades and bare hands jab, ranged weapons in hand bash, the rest swing. */
   private meleeAnim(id: string): UalAnim {
     const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
     if (this.kindOf(id) === 'ghoul') return 'scratch';
-    if (w === 'dagger' || w === 'blade' || w === 'none') return 'jab';
+    if (w === 'blade' || w === 'none') return 'jab';
     if (w === 'bow' || w === 'crossbow' || w === 'staff' || w === 'pistol' || w === 'shotgun' || w === 'rifle') return 'bash';
     return 'swing';
   }
@@ -228,6 +250,8 @@ export class GridActors {
     if (!v || v.dead) return;
     v.dead = true;
     v.actor.setDead();
+    // the ring under a figure marks it as a living threat: the fallen lose it
+    for (const c of v.actor.root.children) if (c.userData.ring) c.visible = false;
   }
 
   /** Foes are shown only on tiles the hero can see (the dead stay where they fell once seen). */

@@ -24,8 +24,9 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
   const a = k.actors;
   switch (e.type) {
     case 'move':
-      if (!e.to || (e.text !== 'dash' && e.text !== 'leap')) return false;
-      if (e.text === 'dash') { a.dash(e.src, e.to.x, e.to.y); const p = k.at(e.src); if (p) k.particles.spray(p, '#d8d0c0', 8); }
+      if (!e.to || (e.text !== 'dash' && e.text !== 'leap' && e.text !== 'roll')) return false;
+      if (e.text === 'roll') { a.roll(e.src, e.to.x, e.to.y); const p = k.at(e.src); if (p) k.particles.spray(p, '#d8d0c0', 6); }
+      else if (e.text === 'dash') { a.dash(e.src, e.to.x, e.to.y); const p = k.at(e.src); if (p) k.particles.spray(p, '#d8d0c0', 8); }
       else a.leap(e.src, e.to.x, e.to.y);
       return true;
     case 'push':
