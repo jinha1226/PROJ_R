@@ -39,3 +39,8 @@ it('counts fractional time and ignores asleep, dead, distant or unseen foes', ()
   g.s.foes[0]!.awake = true; g.s.visible.clear(); regenerate(g.s, 6);
   expect(g.s.hero.hp).toBe(22);
 });
+it('marks a passive recovery as regen so the view does not play the drinking motion', () => {
+  const g = alone(); g.s.hero.regenClock = 5;
+  regenerate(g.s, 1);
+  expect(g.s.events.find((e) => e.type === 'heal')?.text).toBe('regen');
+});

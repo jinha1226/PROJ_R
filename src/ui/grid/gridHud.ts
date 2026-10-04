@@ -9,6 +9,7 @@ import { weaponState } from './weaponInfo';
 import { intentOf } from './intent';
 import { pushLog, visibleLog, LOG_SECONDS, type HudLine } from './hudLog';
 import { suitTiles } from './suitTiles';
+import { termArms, termVitals, textBar } from './gridTerm';
 
 const LOG: Partial<Record<GEvent['type'], string>> = {
   alarm: '발소리가 늘었다 — 잠든 해골들이 깨어난다', reinforce: '묘지 깊은 곳에서 증원이 몰려온다!', exitClosed: '탈출 지점 하나가 무너졌다',
@@ -65,6 +66,8 @@ export class GridHud {
         </div>
         <div class="gh-weapon"></div>
       </div>
+      <div class="gh-term"></div>
+      <div class="gh-arms"></div>
       <div class="gh-suit" data-testid="grid-suit-strip" aria-label="슈트 각인"></div>
       <div class="gh-target" hidden></div>
       <div class="gh-danger"></div>
@@ -96,6 +99,8 @@ export class GridHud {
     if (key !== this.key) {
       this.key = key;
       const q = <T extends HTMLElement>(sel: string) => this.el.querySelector<T>(sel)!;
+      q('.gh-term').innerHTML = termVitals(s);
+      q('.gh-arms').innerHTML = termArms(s);
       q('.gh-badge b').textContent = `${h.level}`;
       q('.gh-badge small').textContent = '레벨';
       q('.gh-progress b').textContent = `Lv${h.level}`;
@@ -117,7 +122,7 @@ export class GridHud {
       q('.gh-weapon').innerHTML = w ? `${weaponIcon(w.group)}<div><b>${w.name}</b><small>${weaponState(w, h) || '근접'}</small></div>` : `${icon('swap')}<div><b>빈손</b></div>`;
       const card = q('.gh-target');
       card.hidden = !t;
-      if (t) card.innerHTML = `${icon('skull')}<b>${t.elite ? '정예 ' : ''}${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><span>${target!.chance === null ? '근접 무기' : `${Math.round(target!.chance * 100)}% 명중`}</span><small class="gh-intent">${intent}</small>`;
+      if (t) card.innerHTML = `${icon('skull')}<b>${t.elite ? '정예 ' : ''}${KIND[t.kind] ?? '적'}</b><div class="gh-t-bar"><div style="width:${(t.hp / t.maxHp) * 100}%"></div></div><div class="gh-t-txt">${textBar(t.hp / t.maxHp)}</div><span>${target!.chance === null ? '근접 무기' : `${Math.round(target!.chance * 100)}% 명중`}</span><small class="gh-intent">${intent}</small>`;
       q('.gh-danger').textContent = `${s.run.floor}층 / ${FLOORS} · ${zoneOf(s.run.floor).name} · 처치 ${s.run.kills} · ⚡전송 ${s.run.energy}${isBossFloor(s.run.floor) ? s.run.floor === 15 ? ' · 최종 수호자' : ' · 구간 수호자' : ''}`;
     }
     this.drawLog();

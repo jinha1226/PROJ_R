@@ -208,7 +208,8 @@ export class GridRuntime {
       case 'telegraph': { const p = at(e.src); if (p) this.fx.transient.burst(p.x, p.z, e.text === 'frost' ? '#5ab4ff' : '#ff5a3a', 0.6, 0.4); break; }
       case 'levelUp': { const p = at('hero'); if (p) { this.fx.number(`레벨 ${e.amount}!`, 'combo', p); this.fx.transient.glow(p.x, p.z, '#ffd76a'); } break; }
       case 'heal': {
-        a.anim(e.dst, 'drink'); const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
+        if (e.text !== 'regen') a.anim(e.dst, 'drink');
+        const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
       case 'wake': { const p = at(e.src); if (p) this.fx.number('!', 'crit', p); break; }
       default: break;
     }

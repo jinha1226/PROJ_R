@@ -16,7 +16,7 @@ export function regenerate(s: GridState, spent: number, safeAtStart = true): voi
   if (gained > 0) {
     h.hp += gained;
     h.regenClock -= gained * 6;
-    s.events.push({ t: h.nextAt, type: 'heal', src: h.id, dst: h.id, amount: gained });
+    s.events.push({ t: h.nextAt, type: 'heal', src: h.id, dst: h.id, amount: gained, text: 'regen' });
   }
   if (h.hp >= h.maxHp) h.regenClock = 0;
 }
