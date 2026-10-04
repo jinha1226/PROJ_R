@@ -1,3 +1,5 @@
+import { emit } from './kataBus';
+import { resonance } from './resonance';
 import { shipAct } from './ship';
 import { newRunState, type RunOptions } from './runSetup';
 import type { MetaState } from './meta';
@@ -69,6 +71,9 @@ export class GridSim {
     // a stumble into a wall still spends the turn (no free re-rolls of the confusion)
     if (cost === null && astray) { s.events.push({ t: t0, type: 'stumble', src: s.hero.id, to: { ...s.hero.pos } }); cost = 1; }
     if (cost === null) { fx.momentum = boosted; return [{ t: t0, type: 'blocked', src: s.hero.id }]; }
+    if (!frozen && a.kind === 'move' && s.events.some(e => e.type === 'move' && e.src === s.hero.id)) emit(s, 'afterMove', { t: t0 });
+    if (!frozen && a.kind === 'swap') emit(s, 'afterSwap', { t: t0 });
+    if (!frozen && a.kind === 'wait') emit(s, 'afterWait', { t: t0 });
     // momentum halves the action after a kill (a free swap does not use it up)
     if (cost > 0 && buffOn(s.hero, 'haste', t0)) cost *= HASTE;
     // any attack or throw gives an invisible hero away
@@ -83,9 +88,9 @@ export class GridSim {
     passMarks(s, t0);
     if (s.foes.some((f) => alive.has(f.id) && !f.alive) && has(s, 'momentum') && fire(s, t0, 'momentum')) fx.momentum = true;
     const n = s.fired.size;
-    if (n >= 3) {
+    if (n >= (resonance(s).fusion ? 2 : 3)) {
       s.events.push({ t: t0, type: 'chain', src: s.hero.id, amount: n });
-      if (has(s, 'flow') && fire(s, t0, 'flow')) fx.free = true;
+      emit(s, 'chain', { t: t0, count: n });
     }
     // a free action (quick swap, a level-up pick) takes no time, so nothing ticks
     if (cost > 0) tickStatuses(s, s.hero, t0);

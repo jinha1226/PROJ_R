@@ -1,18 +1,16 @@
 import { ENGRAVE_IDS, ENGRAVES, type EngraveId } from './engraveCore';
 import type { FoeKind, GridState } from './types';
 
-export type Family = 'melee' | 'ranged' | 'magic' | 'any' | 'all';
+import type { Family } from './engraveDefs';
+export type { Family } from './engraveDefs';
 export const FAMILY: Record<FoeKind, Family> = {
-  minion: 'melee', brute: 'melee', archer: 'ranged', mage: 'magic', ghoul: 'any', champion: 'all',
+  minion: 'melee', brute: 'melee', archer: 'ranged', mage: 'element', ghoul: 'fusion', champion: 'fusion',
 };
 export const ELITE_MULT = 1.6;
 
 /** Three fitting choices, reserving the first for a locked base engraving when available. */
 export function absorbOffer(s: GridState, family: Family): EngraveId[] {
-  const pool = ENGRAVE_IDS.filter(id => {
-    const fit = ENGRAVES[id].fits;
-    return (family === 'all' || fit === family || (fit === 'kata' && (family === 'melee' || family === 'ranged'))) && !s.hero.suit.includes(id);
-  });
+  const pool = ENGRAVE_IDS.filter(id => ENGRAVES[id].family === family && !s.hero.suit.includes(id));
   const locked = s.rng.shuffle(pool.filter(id => ENGRAVES[id].base && s.run.unlocked !== undefined && !s.run.unlocked.includes(id)));
   const first = locked[0];
   const rest = s.rng.shuffle(pool.filter(id => id !== first));

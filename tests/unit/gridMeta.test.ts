@@ -36,5 +36,5 @@ it.each([1, 2, 3])('migrates old slot count %i once', slots => {
 });
 it('validates new engraving arrays and fills partial facilities', () => {
   data.set('projr.grid.meta.v1', JSON.stringify({ ...freshMeta(), unlocked: ['flow', 'flow', 'bogus', 'rapid'], tasted: ['execute', 42], facilities: { suitSlots: 4 } }));
-  expect(loadMeta()).toMatchObject({ unlocked: ['flow'], tasted: ['execute'], facilities: { suitSlots: 4, chargePlus: 0 } });
+  expect(loadMeta()).toMatchObject({ unlocked: ['flow', 'rapid'], tasted: ['execute'], facilities: { suitSlots: 4, chargePlus: 0 } });
 });

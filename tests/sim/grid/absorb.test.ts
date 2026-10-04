@@ -27,7 +27,7 @@ it('preserves the existing floor layout, spawns and contents apart from elite fl
 });
 
 it('maps every foe to its engraving family', () => {
-  expect(FAMILY).toEqual({ minion: 'melee', brute: 'melee', archer: 'ranged', mage: 'magic', ghoul: 'any', champion: 'all' });
+  expect(FAMILY).toEqual({ minion: 'melee', brute: 'melee', archer: 'ranged', mage: 'element', ghoul: 'fusion', champion: 'fusion' });
 });
 
 it('marks one or two deterministic elites on ordinary floors and none on boss floors', () => {
@@ -113,7 +113,7 @@ it('absorbs on a step with no added time, queues three fitting engravings, and e
   expect(g.s.offers[0]).toEqual(['rapid']);
   const offer = g.s.offers[1]!;
   expect(offer).toHaveLength(3);
-  expect(offer.every((id) => ['melee', 'kata'].includes(ENGRAVES[id].fits) && id !== 'dash')).toBe(true);
+  expect(offer.every((id) => ENGRAVES[id].family === 'melee' && id !== 'dash')).toBe(true);
   expect(new Set(offer).size).toBe(3);
 });
 
@@ -126,28 +126,28 @@ it('fills short pools regardless of recorded history', () => {
   s.records = [];
   expect(absorbOffer(s, 'ranged')).toHaveLength(3);
   s.hero.suit = ['alternate', 'echo', 'chain'];
-  expect(absorbOffer(s, 'magic')).toEqual(['elemArrow']);
+  expect(absorbOffer(s, 'element')).toEqual(['elemArrow']);
   s.hero.suit.push('elemArrow');
-  expect(absorbOffer(s, 'magic')).toEqual([]);
+  expect(absorbOffer(s, 'element')).toEqual([]);
 });
 
-it('uses only the requested family, or all families for champions, with deterministic draws', () => {
-  for (const family of ['melee', 'ranged', 'magic', 'any', 'all'] as const) {
+it('uses only the requested family with deterministic draws', () => {
+  for (const family of ['melee', 'ranged', 'element', 'fusion'] as const) {
     const a = newState(handMap(OPEN), 87);
     const b = newState(handMap(OPEN), 87);
     expect(absorbOffer(a, family)).toEqual(absorbOffer(b, family));
     const picks = absorbOffer(a, family);
-    expect(picks.every((id) => family === 'all' || ENGRAVES[id].fits === family || (ENGRAVES[id].fits === 'kata' && ['melee', 'ranged'].includes(family)))).toBe(true);
+    expect(picks.every((id) => ENGRAVES[id].family === family)).toBe(true);
   }
   const s = newState(handMap(OPEN), 3);
   s.records = ['dash', 'rapid'];
-  expect(absorbOffer(s, 'all')).toHaveLength(3);
+  expect(absorbOffer(s, 'fusion')).toHaveLength(3);
 });
 
 it('consumes exhausted echoes without queuing empty offers', () => {
   const g = sim(OPEN, { x: 1, y: 1 });
   g.s.hero.suit = ['alternate', 'echo', 'chain', 'elemArrow'];
-  g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'magic', name: '잔향' } });
+  g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'element', name: '잔향' } });
   expect(g.act({ kind: 'move', dir: { x: 1, y: 0 } }).some((e) => e.type === 'absorb')).toBe(true);
   expect(g.s.floorItems).toEqual([]);
   expect(g.s.offers).toEqual([]);
@@ -183,8 +183,8 @@ it('seeds independent per-run records with the four starting engravings', () => 
 });
 
 
-it('puts a locked fitting base engraving first, including kata for melee and ranged', () => {
-  for (let seed = 1; seed <= 20; seed++) for (const family of ['melee', 'ranged', 'any', 'all'] as const) {
+it('puts a locked engraving of the requested family first', () => {
+  for (let seed = 1; seed <= 20; seed++) for (const family of ['melee', 'ranged', 'element', 'fusion'] as const) {
     const s = newState(handMap(OPEN), seed);
     s.run.unlocked = [];
     const offer = absorbOffer(s, family);
@@ -195,8 +195,7 @@ it('puts a locked fitting base engraving first, including kata for melee and ran
   }
   const s = newState(handMap(OPEN), 3);
   s.run.unlocked = BASE_IDS.filter(id => id !== 'gunRelay');
-  expect(absorbOffer(s, 'melee')[0]).toBe('gunRelay');
-  expect(absorbOffer(s, 'ranged')[0]).toBe('gunRelay');
+  expect(absorbOffer(s, 'fusion')[0]).toBe('gunRelay');
 });
 it('tastes locked base choices once, even previously recorded ones', () => {
   const g = sim(OPEN, { x: 1, y: 1 });
@@ -208,7 +207,7 @@ it('tastes locked base choices once, even previously recorded ones', () => {
   g.act({ kind: 'choose', i: 0 });
   expect(g.s.run.tasted).toEqual(['dash']);
 });
-it('does not taste run-only, unlocked, refused, or passed choices; missing unlocks means all unlocked', () => {
+it('does not taste unlocked, refused, or passed choices; missing unlocks means all unlocked', () => {
   for (const unlocked of [undefined, BASE_IDS]) {
     const g = sim(OPEN, { x: 1, y: 1 });
     g.s.run.unlocked = unlocked;

@@ -12,8 +12,8 @@ it('buys only locked base engravings and consumes the tasted discount', () => {
   m.energy = 60; expect(buy(m, 'engrave:flow')).toBe(true);
   expect(m.energy).toBe(0); expect(m.unlocked).toContain('flow'); expect(m.tasted).toEqual([]);
   m.energy = 1000;
-  expect(buy(m, 'engrave:flow')).toBe(false); expect(buy(m, 'engrave:rapid')).toBe(false);
-  expect(buy(m, 'engrave:bladeRelay')).toBe(true); expect(m.energy).toBe(940);
+  expect(buy(m, 'engrave:flow')).toBe(false); expect(buy(m, 'engrave:rapid')).toBe(true);
+  expect(buy(m, 'engrave:bladeRelay')).toBe(true); expect(m.energy).toBe(890);
 });
 it('autofills only empty selections, filters explicit selections, and copies unlocks', () => {
   const m = freshMeta();
@@ -29,6 +29,6 @@ it('settles unique locked tastes and pays for every recovered engraving', () => 
   s.run.tasted = ['flow', 'gunRelay', 'counterShot']; s.run.recovered = ['execute', 'rapid', 'gunRelay'];
   s.run.energy = 5;
   const result = settleRun(m, s);
-  expect(result.energy).toBe(35); expect(result.tasted).toEqual(['flow', 'counterShot', 'execute']);
+  expect(result.energy).toBe(35); expect(result.tasted).toEqual(['flow', 'counterShot', 'execute', 'rapid']);
   expect(result.startCandidates).toEqual(['dash']); expect(m.energy).toBe(0);
 });

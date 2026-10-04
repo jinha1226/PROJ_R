@@ -1,4 +1,8 @@
-import { bladeRelay, gunRelay, onStunned, spinShot, withOtherHand, otherHand } from './kata';
+import { withOtherHand, otherHand } from './kata';
+import { emitKills } from './attackTriggers';
+import { emit } from './kataBus';
+import { resonance } from './resonance';
+import { gunCost } from './kataTargets';
 import { canSwingAt } from './combos';
 import { absorbOffer } from './absorb';
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
@@ -9,7 +13,7 @@ import { buffOn } from './buffs';
 import { stow } from './consumables';
 import { potionName, scrollName } from './lore';
 import { activeWeapon, addToBag } from './gear';
-import { BURST_GAP, GUN_COST, isGun, RIFLE_BURST, shotgunFalloff, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
+import { BURST_GAP, isGun, RIFLE_BURST, shotgunFalloff, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
 import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
@@ -27,7 +31,7 @@ export function heroDmg(s: GridState, w: Weapon): [number, number] {
   const melee = WEAPONS[w.group].melee;
   // strength above 10 adds to every melee blow
   const str = melee ? Math.max(0, s.hero.str - 10) : 0;
-  const bonus = melee ? s.hero.bonus.meleeDmg : isGun(w.group) ? s.hero.bonus.gunDmg : 0;
+  const bonus = melee ? s.hero.bonus.meleeDmg + Number(resonance(s).melee) : isGun(w.group) ? s.hero.bonus.gunDmg : 0;
   return [lo + up + str + bonus, hi + up + str + bonus];
 }
 
@@ -52,7 +56,7 @@ export function pushFoe(s: GridState, t: number, foe: Ent, d: Cell): void {
   foe.stun = Math.max(foe.stun ?? 0, 1);
   s.events.push({ t, type: 'stun', src: s.hero.id, dst: foe.id, amount: SLAM, to: { ...foe.pos } });
   if (foe.hp <= 0) { foe.hp = 0; foe.alive = false; s.events.push({ t, type: 'die', src: s.hero.id, dst: foe.id, to: { ...foe.pos } }); }
-  onStunned(s, t, foe);
+  emit(s, 'stunned', { t, foe, src: 'slam' });
   if (has(s, 'wallslam') && fire(s, t, 'wallslam')) {
     for (const f of s.foes) if (f !== foe && f.alive && dist(f.pos, foe.pos) === 1) hurt(s, t, s.hero.id, f, SLAM_WAVE, 'slam');
   }
@@ -71,6 +75,8 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   const w = activeWeapon(h.gear);
   const armed = !!w && WEAPONS[w.group].melee;
   const neighbours = s.foes.filter(f => f.alive && canSwingAt(s, h.pos, f.pos));
+  const afterBlow: (() => void)[] = [];
+  if (neighbours.length >= 2) emit(s, 'surrounded', { t, foe, neighbours, hooks, afterBlow });
   const combo = comboStep(s, foe);
   s.events.push({ t, type: 'bump', group: w?.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: armed && combo.finisher ? 'finisher' : undefined });
   h.target = foe.id;
@@ -78,19 +84,24 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   const eventStart = s.events.length;
   if (!w || !armed) {
     foe.awake = true;
-    refillMelee(s, strike(s, t, h, foe, HERO.bashHit, HERO.bash), eventStart);
-    spinShot(s, t, foe, neighbours);
-    gunRelay(s, t, eventStart, hooks);
+    const landed = strike(s, t, h, foe, HERO.bashHit, HERO.bash);
+    refillMelee(s, landed, eventStart);
+    if (landed) emit(s, 'meleeHit', { t, foe, hooks });
+    afterBlow.forEach(resolve => resolve());
+    emitKills(s, t, eventStart, 'meleeKill', hooks);
     return COST.bash;
   }
   const def = WEAPONS[w.group];
   const dmg = heroDmg(s, w);
   // an invisible hero's blows land like sneak attacks
   const unseen = buffOn(h, 'invis', t);
+  const hits: Ent[] = [];
   const blow = (f: Ent, k = 1) => {
     const mult = (f.awake && !unseen ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
     f.awake = true;
-    return strike(s, t, h, f, def.hit, dmg, mult);
+    const hit = strike(s, t, h, f, def.hit, dmg, mult);
+    if (hit) hits.push(f);
+    return hit;
   };
   const landed = blow(foe, combo.finisher ? FINISH_MULT : 1);
   if (w.group === 'axe') for (const c of sweepCells(h.pos, d)) {
@@ -112,9 +123,10 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   if (w.group === 'mace' && landed) shove();
   if (combo.finisher && landed && fire(s, t, 'finisher')) shove();
   refillMelee(s, landed, eventStart);
-  spinShot(s, t, foe, neighbours);
+  for (const f of hits) emit(s, 'meleeHit', { t, foe: f, hooks });
+  afterBlow.forEach(resolve => resolve());
   if (landed && foe.alive && hooks && has(s, 'shoveShot')) shoveShot(s, t, foe, hooks, shove);
-  gunRelay(s, t, eventStart, hooks);
+  emitKills(s, t, eventStart, 'meleeKill', hooks);
   return def.time;
 }
 
@@ -146,7 +158,7 @@ export function weaponRange(w: Weapon | null): number {
 export function canFire(s: GridState): boolean {
   const w = activeWeapon(s.hero.gear);
   if (!w || WEAPONS[w.group].melee) return false;
-  if (isGun(w.group)) return s.hero.charge >= GUN_COST[w.group];
+  if (isGun(w.group)) return s.hero.charge >= gunCost(s, w);
   return (w.charges ?? 0) > 0;
 }
 
@@ -191,14 +203,15 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
     s.events.push({ t: at, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: 'burst' });
     if (strike(s, at, h, foe, chanceAt(h.pos, foe.pos), dmg, rapid.mult * blowMult(s, at, foe))) hits[0] = true;
   }
-  h.charge -= GUN_COST[w.group];
+  h.charge -= gunCost(s, w);
   hooks.noise(h.pos, w.group === 'pistol' ? 4 : 6);
   h.fx.nextMult = 1;
   if (w.group === 'shotgun') targets.forEach((f, i) => {
     if (hits[i] && f.alive) pushFoe(s, t, f, { x: Math.sign(f.pos.x - h.pos.x), y: Math.sign(f.pos.y - h.pos.y) });
   });
   afterShot(s, t, foe, hits[0]!, dmg, chanceAt, weaponRange(w));
-  return WEAPONS[w.group].time * rapid.time + bladeRelay(s, t, eventStart, hooks);
+  targets.forEach((f, i) => { if (hits[i]) emit(s, 'gunHit', { t, foe: f, hooks, shotCost: gunCost(s, w) }); });
+  return WEAPONS[w.group].time * rapid.time + emitKills(s, t, eventStart, 'gunKill', hooks, gunCost(s, w));
 }
 
 /** A ranged shot at a barrel (it goes off); null if the weapon in hand cannot reach it. */
@@ -215,7 +228,7 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
   if (w.group === 'staff') w.charges = (w.charges ?? 1) - 1;
-  else if (isGun(w.group)) h.charge -= GUN_COST[w.group];
+  else if (isGun(w.group)) h.charge -= gunCost(s, w);
   noise?.(h.pos, w.group === 'pistol' ? 4 : 6);
   explode(at);
   return WEAPONS[w.group].time;

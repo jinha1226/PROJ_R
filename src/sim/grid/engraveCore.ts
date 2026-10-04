@@ -1,3 +1,4 @@
+import type { Family } from './engraveDefs';
 import { activeWeapon } from './gear';
 import { isGun, WEAPONS, type Element } from './items';
 import type { Ent, GridState } from './types';
@@ -12,33 +13,33 @@ export const SUIT_SLOTS = 6;
 export type Fit = 'melee' | 'ranged' | 'magic' | 'any' | 'kata';
 
 /** Name, one line, and which weapons it suits (for absorption and scroll offers). */
-export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit; base: boolean; cost: number }> = {
-  dash: { name: '돌진 베기', note: '2칸 돌진 베기', fits: 'melee', base: true, cost: 50 },
-  finisher: { name: '3연타 마무리', note: '같은 적 3타째 ×1.5 + 밀치기', fits: 'melee', base: false, cost: 0 },
-  shoveShot: { name: '밀치고 쏘기', note: '벤 적을 밀치고 다른 손 총으로 한 발', fits: 'melee', base: true, cost: 50 },
-  leap: { name: '도약 내려찍기', note: '3칸 앞 적에게 도약, 착지 주변 공격', fits: 'melee', base: false, cost: 0 },
-  counter: { name: '반격', note: '회피하면 바로 반격', fits: 'melee', base: true, cost: 60 },
-  riposte: { name: '되받아치기', note: '패링 반격 · 기절', fits: 'melee', base: true, cost: 70 },
-  momentum: { name: '기세', note: '처치하면 다음 행동 시간 절반', fits: 'any', base: true, cost: 80 },
-  quickswap: { name: '칼바꿈', note: '무기 종류를 바꾸면 0턴, 다음 공격 +50%', fits: 'any', base: true, cost: 60 },
-  swapstrike: { name: '연환', note: '교체 후 든 무기로 즉시 공격', fits: 'any', base: false, cost: 0 },
-  wallslam: { name: '벽치기', note: '벽에 박으면 주변 충격파', fits: 'melee', base: false, cost: 0 },
-  laststand: { name: '배수진', note: '체력 30% 이하 피해 +40%', fits: 'any', base: false, cost: 0 },
-  rapid: { name: '연사', note: '같은 적 연속 사격: 빨라지고 3발째 치명', fits: 'ranged', base: false, cost: 0 },
-  mark: { name: '표식', note: '맞힌 적 받는 피해 +30%, 처치 시 옮겨붙음', fits: 'ranged', base: false, cost: 0 },
-  ricochet: { name: '도탄', note: '처치한 사격이 근처 적에게 튕김', fits: 'ranged', base: false, cost: 0 },
-  kite: { name: '쏘고 물러나기', note: '붙은 적을 쏘면 한 칸 물러남', fits: 'ranged', base: false, cost: 0 },
-  volley: { name: '삼중 사격', note: '3번째 사격마다 두 발 더', fits: 'ranged', base: false, cost: 0 },
-  alternate: { name: '교대 시전', note: '직전과 다른 원소: ×1.5, 시간 절반', fits: 'magic', base: false, cost: 0 },
-  echo: { name: '잔향', note: '3번째 주문마다 한 번 더', fits: 'magic', base: false, cost: 0 },
-  chain: { name: '연쇄 번개', note: '번개가 두 번 튄다', fits: 'magic', base: false, cost: 0 },
-  elemArrow: { name: '원소 탄', note: '마지막 원소가 다음 총탄에 실림', fits: 'magic', base: false, cost: 0 },
-  gunRelay: { name: '총 연계', note: '칼 처치 → 최근접 사격', fits: 'kata', base: true, cost: 60 },
-  bladeRelay: { name: '칼 연계', note: '총 처치 → 2칸 돌진 베기', fits: 'kata', base: true, cost: 60 },
-  spinShot: { name: '회전 사격', note: '다수 인접 베기 → 주변 사격', fits: 'kata', base: true, cost: 90 },
-  counterShot: { name: '반격 사격', note: '회피 → 반격 사격', fits: 'any', base: true, cost: 70 },
-  execute: { name: '처형', note: '인접 기절 → 처형', fits: 'any', base: true, cost: 90 },
-  flow: { name: '흐름', note: '각인 3연계 → 다음 행동 0턴', fits: 'any', base: true, cost: 120 },
+export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit; base: boolean; cost: number; family: Family; tags: string[] }> = {
+  dash: { name: '돌진 베기', note: '2칸 앞 적 → 돌진 베기', fits: 'melee', base: true, cost: 50, family: 'melee', tags: ['돌진'] },
+  finisher: { name: '3연타 마무리', note: '같은 적 3타 → ×1.5 · 밀치기', fits: 'melee', base: true, cost: 40, family: 'melee', tags: ['연타'] },
+  shoveShot: { name: '밀치고 쏘기', note: '칼 명중 → 밀치기 · 반대 손 사격', fits: 'melee', base: true, cost: 50, family: 'fusion', tags: ['밀치기'] },
+  leap: { name: '도약 내려찍기', note: '3칸 앞 적 → 도약 · 주변 베기', fits: 'melee', base: true, cost: 60, family: 'melee', tags: ['돌진'] },
+  counter: { name: '반격', note: '회피 → 반격', fits: 'melee', base: true, cost: 60, family: 'melee', tags: ['회피'] },
+  riposte: { name: '되받아치기', note: '패링 → 반격 · 기절', fits: 'melee', base: true, cost: 70, family: 'melee', tags: ['패링', '기절'] },
+  momentum: { name: '기세', note: '처치 → 다음 행동 시간 절반', fits: 'any', base: true, cost: 80, family: 'fusion', tags: ['처치'] },
+  quickswap: { name: '칼바꿈', note: '무기 종류 교체 → 0턴 · 다음 공격 +50%', fits: 'any', base: true, cost: 60, family: 'fusion', tags: ['교체'] },
+  swapstrike: { name: '연환', note: '교체 → 즉시 공격', fits: 'any', base: true, cost: 50, family: 'fusion', tags: ['교체'] },
+  wallslam: { name: '벽치기', note: '벽 충돌 → 주변 충격파', fits: 'melee', base: true, cost: 50, family: 'melee', tags: ['밀치기', '기절'] },
+  laststand: { name: '배수진', note: '체력 30% 이하 → 피해 +40%', fits: 'any', base: true, cost: 50, family: 'melee', tags: ['위기'] },
+  rapid: { name: '연사', note: '연속 사격 → 가속 · 3발째 치명', fits: 'ranged', base: true, cost: 50, family: 'ranged', tags: ['연사'] },
+  mark: { name: '표식', note: '명중 → 피해 +30% 표식 · 처치 시 전이', fits: 'ranged', base: true, cost: 60, family: 'ranged', tags: ['표식'] },
+  ricochet: { name: '도탄', note: '사격 처치 → 근처 적 도탄', fits: 'ranged', base: true, cost: 60, family: 'ranged', tags: ['처치'] },
+  kite: { name: '쏘고 물러나기', note: '인접 사격 → 한 칸 후퇴', fits: 'ranged', base: true, cost: 40, family: 'ranged', tags: ['회피'] },
+  volley: { name: '삼중 사격', note: '3번째 사격 → 두 발 추가', fits: 'ranged', base: true, cost: 70, family: 'ranged', tags: ['연사'] },
+  alternate: { name: '교대 시전', note: '다른 원소 시전 → ×1.5 · 시간 절반', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  echo: { name: '잔향', note: '3번째 주문 → 재시전', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  chain: { name: '연쇄 번개', note: '전격 → 두 번 도약', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  elemArrow: { name: '원소 탄', note: '원소 시전 → 다음 총탄에 원소', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  gunRelay: { name: '총 연계', note: '칼 처치 → 최근접 사격', fits: 'kata', base: true, cost: 60, family: 'fusion', tags: ['처치'] },
+  bladeRelay: { name: '칼 연계', note: '총 처치 → 2칸 돌진 베기', fits: 'kata', base: true, cost: 60, family: 'fusion', tags: ['처치', '돌진'] },
+  spinShot: { name: '회전 사격', note: '다수 인접 베기 → 주변 사격', fits: 'kata', base: true, cost: 90, family: 'fusion', tags: ['포위'] },
+  counterShot: { name: '반격 사격', note: '회피 → 반격 사격', fits: 'any', base: true, cost: 70, family: 'fusion', tags: ['회피'] },
+  execute: { name: '처형', note: '인접 기절 → 처형', fits: 'any', base: true, cost: 90, family: 'fusion', tags: ['기절', '처치'] },
+  flow: { name: '흐름', note: '각인 연쇄 → 다음 행동 0턴', fits: 'any', base: true, cost: 120, family: 'fusion', tags: ['연쇄'] },
 };
 export const ENGRAVE_IDS = Object.keys(ENGRAVES) as EngraveId[];
 

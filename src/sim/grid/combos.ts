@@ -1,4 +1,6 @@
-import { gunRelay, onStunned, REFLEX_HOOKS } from './kata';
+import { emit } from './kataBus';
+import { emitKills } from './attackTriggers';
+import { REFLEX_HOOKS } from './kata';
 import { foeAt, freeCell, shotClear, strike } from './combat';
 import { blowMult, fire, has } from './engraveCore';
 import { activeWeapon, swapHands } from './gear';
@@ -66,10 +68,11 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
     const mult = LEAP_MULT * blowMult(s, t, f) * (f.awake ? 1 : 2);
     f.awake = true;
     const hit = strike(s, t, h, f, WEAPONS[w.group].hit, dmg, mult);
+    if (hit) emit(s, 'meleeHit', { t, foe: f, hooks });
     if (f === far) landed = hit;
   }
   refillMelee(s, landed, eventStart);
-  gunRelay(s, t, eventStart, hooks);
+  emitKills(s, t, eventStart, 'meleeKill', hooks);
   h.fx.nextMult = 1;
   return WEAPONS[w.group].time + LEAP_TIME;
 }
@@ -125,11 +128,12 @@ export function counterBlow(s: GridState, t: number, src: string, how: 'dodge' |
   s.events.push({ t, type: 'bump', group: w.group, src: h.id, dst: f.id, from: { ...h.pos }, to: { ...f.pos }, text: id });
   const eventStart = s.events.length;
   const landed = strike(s, t, h, f, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, t, f));
+  if (landed) emit(s, 'meleeHit', { t, foe: f, hooks });
   if (how === 'parry' && landed) {
     f.stun = Math.max(f.stun ?? 0, 1);
     s.events.push({ t, type: 'stun', src: h.id, dst: f.id, to: { ...f.pos } });
-    onStunned(s, t, f);
+    emit(s, 'stunned', { t, foe: f, src: 'riposte', hooks });
   }
   refillMelee(s, landed, eventStart);
-  gunRelay(s, t, eventStart, hooks);
+  emitKills(s, t, eventStart, 'meleeKill', hooks);
 }

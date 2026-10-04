@@ -5,7 +5,6 @@ import { hitChance } from '../../../src/sim/grid/combat';
 import { GUN_COST, GUNS, makeWeapon, RIFLE_BURST, rollEquipment, shotgunFalloff, WEAPONS } from '../../../src/sim/grid/items';
 import { canFire, meleeAttack, rangedAttack, shootCell } from '../../../src/sim/grid/weapons';
 import { counterBlow } from '../../../src/sim/grid/combos';
-import { FOES } from '../../../src/sim/grid/types';
 import { nextFloor } from '../../../src/sim/grid/run';
 import { handMap, OPEN, sim, sureHits } from './kit';
 

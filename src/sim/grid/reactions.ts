@@ -1,3 +1,4 @@
+import { emit } from './kataBus';
 import type { Element } from './items';
 import { dist, same, type Cell, type Ent, type GridState } from './types';
 
@@ -13,6 +14,7 @@ export interface ReactionKit {
 
 function react(s: GridState, t: number, kind: string, at: Cell, src: string): void {
   s.events.push({ t, type: 'react', src, to: { ...at }, text: kind });
+  if (src === s.hero.id) emit(s, 'reaction', { t, src, foe: s.foes.find(f => same(f.pos, at)) });
 }
 
 /** Poison set alight: a blast around it that also burns the poison and the clouds away. */
@@ -40,14 +42,19 @@ export function steam(s: GridState, t: number, at: Cell, src: string, k: Reactio
  * Checks an element landing on an entity for a reaction. Returns what happened (so the caller skips the
  * plain effect) or null. Lightning reactions (shatter, paralyse) are handled by the caller from the returned kind.
  */
-export function reactOn(s: GridState, t: number, el: Element, e: Ent, src: string, k: ReactionKit): 'ignite' | 'steam' | 'shatter' | 'paralyse' | null {
+export function reactOn(s: GridState, t: number, el: Element, e: Ent, src: string, k: ReactionKit, engraving = false): 'ignite' | 'steam' | 'shatter' | 'paralyse' | null {
   const st = e.status;
   if (!st) return null;
   if (el === 'fire' && st.poison > 0) { ignite(s, t, e.pos, src, k); return 'ignite'; }
   if (el === 'fire' && st.freeze > 0) { steam(s, t, e.pos, src, k); return 'steam'; }
   if (el === 'frost' && st.burn > 0) { steam(s, t, e.pos, src, k); return 'steam'; }
   if (el === 'shock' && st.freeze > 0) { st.freeze = 0; react(s, t, 'shatter', e.pos, src); return 'shatter'; }
-  if (el === 'shock' && st.poison > 0) { e.stun = Math.max(e.stun ?? 0, 2); react(s, t, 'paralyse', e.pos, src); return 'paralyse'; }
+  if (el === 'shock' && st.poison > 0) {
+    e.stun = Math.min(engraving && e.kind === 'champion' ? 1 : Infinity, Math.max(e.stun ?? 0, 2));
+    react(s, t, 'paralyse', e.pos, src);
+    if (src === s.hero.id) emit(s, 'stunned', { t, src: 'reaction', foe: e, element: el });
+    return 'paralyse';
+  }
   return null;
 }
 

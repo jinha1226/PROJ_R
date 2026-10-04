@@ -1,3 +1,5 @@
+import { absorbShield } from './shield';
+import { emit } from './kataBus';
 import { losClear } from './fov';
 import { defend } from './defense';
 import { dist, opaque, same, tileAt, walkable, type Cell, type Ent, type GEvent, type GridMap, type GridState } from './types';
@@ -52,7 +54,7 @@ export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: numb
   }
   const roll = s.rng.int(dmg[0], dmg[1]);
   const armour = dst.id === s.hero.id ? s.hero.gear.armor?.reduce ?? 0 : 0;
-  const amount = Math.max(1, Math.round(roll * mult) - armour);
+  const amount = absorbShield(s, t, dst, Math.max(1, Math.round(roll * mult) - armour));
   dst.hp -= amount;
   const ev: GEvent = { t, type: 'hit', src: src.id, dst: dst.id, amount, to: { ...dst.pos } };
   // small engraving boosts (a mark, last stand) are not crits; sneak attacks and finishers are
@@ -63,5 +65,6 @@ export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: numb
     dst.alive = false;
     s.events.push({ t, type: 'die', src: src.id, dst: dst.id, to: { ...dst.pos } });
   }
+  if (dst === s.hero && amount > 0) emit(s, 'hurt', { t, src: src.id, foe: s.foes.find(f => f.id === src.id) });
   return true;
 }

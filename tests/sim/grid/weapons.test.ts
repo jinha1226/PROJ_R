@@ -3,7 +3,6 @@ import { describe, it, expect } from 'vitest';
 import { makeWeapon, type WeaponGroup } from '../../../src/sim/grid/items';
 import { activeWeapon, addToBag } from '../../../src/sim/grid/gear';
 import type { GridSim } from '../../../src/sim/grid/gridSim';
-import { FOES } from '../../../src/sim/grid/types';
 import { OPEN, sim, sureHits } from './kit';
 
 const hold = (g: GridSim, group: WeaponGroup) => { g.s.hero.gear.hands[0] = makeWeapon(group, 1); g.s.hero.gear.active = 0; };

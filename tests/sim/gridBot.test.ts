@@ -51,7 +51,7 @@ it('descends onto a boss echo once the floor is explored', () => {
   const g = sim(OPEN, { x: 5, y: 7 });
   g.s.seen.fill(1);
   g.s.map.stairs = { x: 7, y: 7 };
-  g.s.floorItems = [{ pos: { x: 7, y: 7 }, item: { kind: 'echo', family: 'all', name: '잔향' } }];
+  g.s.floorItems = [{ pos: { x: 7, y: 7 }, item: { kind: 'echo', family: 'fusion', name: '잔향' } }];
   for (let i = 0; i < 2; i++) g.act(gridBotAction(g.s, 'decent'));
   expect(g.s.run.floor).toBe(2);
 });
