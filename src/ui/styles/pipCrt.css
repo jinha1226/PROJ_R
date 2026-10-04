@@ -1,0 +1,22 @@
+/* Pip-Boy-like monochrome phosphor: one green, brightness for hierarchy, a curved tube with scanlines, glow and a faint flicker. */
+.pip {
+  --t-fg: #5dff8a; --t-dim: #2f9a52; --t-line: #1f6a38; --t-warn: #b6ffc8; --t-ch: #9dffb8; --t-hp: #ffd36a; --t-bg: #031407;
+  background: radial-gradient(ellipse at center, #062a10 0%, #021006 70%, #010603 100%) !important;
+  color: var(--t-fg); text-shadow: 0 0 6px #3dff7a99, 0 0 1px #5dff8a;
+  border-radius: 28px / 22px; box-shadow: inset 0 0 60px #000c, inset 0 0 6px #5dff8a55; overflow: hidden;
+  animation: pip-flicker 4s steps(1) infinite;
+}
+.pip::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: repeating-linear-gradient(to bottom, #00000000 0 2px, #00000055 2px 3px), radial-gradient(ellipse at center, #0000 55%, #000a 100%); }
+@keyframes pip-flicker { 0%, 96% { opacity: 1; } 97% { opacity: 0.92; } 98% { opacity: 1; } 99% { opacity: 0.95; } }
+.pip .wb-head > b, .pip .wb-slot span { background: var(--t-fg); color: #021006; box-shadow: 0 0 8px #3dff7a; }
+.pip .wb-tabs button[aria-selected="true"] { background: var(--t-fg); color: #021006; text-shadow: none; }
+.pip .wb-body path, .pip .wb-part path { fill: #04200b; stroke: var(--t-dim); filter: drop-shadow(0 0 2px #3dff7a66); }
+.pip .wb-part.fitted path { stroke: var(--t-fg); fill: #073a16; }
+.pip .wb-part.sel path { stroke: #d8ffe2; }
+.pip .wb-call, .pip .wb-sub { fill: var(--t-fg); }
+.pip .wb-opt { background: #04200b; border-color: var(--t-line); }
+.pip .wb-opt.on { border-color: var(--t-fg); box-shadow: 0 0 8px #3dff7a55 inset; }
+.pip .btn { background: #04200b !important; border-color: var(--t-dim) !important; color: var(--t-fg) !important; }
+.pip .btn.primary { background: var(--t-fg) !important; color: #021006 !important; }
+.pip .wb-grid { stroke: #1f6a3833; }

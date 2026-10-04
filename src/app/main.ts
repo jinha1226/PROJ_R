@@ -79,11 +79,13 @@ async function workbenchDemo(): Promise<void> {
   const [{ WorkbenchScreen }, { MockBench }] = await Promise.all([import('../ui/grid/ship/workbenchScreen'), import('../ui/grid/ship/workbenchMock')]);
   await import('../ui/styles/grid.css');
   await import('../ui/styles/gridSf.css');
+  if (params.get('pip')) await import('../ui/styles/pipCrt.css');
   const bench = new MockBench();
   const host = document.createElement('div');
   host.className = 'screen grid';
   root.replaceChildren(host);
   const screen = new WorkbenchScreen({ model: () => bench.model(), craft: (id) => bench.craft(id), fit: (slot, id) => bench.fit(slot, id), close: () => screen.render() });
+  if (params.get('pip')) screen.el.classList.add('pip');
   host.appendChild(screen.el);
 }
 
