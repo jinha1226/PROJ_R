@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { DustMotes } from './dustMotes';
 import { idx, type GridMap, type GridState } from '../../sim/grid/types';
 import type { DungeonKit } from './dungeonKit';
 import { torchSpots, type WallFace } from './gridLayout';
@@ -34,9 +33,7 @@ export class GridTorches {
   private readonly lights: THREE.PointLight[] = [];
   private t = 0;
 
-  private readonly dust: DustMotes;
-
-  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1, look: { torch: string; flame: string; dust: string } = { torch: '#ff9a40', flame: '#ffb347', dust: '#ffcf9a' }) {
+  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1, look: { torch: string; flame: string } = { torch: '#ff9a40', flame: '#ffb347' }) {
     const haloMat = haloMaterial().clone();
     haloMat.color.set(look.flame);
     const flameGeo = new THREE.SphereGeometry(0.07, 8, 6);
@@ -62,13 +59,10 @@ export class GridTorches {
       this.lights.push(l);
       this.root.add(l);
     }
-    this.dust = new DustMotes(look.dust);
-    this.root.add(this.dust.points);
   }
 
   /** Shows torches the hero has seen; hands the lights to the nearest seen ones. */
   shade(s: GridState, hero: THREE.Vector3): void {
-    this.dust.follow(hero);
     for (const t of this.torches) t.model.visible = t.flame.visible = s.seen[t.cell] === 1;
     const near = this.torches.filter((t) => s.seen[t.cell] === 1).sort((a, b) => a.at.distanceToSquared(hero) - b.at.distanceToSquared(hero));
     this.lights.forEach((l, i) => {
@@ -81,7 +75,6 @@ export class GridTorches {
 
   update(dt: number): void {
     this.t += dt;
-    this.dust.update(dt);
     for (const tr of this.torches) {
       if (!tr.flame.visible) continue;
       const f = 1 + Math.sin(this.t * 11 + tr.phase) * 0.12 + Math.sin(this.t * 23 + tr.phase * 2) * 0.08;
@@ -95,7 +88,6 @@ export class GridTorches {
   }
 
   dispose(): void {
-    this.dust.dispose();
     this.root.traverse((o) => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
   }
 }

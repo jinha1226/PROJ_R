@@ -1,5 +1,6 @@
 import { ShipTerrain } from './shipTerrain';
 import { heroLook } from './heroLook';
+import { speciesOf } from './species';
 import type { ShipKit } from './shipKit';
 import type { MetaState } from '../../sim/grid/meta';
 import { STATIONS } from '../../sim/grid/ship';
@@ -65,7 +66,7 @@ export class GridRuntime {
     const sun = new THREE.DirectionalLight('#9fb0ff', 0.16);
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
-    this.pixel = new PixelPass(this.h.renderer);
+    this.pixel = new PixelPass(this.h.renderer, 2);
     if (!theme) kit.tint(look.tint);
     this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
@@ -150,6 +151,10 @@ export class GridRuntime {
     // on the ship deck the floating labels name the stations instead
     this.icons = this.stationAt.size ? (s.map.stations ?? []).map((st) => ({ id: `st-${st.id}`, icon: STATIONS[st.id] })) : shown.map((f) => ({ id: f.id, icon: aiming.includes(f) ? '◎' : '!' }));
   }
+  /** The dead of the crypt shed bone chips; goblins and orcs bleed. */
+  private gore(p: THREE.Vector3, n: number, from?: THREE.Vector3): void {
+    if (speciesOf(this.sim.s.run.floor) === 'skeleton') this.particles.bones(p, n, from); else this.particles.blood(p, n * 2, from);
+  }
   private icons: { id: string; icon: string }[] = [];
   private readonly stationAt = new Map<string, THREE.Vector3>();
   private cue(e: GEvent): void {
@@ -189,8 +194,8 @@ export class GridRuntime {
         if (e.crit) a.flashOnly(e.dst);
         if (p) {
           this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : e.dst === 'hero' ? 'ally-hurt' : 'dmg', p);
-          this.particles.spray(p, e.dst === 'hero' ? '#ff4a30' : '#ffe6a8', e.crit ? 18 : 10);
-          if (e.dst !== 'hero') this.particles.bones(p, e.crit ? 6 : 3, at(e.src));
+          this.particles.spray(p, e.dst === 'hero' ? '#ff4a30' : '#ffe6a8', e.crit ? 12 : 6);
+          if (e.dst !== 'hero') this.gore(p, e.crit ? 8 : 4, at(e.src));
         }
         this.fx.hitStop();
         if (e.dst === 'hero') this.fx.hurt();
@@ -204,7 +209,7 @@ export class GridRuntime {
         break;
       }
       case 'reload': a.anim(e.src, 'reload'); break;
-      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.particles.bones(p, 16, at(e.src)); break; }
+      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.gore(p, 18, at(e.src)); break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'energy': if (e.to) this.fx.energy(cellVec(e.to), e.amount ?? 0); break;
@@ -244,7 +249,6 @@ export class GridRuntime {
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));
-    this.particles.dustOn = !this.pixelated;
     if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
     else this.h.renderer.render(this.h.scene, this.h.camera);
   }
