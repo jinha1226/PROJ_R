@@ -101,7 +101,7 @@ export class GridHud {
       q('.gh-progress b').textContent = `Lv${h.level}`;
       q('.gh-charge span').textContent = `⚡ ${h.charge}/${h.maxCharge}`;
       q('.gh-charge i').style.width = `${Math.max(0, Math.min(1, h.charge / Math.max(1, h.maxCharge))) * 100}%`;
-      q('.gh-suit').innerHTML = tiles.map((tile, i) => `<div class="gh-tile ${tile.lit ? 'lit' : 'dim'}" data-id="${tile.id ?? ''}" data-testid="grid-suit-tile-${i}" title="${tile.name}">${tile.name}</div>`).join('');
+      q('.gh-suit').innerHTML = tiles.map((tile, i) => `<div class="gh-tile ${tile.lit ? 'lit' : 'dim'}${tile.id ? '' : ' empty'}" data-id="${tile.id ?? ''}" data-testid="grid-suit-tile-${i}" title="${tile.name}">${tile.name}</div>`).join('');
       const frac = Math.max(0, h.hp / h.maxHp);
       q('.gh-hp-fill').style.width = `${frac * 100}%`;
       q('.gh-hp-fill').classList.toggle('low', frac < 0.35);
