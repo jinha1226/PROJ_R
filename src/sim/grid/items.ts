@@ -48,8 +48,8 @@ export const WEAPONS: Record<WeaponGroup, { melee: boolean; dmg: Range2; hit: nu
 export const RIFLE_BURST = 3;
 /** game time between a burst's bullets (they play out one after another) */
 export const BURST_GAP = 0.4;
-/** A shotgun blast by distance: brutal point-blank, weak at the edge of its reach. */
-export const shotgunFalloff = (cells: number): number => (cells <= 1 ? 1.5 : cells === 2 ? 1 : 0.6);
+/** A shotgun blast by distance: hardest two cells out (adjacent foes are bashed), weak at the edge of its reach. */
+export const shotgunFalloff = (cells: number): number => (cells <= 2 ? 1.3 : cells === 3 ? 1 : 0.6);
 export const STAFF_CHARGES = 3;
 export const STAFF_RECHARGE = 8;
 

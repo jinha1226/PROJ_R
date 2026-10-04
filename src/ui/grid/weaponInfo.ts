@@ -9,7 +9,7 @@ export const GROUP_NOTE: Record<WeaponGroup, string> = {
   spear: '2칸 앞까지 찌름(관통)',
   mace: '밀치기 · 벽에 박으면 기절',
   pistol: '빠름(0.6턴) · 충전 1',
-  shotgun: '부채꼴 3칸 · 밀치기 · 붙으면 ×1.5 · 충전 2',
+  shotgun: '부채꼴 3칸 · 밀치기 · 가까울수록 강함 · 충전 2',
   rifle: '3연발 · 멀리 · 엄폐 무시 절반 · 충전 2',
   staff: '충전식 마법 · 8턴마다 1회 회복',
 };

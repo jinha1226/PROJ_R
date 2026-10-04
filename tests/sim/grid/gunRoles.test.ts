@@ -41,11 +41,11 @@ describe('each gun plays differently', () => {
     expect(g.s.events.filter((e) => e.type === 'shoot')).toHaveLength(1);
   });
 
-  it('the shotgun hits hardest point-blank and weakest at the edge of its reach', () => {
+  it('the shotgun hits hardest two cells out and weakest at the edge of its reach', () => {
     const taken = (x: number) => { const g = shooter('shotgun', x); rangedAttack(g.s, 0, g.s.foes[0]!, hooks); return 500 - g.s.foes[0]!.hp; };
     const lo = WEAPONS.shotgun.dmg[0][0];
-    expect(taken(3)).toBe(Math.round(lo * 1.5));
-    expect(taken(4)).toBe(lo);
-    expect(taken(5)).toBe(Math.round(lo * 0.6));
+    expect(taken(4)).toBe(Math.round(lo * 1.3));
+    expect(taken(5)).toBe(lo);
+    expect(taken(6)).toBe(Math.round(lo * 0.6));
   });
 });
