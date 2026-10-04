@@ -13,6 +13,9 @@ import { Router } from './router';
 import { WeekFlow } from './weekFlow';
 import { ExtractFlow } from './extractFlow';
 import { GridFlow } from './gridFlow';
+import { UalLibrary } from '../view/grid/ualActor';
+import { DungeonKit } from '../view/grid/dungeonKit';
+import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
 import { clearRun, loadHall, loadRun } from './save';
 
 const root = document.getElementById('app')!;
@@ -60,5 +63,17 @@ async function battle(): Promise<void> {
   }
 }
 
-if (params.get('screen') === 'sandbox') sandbox();
+/** `?demo=kata`: the scripted gun-kata look in the game view. */
+async function kataDemo(): Promise<void> {
+  try {
+    const [{ KataDemo }, lib, kit, weapons] = await Promise.all([import('../ui/grid/kataDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    router.go(new KataDemo(lib, kit));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
+if (params.get('demo') === 'kata') void kataDemo();
+else if (params.get('screen') === 'sandbox') sandbox();
 else title();

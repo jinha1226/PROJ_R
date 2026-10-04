@@ -1,0 +1,22 @@
+/* the gun-kata demo: the game view with a caption panel, heart tags over figures, letterbox bars in slow motion */
+.screen.grid.kata .grid-stage { position: absolute; inset: 0; }
+.kata-panel { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 6px); max-width: 640px; margin: 0 auto; padding: 0 0 6px; background: var(--t-bg); border: 1px solid var(--t-line); color: var(--t-fg); font-size: 12px; z-index: 5; }
+.kata-head { display: flex; justify-content: space-between; gap: 8px; background: var(--t-fg); color: #02080a; padding: 2px 8px; }
+.kata-head b { font-weight: normal; }
+.kata-cap { margin: 4px 8px; line-height: 1.4; }
+.kata-btns { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px; }
+.kata-btns .btn { min-height: 26px !important; height: 26px; padding: 0 8px; font-size: 12px; }
+.kata-tags { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.kata-tag { position: absolute; transform: translate(-50%, -100%); display: grid; justify-items: center; gap: 1px; font-size: 12px; text-shadow: 0 1px 0 #000, 0 0 4px #000; white-space: nowrap; }
+.kata-tag span { color: var(--t-hp); letter-spacing: 1px; }
+.kata-tag span i { font-style: normal; color: #4a2a2a; }
+.kata-tag b { font-weight: normal; color: #02080a; background: var(--t-warn); padding: 0 4px; }
+.kata-tag em { font-style: normal; color: #02080a; background: var(--t-ch); padding: 0 4px; }
+.kata-bars::before, .kata-bars::after { content: ''; position: absolute; left: 0; right: 0; height: 0; background: #000; z-index: 3; transition: height 0.25s; }
+.kata-bars::before { top: 0; } .kata-bars::after { bottom: 0; }
+.screen.grid.kata.slow .kata-bars::before, .screen.grid.kata.slow .kata-bars::after { height: 9vh; }
+.kata-bars::before { border-bottom: 1px solid var(--t-line); box-sizing: border-box; }
+.kata-bars::after { border-top: 1px solid var(--t-line); box-sizing: border-box; }
+.screen.grid.kata:not(.slow) .kata-bars::before, .screen.grid.kata:not(.slow) .kata-bars::after { border-width: 0; }
+.kata-slow { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 1.6vh); left: 50%; transform: translateX(-50%); z-index: 4; color: var(--t-warn); font-size: 12px; letter-spacing: 0.2em; display: none; animation: tv-blink 1s steps(2) infinite; }
+.screen.grid.kata.slow .kata-slow { display: block; }

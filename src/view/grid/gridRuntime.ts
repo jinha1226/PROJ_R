@@ -34,11 +34,11 @@ const CAM_K = 8;
 export class GridRuntime {
   private readonly h: SceneHandle;
   private terrain: GridTerrain | ShipTerrain;
-  private actors: GridActors;
+  actors: GridActors;
   private elements: GridElements;
   private mapRef: GridSim['s']['map'];
   private readonly banner = document.createElement('div');
-  private readonly fx: GridFx;
+  readonly fx: GridFx;
   private torches: GridTorches;
   private readonly particles = new GridParticles();
   private readonly items = new GridItems();
@@ -85,7 +85,7 @@ export class GridRuntime {
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
     this.refresh();
   }
-  private project(p: THREE.Vector3): { left: number; top: number } {
+  project(p: THREE.Vector3): { left: number; top: number } {
     const v = p.clone().project(this.h.camera);
     return { left: ((v.x + 1) / 2) * this.el.clientWidth, top: ((1 - v.y) / 2) * this.el.clientHeight };
   }

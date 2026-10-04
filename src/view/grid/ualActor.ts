@@ -245,6 +245,8 @@ export class UalActor {
   setDead(): void {
     if (this.dead) return;
     this.dead = true;
+    // a body on its back reads like a raised-arms pose from above: darken it so the dead read as dead
+    for (const m of this.mats) m.color.multiplyScalar(0.45);
     this.dropUpper(0.05);
     this.start(CLIP.death, false, 1.3, 0.05);
   }
