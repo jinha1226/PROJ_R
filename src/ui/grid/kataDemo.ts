@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
-import { GridRuntime } from '../../view/grid/gridRuntime';
+import { GridRuntime, setCameraElevation } from '../../view/grid/gridRuntime';
+import { setFigureScale } from '../../view/grid/gridActors';
 import { CELL } from '../../view/grid/gridTerrain';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
@@ -26,6 +27,7 @@ export class KataDemo implements Screen {
   private auto: ReturnType<typeof setTimeout> | undefined;
   private stage!: HTMLElement;
   private readonly tags = document.createElement('div');
+  private zoom = 10;
 
   constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit) {}
 
@@ -56,7 +58,11 @@ export class KataDemo implements Screen {
       if (k === 's0' || k === 's1') this.load(Number(k[1]));
       if (k === 'px' && this.rt) { this.rt.pixelated = !this.rt.pixelated; (e.target as HTMLElement).textContent = this.rt.pixelated ? '도트' : 'HD'; }
     });
-    this.load(0);
+    const q = new URLSearchParams(location.search);
+    this.zoom = Number(q.get('zoom')) || 10;
+    if (q.get('elev')) setCameraElevation(Number(q.get('elev')));
+    if (q.get('fig')) setFigureScale(Number(q.get('fig')));
+    this.load(Math.min(SCENES.length - 1, Number(q.get('scene')) || 0));
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
@@ -85,7 +91,7 @@ export class KataDemo implements Screen {
     this.sim = GridSim.fromState(this.current.setup());
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, isTouchDevice());
     this.rt.pixelated = pixel;
-    this.rt.setZoom(10);
+    this.rt.setZoom(this.zoom);
     this.show();
   }
 

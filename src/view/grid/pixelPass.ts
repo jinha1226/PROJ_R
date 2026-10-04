@@ -47,6 +47,14 @@ export class PixelPass {
     r.render(this.scene, this.cam);
   }
 
+  /** Moves a camera target onto the low-res pixel grid (screen x is world x; screen y is world z foreshortened by the elevation), so a moving camera does not make edges crawl. */
+  snap(target: THREE.Vector3, halfHeight: number, elevation: number): void {
+    const step = (2 * halfHeight) / Math.max(1, this.target.height);
+    target.x = Math.round(target.x / step) * step;
+    const sz = step / Math.sin(elevation);
+    target.z = Math.round(target.z / sz) * sz;
+  }
+
   dispose(): void {
     this.target.dispose();
     this.quad.geometry.dispose();

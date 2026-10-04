@@ -29,7 +29,9 @@ import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
 import { PixelPass } from './pixelPass';
-const ELEVATION = (60 * Math.PI) / 180;
+let ELEVATION = (45 * Math.PI) / 180;
+/** Scripted views (the comparison demo) may tilt the camera. */
+export const setCameraElevation = (deg: number): void => { ELEVATION = (deg * Math.PI) / 180; };
 const CAM_DIST = 40;
 const CAM_K = 8;
 /** Draws a grid sortie: the map, models chasing their cells, and each turn's events replayed as a quick overlapping show. */
@@ -261,6 +263,7 @@ export class GridRuntime {
     Object.assign(cam, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
     cam.updateProjectionMatrix();
     const c = this.center.clone().add(this.fx.jolt());
+    if (this.pixelated) this.pixel.snap(c, half, ELEVATION);
     cam.position.set(c.x, Math.sin(ELEVATION) * CAM_DIST, c.z + Math.cos(ELEVATION) * CAM_DIST);
     cam.lookAt(c);
   }

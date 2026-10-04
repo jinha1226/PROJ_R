@@ -25,6 +25,9 @@ const LOOK: Record<Ent['kind'], UalLook> = {
   champion: { body: '#3a3a44', trim: '#d8b040', scale: 1.45, weapon: 'sword', shield: true, idle: 'Sword_Idle' },
 };
 const LUNGE = 0.3;
+/** figure size against the cell (1 = a person fills a cell); scripted views may change it */
+let FIGURE_SCALE = 1;
+export const setFigureScale = (k: number): void => { FIGURE_SCALE = k; };
 
 /** The coloured ring under each figure (gold hero and elites, red ordinary foes). */
 function ring(color: string, scale: number): THREE.Mesh {
@@ -75,7 +78,7 @@ export class GridActors {
       if (existing) { this.bars.update(existing.bar, e.kind === 'hero' ? { ...e, alive: false } : e); continue; }
       this.kinds.set(e.id, e.kind);
       const base = e.kind === 'hero' ? LOOK.hero : foeLook(LOOK[e.kind], e.kind, speciesOf(s.run.floor));
-      const look = { ...base, scale: base.scale * (e.elite ? 1.12 : 1) };
+      const look = { ...base, scale: base.scale * (e.elite ? 1.12 : 1) * FIGURE_SCALE };
       const actor = new UalActor(this.lib, look);
       actor.root.add(ring(e.kind === 'hero' || e.elite ? '#e0a64a' : '#d0533f', look.scale));
       const bar = this.bars.create(2.35 * look.scale);

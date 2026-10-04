@@ -92,7 +92,7 @@ export class GridScreen implements Screen {
       if (!this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim) { this.stopWalk(); this.touch?.releaseStick(); this.s.hero.target = id; }
     }));
     this.zoom = new ZoomControl({ setHeight: (h) => rt.setZoom(h) }, stage, () => this.touch?.releaseStick(),
-      { key: 'projr.grid.zoom', defaults: { portrait: 18, landscape: 11 }, pad: '.gt-pad', stage: '.grid-stage' });
+      { key: 'projr.grid.zoom', defaults: { portrait: 16, landscape: 10 }, pad: '.gt-pad', stage: '.grid-stage' });
     this.el.appendChild(this.zoom.el);
     const px = document.createElement('button');
     px.className = 'btn grid-pixel';
