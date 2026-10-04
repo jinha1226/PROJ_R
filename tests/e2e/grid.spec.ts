@@ -195,7 +195,7 @@ test('roguelike basics: drink an unknown potion from the bag, read a map scroll,
   expect(errors).toEqual([]);
 });
 
-test('the ship deck: bump the armory, buy the shotgun with energy, it is saved and can be picked to launch with', async ({ page }) => {
+test('the ship deck: bump the armory, unlock fire rounds with energy, it is saved and can be picked to launch with', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -215,12 +215,12 @@ test('the ship deck: bump the armory, buy the shotgun with energy, it is saved a
     w.act({ kind: 'move', dir: { x: 0, y: -1 } });
   });
   await expect(page.locator('[data-testid="ship-panel-armory"]')).toBeVisible();
-  await page.click('[data-testid="ship-buy-armoryShotgun"]');
+  await page.click('[data-testid="ship-buy-round:fire"]');
   await expect(page.locator('.ship-hud')).toContainText('⚡120');
-  await page.click('[data-testid="ship-choice-shotgun"]');
-  await expect(page.locator('[data-testid="ship-choice-shotgun"]')).toHaveAttribute('aria-pressed', 'true');
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('projr.grid.meta.v1') ?? '{}') as { energy: number; facilities: { armoryShotgun: boolean } });
+  await page.click('[data-testid="ship-choice-fire"]');
+  await expect(page.locator('[data-testid="ship-choice-fire"]')).toHaveAttribute('aria-pressed', 'true');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('projr.grid.meta.v1') ?? '{}') as { energy: number; rounds: string[] });
   expect(saved.energy).toBe(120);
-  expect(saved.facilities.armoryShotgun).toBe(true);
+  expect(saved.rounds).toContain('fire');
   expect(errors).toEqual([]);
 });
