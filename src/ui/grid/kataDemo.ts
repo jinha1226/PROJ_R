@@ -34,8 +34,9 @@ export class KataDemo implements Screen {
     this.el.innerHTML = `<div class="grid-stage"></div>
       <div class="kata-bars"></div><div class="kata-slow">● 다시보기 ×0.3</div>
       <div class="kata-panel">
-        <div class="kata-head"><b class="kata-name"></b><span class="kata-step"></span></div>
+        <div class="kata-head"><b class="kata-name"></b><span class="kata-clock"></span><span class="kata-step"></span></div>
         <p class="kata-cap"></p>
+        <ul class="kata-opts"></ul>
         <div class="kata-btns">
           <button type="button" class="btn" data-k="next">다음 ▸</button>
           <button type="button" class="btn" data-k="replay">다시보기 ×0.3</button>
@@ -122,6 +123,8 @@ export class KataDemo implements Screen {
     this.el.querySelector('.kata-name')!.textContent = `예시 ${this.scene + 1} · ${this.current.name}`;
     this.el.querySelector('.kata-step')!.textContent = `${this.step + 1}/${this.current.steps.length}`;
     this.el.querySelector('.kata-cap')!.textContent = st.caption;
+    this.el.querySelector('.kata-clock')!.textContent = `시간 ${st.clock.toFixed(1)} · 충전 ${st.charge}/6`;
+    this.el.querySelector('.kata-opts')!.innerHTML = (st.opts ?? []).map(([t, pick]) => `<li class="${pick ? 'pick' : ''}">${t}</li>`).join('');
     this.rt?.fx.setAim(st.aims.map(([a, b]) => [new THREE.Vector3(a.x * CELL, 0, a.y * CELL), new THREE.Vector3(b.x * CELL, 0, b.y * CELL)]));
   }
 

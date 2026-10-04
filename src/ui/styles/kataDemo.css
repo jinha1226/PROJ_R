@@ -20,3 +20,14 @@
 .screen.grid.kata:not(.slow) .kata-bars::before, .screen.grid.kata:not(.slow) .kata-bars::after { border-width: 0; }
 .kata-slow { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 1.6vh); left: 50%; transform: translateX(-50%); z-index: 4; color: var(--t-warn); font-size: 12px; letter-spacing: 0.2em; display: none; animation: tv-blink 1s steps(2) infinite; }
 .screen.grid.kata.slow .kata-slow { display: block; }
+.kata-clock { color: #02080a; }
+.kata-opts { list-style: none; margin: 0 8px 4px; padding: 0; display: grid; gap: 1px; }
+.kata-opts:empty { display: none; }
+.kata-opts li { color: var(--t-dim); padding-left: 14px; position: relative; }
+.kata-opts li.pick { color: var(--t-fg); }
+.kata-opts li.pick::before { content: '▸'; position: absolute; left: 0; color: var(--t-warn); }
+@media (orientation: landscape) {
+  .kata-panel { top: calc(env(safe-area-inset-top, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); left: calc(env(safe-area-inset-left, 0px) + 8px); right: auto; width: 250px; max-width: 34vw; margin: 0; display: flex; flex-direction: column; }
+  .kata-head { flex-wrap: wrap; }
+  .kata-btns { margin-top: auto; padding-top: 6px; }
+}
