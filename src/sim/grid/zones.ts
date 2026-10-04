@@ -13,4 +13,4 @@ export function zoneOf(floor: number): Zone {
 
 /** Only the last floor of each zone holds a guardian. */
 export const isBossFloor = (floor: number): boolean => floor === 5 || floor === 10 || floor === 15;
-export const BOSS_POWER: Record<5 | 10 | 15, number> = { 5: 1, 10: 1.6, 15: 2.3 };
+export const BOSS_POWER: Record<5 | 10 | 15, number> = { 5: 1, 10: 1.6, 15: 1.8 };

@@ -58,12 +58,13 @@ describe('hero actions', () => {
     expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))).toEqual(['blocked']);
   });
 
-  it('a potion heals 12, never past full', () => {
+  it('a potion heals 25, never past full', () => {
     const g = sim(OPEN, { x: 7, y: 7 });
     const n = g.s.hero.gear.belt.potion;
+    g.s.hero.maxHp = 50;
     g.s.hero.hp = 10;
     g.act({ kind: 'use', item: 'potion' });
-    expect(g.s.hero.hp).toBe(22);
+    expect(g.s.hero.hp).toBe(35);
     expect(g.s.hero.gear.belt.potion).toBe(n - 1);
     g.s.hero.hp = g.s.hero.maxHp - 1;
     g.act({ kind: 'use', item: 'potion' });

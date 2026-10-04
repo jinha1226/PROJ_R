@@ -62,12 +62,12 @@ describe('fifteen floors in three zones', () => {
   });
 
   it('scales ordinary foes gently and bosses by zone', () => {
-    expect(scaleFoe('minion', 11).hp).toBe(22);
+    expect(scaleFoe('minion', 11).hp).toBe(36);
     for (const floor of [5, 10, 15] as const) {
       const power = BOSS_POWER[floor];
       expect(scaleFoe('champion', floor)).toEqual({ hp: Math.round(FOES.champion.hp * power), dmg: FOES.champion.dmg.map((d) => Math.round(d * power)), power });
     }
-    expect(BOSS_POWER).toEqual({ 5: 1, 10: 1.6, 15: 2.3 });
+    expect(BOSS_POWER).toEqual({ 5: 1, 10: 1.6, 15: 1.8 });
     expect(scaleFoe('champion', 3).power).toBe(1);
   });
 
@@ -112,6 +112,6 @@ describe('fifteen floors in three zones', () => {
     expect(g.s.run.floor).toBe(15);
     expect(g.s.foes.filter((f) => f.kind === 'champion')).toHaveLength(1);
     expect(FLOORS).toBe(15);
-    expect(XP_STEPS).toEqual([10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820]);
+    expect(XP_STEPS).toEqual([10, 25, 45, 100, 170, 260, 370, 500, 650, 820, 1010, 1220, 1450, 1700]);
   });
 });

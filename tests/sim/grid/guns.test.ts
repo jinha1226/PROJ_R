@@ -5,6 +5,7 @@ import { hitChance } from '../../../src/sim/grid/combat';
 import { GUN_COST, GUNS, makeWeapon, rollEquipment } from '../../../src/sim/grid/items';
 import { canFire, meleeAttack, rangedAttack, shootCell } from '../../../src/sim/grid/weapons';
 import { counterBlow } from '../../../src/sim/grid/combos';
+import { FOES } from '../../../src/sim/grid/types';
 import { nextFloor } from '../../../src/sim/grid/run';
 import { handMap, OPEN, sim, sureHits } from './kit';
 
@@ -41,7 +42,7 @@ describe('ship guns and suit charge', () => {
     expect(g.s.hero.charge).toBe(8);
     g.s.foes.forEach((f, i) => {
       const p = positions[i]!;
-      expect(f.hp).toBe(15);
+      expect(f.hp).toBe(FOES.brute.hp - 5);
       expect(f.pos).toEqual({ x: p.x + Math.sign(p.x - 4), y: p.y + Math.sign(p.y - 5) });
     });
   });
@@ -126,7 +127,7 @@ describe('ship guns and suit charge', () => {
     g.s.foes[2]!.hp = 1;
     rangedAttack(g.s, 0, g.s.foes[0]!, hooks);
     expect(rolls).toEqual([]);
-    expect(g.s.foes.map((f) => f.hp)).toEqual([20, 15, 0]);
+    expect(g.s.foes.map((f) => f.hp)).toEqual([FOES.brute.hp, FOES.brute.hp - 5, 0]);
     expect(g.s.events.filter((e) => e.type === 'push').map((e) => e.src)).toEqual(['f2']);
     expect(g.s.hero.charge).toBe(8); // Shot kills never refill the suit.
   });
@@ -211,23 +212,25 @@ describe('ship guns and suit charge', () => {
 
 });
 
-describe('suit self-charge', () => {
-  it('the suit slowly recharges on its own: +1 every 3 turns, never above max', () => {
+describe('no passive suit charge', () => {
+  it('a recharge scroll refills staffs and the suit', () => {
     const g = sim(OPEN, { x: 5, y: 7 });
     g.s.hero.charge = 0;
-    g.act({ kind: 'wait' });
-    g.act({ kind: 'wait' });
-    expect(g.s.hero.charge).toBe(0);
-    g.act({ kind: 'wait' });
-    expect(g.s.hero.charge).toBe(1);
-    for (let i = 0; i < 60; i++) g.act({ kind: 'wait' });
+    const staff = makeWeapon('staff', 1);
+    staff.charges = 0;
+    g.s.hero.gear.hands[1] = staff;
+    g.s.hero.gear.scrolls.recharge = 1;
+    g.act({ kind: 'read', sc: 'recharge' });
+    expect(staff.charges).toBe(3);
     expect(g.s.hero.charge).toBe(g.s.hero.maxCharge);
   });
 
-  it('it counts game time: six one-turn searches give two charge', () => {
-    const g = sim(OPEN, { x: 5, y: 7 });
-    g.s.hero.charge = 0;
-    for (let i = 0; i < 6; i++) g.act({ kind: 'search' });
-    expect(g.s.hero.charge).toBe(2);
+  it.each(['wait', 'search'] as const)('%s never refills an empty or partly charged suit', (kind) => {
+    for (const charge of [0, 3]) {
+      const g = sim(OPEN, { x: 5, y: 7 });
+      g.s.hero.charge = charge;
+      for (let i = 0; i < 60; i++) g.act({ kind });
+      expect(g.s.hero.charge).toBe(charge);
+    }
   });
 });

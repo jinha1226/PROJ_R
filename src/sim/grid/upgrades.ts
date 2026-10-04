@@ -1,13 +1,16 @@
 import type { GridState } from './types';
 
+const DAMAGE_UPGRADE = 5;
+const EVASION_UPGRADE = 0.08;
+
 export type UpgradeId = 'charge' | 'hp' | 'killCharge' | 'evasion' | 'gunDmg' | 'meleeDmg';
 export const UPGRADES: Record<UpgradeId, { name: string; note: string }> = {
   charge: { name: '충전 확장', note: '충전 최대치 +2' },
   hp: { name: '보강 장갑', note: '최대 체력 +5' },
   killCharge: { name: '흡수 회로', note: '근접 처치 충전 +1' },
-  evasion: { name: '회피 보조', note: '회피 +3%' },
-  gunDmg: { name: '총열 강화', note: '총 피해 +1' },
-  meleeDmg: { name: '근력 보조', note: '근접 피해 +1' },
+  evasion: { name: '회피 보조', note: `회피 +${EVASION_UPGRADE * 100}%` },
+  gunDmg: { name: '총열 강화', note: `총 피해 +${DAMAGE_UPGRADE}` },
+  meleeDmg: { name: '근력 보조', note: `근접 피해 +${DAMAGE_UPGRADE}` },
 };
 
 /** Three distinct suit upgrades, drawn from the run's random stream. */
@@ -22,8 +25,8 @@ export function applyUpgrade(s: GridState, id: UpgradeId): void {
     case 'charge': h.maxCharge += 2; h.charge = Math.min(h.maxCharge, h.charge + 2); break;
     case 'hp': h.maxHp += 5; h.hp += 5; break;
     case 'killCharge': h.bonus.killCharge++; break;
-    case 'evasion': h.bonus.evasion += 0.03; break;
-    case 'gunDmg': h.bonus.gunDmg++; break;
-    case 'meleeDmg': h.bonus.meleeDmg++; break;
+    case 'evasion': h.bonus.evasion += EVASION_UPGRADE; break;
+    case 'gunDmg': h.bonus.gunDmg += DAMAGE_UPGRADE; break;
+    case 'meleeDmg': h.bonus.meleeDmg += DAMAGE_UPGRADE; break;
   }
 }

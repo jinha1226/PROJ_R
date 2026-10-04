@@ -11,7 +11,6 @@ import { activeWeapon } from './gear';
 import { WEAPONS, type GunGroup, type Weapon } from './items';
 import { heroDmg, rechargeStaffs } from './weapons';
 import { canRegenerate, regenerate } from './regen';
-import { selfCharge } from './suitCharge';
 import { castSpell, passMarks } from './shotCombos';
 import { discover } from './traps';
 import { scatterLoot } from './consumables';
@@ -92,7 +91,6 @@ export class GridSim {
       return s.events;
     }
     rechargeStaffs(s, cost);
-    selfCharge(s, cost);
     refreshSight(s);
     updateAwareness(s);
     regenerate(s, cost, safeAtStart);

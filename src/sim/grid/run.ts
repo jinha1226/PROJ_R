@@ -11,7 +11,7 @@ import { dist, idx, same, tileAt, type Cell, type FoeKind, type GridState } from
 
 export const FLOORS = 15;
 /** Experience needed for levels 2, 3, 4, … */
-export const XP_STEPS = [10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820];
+export const XP_STEPS = [10, 25, 45, 100, 170, 260, 370, 500, 650, 820, 1010, 1220, 1450, 1700];
 export const LEVEL_HP = 5;
 const WANDER_EVERY = 150;
 

@@ -6,9 +6,9 @@ import { FOES, type Cell, type Ent, type FoeKind, type GridState } from './types
 /** Stats per foe kind (with experience for a kill). */
 export const FOE_TABLE = FOES;
 export const FOE_XP: Record<FoeKind, number> = { minion: 3, brute: 6, ghoul: 4, archer: 4, mage: 6, champion: 30 };
-const PER_FLOOR = 0.12;
+const PER_FLOOR = 0.165;
 
-/** Deeper floors add 12% health and damage; champions use zone power. */
+/** Deeper floors add 16% health and damage; champions use zone power. */
 export function scaleFoe(kind: FoeKind, floor: number): { hp: number; dmg: [number, number]; power: number } {
   const power = kind === 'champion' ? (isBossFloor(floor) ? BOSS_POWER[floor as 5 | 10 | 15] : 1) : 1 + PER_FLOOR * Math.max(0, floor - 1);
   const d = FOES[kind].dmg;
