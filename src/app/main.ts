@@ -74,6 +74,20 @@ async function kataDemo(): Promise<void> {
   }
 }
 
+/** `?demo=workbench`: the workbench screen on sample data. */
+async function workbenchDemo(): Promise<void> {
+  const [{ WorkbenchScreen }, { MockBench }] = await Promise.all([import('../ui/grid/ship/workbenchScreen'), import('../ui/grid/ship/workbenchMock')]);
+  await import('../ui/styles/grid.css');
+  await import('../ui/styles/gridSf.css');
+  const bench = new MockBench();
+  const host = document.createElement('div');
+  host.className = 'screen grid';
+  root.replaceChildren(host);
+  const screen = new WorkbenchScreen({ model: () => bench.model(), craft: (id) => bench.craft(id), fit: (slot, id) => bench.fit(slot, id), close: () => screen.render() });
+  host.appendChild(screen.el);
+}
+
 if (params.get('demo') === 'kata') void kataDemo();
+else if (params.get('demo') === 'workbench') void workbenchDemo();
 else if (params.get('screen') === 'sandbox') sandbox();
 else title();

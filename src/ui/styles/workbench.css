@@ -1,0 +1,62 @@
+/* The workbench: a blueprint on the monitor — exploded line drawing left, parts and their modules right, materials along the bottom. */
+.wb {
+  position: absolute; inset: 0; z-index: 30; display: grid; grid-template-rows: auto 1fr auto;
+  background: #02080af7; color: var(--t-fg); font-family: 'GalmuriMono', ui-monospace, monospace; font-size: 12px;
+  text-shadow: 0 0 4px #6fe0c844; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.wb-head { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-bottom: 1px solid var(--t-line); }
+.wb-head > b { background: var(--t-fg); color: #02080a; text-shadow: none; padding: 1px 8px; font-weight: normal; }
+.wb-tabs { display: flex; gap: 4px; }
+.wb-tabs button, .wb-close { font: inherit; color: var(--t-dim); background: none; border: 1px solid var(--t-line); padding: 3px 12px; cursor: pointer; }
+.wb-tabs button[aria-selected="true"] { color: var(--t-fg); border-color: var(--t-fg); }
+.wb-close { margin-left: auto; padding: 3px 10px; }
+.wb-tabs button:focus-visible, .wb-close:focus-visible, .wb-part:focus-visible { outline: 1px solid var(--t-warn); }
+
+.wb-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); min-height: 0; }
+.wb-draw { display: grid; place-items: center; padding: 6px; min-height: 0; border-right: 1px solid var(--t-line); }
+.wb-svg { width: 100%; height: 100%; max-height: 100%; }
+.wb-grid { fill: none; stroke: #4b6b6422; stroke-width: 0.5; }
+.wb-body path { fill: #0b1a1c; stroke: var(--t-dim); stroke-width: 1.2; stroke-linejoin: round; }
+.wb-part path { fill: #061014; stroke: var(--t-dim); stroke-width: 1.2; stroke-linejoin: round; transition: stroke 0.15s; }
+.wb-part.fitted path { stroke: var(--t-fg); fill: #0c1e20; }
+.wb-part.sel path { stroke: var(--t-warn); stroke-width: 1.8; }
+.wb-part.flash path { animation: wb-flash 0.7s steps(4); }
+@keyframes wb-flash { 0%, 50% { fill: var(--t-ch); stroke: #fff; } 100% { fill: #0c1e20; } }
+.wb-guide { stroke: var(--t-line); stroke-width: 0.8; stroke-dasharray: 3 3; }
+.wb-part.sel .wb-guide { stroke: var(--t-warn); }
+.wb-call { font: 11px 'GalmuriMono', monospace; fill: var(--t-fg); }
+.wb-sub { font: 9px 'GalmuriMono', monospace; fill: var(--t-dim); }
+.wb-part.sel .wb-call { fill: var(--t-warn); }
+.wb-part.fitted .wb-sub { fill: var(--t-ch); }
+.wb-hit { fill: transparent; stroke: none; cursor: pointer; }
+
+.wb-side { display: grid; grid-template-rows: auto auto auto; align-content: start; gap: 8px; padding: 8px 10px; min-height: 0; overflow-y: auto; }
+.wb-slot { display: flex; gap: 8px; align-items: baseline; }
+.wb-slot span { background: var(--t-warn); color: #02080a; text-shadow: none; padding: 0 6px; }
+.wb-opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; align-content: start; }
+.wb-opt { border: 1px solid var(--t-line); padding: 5px 7px; display: grid; gap: 2px; cursor: pointer; background: #050c10; }
+.wb-opt.on { border-color: var(--t-fg); }
+.wb-opt.fitted { border-left: 3px solid var(--t-ch); }
+.wb-opt-top { display: flex; gap: 8px; align-items: baseline; }
+.wb-opt-top b { font-weight: normal; }
+.wb-opt-top em { font-style: normal; color: var(--t-ch); margin-left: auto; }
+.wb-opt-top em.own { color: var(--t-dim); }
+.wb-opt-stat { color: var(--t-ch); }
+.wb-opt-foot { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.wb-cost { color: var(--t-dim); border: 1px solid var(--t-line); padding: 0 4px; }
+.wb-cost.short { color: var(--t-hp); border-color: #ff5d4a66; }
+.wb-opt-foot .btn { margin-left: auto; min-height: 26px !important; height: 26px; padding: 0 12px; font-size: 12px; }
+.wb-opt-foot .btn[disabled] { opacity: 0.35; }
+.wb-stats { border-collapse: collapse; width: 100%; font-size: 12px; }
+.wb-stats th { text-align: left; font-weight: normal; color: var(--t-dim); padding: 1px 0; }
+.wb-stats td { text-align: right; padding: 1px 0 1px 8px; font-variant-numeric: tabular-nums; }
+.wb-stats tr.up td:last-child { color: var(--t-ch); }
+.wb-stats tr.down td:last-child { color: var(--t-hp); }
+
+.wb-mats { display: flex; gap: 16px; flex-wrap: wrap; padding: 6px 10px; border-top: 1px solid var(--t-line); }
+.wb-mats i { font-style: normal; color: var(--t-dim); }
+
+@media (orientation: portrait) {
+  .wb-main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+  .wb-draw { border-right: 0; border-bottom: 1px solid var(--t-line); }
+}
