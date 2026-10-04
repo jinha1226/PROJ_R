@@ -75,8 +75,8 @@ describe('level-up suit upgrades', () => {
 
   it('gun and melee damage stack only on their matching weapon groups', () => {
     const { s } = sim(OPEN, { x: 5, y: 7 });
-    const pistol = makeWeapon('pistol', 1), sword = makeWeapon('sword', 1), staff = makeWeapon('staff', 1);
-    const gunBase = heroDmg(s, pistol), meleeBase = heroDmg(s, sword), staffBase = heroDmg(s, staff);
+    const pistol = makeWeapon('pistol', 1), sword = makeWeapon('sword', 1);
+    const gunBase = heroDmg(s, pistol), meleeBase = heroDmg(s, sword);
     applyUpgrade(s, 'meleeDmg');
     expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 5));
     expect(heroDmg(s, pistol)).toEqual(gunBase);
@@ -86,7 +86,6 @@ describe('level-up suit upgrades', () => {
     applyUpgrade(s, 'meleeDmg');
     expect(heroDmg(s, pistol)).toEqual(gunBase.map((v) => v + 10));
     expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 10));
-    expect(heroDmg(s, staff)).toEqual(staffBase);
   });
 
   it('chooses for free while frozen without ticking burn, and consumes only the first offer', () => {

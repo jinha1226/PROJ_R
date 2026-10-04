@@ -74,17 +74,16 @@ describe('suit tiles', () => {
     expect(tiles.slice(1)).toEqual(Array(5).fill({ id: null, name: '빈 슬롯', lit: false }));
     expect(s.hero.suit).toEqual(['rapid']);
   });
-  it('updates melee, ranged, magic and universal fits with the active hand', () => {
+  it('updates melee, ranged, element and universal fits with the active hand', () => {
     const s = state(); s.hero.suit = ['dash', 'rapid', 'chain', 'momentum'];
     for (const [group, expected] of [
-      ['sword', [true, false, false, true]],
-      ['pistol', [false, true, false, true]],
-      ['staff', [false, false, true, true]],
+      ['sword', [true, false, true, true]],
+      ['pistol', [false, true, true, true]],
     ] as const) {
       s.hero.gear.hands[1] = makeWeapon(group, 1); s.hero.gear.active = 1;
       expect(suitTiles(s).slice(0, 4).map((t) => t.lit)).toEqual(expected);
     }
     s.hero.gear.hands[1] = null;
-    expect(suitTiles(s).slice(0, 4).map((t) => t.lit)).toEqual([false, false, false, true]);
+    expect(suitTiles(s).slice(0, 4).map((t) => t.lit)).toEqual([false, false, true, true]);
   });
 });

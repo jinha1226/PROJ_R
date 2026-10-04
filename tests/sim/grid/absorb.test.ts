@@ -113,16 +113,17 @@ it('absorbs on a step with no added time, queues three fitting engravings, and e
   expect(g.s.offers[0]).toEqual(['rapid']);
   const offer = g.s.offers[1]!;
   expect(offer).toHaveLength(3);
-  expect(offer.every((id) => ENGRAVES[id].family === 'melee' && id !== 'dash')).toBe(true);
+  expect(offer.every((id) => typeof id === 'object' || (ENGRAVES[id].family === 'melee' && id !== 'dash'))).toBe(true);
   expect(new Set(offer).size).toBe(3);
 });
 
 it('fills short pools regardless of recorded history', () => {
   const s = newState(handMap(OPEN), 3);
+  s.hero.rounds = ['fire', 'frost'];
   s.records = ['dash'];
   expect(absorbOffer(s, 'melee')).toHaveLength(3);
   s.records = [...ENGRAVE_IDS];
-  expect(absorbOffer(s, 'melee').map((id) => s.records.includes(id))).toEqual([true, true, true]);
+  expect(absorbOffer(s, 'melee').map((id) => typeof id === 'string' && s.records.includes(id))).toEqual([true, true, true]);
   s.records = [];
   expect(absorbOffer(s, 'ranged')).toHaveLength(3);
   s.hero.suit = ['alternate', 'echo', 'chain'];
@@ -137,7 +138,7 @@ it('uses only the requested family with deterministic draws', () => {
     const b = newState(handMap(OPEN), 87);
     expect(absorbOffer(a, family)).toEqual(absorbOffer(b, family));
     const picks = absorbOffer(a, family);
-    expect(picks.every((id) => ENGRAVES[id].family === family)).toBe(true);
+    expect(picks.every((id) => typeof id === 'object' || ENGRAVES[id].family === family)).toBe(true);
   }
   const s = newState(handMap(OPEN), 3);
   s.records = ['dash', 'rapid'];
@@ -146,6 +147,7 @@ it('uses only the requested family with deterministic draws', () => {
 
 it('consumes exhausted echoes without queuing empty offers', () => {
   const g = sim(OPEN, { x: 1, y: 1 });
+  g.s.hero.rounds = ['fire', 'frost'];
   g.s.hero.suit = ['alternate', 'echo', 'chain', 'elemArrow'];
   g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'element', name: '잔향' } });
   expect(g.act({ kind: 'move', dir: { x: 1, y: 0 } }).some((e) => e.type === 'absorb')).toBe(true);
@@ -189,9 +191,10 @@ it('puts a locked engraving of the requested family first', () => {
     s.run.unlocked = [];
     const offer = absorbOffer(s, family);
     expect(offer).toHaveLength(3);
-    expect(ENGRAVES[offer[0]!].base).toBe(true);
+    const first = offer[0]!;
+    expect(typeof first === 'string' && ENGRAVES[first].base).toBe(true);
     expect(new Set(offer).size).toBe(3);
-    expect(offer.every(id => !s.hero.suit.includes(id))).toBe(true);
+    expect(offer.every(id => typeof id === 'object' || !s.hero.suit.includes(id))).toBe(true);
   }
   const s = newState(handMap(OPEN), 3);
   s.run.unlocked = BASE_IDS.filter(id => id !== 'gunRelay');

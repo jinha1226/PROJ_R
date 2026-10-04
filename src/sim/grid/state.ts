@@ -15,7 +15,7 @@ export function newState(map: GridMap, seed: number, gun: GunGroup = 'pistol', f
     hero: {
       id: 'hero', kind: 'hero', pos: { ...map.start }, hp: maxHp, maxHp, nextAt: 0, alive: true, awake: true, group: 0,
       bonus: { killCharge: 0, evasion: 0, gunDmg: 0, meleeDmg: 0 },
-      level: 1, xp: 0, value: 0, loot: [], exitTime: 0, suit: [], shield: 0, charge: 10, maxCharge: 10, gear: startGear(gun), fx: freshFx(), str: 10,
+      level: 1, xp: 0, value: 0, loot: [], exitTime: 0, suit: [], rounds: [], roundIdx: 0, shield: 0, charge: 10, maxCharge: 10, gear: startGear(gun), fx: freshFx(), str: 10,
     },
     foes: map.spawns.map((sp, i) => makeFoe(`f${i + 1}`, sp.kind, sp.pos, sp.group, floor, 0, sp.elite)),
     chests: map.chests.map((c) => ({ pos: { ...c }, opened: false })),

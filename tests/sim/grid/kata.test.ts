@@ -7,7 +7,7 @@ import { idx, type FoeKind } from '../../../src/sim/grid/types';
 import { type EngraveId } from '../../../src/sim/grid/engraveCore';
 import { OPEN, sim, sureHits } from './kit';
 
-const hooks = { noise: () => {}, cast: () => 1 };
+const hooks = { noise: () => {} };
 function setup(ids: EngraveId[], positions: [number, number, FoeKind?][]) {
   const g = sim(OPEN, { x: 5, y: 7 }, positions.map(([x, y, kind]) => ({ kind: kind ?? 'minion', pos: { x, y } })));
   sureHits(g);

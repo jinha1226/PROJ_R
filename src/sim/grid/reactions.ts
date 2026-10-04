@@ -1,3 +1,5 @@
+import { fire, has } from './engraveCore';
+import { losClear } from './fov';
 import { emit } from './kataBus';
 import type { Element } from './items';
 import { dist, same, type Cell, type Ent, type GridState } from './types';
@@ -26,6 +28,7 @@ export function ignite(s: GridState, t: number, at: Cell, src: string, k: Reacti
     k.hurt(s, t, src, e, s.rng.int(IGNITE[0], IGNITE[1]), 'fire');
   }
   s.tiles = s.tiles.filter((x) => !(x.kind === 'poison' && dist(x.pos, at) <= 1));
+  spreadReaction(s, t, at, src, next => ignite(s, t, next.pos, src, k));
 }
 
 /** Fire meets ice: steam fills the area (blocks sight and shots), burning and freezing stop. */
@@ -36,6 +39,7 @@ export function steam(s: GridState, t: number, at: Cell, src: string, k: Reactio
     s.tiles = s.tiles.filter((x) => !same(x.pos, c));
     s.tiles.push({ pos: { ...c }, kind: 'steam', until: s.time + STEAM_TURNS });
   }
+  spreadReaction(s, t, at, src, next => steam(s, t, next.pos, src, k));
 }
 
 /**
@@ -65,4 +69,21 @@ export function reactOnTile(s: GridState, t: number, el: Element, c: Cell, src: 
   if (el === 'fire' && tile.kind === 'poison') { ignite(s, t, c, src, k); return true; }
   if (el === 'frost' && tile.kind === 'fire') { steam(s, t, c, src, k); return true; }
   return false;
+}
+
+/** Repeat once on the first adjacent living foe in stable entity order. */
+export function spreadReaction(s: GridState, t: number, at: Cell, src: string, repeat: (foe: Ent) => void): void {
+  if (src !== s.hero.id || !has(s, 'chain')) return;
+  const next = s.foes.find(f => f.alive && dist(f.pos, at) === 1 && losClear(s.map, at, f.pos));
+  if (next && fire(s, t, 'chain')) repeat(next);
+}
+
+export function spreadShock(s: GridState, t: number, at: Cell, src: string, kind: 'shatter' | 'paralyse', amount: number, k: ReactionKit): void {
+  spreadReaction(s, t, at, src, foe => {
+    if (kind === 'paralyse') foe.stun = Math.min(foe.kind === 'champion' ? 1 : Infinity, Math.max(foe.stun ?? 0, 2));
+    if (kind === 'shatter' && foe.status) foe.status.freeze = 0;
+    react(s, t, kind, foe.pos, src);
+    k.hurt(s, t, src, foe, kind === 'shatter' ? amount * 2 : amount, 'shock');
+    if (kind === 'paralyse') emit(s, 'stunned', { t, src: 'reaction', foe, element: 'shock' });
+  });
 }

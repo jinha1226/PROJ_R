@@ -1,7 +1,7 @@
 import { foeDmg } from '../../../src/sim/grid/foes';
 import { describe, it, expect } from 'vitest';
 import { makeWeapon, type WeaponGroup } from '../../../src/sim/grid/items';
-import { activeWeapon, addToBag } from '../../../src/sim/grid/gear';
+import { addToBag } from '../../../src/sim/grid/gear';
 import type { GridSim } from '../../../src/sim/grid/gridSim';
 import { OPEN, sim, sureHits } from './kit';
 
@@ -65,7 +65,7 @@ describe('melee weapon groups', () => {
 
 describe('ranged weapon groups', () => {
   it('guns fire repeatedly at their neutral times and charge costs', () => {
-    for (const [group, time, cost] of [['pistol', 0.6, 1], ['shotgun', 1, 2], ['rifle', 1.2, 2]] as const) {
+    for (const [group, time, cost] of [['pistol', 0.6, 1]] as const) {
       const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
       hold(g, group);
       g.s.hero.charge = 5;
@@ -85,21 +85,10 @@ describe('ranged weapon groups', () => {
     expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))).toEqual(['blocked']);
   });
 
-  it('a staff spends a charge per spell and gets it back after eight turns', () => {
-    const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
-    hold(g, 'staff');
-    g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
-    expect(activeWeapon(g.s.hero.gear)?.charges).toBe(2);
-    g.s.foes[0]!.alive = false;
-    for (let i = 0; i < 6; i++) g.act({ kind: 'wait' });
-    expect(activeWeapon(g.s.hero.gear)?.charges).toBe(2);
-    g.act({ kind: 'wait' });
-    expect(activeWeapon(g.s.hero.gear)?.charges).toBe(3);
-  });
 
   it('bumping with a ranged weapon in hand is a weak bash', () => {
     const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
-    hold(g, 'rifle');
+    hold(g, 'pistol');
     g.s.rng = { next: () => 0.999, int: (_a: number, b: number) => b, chance: () => true, pick: <T>(arr: readonly T[]) => arr[0]!, shuffle: <T>(arr: T[]) => arr, getState: () => 0 };
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });

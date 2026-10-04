@@ -1,3 +1,4 @@
+import { migrateRun, savedIds } from './saveMigration';
 import { createRng } from '../../core/rng';
 import type { GridState } from './types';
 
@@ -15,6 +16,8 @@ export function fromSave(text: string): GridState {
     || !Array.isArray(s.visible) || !Array.isArray(s.fired)
     || !Array.isArray(s.foes) || !Array.isArray(s.floorItems) || !Array.isArray(s.records)
     || !Array.isArray(s.run.bossesKilled) || !Number.isFinite(s.run.energy)) throw new Error('Invalid grid run save');
+  migrateRun(s);
+  s.fired = savedIds(s.fired);
   s.hero.fx.free ??= false;
   s.hero.shield ??= 0;
   for (const { item } of s.floorItems) if (item.kind === 'echo') {

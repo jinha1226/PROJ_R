@@ -1,6 +1,6 @@
 import { buy, type MetaState } from '../../../sim/grid/meta';
 import type { EngraveId } from '../../../sim/grid/engraveCore';
-import type { GunGroup } from '../../../sim/grid/items';
+import type { Round } from '../../../sim/grid/rounds';
 import type { RunOptions } from '../../../sim/grid/runSetup';
 import { STATIONS, type StationId } from '../../../sim/grid/ship';
 import type { GEvent } from '../../../sim/grid/types';
@@ -21,7 +21,7 @@ export class ShipDeck {
   private readonly panel = document.createElement('div');
   private selected: StationId | null = null;
   /** the loadout picked last time (kept while the game is open) */
-  private options: RunOptions = remembered ?? { gun: 'pistol', start: 1, startSuit: [] };
+  private options: RunOptions = remembered ?? { gun: 'pistol', round: 'plain', start: 1, startSuit: [] };
   private runtime?: GridRuntime;
   get blocked(): boolean { return this.selected !== null; }
   constructor(readonly api: ShipDeckApi) {
@@ -62,7 +62,7 @@ export class ShipDeck {
     }
     for (const choice of model.choices) {
       const b = this.button(body, `${choice.selected ? '✓ ' : ''}${choice.label}`, () => {
-        if (id === 'armory') this.options.gun = choice.id as GunGroup;
+        if (id === 'armory') this.options.round = choice.id as Round;
         if (id === 'nav') this.options = launchOptions(this.api.meta, { ...this.options, start: Number(choice.id) as 1 | 6 | 11 });
         if (id === 'hatch') this.options = toggleStartSuit(this.api.meta, this.options, choice.id as EngraveId);
         remembered = this.options;

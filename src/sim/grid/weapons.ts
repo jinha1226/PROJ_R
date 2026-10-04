@@ -1,3 +1,4 @@
+import { bladeRound, takeRound, roundMult, roundHit } from './rounds';
 import { withOtherHand, otherHand } from './kata';
 import { emitKills } from './attackTriggers';
 import { emit } from './kataBus';
@@ -13,7 +14,7 @@ import { buffOn } from './buffs';
 import { stow } from './consumables';
 import { potionName, scrollName } from './lore';
 import { activeWeapon, addToBag } from './gear';
-import { BURST_GAP, isGun, RIFLE_BURST, shotgunFalloff, STAFF_CHARGES, STAFF_RECHARGE, WEAPONS, type Weapon } from './items';
+import { isGun, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
 import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState } from './types';
 
@@ -35,7 +36,7 @@ export function heroDmg(s: GridState, w: Weapon): [number, number] {
   return [lo + up + str + bonus, hi + up + str + bonus];
 }
 
-export interface ShotHooks { noise(at: Cell, r: number): void; cast(w: Weapon, at: Cell): number }
+export interface ShotHooks { noise(at: Cell, r: number): void }
 
 /** Cells beside the bump direction an axe also sweeps (front-left and front-right). */
 function sweepCells(from: Cell, d: Cell): Cell[] {
@@ -123,7 +124,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   if (w.group === 'mace' && landed) shove();
   if (combo.finisher && landed && fire(s, t, 'finisher')) shove();
   refillMelee(s, landed, eventStart);
-  for (const f of hits) emit(s, 'meleeHit', { t, foe: f, hooks });
+  for (const f of hits) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks }); }
   afterBlow.forEach(resolve => resolve());
   if (landed && foe.alive && hooks && has(s, 'shoveShot')) shoveShot(s, t, foe, hooks, shove);
   emitKills(s, t, eventStart, 'meleeKill', hooks);
@@ -159,58 +160,34 @@ export function canFire(s: GridState): boolean {
   const w = activeWeapon(s.hero.gear);
   if (!w || WEAPONS[w.group].melee) return false;
   if (isGun(w.group)) return s.hero.charge >= gunCost(s, w);
-  return (w.charges ?? 0) > 0;
+  return false;
 }
 
-/** Fires the ranged weapon in hand at a foe; null if it cannot. Staff spells are resolved by `cast`. */
+/** Fires the ranged weapon in hand at a foe; null if it cannot. */
 export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
-  if (!w || !canFire(s) || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos)) return null;
+  if (!h.alive || !foe.alive || !w || !canFire(s) || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos)) return null;
   h.target = foe.id;
   h.fx.acted = 'shot';
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
-  if (w.group === 'staff') {
-    w.charges = (w.charges ?? 1) - 1;
-    const k = hooks.cast(w, foe.pos);
-    hooks.noise(h.pos, 6);
-    return WEAPONS.staff.time * k;
-  }
   if (!isGun(w.group)) return null;
   const eventStart = s.events.length;
   const base = WEAPONS[w.group].hit;
-  const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base, w.group === 'rifle' ? 0.5 : 1);
+  const chanceAt = (from: Cell, to: Cell) => hitChance(s.map, from, to, base);
+  const round = takeRound(s);
+  const elementMult = roundMult(s, t, round);
   const rapid = rapidStep(s, t, foe);
   const dmg = heroDmg(s, w);
-  const target = { ...foe.pos };
-  const d = { x: Math.sign(target.x - h.pos.x), y: Math.sign(target.y - h.pos.y) };
-  const flank = d.x && d.y
-    ? [add(target, { x: -d.x, y: 0 }), add(target, { x: 0, y: -d.y })]
-    : [add(target, { x: -d.y, y: d.x }), add(target, { x: d.y, y: -d.x })];
-  const targets = w.group === 'shotgun'
-    ? [foe, ...flank.flatMap((c) => { const f = foeAt(s, c); return f && shotClear(s, h.pos, c) ? [f] : []; })]
-    : [foe];
-  // Resolve every hit at the original cells before pushes can move bodies into the blast.
-  const hits = targets.map((f) => {
-    const spread = w.group === 'shotgun' ? shotgunFalloff(dist(h.pos, f.pos)) : 1;
-    const mult = (f.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, f) * spread;
-    f.awake = true;
-    return strike(s, t, h, f, chanceAt(h.pos, f.pos), dmg, mult);
-  });
-  // the rifle's burst: the rest of the bullets follow at the same target until it falls
-  if (w.group === 'rifle') for (let k = 1; k < RIFLE_BURST && foe.alive; k++) {
-    const at = t + k * BURST_GAP;
-    s.events.push({ t: at, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: 'burst' });
-    if (strike(s, at, h, foe, chanceAt(h.pos, foe.pos), dmg, rapid.mult * blowMult(s, at, foe))) hits[0] = true;
-  }
+  const mult = (foe.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe) * elementMult;
+  foe.awake = true;
+  const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
   h.charge -= gunCost(s, w);
-  hooks.noise(h.pos, w.group === 'pistol' ? 4 : 6);
+  hooks.noise(h.pos, 4);
   h.fx.nextMult = 1;
-  if (w.group === 'shotgun') targets.forEach((f, i) => {
-    if (hits[i] && f.alive) pushFoe(s, t, f, { x: Math.sign(f.pos.x - h.pos.x), y: Math.sign(f.pos.y - h.pos.y) });
-  });
-  afterShot(s, t, foe, hits[0]!, dmg, chanceAt, weaponRange(w));
-  targets.forEach((f, i) => { if (hits[i]) emit(s, 'gunHit', { t, foe: f, hooks, shotCost: gunCost(s, w) }); });
+  if (hit) roundHit(s, t, foe, round);
+  afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w));
+  if (hit) emit(s, 'gunHit', { t, foe, hooks, shotCost: gunCost(s, w) });
   return WEAPONS[w.group].time * rapid.time + emitKills(s, t, eventStart, 'gunKill', hooks, gunCost(s, w));
 }
 
@@ -227,21 +204,11 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   if (!clear) return null;
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
-  if (w.group === 'staff') w.charges = (w.charges ?? 1) - 1;
-  else if (isGun(w.group)) h.charge -= gunCost(s, w);
-  noise?.(h.pos, w.group === 'pistol' ? 4 : 6);
+  if (isGun(w.group)) h.charge -= gunCost(s, w);
+  noise?.(h.pos, 4);
+  takeRound(s);
   explode(at);
   return WEAPONS[w.group].time;
-}
-
-/** Staffs regain a charge every 8 turns. */
-export function rechargeStaffs(s: GridState, spent: number): void {
-  const g = s.hero.gear;
-  g.staffClock = (g.staffClock ?? 0) + spent;
-  while (g.staffClock >= STAFF_RECHARGE - 1e-9) {
-    g.staffClock -= STAFF_RECHARGE;
-    for (const w of [...g.hands, ...g.bag]) if (w?.kind === 'weapon' && w.group === 'staff') w.charges = Math.min(STAFF_CHARGES, (w.charges ?? 0) + 1);
-  }
 }
 
 /** Walking onto a cell picks up its items into the appropriate inventory. */

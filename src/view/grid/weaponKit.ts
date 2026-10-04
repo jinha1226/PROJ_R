@@ -13,8 +13,6 @@ const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: nu
   bow: { name: 'Bow_Wooden', length: 0.95, grip: 0.5, crosswise: true },
   // Sci-Fi Essentials guns (a little oversized so they read from above): barrel along x, held near the back
   pistol: { name: 'Gun_Pistol', length: 0.42, grip: 0.3, gun: true },
-  shotgun: { name: 'Gun_Rifle', length: 0.72, grip: 0.35, gun: true },
-  rifle: { name: 'Gun_Sniper', length: 0.95, grip: 0.4, gun: true },
 };
 
 /** hand_r-local turn that points a pack gun (muzzle −x, top +y) straight ahead of the body, measured in the pistol stance */

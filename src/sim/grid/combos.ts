@@ -1,3 +1,4 @@
+import { bladeRound } from './rounds';
 import { emit } from './kataBus';
 import { emitKills } from './attackTriggers';
 import { REFLEX_HOOKS } from './kata';
@@ -68,7 +69,7 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
     const mult = LEAP_MULT * blowMult(s, t, f) * (f.awake ? 1 : 2);
     f.awake = true;
     const hit = strike(s, t, h, f, WEAPONS[w.group].hit, dmg, mult);
-    if (hit) emit(s, 'meleeHit', { t, foe: f, hooks });
+    if (hit) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks }); }
     if (f === far) landed = hit;
   }
   refillMelee(s, landed, eventStart);
@@ -77,7 +78,7 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
   return WEAPONS[w.group].time + LEAP_TIME;
 }
 
-const handKind = (w: Weapon | null) => !w ? 'empty' : WEAPONS[w.group].melee ? 'melee' : w.group === 'staff' ? 'staff' : 'gun';
+const handKind = (w: Weapon | null) => !w ? 'empty' : WEAPONS[w.group].melee ? 'melee' : 'gun';
 
 /** Suit swap effects depend on the weapon family before and after the swap. */
 export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
@@ -128,7 +129,7 @@ export function counterBlow(s: GridState, t: number, src: string, how: 'dodge' |
   s.events.push({ t, type: 'bump', group: w.group, src: h.id, dst: f.id, from: { ...h.pos }, to: { ...f.pos }, text: id });
   const eventStart = s.events.length;
   const landed = strike(s, t, h, f, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, t, f));
-  if (landed) emit(s, 'meleeHit', { t, foe: f, hooks });
+  if (landed) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks }); }
   if (how === 'parry' && landed) {
     f.stun = Math.max(f.stun ?? 0, 1);
     s.events.push({ t, type: 'stun', src: h.id, dst: f.id, to: { ...f.pos } });

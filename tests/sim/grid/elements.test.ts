@@ -131,12 +131,13 @@ describe('explosives', () => {
     expect(all.filter((x) => x === 'dead')).toHaveLength(1);
   });
 
-  it('a fire staff spell sets the area alight', () => {
+  it('a fire round burns only the struck foe', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 7, y: 7 } }]);
-    g.s.hero.gear.hands[0] = makeWeapon('staff', 1, 'fire');
+    g.s.hero.rounds = ['fire'];
+    sureHits(g);
     ev(g, { kind: 'shoot', target: g.s.foes[0]!.id });
     expect(g.s.foes[0]!.status?.burn).toBeGreaterThan(0);
-    expect(g.s.tiles.filter((x) => x.kind === 'fire').length).toBeGreaterThan(1);
+    expect(g.s.tiles.filter((x) => x.kind === 'fire')).toHaveLength(0);
   });
 });
 

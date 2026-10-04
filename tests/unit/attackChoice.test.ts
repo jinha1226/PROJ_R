@@ -7,7 +7,7 @@ import { OPEN, sim } from '../sim/grid/kit';
 const state = (...positions: { x: number; y: number }[]) => sim(OPEN, { x: 3, y: 3 }, positions.map(pos => ({ kind: 'minion', pos }))).s;
 
 describe('attackChoice', () => {
-  it.each<WeaponGroup | null>(['pistol', 'sword', 'staff', null])('melees with %s even when a farther foe is targeted', group => {
+  it.each<WeaponGroup | null>(['pistol', 'sword', null])('melees with %s even when a farther foe is targeted', group => {
     const s = state({ x: 4, y: 3 }, { x: 6, y: 3 });
     s.hero.gear.hands = [group ? makeWeapon(group, 1) : null, null];
     expect(attackChoice(s, s.foes[1]!.id)).toEqual({ kind: 'melee', action: { kind: 'move', dir: { x: 1, y: 0 } }, foe: s.foes[0]!.id });

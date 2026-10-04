@@ -1,3 +1,4 @@
+import { takeRound, roundMult, roundHit } from './rounds';
 import { strike } from './combat';
 import { canSwingAt, stepTo } from './combos';
 import { activeWeapon } from './gear';
@@ -61,10 +62,13 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
       const gun = gunInHand(s)!;
       for (const target of spinTargets(s, c)) {
         if (!h.alive || h.charge < 1) break;
+        if (!target.alive) continue;
         h.charge--;
+        const round = takeRound(s);
         s.events.push({ t, type: 'shoot', src: h.id, dst: target.id, from: { ...h.pos }, to: { ...target.pos }, text: 'spin', group: gun.group });
         target.awake = true;
-        const hit = strike(s, t, h, target, 1, heroDmg(s, gun));
+        const hit = strike(s, t, h, target, 1, heroDmg(s, gun), roundMult(s, t, round));
+        if (hit) roundHit(s, t, target, round, true);
         if (hit) emit(s, 'gunHit', { ...c, foe: target, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: 1 });
         if (!target.alive) emit(s, 'gunKill', { ...c, foe: target, hooks: c.hooks ?? REFLEX_HOOKS, count: 1, shotCost: 1 });
       }
@@ -73,14 +77,17 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
     case 'slashFoe': withOtherHand(s, () => meleeAttack(s, t, { x: f!.pos.x - h.pos.x, y: f!.pos.y - h.pos.y }, f!, c.hooks)); break;
     case 'execute': {
       h.charge--;
+      const round = takeRound(s);
       s.events.push({ t, type: 'shoot', src: h.id, dst: f!.id, from: { ...h.pos }, to: { ...f!.pos }, text: 'execute', group: gunInHand(s)!.group });
-      const amount = f!.kind === 'champion' ? Math.ceil(f!.maxHp * 0.25) : f!.hp;
+      const base = f!.kind === 'champion' ? Math.ceil(f!.maxHp * 0.25) : f!.hp;
+      const amount = Math.round(base * roundMult(s, t, round));
       f!.hp = Math.max(0, f!.hp - amount); f!.awake = true;
       s.events.push({ t, type: 'hit', src: h.id, dst: f!.id, to: { ...f!.pos }, amount, crit: true });
       if (f!.hp === 0) {
         f!.alive = false;
         s.events.push({ t, type: 'die', src: h.id, dst: f!.id, to: { ...f!.pos } });
       }
+      roundHit(s, t, f!, round, true);
       const shot = { ...c, foe: f, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: 1 };
       emit(s, 'gunHit', shot);
       if (!f!.alive) emit(s, 'gunKill', { ...shot, count: 1 });

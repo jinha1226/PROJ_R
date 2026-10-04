@@ -10,7 +10,7 @@ import { OPEN, sim, sureHits } from './kit';
 
 const old = DEFS.flow;
 afterEach(() => { DEFS.flow = old; });
-const hooks = { noise: () => {}, cast: () => 1 };
+const hooks = { noise: () => {} };
 function setup(trigger: Trigger) {
   const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
   g.s.hero.suit = ['flow']; sureHits(g); g.s.foes[0]!.nextAt = 100;

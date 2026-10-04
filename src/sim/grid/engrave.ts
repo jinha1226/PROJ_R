@@ -1,3 +1,4 @@
+import { withRoundOffer, type OfferCard } from './rounds';
 import { ENGRAVE_IDS, ENGRAVES, SUIT_SLOTS, type EngraveId } from './engraveCore';
 import { activeWeapon } from './gear';
 import { WEAPONS, type Weapon } from './items';
@@ -23,13 +24,13 @@ export function putOnSuit(s: GridState, id: EngraveId, slot?: number): boolean {
 }
 
 /** What kind of engraving suits a weapon. */
-export function fitOf(w: Weapon | null): 'melee' | 'ranged' | 'magic' {
+export function fitOf(w: Weapon | null): 'melee' | 'ranged' {
   if (!w || WEAPONS[w.group].melee) return 'melee';
-  return w.group === 'staff' ? 'magic' : 'ranged';
+  return 'ranged';
 }
 
 /** Three different engravings for a level-up, weighted toward the weapon in hand (excluding those on the suit). */
-export function offerFor(s: GridState): EngraveId[] {
+export function offerFor(s: GridState, includeRounds = true): OfferCard[] {
   const w = activeWeapon(s.hero.gear);
   const fit = fitOf(w);
   const pool = ENGRAVE_IDS.filter((id) => !s.hero.suit.includes(id));
@@ -41,5 +42,5 @@ export function offerFor(s: GridState): EngraveId[] {
     while (i < pool.length - 1 && (r -= weight(pool[i]!)) >= 0) i++;
     out.push(pool.splice(i, 1)[0]!);
   }
-  return out;
+  return includeRounds ? withRoundOffer(s, out) : out;
 }

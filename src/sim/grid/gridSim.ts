@@ -10,19 +10,18 @@ import { nextFloor, settleKills, updateWanderers } from './run';
 import { runUntilHero } from './clock';
 import { hitChance } from './combat';
 import { activeWeapon } from './gear';
-import { WEAPONS, type GunGroup, type Weapon } from './items';
-import { heroDmg, rechargeStaffs } from './weapons';
+import { WEAPONS, type GunGroup } from './items';
 import { canRegenerate, regenerate } from './regen';
-import { castSpell, passMarks } from './shotCombos';
+import { passMarks } from './shotCombos';
 import { discover } from './traps';
 import { scatterLoot } from './consumables';
 import { buffOn, clearBuff } from './buffs';
 import { fire, has } from './engraveCore';
-import { explodeBarrels, useThrown } from './explosives';
+import { useThrown } from './explosives';
 import { tickStatuses } from './status';
 import { generateMap } from './mapgen';
 import { newState, refreshSight } from './state';
-import { DIRS, same, type Cell, type GAction, type GEvent, type GridState } from './types';
+import { DIRS, same, type GAction, type GEvent, type GridState } from './types';
 
 /** The grid sortie: one hero action at a time, the world catches up to the hero's next turn, events say what happened. */
 const MOMENTUM = 0.5;
@@ -67,7 +66,7 @@ export class GridSim {
     // confused: a step goes astray half the time
     const astray = a.kind === 'move' && buffOn(s.hero, 'confuse', t0) && s.rng.chance(CONFUSED_ASTRAY);
     if (astray) a = { kind: 'move', dir: s.rng.pick(DIRS), plain: true };
-    let cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), cast: (w, at) => this.cast(w, at), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
+    let cost = frozen ? 1 : heroAct(s, a, { noise: (at, r) => noise(s, at, r), use: (u) => (u.item === 'potion' ? null : useThrown(s, t0, u.item, u.at)) });
     // a stumble into a wall still spends the turn (no free re-rolls of the confusion)
     if (cost === null && astray) { s.events.push({ t: t0, type: 'stumble', src: s.hero.id, to: { ...s.hero.pos } }); cost = 1; }
     if (cost === null) { fx.momentum = boosted; return [{ t: t0, type: 'blocked', src: s.hero.id }]; }
@@ -103,7 +102,6 @@ export class GridSim {
       nextFloor(s);
       return s.events;
     }
-    rechargeStaffs(s, cost);
     refreshSight(s);
     updateAwareness(s);
     regenerate(s, cost, safeAtStart);
@@ -135,12 +133,6 @@ export class GridSim {
     const f = this.s.foes.find((x) => x.id === id && x.alive);
     const w = activeWeapon(this.s.hero.gear);
     if (!f || !w || WEAPONS[w.group].melee) return null;
-    return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit, w.group === 'rifle' ? 0.5 : 1);
-  }
-
-  /** A staff spell at a cell; returns the time factor its engravings give the cast. */
-  private cast(w: Weapon, at: Cell): number {
-    const s = this.s;
-    return castSpell(s, w, at, heroDmg(s, w), (c) => explodeBarrels(s, s.hero.nextAt, c, s.hero.id));
+    return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit);
   }
 }

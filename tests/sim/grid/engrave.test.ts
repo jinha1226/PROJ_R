@@ -5,8 +5,8 @@ import type { GridSim } from '../../../src/sim/grid/gridSim';
 import { OPEN, sim, sureHits } from './kit';
 
 /** The suit gets the ids; hand 1 gets `group`; hand 2 optionally another weapon. */
-const arm = (g: GridSim, group: WeaponGroup, ids: EngraveId[], other?: WeaponGroup, otherIds: EngraveId[] = [], el?: 'fire' | 'frost' | 'shock' | 'poison') => {
-  const w = makeWeapon(group, 1, el);
+const arm = (g: GridSim, group: WeaponGroup, ids: EngraveId[], other?: WeaponGroup, otherIds: EngraveId[] = []) => {
+  const w = makeWeapon(group, 1);
   g.s.hero.suit = [...new Set([...ids, ...otherIds])];
   g.s.hero.gear.hands[0] = w;
   if (other) { const o = makeWeapon(other, 1); g.s.hero.gear.hands[1] = o; }
@@ -54,7 +54,7 @@ describe('melee combo engravings', () => {
   it('shove-shot: a blow shoves the foe away and the ranged weapon in the other hand fires', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'sword', ['shoveShot'], 'rifle');
+    arm(g, 'sword', ['shoveShot'], 'pistol');
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: R });
     expect(fired(ev, 'shoveShot')).toBe(1);
@@ -103,7 +103,7 @@ describe('general engravings', () => {
   it('quickswap: changing weapon family is free and its next blow +50%', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'rifle', [], 'sword', ['quickswap']);
+    arm(g, 'pistol', [], 'sword', ['quickswap']);
     const t = g.s.time;
     expect(fired(g.act({ kind: 'swap' }), 'quickswap')).toBe(1);
     expect(g.s.time).toBe(t);
@@ -115,7 +115,7 @@ describe('general engravings', () => {
   it('swap-strike: swapping strikes with the incoming weapon at once', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'rifle', [], 'sword', ['swapstrike']);
+    arm(g, 'pistol', [], 'sword', ['swapstrike']);
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'swap' });
     expect(fired(ev, 'swapstrike')).toBe(1);
@@ -143,7 +143,7 @@ describe('general engravings', () => {
   });
 });
 
-describe('ranged and magic engravings', () => {
+describe('ranged engravings', () => {
   it('rapid: the second shot at the same foe is quicker, the third is a crit', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
     sureHits(g);
@@ -204,51 +204,9 @@ describe('ranged and magic engravings', () => {
     expect(g.s.foes[2]!.hp).toBeLessThan(99);
   });
 
-  it('alternate: a different element than last time hits harder and takes half the time', () => {
-    const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
-    sureHits(g);
-    arm(g, 'staff', ['alternate'], 'staff', ['alternate'], 'fire');
-    g.s.hero.gear.hands[1] = makeWeapon('staff', 1, 'frost');
-    g.s.foes[0]!.hp = 999;
-    g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
-    g.act({ kind: 'swap' });
-    const t = g.s.time;
-    expect(fired(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }), 'alternate')).toBe(1);
-    expect(g.s.time - t).toBeCloseTo(0.5);
-  });
 
-  it('echo: every third spell goes off twice', () => {
-    const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
-    sureHits(g);
-    arm(g, 'staff', ['echo'], undefined, [], 'frost');
-    g.s.hero.gear.hands[0]!.charges = 9;
-    g.s.foes[0]!.hp = 999;
-    for (let i = 0; i < 2; i++) g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
-    expect(fired(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }), 'echo')).toBe(1);
-  });
 
-  it('chain lightning jumps twice', () => {
-    const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }, { kind: 'brute', pos: { x: 9, y: 7 } }, { kind: 'brute', pos: { x: 10, y: 7 } }]);
-    sureHits(g);
-    arm(g, 'staff', ['chain'], undefined, [], 'shock');
-    for (const f of g.s.foes) f.hp = 99;
-    g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
-    expect(g.s.foes[2]!.hp).toBeLessThan(99);
-  });
 
-  it('elemental bullet: the last spell\'s element rides on the next bullet', () => {
-    const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
-    sureHits(g);
-    arm(g, 'staff', ['elemArrow'], 'pistol', [], 'fire');
-    const f = g.s.foes[0]!;
-    f.hp = 999;
-    g.act({ kind: 'shoot', target: f.id });
-    f.status = { burn: 0, freeze: 0, poison: 0 };
-    g.act({ kind: 'swap' });
-    const ev = g.act({ kind: 'shoot', target: f.id });
-    expect(fired(ev, 'elemArrow')).toBe(1);
-    expect(f.status!.burn).toBeGreaterThan(0);
-  });
 });
 
 describe('engraving guards', () => {

@@ -7,7 +7,7 @@ export const heroLook = (group: WeaponGroup | undefined, onShip: boolean): Weapo
 
 /** The stance for a look: guns at the ready, empty hands and casters at ease, blades on guard. */
 export function stanceFor(kind: WeaponLook): UalIdle {
-  if (kind === 'pistol' || kind === 'shotgun' || kind === 'rifle') return 'Pistol_Idle_Loop';
-  if (kind === 'none' || kind === 'bow' || kind === 'crossbow' || kind === 'staff') return 'Idle_Loop';
+  if (kind === 'pistol') return 'Pistol_Idle_Loop';
+  if (kind === 'none' || kind === 'bow' || kind === 'crossbow') return 'Idle_Loop';
   return 'Sword_Idle';
 }

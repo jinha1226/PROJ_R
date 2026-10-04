@@ -20,7 +20,6 @@ export function weaponMesh(kind: WeaponLook): THREE.Object3D {
   const metal = new THREE.MeshStandardMaterial({ color: '#c8ccd4', metalness: 0.6, roughness: 0.35 });
   const gunmetal = new THREE.MeshStandardMaterial({ color: '#303b48', metalness: 0.8, roughness: 0.4 });
   const wood = new THREE.MeshStandardMaterial({ color: '#6a4a2a', roughness: 0.8 });
-  const gem = new THREE.MeshStandardMaterial({ color: '#ff8a3a', emissive: '#ff5a1a', emissiveIntensity: 1.2 });
   switch (kind) {
     case 'sword': g.add(box(0.04, 0.75, 0.09, metal, 0.43), box(0.05, 0.14, 0.05, wood), box(0.05, 0.03, 0.22, metal, 0.08)); break;
     case 'blade': g.add(box(0.04, 0.5, 0.09, metal, 0.31), box(0.05, 0.14, 0.05, wood), box(0.05, 0.03, 0.18, metal, 0.08)); break;
@@ -34,14 +33,13 @@ export function weaponMesh(kind: WeaponLook): THREE.Object3D {
       g.add(stock, box(0.4, 0.03, 0.04, metal, 0, 0.3));
       break;
     }
-    case 'pistol': case 'shotgun': case 'rifle': {
-      const length = kind === 'pistol' ? 0.3 : kind === 'shotgun' ? 0.55 : 0.8;
+    case 'pistol': {
+      const length = 0.3;
       g.add(box(0.09, 0.1, length, gunmetal, 0.06, length / 2 - 0.06), box(0.075, 0.19, 0.1, gunmetal, -0.06));
       break;
     }
-    case 'staff': g.add(box(0.05, 1.3, 0.05, wood, 0.35), box(0.12, 0.12, 0.12, gem, 1.05)); break;
   }
   // bows and crossbows are held crosswise; blades and shafts point forward
-  if (!['bow', 'crossbow', 'pistol', 'shotgun', 'rifle'].includes(kind)) g.rotation.x = Math.PI / 2;
+  if (!['bow', 'crossbow', 'pistol'].includes(kind)) g.rotation.x = Math.PI / 2;
   return g;
 }

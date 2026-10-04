@@ -43,7 +43,7 @@ it.each(['brute', 'champion'] as const)('engraving stun and frost respect the %s
 });
 it('a charged engraving shot spends the gun cost and cannot shoot with insufficient charge', () => {
   const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 7, y: 7 } }]); sureHits(g);
-  g.s.hero.suit = []; g.s.hero.gear.hands[0] = makeWeapon('rifle', 1); g.s.hero.charge = 2;
+  g.s.hero.suit = []; g.s.hero.gear.hands[0] = makeWeapon('pistol', 1); g.s.hero.charge = 1;
   runEffect(g.s, 'shootFoe', { t: 0, foe: g.s.foes[0] }); expect(g.s.hero.charge).toBe(0);
   const before = JSON.stringify(g.s);
   expect(runEffect(g.s, 'shootFoe', { t: 0, foe: g.s.foes[0] })).toBe(false);

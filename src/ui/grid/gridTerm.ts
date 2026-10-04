@@ -1,3 +1,4 @@
+import { weaponLabel } from './weaponInfo';
 import { isGun } from '../../sim/grid/items';
 import { XP_STEPS } from '../../sim/grid/run';
 import type { GridState } from '../../sim/grid/types';
@@ -28,7 +29,7 @@ export function termArms(s: GridState): string {
   const g = s.hero.gear;
   return g.hands.map((w, i) => {
     const on = g.active === i;
-    const state = !w ? '' : isGun(w.group) ? `${s.hero.charge}/${s.hero.maxCharge}` : w.group === 'staff' ? `${w.charges ?? 0}` : '근접';
-    return `<div class="${on ? 'on' : ''}">${on ? '▸' : ' '}${i + 1} ${w?.name ?? '빈손'}<span>${state}</span></div>`;
+    const state = !w ? '' : isGun(w.group) ? `${s.hero.charge}/${s.hero.maxCharge}` : '근접';
+    return `<div class="${on ? 'on' : ''}">${on ? '▸' : ' '}${i + 1} ${w ? weaponLabel(w, s.hero) : '빈손'}<span>${state}</span></div>`;
   }).join('');
 }

@@ -10,7 +10,7 @@ export type EngraveId =
   | 'gunRelay' | 'bladeRelay' | 'spinShot' | 'counterShot' | 'execute' | 'flow'
   | 'alternate' | 'echo' | 'chain' | 'elemArrow';
 export const SUIT_SLOTS = 6;
-export type Fit = 'melee' | 'ranged' | 'magic' | 'any' | 'kata';
+export type Fit = 'melee' | 'ranged' | 'any' | 'kata';
 
 /** Name, one line, and which weapons it suits (for absorption and scroll offers). */
 export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit; base: boolean; cost: number; family: Family; tags: string[] }> = {
@@ -30,10 +30,10 @@ export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit
   ricochet: { name: '도탄', note: '사격 처치 → 근처 적 도탄', fits: 'ranged', base: true, cost: 60, family: 'ranged', tags: ['처치'] },
   kite: { name: '쏘고 물러나기', note: '인접 사격 → 한 칸 후퇴', fits: 'ranged', base: true, cost: 40, family: 'ranged', tags: ['회피'] },
   volley: { name: '삼중 사격', note: '3번째 사격 → 두 발 추가', fits: 'ranged', base: true, cost: 70, family: 'ranged', tags: ['연사'] },
-  alternate: { name: '교대 시전', note: '다른 원소 시전 → ×1.5 · 시간 절반', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
-  echo: { name: '잔향', note: '3번째 주문 → 재시전', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
-  chain: { name: '연쇄 번개', note: '전격 → 두 번 도약', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
-  elemArrow: { name: '원소 탄', note: '원소 시전 → 다음 총탄에 원소', fits: 'magic', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  alternate: { name: '교대 탄', note: '두 원소 번갈아 → 피해 ×1.5', fits: 'any', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  echo: { name: '잔향 탄', note: '3발째 → 원소 한 번 더', fits: 'any', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  chain: { name: '연쇄 반응', note: '원소 반응 → 옆 칸으로 번짐', fits: 'any', base: true, cost: 60, family: 'element', tags: ['원소'] },
+  elemArrow: { name: '원소 칼날', note: '칼 타격 → 장전 원소 부여', fits: 'any', base: true, cost: 60, family: 'element', tags: ['원소'] },
   gunRelay: { name: '총 연계', note: '칼 처치 → 최근접 사격', fits: 'kata', base: true, cost: 60, family: 'fusion', tags: ['처치'] },
   bladeRelay: { name: '칼 연계', note: '총 처치 → 2칸 돌진 베기', fits: 'kata', base: true, cost: 60, family: 'fusion', tags: ['처치', '돌진'] },
   spinShot: { name: '회전 사격', note: '다수 인접 베기 → 주변 사격', fits: 'kata', base: true, cost: 90, family: 'fusion', tags: ['포위'] },
@@ -50,9 +50,8 @@ export interface HeroFx {
   combo: { target?: string; hits: number };
   rapid: { target?: string; n: number };
   shots: number;
-  spells: number;
+  roundShots: number;
   lastEl?: Element;
-  arrowEl?: Element;
   nextMult: number;
   momentum: boolean;
   free: boolean;
@@ -61,7 +60,7 @@ export interface HeroFx {
   /** quick swap pays out once per attack (a blow or a shot re-arms it) */
   swapReady: boolean;
 }
-export const freshFx = (): HeroFx => ({ combo: { hits: 0 }, rapid: { n: 0 }, shots: 0, spells: 0, nextMult: 1, momentum: false, free: false, acted: null, swapReady: true });
+export const freshFx = (): HeroFx => ({ combo: { hits: 0 }, rapid: { n: 0 }, shots: 0, roundShots: 0, nextMult: 1, momentum: false, free: false, acted: null, swapReady: true });
 
 /** Whether the active hand fits this engraving's family. */
 export function fitsHand(s: GridState, id: EngraveId): boolean {
@@ -70,7 +69,7 @@ export function fitsHand(s: GridState, id: EngraveId): boolean {
   if (fit === 'kata') return s.hero.gear.hands.some(w => w && WEAPONS[w.group].melee) && s.hero.gear.hands.some(w => w && isGun(w.group));
   if (fit === 'any') return true;
   if (!w) return false;
-  return fit === 'melee' ? WEAPONS[w.group].melee : fit === 'ranged' ? isGun(w.group) : w.group === 'staff';
+  return fit === 'melee' ? WEAPONS[w.group].melee : isGun(w.group);
 }
 
 /** A suit engraving is active only while the hand fits it. */

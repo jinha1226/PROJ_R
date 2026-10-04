@@ -1,3 +1,4 @@
+import { withRoundOffer, type OfferCard } from './rounds';
 import { ENGRAVE_IDS, ENGRAVES, type EngraveId } from './engraveCore';
 import type { FoeKind, GridState } from './types';
 
@@ -9,12 +10,12 @@ export const FAMILY: Record<FoeKind, Family> = {
 export const ELITE_MULT = 1.6;
 
 /** Three fitting choices, reserving the first for a locked base engraving when available. */
-export function absorbOffer(s: GridState, family: Family): EngraveId[] {
+export function absorbOffer(s: GridState, family: Family): OfferCard[] {
   const pool = ENGRAVE_IDS.filter(id => ENGRAVES[id].family === family && !s.hero.suit.includes(id));
   const locked = s.rng.shuffle(pool.filter(id => ENGRAVES[id].base && s.run.unlocked !== undefined && !s.run.unlocked.includes(id)));
   const first = locked[0];
   const rest = s.rng.shuffle(pool.filter(id => id !== first));
-  return first ? [first, ...rest.slice(0, 2)] : rest.slice(0, 3);
+  return withRoundOffer(s, first ? [first, ...rest.slice(0, 2)] : rest.slice(0, 3));
 }
 
 /** Remember an engraving the first time a choice puts it on the suit this run. */
