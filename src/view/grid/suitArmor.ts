@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { boneParts } from './boneParts';
+import { toonMat, type FigureMat } from './toon';
 
 /** The armour pieces' materials: shell and plates take hit flashes; `lights` are the engraving lamps on the backpack. */
-export interface SuitParts { mats: THREE.MeshStandardMaterial[]; lights: THREE.MeshStandardMaterial[] }
+export interface SuitParts { mats: FigureMat[]; lights: THREE.MeshStandardMaterial[] }
 
 export const SUIT_SLOTS = 6;
 const GLOW = '#5fe0ff';
@@ -14,12 +15,12 @@ const LAMP_OFF = '#13242b';
  * Must be called on a model in its rest pose (straight after cloning).
  */
 export function buildSuitArmor(model: THREE.Object3D): SuitParts {
-  const mats: THREE.MeshStandardMaterial[] = [];
+  const mats: FigureMat[] = [];
   const lights: THREE.MeshStandardMaterial[] = [];
-  const mat = (color: string, metal = 0.65, rough = 0.38) => { const m = new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough }); mats.push(m); return m; };
+  const mat = (color: string) => { const m = toonMat(color); mats.push(m); return m; };
   const shell = mat('#4a5866');
-  const plate = mat('#8794a2', 0.7, 0.32);
-  const dark = mat('#1a222b', 0.4, 0.6);
+  const plate = mat('#8794a2');
+  const dark = mat('#1a222b');
   // the glow keeps its own emissive (hit flashes would overwrite it), so it is not handed back
   const glow = new THREE.MeshStandardMaterial({ color: GLOW, emissive: GLOW, emissiveIntensity: 2.2 });
   const { at, v, piece, sleeve } = boneParts(model);

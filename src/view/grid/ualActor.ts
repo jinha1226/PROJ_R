@@ -5,6 +5,7 @@ import { weaponMesh, type WeaponLook } from './weaponMeshes';
 import { weaponKit } from './weaponKit';
 import { buildBlockBody, type BlockLook } from './blockBody';
 import { buildSuitArmor, lightSuit } from './suitArmor';
+import { addOutlines, toonMat, type FigureMat } from './toon';
 import { shapeBones, type BodyShape, type Species } from './species';
 import { buildSpeciesParts } from './speciesParts';
 
@@ -66,7 +67,7 @@ const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined =>
 export class UalActor {
   readonly root = new THREE.Group();
   private readonly mixer: THREE.AnimationMixer;
-  private readonly mats: THREE.MeshStandardMaterial[] = [];
+  private readonly mats: FigureMat[] = [];
   private current: THREE.AnimationAction | null = null;
   /** the upper-body stance layered over a legs-only run */
   private upper: THREE.AnimationAction | null = null;
@@ -104,8 +105,9 @@ export class UalActor {
       m.castShadow = true;
       const src = Array.isArray(m.material) ? m.material : [m.material];
       const tinted = src.map((mat, i) => {
-        const c = (mat as THREE.MeshStandardMaterial).clone();
-        c.color.set(i === 0 ? look.body : look.trim);
+        void mat;
+        // banded light and a cool rim for the agent, a warm rim for the dungeon's folk
+        const c = toonMat(i === 0 ? look.body : look.trim, look.suit ? '#9fd8ff' : '#ffcf9a', look.suit ? 0.6 : 0.4);
         this.mats.push(c);
         return c;
       });
@@ -120,6 +122,8 @@ export class UalActor {
       const rel = spine ? spine.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion())) : null;
       if (spine && rel) this.hunch = [spine, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0).applyQuaternion(rel), look.shape.hunch)];
     }
+    // a dark one-pixel shell keeps the figure apart from the floor once pixelated
+    if (!look.block) addOutlines(model, 0.03);
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);

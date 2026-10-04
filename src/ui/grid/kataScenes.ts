@@ -18,9 +18,9 @@ export interface Scene { name: string; setup: () => GridState; steps: Step[] }
 
 const ROOM = ['#########', '#.......#', '#.......#', '#.......#', '#.......#', '#.......#', '#########'];
 
-function room(hero: Cell, foes: { kind: FoeKind; pos: Cell }[]): GridState {
-  const m: GridMap = { w: ROOM[0]!.length, h: ROOM.length, tiles: [], rooms: [], start: hero, exits: [], chests: [], spawns: foes.map((f, i) => ({ kind: f.kind, pos: f.pos, group: i + 1 })), barrels: [] };
-  for (const row of ROOM) for (const c of row) m.tiles.push(c === '#' ? 'wall' : 'floor');
+function room(hero: Cell, foes: { kind: FoeKind; pos: Cell }[], rows: string[] = ROOM): GridState {
+  const m: GridMap = { w: rows[0]!.length, h: rows.length, tiles: [], rooms: [], start: hero, exits: [], chests: [], spawns: foes.map((f, i) => ({ kind: f.kind, pos: f.pos, group: i + 1 })), barrels: [] };
+  for (const row of rows) for (const c of row) m.tiles.push(c === '#' ? 'wall' : 'floor');
   const s = newState(m, 7, 'pistol', 2);
   s.hero.gear.hands[1] = { ...makeWeapon('dagger', 1), name: '요원 칼' };
   s.foes.forEach((f) => { f.awake = true; });
@@ -117,5 +117,16 @@ const ring: Scene = {
   ],
 };
 
-export const SCENES: Scene[] = [relay, ring];
+const HALL = ['###################', ...Array.from({ length: 9 }, () => '#.................#'), '###################'];
+/** A big hall for judging figure size against the space. */
+const hall: Scene = {
+  name: '넓은 방',
+  setup: () => room({ x: 9, y: 5 }, [
+    { kind: 'minion', pos: { x: 11, y: 4 } }, { kind: 'minion', pos: { x: 12, y: 6 } }, { kind: 'brute', pos: { x: 6, y: 7 } },
+    { kind: 'archer', pos: { x: 15, y: 2 } }, { kind: 'minion', pos: { x: 5, y: 3 } }, { kind: 'mage', pos: { x: 14, y: 8 } },
+  ], HALL),
+  steps: [{ input: '넓은 방', chain: [], tags: {}, aims: [] }],
+};
+
+export const SCENES: Scene[] = [relay, ring, hall];
 export { refreshSight };
