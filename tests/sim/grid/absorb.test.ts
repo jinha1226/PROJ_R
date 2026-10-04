@@ -50,7 +50,7 @@ it('scales elite health and power and gives triple XP, settling each death once'
   const s = newState(map, 3);
   const f = s.foes[0]!;
   expect(ELITE_MULT).toBe(1.6);
-  expect(f).toMatchObject({ elite: true, hp: Math.round(FOES.brute.hp * 1.6), maxHp: 32, power: 1.6 });
+  expect(f).toMatchObject({ elite: true, hp: Math.round(FOES.brute.hp * 1.6), maxHp: Math.round(FOES.brute.hp * 1.6), power: 1.6 });
   expect(foeDmg(f)).toEqual(FOES.brute.dmg.map((n) => Math.round(n * 1.6)));
   f.alive = false;
   const before = new Set([f.id]);

@@ -67,8 +67,6 @@ export interface Hero extends Ent {
   bonus: { killCharge: number; evasion: number; gunDmg: number; meleeDmg: number };
   charge: number;
   maxCharge: number;
-  /** game time banked toward the next self-charge */
-  chargeClock?: number;
   regenClock?: number;
   kind: 'hero';
   level: number;
@@ -140,12 +138,12 @@ export type GEventType =
 export interface GEvent { t: number; type: GEventType; src?: string; dst?: string; from?: Cell; to?: Cell; amount?: number; crit?: boolean; text?: string }
 
 export const COST = { move: 1, wait: 1, potion: 1, open: 0.5, swap: 0.5, equip: 1, drop: 0.5, bash: 1, search: 1 };
-export const HERO = { hp: 35, sight: 8, heal: 12, bash: [2, 4] as const, bashHit: 0.9 };
+export const HERO = { hp: 35, sight: 8, heal: 25, bash: [2, 4] as const, bashHit: 0.9 };
 export const FOES: Record<FoeKind, { hp: number; move: number; dmg: readonly [number, number]; range: number; hit: number }> = {
-  minion: { hp: 10, move: 1, dmg: [3, 5], range: 1, hit: 0.8 },
-  archer: { hp: 8, move: 1, dmg: [3, 5], range: 7, hit: 0.85 },
-  brute: { hp: 20, move: 1.4, dmg: [6, 9], range: 1, hit: 0.8 },
-  ghoul: { hp: 12, move: 0.7, dmg: [3, 6], range: 1, hit: 0.8 },
-  mage: { hp: 10, move: 1, dmg: [4, 7], range: 6, hit: 1 },
+  minion: { hp: 14, move: 1, dmg: [4, 6], range: 1, hit: 0.8 },
+  archer: { hp: 8, move: 1, dmg: [2, 4], range: 7, hit: 0.85 },
+  brute: { hp: 14, move: 1.4, dmg: [5, 7], range: 1, hit: 0.8 },
+  ghoul: { hp: 10, move: 0.7, dmg: [2, 4], range: 1, hit: 0.8 },
+  mage: { hp: 4, move: 1, dmg: [2, 4], range: 6, hit: 1 },
   champion: { hp: 70, move: 1, dmg: [8, 12], range: 1, hit: 0.85 },
 };

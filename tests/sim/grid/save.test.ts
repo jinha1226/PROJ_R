@@ -11,7 +11,7 @@ it('restores every field, typed collections and RNG without sharing state', () =
   meta.suit = { floor: 2, ids: ['dash'], killer: { kind: 'mage' } };
   const g = GridSim.createRun(41, meta, { gun: 'pistol', start: 1, startSuit: [] });
   for (let i = 0; i < 8; i++) g.act({ kind: 'wait' });
-  g.s.fired.add('dash'); g.s.hero.chargeClock = 1.25;
+  g.s.fired.add('dash');
   g.s.run.recovered = ['rapid'];
   const restored = fromSave(toSave(g.s));
   expect(restored.visible).toBeInstanceOf(Set);

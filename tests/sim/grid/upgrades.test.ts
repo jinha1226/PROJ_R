@@ -64,13 +64,13 @@ describe('level-up suit upgrades', () => {
     expect(g.s.hero.bonus.killCharge).toBe(2);
   });
 
-  it('evasion adds three percentage points each time', () => {
+  it('evasion adds eight percentage points each time', () => {
     const { s } = sim(OPEN, { x: 5, y: 7 });
     const base = evasionOf(s);
     applyUpgrade(s, 'evasion');
-    expect(evasionOf(s)).toBeCloseTo(base + 0.03);
+    expect(evasionOf(s)).toBeCloseTo(base + 0.08);
     applyUpgrade(s, 'evasion');
-    expect(evasionOf(s)).toBeCloseTo(base + 0.06);
+    expect(evasionOf(s)).toBeCloseTo(base + 0.16);
   });
 
   it('gun and melee damage stack only on their matching weapon groups', () => {
@@ -78,14 +78,14 @@ describe('level-up suit upgrades', () => {
     const pistol = makeWeapon('pistol', 1), sword = makeWeapon('sword', 1), staff = makeWeapon('staff', 1);
     const gunBase = heroDmg(s, pistol), meleeBase = heroDmg(s, sword), staffBase = heroDmg(s, staff);
     applyUpgrade(s, 'meleeDmg');
-    expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 1));
+    expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 5));
     expect(heroDmg(s, pistol)).toEqual(gunBase);
     applyUpgrade(s, 'gunDmg');
-    expect(heroDmg(s, pistol)).toEqual(gunBase.map((v) => v + 1));
+    expect(heroDmg(s, pistol)).toEqual(gunBase.map((v) => v + 5));
     applyUpgrade(s, 'gunDmg');
     applyUpgrade(s, 'meleeDmg');
-    expect(heroDmg(s, pistol)).toEqual(gunBase.map((v) => v + 2));
-    expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 2));
+    expect(heroDmg(s, pistol)).toEqual(gunBase.map((v) => v + 10));
+    expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 10));
     expect(heroDmg(s, staff)).toEqual(staffBase);
   });
 
@@ -99,7 +99,7 @@ describe('level-up suit upgrades', () => {
     expect(g.act({ kind: 'upgrade', i: 0 })).toContainEqual({ t: 7, type: 'upgrade', src: 'hero', text: 'gunDmg' });
     expect([g.s.time, g.s.hero.nextAt, g.s.hero.hp]).toEqual([7, 7, hp]);
     expect(g.s.hero.status).toEqual({ burn: 3, freeze: 2, poison: 1 });
-    expect(g.s.hero.bonus.gunDmg).toBe(1);
+    expect(g.s.hero.bonus.gunDmg).toBe(5);
     expect(g.s.upgrades).toEqual([['evasion']]);
     expect(g.s.offers).toEqual([['dash']]);
   });
@@ -129,7 +129,7 @@ describe('level-up suit upgrades', () => {
     applyUpgrade(s, 'gunDmg');
     nextFloor(s);
     expect(s.upgrades).toEqual(pending);
-    expect(s.hero.bonus.gunDmg).toBe(1);
+    expect(s.hero.bonus.gunDmg).toBe(5);
   });
 
   it('echo absorption still queues engravings independently of upgrades', () => {

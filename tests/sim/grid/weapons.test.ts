@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { makeWeapon, type WeaponGroup } from '../../../src/sim/grid/items';
 import { activeWeapon, addToBag } from '../../../src/sim/grid/gear';
 import type { GridSim } from '../../../src/sim/grid/gridSim';
+import { FOES } from '../../../src/sim/grid/types';
 import { OPEN, sim, sureHits } from './kit';
 
 const hold = (g: GridSim, group: WeaponGroup) => { g.s.hero.gear.hands[0] = makeWeapon(group, 1); g.s.hero.gear.active = 0; };
@@ -127,7 +128,7 @@ describe('gear actions and armour', () => {
     const dmg: number[] = [];
     for (let i = 0; i < 30; i++) for (const e of g.act({ kind: 'wait' })) if (e.type === 'hit' && e.dst === 'hero') dmg.push(e.amount!);
     expect(dmg.length).toBeGreaterThan(0);
-    expect(Math.max(...dmg)).toBeLessThanOrEqual(2);
+    expect(Math.max(...dmg)).toBeLessThanOrEqual(FOES.minion.dmg[1] - g.s.hero.gear.armor.reduce);
     expect(Math.min(...dmg)).toBeGreaterThanOrEqual(1);
   });
 

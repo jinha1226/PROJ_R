@@ -6,16 +6,18 @@ export function canRegenerate(s: GridState): boolean {
     f.alive && f.awake && dist(h.pos, f.pos) <= 8 && s.visible.has(idx(s.map, f.pos)));
 }
 
+const REGEN_EVERY = 6;
+
 /** Six safe turns per HP; danger discards the bank, full health cannot stockpile it. */
 export function regenerate(s: GridState, spent: number, safeAtStart = true): void {
   const h = s.hero;
   if (!safeAtStart || !canRegenerate(s)) { h.regenClock = 0; return; }
   if (spent <= 0) return;
   h.regenClock = (h.regenClock ?? 0) + spent;
-  const gained = Math.min(h.maxHp - h.hp, Math.floor((h.regenClock + 1e-9) / 6));
+  const gained = Math.min(h.maxHp - h.hp, Math.floor((h.regenClock + 1e-9) / REGEN_EVERY));
   if (gained > 0) {
     h.hp += gained;
-    h.regenClock -= gained * 6;
+    h.regenClock -= gained * REGEN_EVERY;
     s.events.push({ t: h.nextAt, type: 'heal', src: h.id, dst: h.id, amount: gained, text: 'regen' });
   }
   if (h.hp >= h.maxHp) h.regenClock = 0;

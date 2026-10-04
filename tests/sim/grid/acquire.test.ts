@@ -5,6 +5,7 @@ import { GridSim } from '../../../src/sim/grid/gridSim';
 import { offerFor } from '../../../src/sim/grid/engrave';
 import { createRng } from '../../../src/core/rng';
 import { handMap, OPEN, sim, sureHits } from './kit';
+import { XP_STEPS } from '../../../src/sim/grid/run';
 import { newState } from '../../../src/sim/grid/state';
 
 describe('engraving and upgrade choices', () => {
@@ -37,7 +38,7 @@ describe('engraving and upgrade choices', () => {
     g.s.hero.gear.hands[0] = makeWeapon('sword', 1);
     g.s.hero.gear.active = 0;
     g.s.foes[0]!.hp = 1;
-    g.s.hero.xp = 999;
+    g.s.hero.xp = XP_STEPS.at(-1)!;
     g.act({ kind: 'move', dir: { x: 1, y: 0 } });
     expect(g.s.upgrades).toHaveLength(14);
     expect(g.s.offers).toEqual([]);
