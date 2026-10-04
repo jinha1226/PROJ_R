@@ -126,7 +126,7 @@ it('fills short pools regardless of recorded history', () => {
   expect(absorbOffer(s, 'melee').map((id) => typeof id === 'string' && s.records.includes(id))).toEqual([true, true, true]);
   s.records = [];
   expect(absorbOffer(s, 'ranged')).toHaveLength(3);
-  s.hero.suit = ['alternate', 'echo', 'chain'];
+  s.hero.suit = ENGRAVE_IDS.filter(id => ENGRAVES[id].family === 'element' && id !== 'elemArrow');
   expect(absorbOffer(s, 'element')).toEqual(['elemArrow']);
   s.hero.suit.push('elemArrow');
   expect(absorbOffer(s, 'element')).toEqual([]);
@@ -148,7 +148,7 @@ it('uses only the requested family with deterministic draws', () => {
 it('consumes exhausted echoes without queuing empty offers', () => {
   const g = sim(OPEN, { x: 1, y: 1 });
   g.s.hero.rounds = ['fire', 'frost'];
-  g.s.hero.suit = ['alternate', 'echo', 'chain', 'elemArrow'];
+  g.s.hero.suit = ENGRAVE_IDS.filter(id => ENGRAVES[id].family === 'element');
   g.s.floorItems.push({ pos: { x: 2, y: 1 }, item: { kind: 'echo', family: 'element', name: '잔향' } });
   expect(g.act({ kind: 'move', dir: { x: 1, y: 0 } }).some((e) => e.type === 'absorb')).toBe(true);
   expect(g.s.floorItems).toEqual([]);

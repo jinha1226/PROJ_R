@@ -1,3 +1,4 @@
+import { preMelee } from './preMelee';
 import { emitKills } from './attackTriggers';
 import { strike } from './combat';
 import { blowMult } from './engraveCore';
@@ -15,7 +16,7 @@ export function slashFoe(s: GridState, c: TriggerCtx): void {
   const start = s.events.length;
   s.events.push({ t: c.t, type: 'bump', src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, group: w.group });
   foe.awake = true;
-  const hit = strike(s, c.t, h, foe, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, c.t, foe));
+  const hit = preMelee(s, c.t, foe, () => strike(s, c.t, h, foe, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, c.t, foe)));
   h.fx.nextMult = 1;
   refillMelee(s, hit, start);
   if (hit) { bladeRound(s, c.t, foe); emit(s, 'meleeHit', { ...c, src: 'blade' }); }

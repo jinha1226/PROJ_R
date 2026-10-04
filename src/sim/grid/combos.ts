@@ -1,3 +1,4 @@
+import { preMelee } from './preMelee';
 import { bladeRound } from './rounds';
 import { emit } from './kataBus';
 import { emitKills } from './attackTriggers';
@@ -67,9 +68,11 @@ export function lunge(s: GridState, t: number, d: Cell, hooks: ShotHooks): numbe
   const hits: Ent[] = [];
   for (const f of s.foes) {
     if (!f.alive || !canSwingAt(s, b, f.pos)) continue;
-    const mult = LEAP_MULT * blowMult(s, t, f) * (f.awake ? 1 : 2);
-    f.awake = true;
-    const hit = strike(s, t, h, f, WEAPONS[w.group].hit, dmg, mult);
+    const hit = preMelee(s, t, f, () => {
+      const mult = LEAP_MULT * blowMult(s, t, f) * (f.awake ? 1 : 2);
+      f.awake = true;
+      return strike(s, t, h, f, WEAPONS[w.group].hit, dmg, mult);
+    });
     if (hit) hits.push(f);
     if (f === far) landed = hit;
   }
@@ -130,9 +133,9 @@ export function counterBlow(s: GridState, t: number, src: string, how: 'dodge' |
   if (!f || !w || !WEAPONS[w.group].melee || !has(s, id) || !canSwingAt(s, h.pos, f.pos) || !fire(s, t, id)) return;
   s.events.push({ t, type: 'bump', group: w.group, src: h.id, dst: f.id, from: { ...h.pos }, to: { ...f.pos }, text: id });
   const eventStart = s.events.length;
-  const landed = strike(s, t, h, f, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, t, f));
+  const landed = preMelee(s, t, f, () => strike(s, t, h, f, WEAPONS[w.group].hit, heroDmg(s, w), blowMult(s, t, f)));
   h.fx.nextMult = 1;
-  if (landed) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks }); }
+  if (landed) { bladeRound(s, t, f); emit(s, 'meleeHit', { t, foe: f, hooks, src: 'blade' }); }
   if (how === 'parry' && landed) {
     f.stun = Math.max(f.stun ?? 0, 1);
     s.events.push({ t, type: 'stun', src: h.id, dst: f.id, to: { ...f.pos } });

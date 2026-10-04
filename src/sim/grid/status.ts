@@ -1,3 +1,4 @@
+import { fire, has } from './engraveCore';
 import { resonance } from './resonance';
 import { absorbShield } from './shield';
 import { emit } from './kataBus';
@@ -114,8 +115,19 @@ export function tickStatuses(s: GridState, e: Ent, t: number): boolean {
   onEnter(s, e, t);
   const x = e.status;
   if (!x) return false;
-  if (x.burn > 0) { x.burn--; hurt(s, t, 'burn', e, BURN_DMG, 'fire'); }
-  if (x.poison > 0 && e.alive) { x.poison--; hurt(s, t, 'poison', e, POISON_DMG, 'poison'); }
+  if (x.burn > 0 && e.alive) {
+    const stoke = e !== s.hero && s.hero.alive && has(s, 'fireStoke');
+    if (stoke) fire(s, t, 'fireStoke');
+    x.burn--; hurt(s, t, 'burn', e, BURN_DMG + Number(stoke), 'fire');
+  }
+  if (x.poison > 0 && e.alive) {
+    x.poison--; hurt(s, t, 'poison', e, POISON_DMG, 'poison');
+    const h = s.hero, turn = Math.floor(t);
+    if (e !== h && h.alive && h.hp < h.maxHp && h.fx.poisonSiphonTurn !== turn
+      && has(s, 'poisonSiphon') && fire(s, t, 'poisonSiphon')) {
+      h.hp = Math.min(h.maxHp, h.hp + 1); h.fx.poisonSiphonTurn = turn;
+    }
+  }
   if (x.freeze > 0 && e.alive) {
     x.freeze--;
     s.events.push({ t, type: 'frozen', src: e.id, to: { ...e.pos } });
