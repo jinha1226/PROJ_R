@@ -91,7 +91,7 @@ test('on a phone the grid sortie has a stick and big buttons', async ({ browser 
   await ctx.close();
 });
 
-test('engravings: absorb an echo onto the suit, pick a suit upgrade on level-up, a dash fires, a full suit asks which slot', async ({ page }) => {
+test('engravings: an elite kill offers three, pick a suit upgrade on level-up, a dash fires, a full suit asks which slot', async ({ page }) => {
   type Any = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -103,19 +103,14 @@ test('engravings: absorb an echo onto the suit, pick a suit upgrade on level-up,
   // a fresh run starts with the two engravings the ship owns; clear them so this test fills the suit itself
   expect((await st()).hero.suit).toEqual(['gunRelay', 'spinShot']);
   await page.evaluate(() => { ((window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any).hero.suit = []; });
-  // an echo at the hero's feet-to-be: stepping in offers three engravings of that family; pick one onto the suit
+  // an elite falls: three engravings of its family are offered on the spot
   await page.evaluate(() => {
     const w = (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__;
     const s = w.state() as unknown as Any;
     s.hero.hp = s.hero.maxHp = 999;
     for (const f of s.foes) if (f.alive) f.pos = { x: 0, y: 0 };
-    const h = s.hero.pos;
-    for (const d of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]) {
-      if (s.map.tiles[(h.y + d.y) * s.map.w + h.x + d.x] !== 'floor') continue;
-      s.floorItems.push({ pos: { x: h.x + d.x, y: h.y + d.y }, item: { kind: 'echo', family: 'melee', name: '잔향' } });
-      w.act({ kind: 'move', dir: d });
-      return;
-    }
+    s.offers = [['dash', 'leap', 'finisher']];
+    w.act({ kind: 'wait' });
   });
   await expect(page.locator('[data-testid="grid-levelup"]')).toBeVisible();
   await page.click('[data-testid="grid-levelup-0"]');
@@ -200,7 +195,7 @@ test('the ship deck: bump the armory, unlock fire rounds with energy, it is save
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.addInitScript(() => {
-    try { if (!localStorage.getItem('projr.grid.meta.v1.seeded')) { localStorage.setItem('projr.grid.meta.v1', JSON.stringify({ energy: 200, facilities: { armoryShotgun: false, armoryRifle: false, suitSlots: 1, chargePlus: 0, navCrypt: false, navRuins: false }, records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0 })); localStorage.setItem('projr.grid.meta.v1.seeded', '1'); } } catch { /* ignore */ }
+    try { if (!localStorage.getItem('projr.grid.meta.v1.seeded')) { localStorage.setItem('projr.grid.meta.v1', JSON.stringify({ energy: 200, repairs: ['workbench'], facilities: { armoryShotgun: false, armoryRifle: false, suitSlots: 1, chargePlus: 0, navCrypt: false, navRuins: false }, records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0 })); localStorage.setItem('projr.grid.meta.v1.seeded', '1'); } } catch { /* ignore */ }
   });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');
