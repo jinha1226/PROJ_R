@@ -66,6 +66,8 @@ export class GridRuntime {
   /** the ship's waking shot and the hatch beacon (ship only) */
   private intro?: ShipIntro;
   private zoomMul = 1;
+  /** keep the view inside the map instead of following the hero past its edge (the showcase) */
+  stayInMap = false;
   private readonly ghosts = new Afterimages();
   /** dims the screen edge while the game runs slow (an engraving moment) */
   private readonly slowmo = document.createElement('div');
@@ -278,8 +280,10 @@ export class GridRuntime {
     const deck = new THREE.Vector3(((this.sim.s.map.w - 1) / 2) * CELL, 0, ((this.sim.s.map.h - 1) / 2) * CELL);
     const shot = this.intro?.update(dt);
     this.zoomMul = shot?.zoom ?? 1;
-    const aim = shot && this.intro?.pod ? this.intro.pod.clone().lerp(deck, shot.k) : this.stationAt.size ? deck : hero;
+    let aim = shot && this.intro?.pod ? this.intro.pod.clone().lerp(deck, shot.k) : this.stationAt.size ? deck : hero;
     if (shot) { this.center.x = aim.x; this.center.z = aim.z; }
+    // a copy: the hero's own position must not be moved by the clamp
+    if (this.stayInMap && !this.stationAt.size) aim = this.clampAim(aim.clone());
     this.center.x = chase(this.center.x, aim.x, dt, CAM_K);
     this.center.z = chase(this.center.z, aim.z, dt, CAM_K);
     this.light.position.set(hero.x, 2.6, hero.z);
@@ -288,6 +292,15 @@ export class GridRuntime {
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));
     if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
     else this.h.renderer.render(this.h.scene, this.h.camera);
+  }
+  /** Pulls the camera target in so the view's edge stops at the map's edge (centred when the map is smaller than the view). */
+  private clampAim(aim: THREE.Vector3): THREE.Vector3 {
+    const cam = this.h.camera;
+    const aspect = (cam.userData.aspect as number | undefined) ?? 9 / 16;
+    const halfX = (this.height * this.zoomMul * aspect) / 2, halfZ = (this.height * this.zoomMul) / 2 / Math.sin(ELEVATION);
+    const maxX = (this.sim.s.map.w - 1) * CELL, maxZ = (this.sim.s.map.h - 1) * CELL;
+    const fit = (v: number, half: number, max: number) => (max - 2 * half < 0 ? max / 2 : Math.min(max - half, Math.max(half, v)));
+    return aim.set(fit(aim.x, halfX - CELL / 2, maxX), aim.y, fit(aim.z, halfZ - CELL / 2, maxZ));
   }
   private placeCamera(): void {
     const cam = this.h.camera;

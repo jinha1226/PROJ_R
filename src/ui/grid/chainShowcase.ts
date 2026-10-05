@@ -13,22 +13,23 @@ import '../styles/gridSf.css';
 import '../styles/chainShowcase.css';
 
 /**
- * One turn, one long chain, found by searching real layouts (tests/bot/turnChainSearch.bot.ts): every move dashes into a slash,
- * blade kills fire the gun, gun kills dash on, and each chain sets off 흐름 so the next move takes no time — the foes never move.
+ * One turn, one long and varied chain, found by searching real layouts (tests/bot/varietySearch.bot.ts): dashes, leaps into a pack,
+ * spinning shots when surrounded, ricochets, blade kills firing the gun — and each chain sets off 흐름 so the next move takes no time.
  * Everything is the real simulation; only the opening, the moves, and the free first move are chosen.
  */
 const ROWS = ['#############', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#############'];
 export type ShowFoe = { kind: FoeKind; x: number; y: number; hp: number };
-const SEED = 9962;
-const SUIT: EngraveId[] = ['flow', 'gunRelay', 'bladeRelay', 'dash', 'mark', 'pierce'];
+const SEED = 33586;
+const SUIT: EngraveId[] = ['flow', 'gunRelay', 'spinShot', 'dash', 'leap', 'ricochet'];
 const FOES: ShowFoe[] = [
-  { kind: 'minion', x: 5, y: 5, hp: 8 }, { kind: 'minion', x: 7, y: 6, hp: 7 }, { kind: 'minion', x: 6, y: 6, hp: 2 }, { kind: 'minion', x: 5, y: 6, hp: 2 },
-  { kind: 'minion', x: 8, y: 4, hp: 6 }, { kind: 'archer', x: 8, y: 3, hp: 4 }, { kind: 'minion', x: 3, y: 3, hp: 6 }, { kind: 'minion', x: 2, y: 6, hp: 3 },
-  { kind: 'archer', x: 2, y: 2, hp: 8 }, { kind: 'archer', x: 1, y: 7, hp: 8 }, { kind: 'minion', x: 4, y: 3, hp: 2 }, { kind: 'brute', x: 9, y: 3, hp: 6 },
-  { kind: 'minion', x: 8, y: 6, hp: 2 },
+  { kind: 'minion', x: 7, y: 2, hp: 8 }, { kind: 'minion', x: 5, y: 1, hp: 3 }, { kind: 'archer', x: 6, y: 1, hp: 1 }, { kind: 'minion', x: 7, y: 1, hp: 4 },
+  { kind: 'minion', x: 5, y: 2, hp: 4 }, { kind: 'ghoul', x: 9, y: 3, hp: 3 }, { kind: 'minion', x: 8, y: 1, hp: 4 }, { kind: 'archer', x: 10, y: 1, hp: 2 },
+  { kind: 'archer', x: 10, y: 3, hp: 1 }, { kind: 'minion', x: 10, y: 2, hp: 8 }, { kind: 'minion', x: 11, y: 1, hp: 8 }, { kind: 'minion', x: 11, y: 2, hp: 6 },
+  { kind: 'archer', x: 11, y: 6, hp: 3 }, { kind: 'archer', x: 11, y: 5, hp: 4 }, { kind: 'minion', x: 10, y: 5, hp: 7 }, { kind: 'brute', x: 4, y: 4, hp: 6 },
+  { kind: 'ghoul', x: 3, y: 5, hp: 8 }, { kind: 'ghoul', x: 3, y: 3, hp: 1 }, { kind: 'minion', x: 5, y: 3, hp: 2 },
 ];
 const D = (x: number, y: number): GAction => ({ kind: 'move', dir: { x, y } });
-const PLAN: GAction[] = [D(1, 0), D(1, -1), D(-1, 0), D(-1, -1)];
+const PLAN: GAction[] = [D(-1, 0), D(1, -1), D(1, -1), D(1, -1), D(1, 0), D(1, 0), D(0, 1), D(1, 0)];
 /** the showcase's opening and moves (for tests and tuning) */
 export const SHOWCASE = { seed: SEED, suit: SUIT, foes: FOES, plan: PLAN };
 /** the fast (gun-kata) tempo: the show runs quicker, the next move starts over the end of the last one, slow motion waits for the last blow */
@@ -145,6 +146,7 @@ export class ChainShowcase implements Screen {
     this.start = s.hero.nextAt;
     this.sim = GridSim.fromState(s);
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, false, (e) => this.cue(e));
+    this.rt.stayInMap = true;
     this.fit();
     this.timer = setTimeout(() => this.play(0), OPEN_MS);
   }
