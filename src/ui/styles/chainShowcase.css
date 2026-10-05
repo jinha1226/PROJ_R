@@ -19,3 +19,6 @@
 @keyframes cs-pop { from { transform: scale(1.6); color: #fff; } to { transform: none; } }
 @keyframes cs-lit { 0% { background: #5dff8a; color: #021006; } 100% { background: #021407d0; color: var(--t-dim, #34a85c); } }
 @keyframes cs-stamp { from { transform: scale(1.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.cs-count { flex-wrap: wrap; justify-content: flex-end; max-width: 40vw; }
+.cs-count em { flex-basis: 100%; text-align: right; font-style: normal; font-size: clamp(13px, 1.6vw, 18px); color: var(--t-warn, #e6ffb0); letter-spacing: 0.1em; }
+.cs-count em i { font-style: normal; }

@@ -12,23 +12,24 @@ import '../styles/gridSf.css';
 import '../styles/chainShowcase.css';
 
 /**
- * A long, moving chain found by searching real layouts (tests/bot/chainSearch.bot.ts): dashes into slashes, blade kills
- * firing the gun, gun kills dashing again. Everything is the real simulation; only the opening and the moves are chosen.
+ * One turn, one long chain, found by searching real layouts (tests/bot/turnChainSearch.bot.ts): every move dashes into a slash,
+ * blade kills fire the gun, gun kills dash on, and each chain sets off 흐름 so the next move takes no time — the foes never move.
+ * Everything is the real simulation; only the opening, the moves, and the free first move are chosen.
  */
 const ROWS = ['#############', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#############'];
 export type ShowFoe = { kind: FoeKind; x: number; y: number; hp: number };
-const SEED = 5220;
-const SUIT: EngraveId[] = ['dash', 'bladeRelay', 'bayonet', 'trance', 'mark', 'gunRelay'];
+const SEED = 9962;
+const SUIT: EngraveId[] = ['flow', 'gunRelay', 'bladeRelay', 'dash', 'mark', 'pierce'];
 const FOES: ShowFoe[] = [
-  { kind: 'archer', x: 7, y: 2, hp: 7 }, { kind: 'minion', x: 10, y: 2, hp: 6 }, { kind: 'ghoul', x: 9, y: 4, hp: 8 }, { kind: 'minion', x: 1, y: 3, hp: 9 },
-  { kind: 'minion', x: 8, y: 7, hp: 1 }, { kind: 'brute', x: 4, y: 1, hp: 4 }, { kind: 'ghoul', x: 7, y: 1, hp: 7 }, { kind: 'archer', x: 10, y: 1, hp: 3 },
-  { kind: 'ghoul', x: 7, y: 7, hp: 2 }, { kind: 'ghoul', x: 2, y: 2, hp: 9 }, { kind: 'archer', x: 9, y: 1, hp: 5 }, { kind: 'archer', x: 5, y: 2, hp: 1 },
-  { kind: 'minion', x: 8, y: 2, hp: 7 },
+  { kind: 'minion', x: 5, y: 5, hp: 8 }, { kind: 'minion', x: 7, y: 6, hp: 7 }, { kind: 'minion', x: 6, y: 6, hp: 2 }, { kind: 'minion', x: 5, y: 6, hp: 2 },
+  { kind: 'minion', x: 8, y: 4, hp: 6 }, { kind: 'archer', x: 8, y: 3, hp: 4 }, { kind: 'minion', x: 3, y: 3, hp: 6 }, { kind: 'minion', x: 2, y: 6, hp: 3 },
+  { kind: 'archer', x: 2, y: 2, hp: 8 }, { kind: 'archer', x: 1, y: 7, hp: 8 }, { kind: 'minion', x: 4, y: 3, hp: 2 }, { kind: 'brute', x: 9, y: 3, hp: 6 },
+  { kind: 'minion', x: 8, y: 6, hp: 2 },
 ];
 const D = (x: number, y: number): GAction => ({ kind: 'move', dir: { x, y } });
-const PLAN: GAction[] = [D(1, -1), D(1, 1), D(0, -1), D(1, 1), D(0, -1), D(1, 0), D(1, 0), D(1, 0), D(1, 0), D(1, 0)];
+const PLAN: GAction[] = [D(1, 0), D(1, -1), D(-1, 0), D(-1, -1), D(-1, -1)];
 const OPEN_MS = 1400;
-const BEAT_MS = 380;
+const BEAT_MS = 90;
 const END_MS = 3200;
 
 /** The showcase room: the hero (blade in hand, a tough body so the show is not cut short) and the placed foes, all awake. */
@@ -57,6 +58,7 @@ export class ChainShowcase implements Screen {
   private kills = 0;
   private best = 0;
   private stage!: HTMLElement;
+  private start = 0;
 
   constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit) {}
 
@@ -65,7 +67,7 @@ export class ChainShowcase implements Screen {
     this.el.className = `screen grid landscape chain-show${clean ? ' clean' : ''}`;
     this.el.innerHTML = `<div class="grid-stage"></div>
       <div class="cs-bars"></div>
-      <div class="cs-count"><b>0</b><span>연계</span></div>
+      <div class="cs-count"><b>0</b><span>연계</span><em>경과 <i>0</i>턴</em></div>
       <div class="cs-suit">${SUIT.map((id) => `<span data-id="${id}">${ENGRAVES[id].name}</span>`).join('')}</div>
       <div class="cs-stamp"></div>`;
     root.appendChild(this.el);
@@ -121,7 +123,11 @@ export class ChainShowcase implements Screen {
     this.chain = 0; this.kills = 0;
     this.el.querySelector('.cs-count b')!.textContent = '0';
     this.el.querySelector('.cs-stamp')!.className = 'cs-stamp';
-    this.sim = GridSim.fromState(showcaseState(SEED, SUIT, FOES));
+    const s = showcaseState(SEED, SUIT, FOES);
+    // it opens on a free move (as if the chain before it had set off 흐름)
+    s.hero.fx.free = true;
+    this.start = s.hero.nextAt;
+    this.sim = GridSim.fromState(s);
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, false, (e) => this.cue(e));
     this.fit();
     this.timer = setTimeout(() => this.play(0), OPEN_MS);
@@ -135,6 +141,7 @@ export class ChainShowcase implements Screen {
     const t0 = s.hero.nextAt;
     const ev = this.sim.act(a);
     this.rt?.apply(ev, t0);
+    this.el.querySelector('.cs-count i')!.textContent = String(Math.round((s.hero.nextAt - this.start) * 10) / 10);
     this.el.classList.add('slow');
     const wait = () => { if (this.rt?.busy) this.timer = setTimeout(wait, 60); else this.timer = setTimeout(() => this.play(i + 1), BEAT_MS); };
     wait();
@@ -143,7 +150,7 @@ export class ChainShowcase implements Screen {
   private finish(): void {
     this.el.classList.remove('slow');
     const stamp = this.el.querySelector('.cs-stamp')!;
-    stamp.innerHTML = `<b>${this.best}연계</b><span>${this.kills}처치</span>`;
+    stamp.innerHTML = `<b>${this.best}연계</b><span>${this.kills}처치 · 한 턴</span>`;
     stamp.className = 'cs-stamp on';
     this.timer = setTimeout(() => this.restart(), END_MS);
   }
