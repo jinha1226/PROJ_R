@@ -1,3 +1,5 @@
+import { rescueHero, PERK_BALANCE } from './perks';
+import { hasPerk } from './mods';
 import { fire, has } from './engraveCore';
 import { resonance } from './resonance';
 import { absorbShield } from './shield';
@@ -29,6 +31,7 @@ export function hurt(s: GridState, t: number, src: string, dst: Ent, amount: num
   amount = absorbShield(s, t, dst, amount);
   dst.hp -= amount;
   s.events.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...dst.pos }, text });
+  rescueHero(s, t, dst);
   if (dst.hp <= 0) {
     dst.hp = 0;
     dst.alive = false;
@@ -38,9 +41,10 @@ export function hurt(s: GridState, t: number, src: string, dst: Ent, amount: num
 }
 
 /** Adds a status. Poison stacks, the others refresh. */
-export function addStatus(s: GridState, t: number, e: Ent, el: Element, src: string, engraving = false): void {
+export function addStatus(s: GridState, t: number, e: Ent, el: Element, src: string, engraving = false, strength = 0): void {
   const x = st(e);
-  const bonus = src === s.hero.id ? Number(resonance(s).element) : 0;
+  if (el === 'fire' || el === 'poison') (e.statusSource ??= {})[el === 'fire' ? 'burn' : 'poison'] = src;
+  const bonus = src === s.hero.id ? Number(resonance(s).element) + strength : 0;
   if (el === 'fire') x.burn = Math.max(x.burn, STATUS_TURNS.burn + bonus);
   if (el === 'frost') x.freeze = Math.min(engraving && e.kind === 'champion' ? 1 : Infinity, Math.max(x.freeze, STATUS_TURNS.freeze + bonus));
   if (el === 'poison') x.poison += STATUS_TURNS.poison + bonus;
@@ -48,9 +52,9 @@ export function addStatus(s: GridState, t: number, e: Ent, el: Element, src: str
   if (src === s.hero.id) emit(s, 'elementApplied', { t, foe: e, src, element: el });
 }
 
-function setTile(s: GridState, c: Cell, kind: 'fire' | 'poison', turns: number): void {
+function setTile(s: GridState, c: Cell, kind: 'fire' | 'poison', turns: number, src: string): void {
   s.tiles = s.tiles.filter((x) => !same(x.pos, c));
-  s.tiles.push({ pos: { ...c }, kind, until: s.time + turns });
+  s.tiles.push({ pos: { ...c }, kind, until: s.time + turns, src });
 }
 
 /** Cells an area effect reaches: within the radius, walkable, in line from its centre. */
@@ -67,7 +71,7 @@ export function areaCells(s: GridState, at: Cell, radius: number): Cell[] {
  * An element landing on a cell (radius 0) or an area. Fire leaves burning ground and sets off barrels;
  * poison over an area leaves a cloud; lightning hits the target and half again to foes beside it.
  */
-export function applyElement(s: GridState, t: number, el: Element, at: Cell, radius: number, dmg: readonly [number, number] | null, src: string, onBarrel?: (c: Cell) => void, spare?: string, engraving = false): void {
+export function applyElement(s: GridState, t: number, el: Element, at: Cell, radius: number, dmg: readonly [number, number] | null, src: string, onBarrel?: (c: Cell) => void, spare?: string, engraving = false, strength = 0): void {
   const kit: ReactionKit = { hurt, ents: entsAt, area: areaCells };
   if (el === 'shock') {
     const target = entsAt(s, at)[0];
@@ -90,11 +94,11 @@ export function applyElement(s: GridState, t: number, el: Element, at: Cell, rad
       if (!e.alive) continue;
       const r = reacted ? null : reactOn(s, t, el, e, src, kit, engraving);
       if (r) { reacted = true; continue; }
-      if (e.alive) addStatus(s, t, e, el, src, engraving);
+      if (e.alive) addStatus(s, t, e, el, src, engraving, strength);
     }
     if (!reacted && !occupants.length && reactOnTile(s, t, el, c, src, kit)) { reacted = true; continue; }
-    if (el === 'fire' && !occupants.length && !s.tiles.some((x) => x.kind === 'steam' && same(x.pos, c))) setTile(s, c, 'fire', FIRE_TILE);
-    if (el === 'poison' && radius > 0) setTile(s, c, 'poison', CLOUD_TILE);
+    if (el === 'fire' && !occupants.length && !s.tiles.some((x) => x.kind === 'steam' && same(x.pos, c))) setTile(s, c, 'fire', FIRE_TILE, src);
+    if (el === 'poison' && radius > 0) setTile(s, c, 'poison', CLOUD_TILE, src);
     if (el === 'fire' && s.barrels.some((b) => same(b, c))) onBarrel?.(c);
   }
 }
@@ -106,8 +110,8 @@ export function onEnter(s: GridState, e: Ent, t: number): void {
   const tile = s.tiles.find((x) => same(x.pos, e.pos) && x.until > s.time);
   if (!tile) return;
   const x = st(e);
-  if (tile.kind === 'fire' && x.burn === 0) addStatus(s, t, e, 'fire', 'tile');
-  if (tile.kind === 'poison' && x.poison === 0) { x.poison += CLOUD_POISON; s.events.push({ t, type: 'status', src: 'tile', dst: e.id, text: 'poison', to: { ...e.pos } }); }
+  if (tile.kind === 'fire' && x.burn === 0) addStatus(s, t, e, 'fire', tile.src ?? 'tile');
+  if (tile.kind === 'poison' && x.poison === 0) { x.poison += CLOUD_POISON; (e.statusSource ??= {}).poison = tile.src ?? 'tile'; s.events.push({ t, type: 'status', src: 'tile', dst: e.id, text: 'poison', to: { ...e.pos } }); }
 }
 
 /** Start of an entity's turn: ground, burning, poison; returns true when frozen (the turn is lost). */
@@ -118,10 +122,10 @@ export function tickStatuses(s: GridState, e: Ent, t: number): boolean {
   if (x.burn > 0 && e.alive) {
     const stoke = e !== s.hero && s.hero.alive && has(s, 'fireStoke');
     if (stoke) fire(s, t, 'fireStoke');
-    x.burn--; hurt(s, t, 'burn', e, BURN_DMG + Number(stoke), 'fire');
+    x.burn--; hurt(s, t, 'burn', e, BURN_DMG + Number(stoke) + Number(e !== s.hero && e.statusSource?.burn === s.hero.id && hasPerk(s.hero, 'elemTank')) * PERK_BALANCE.elemTick, 'fire');
   }
   if (x.poison > 0 && e.alive) {
-    x.poison--; hurt(s, t, 'poison', e, POISON_DMG, 'poison');
+    x.poison--; hurt(s, t, 'poison', e, POISON_DMG + Number(e !== s.hero && e.statusSource?.poison === s.hero.id && hasPerk(s.hero, 'elemTank')) * PERK_BALANCE.elemTick, 'poison');
     const h = s.hero, turn = Math.floor(t);
     if (e !== h && h.alive && h.hp < h.maxHp && h.fx.poisonSiphonTurn !== turn
       && has(s, 'poisonSiphon') && fire(s, t, 'poisonSiphon')) {

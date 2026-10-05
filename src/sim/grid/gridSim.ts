@@ -1,3 +1,4 @@
+import { timedPerks } from './perks';
 import { emit } from './kataBus';
 import { resonance } from './resonance';
 import { shipAct } from './ship';
@@ -50,6 +51,10 @@ export class GridSim {
     if (s.outcome) return [];
     if (s.mode === 'ship') return shipAct(s, a);
     s.events = [];
+    if (a.kind === 'socket' || a.kind === 'portal') {
+      const cost = heroAct(s, a, { noise: () => {}, use: () => null });
+      return cost === null ? [{ t: s.hero.nextAt, type: 'blocked', src: s.hero.id }] : s.events;
+    }
     s.fired = new Set();
     const t0 = s.hero.nextAt;
     const safeAtStart = canRegenerate(s);
@@ -82,10 +87,10 @@ export class GridSim {
     else if (boosted) fx.momentum = true;
     if (free && cost > 0) { cost = 0; fx.free = false; }
     else if (freeShot && !frozen && a.kind === 'shoot' && cost > 0) { cost = 0; fx.freeShot = false; }
-    if (cost > 0) discover(s, t0);
+    if (cost > 0) { timedPerks(s, t0); discover(s, t0); }
     if (fx.acted) fx.swapReady = true;
     if (fx.acted !== 'melee') fx.combo = { hits: 0 };
-    if (fx.acted !== 'shot') fx.rapid = { n: 0 };
+    if (fx.acted !== 'shot' && a.kind !== 'choose' && a.kind !== 'upgrade') { fx.rapid = { n: 0 }; fx.taps = 0; }
     passMarks(s, t0);
     if (s.foes.some((f) => alive.has(f.id) && !f.alive) && has(s, 'momentum') && fire(s, t0, 'momentum')) fx.momentum = true;
     const n = s.fired.size;
@@ -118,7 +123,7 @@ export class GridSim {
     recordDeath(s);
     settleKills(s, alive);
     // a core collected in the same action still counts: the run is won
-    if (!s.hero.alive && s.outcome !== 'won') {
+    if (!s.hero.alive && s.outcome !== 'won' && s.outcome !== 'returned') {
       s.outcome = 'dead';
       s.events.push({ t: s.time, type: 'dead', src: s.hero.id });
       return s.events;

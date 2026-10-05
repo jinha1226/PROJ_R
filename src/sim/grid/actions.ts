@@ -1,3 +1,5 @@
+import { openPortal, rollStone, socketStone, STONE_DROPS } from './stones';
+import { hasPerk } from './mods';
 import { gainMaterial, zoneMaterial } from './materials';
 import { toolMove } from './toolActions';
 import { availableCard } from './rounds';
@@ -51,6 +53,7 @@ function openChest(s: GridState, t: number, c: Cell): void {
     stow(s, got);
     s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: got.kind === 'potion' ? potionName(s, got.p) : scrollName(s, got.sc) });
   }
+  if (s.rng.chance(STONE_DROPS.chest)) s.floorItems.push({ pos: { ...c }, item: rollStone(s) });
   const supply = s.rng.pick(['potion', 'potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask', null] as const);
   if (supply) { g.belt[supply]++; s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: SUPPLY_NAME[supply], amount: 1 }); }
 }
@@ -59,7 +62,7 @@ const SUPPLY_NAME = { potion: '물약', bomb: '폭탄', fireFlask: '화염병', 
 /** Foes the weapon in hand could hit from here (in sight, in range, line clear). */
 export function shootable(s: GridState): string[] {
   const h = s.hero;
-  const range = weaponRange(activeWeapon(h.gear));
+  const range = weaponRange(activeWeapon(h.gear), h);
   return s.foes.filter((f) => f.alive && s.visible.has(idx(s.map, f.pos)) && dist(h.pos, f.pos) <= range && shotClear(s, h.pos, f.pos)).map((f) => f.id);
 }
 
@@ -79,6 +82,8 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
   const g = h.gear;
   const t = h.nextAt;
   switch (a.kind) {
+    case 'portal': return openPortal(s, a.stone);
+    case 'socket': return socketStone(s, a.stone);
     case 'move': {
       const to = add(h.pos, a.dir);
       // a blow is heard around (radius 3)
@@ -111,7 +116,7 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       }
       s.events.push({ t, type: 'move', src: h.id, from: { ...h.pos }, to: { ...to } });
       h.pos = to;
-      hooks.noise(to, STEP_NOISE);
+      hooks.noise(to, hasPerk(h, 'silentLegs') ? 0 : STEP_NOISE);
       pickUp(s, t);
       const trap = s.traps.findIndex(tr => tr.found && same(tr.pos, to));
       if (trap >= 0) {

@@ -9,7 +9,7 @@ it('lights basic facilities and powers purchased areas', () => {
   for (const id of ['pod', 'hatch', 'records'] as const) expect(stationLit(m, id)).toBe(true);
   for (const id of ['armory', 'suitlab', 'nav', 'core'] as const) expect(stationLit(m, id)).toBe(false);
   m.repairs = ['workbench', 'suitlab', 'nav']; m.energy = 1000; m.bossesKilled = [5];
-  for (const id of ['round:fire', 'chargePlus1', 'navCrypt']) buy(m, id);
+  for (const id of ['round:fire', 'chargePlus1']) buy(m, id);
   for (const id of ['armory', 'suitlab', 'nav'] as const) expect(stationLit(m, id)).toBe(true);
 });
 it('lists purchases with affordability, prerequisite and ownership gates', () => {
@@ -20,8 +20,8 @@ it('lists purchases with affordability, prerequisite and ownership gates', () =>
   expect(panelContents(m, 'armory', opts()).shop.every(c => c.enabled)).toBe(true);
   expect(panelContents(m, 'nav', opts()).shop.every(c => !c.enabled)).toBe(true);
   m.bossesKilled = [5];
-  expect(panelContents(m, 'nav', opts()).shop.map(c => c.enabled)).toEqual([true, false]);
-  buy(m, 'navCrypt'); buy(m, 'round:fire');
+  expect(panelContents(m, 'nav', opts()).shop).toEqual([]);
+  m.portals = [5]; buy(m, 'round:fire');
   expect(panelContents(m, 'nav', opts()).choices.map(c => c.id)).toEqual(['1', '6']);
   expect(panelContents(m, 'armory', opts()).choices.map(c => c.id)).toEqual(['plain', 'fire']);
   expect(panelContents(m, 'armory', opts()).shop.some(c => c.id === 'round:fire')).toBe(false);
@@ -47,7 +47,7 @@ it('limits unlocked choices and clears shortcut engravings', () => {
   expect(panelContents(m, 'hatch', selected).choices.map(c => c.enabled)).toEqual([true, true, false]);
   expect(toggleStartSuit(m, selected, 'flow').startSuit).toEqual(['dash', 'counter']);
   expect(toggleStartSuit(m, selected, 'dash').startSuit).toEqual(['counter']);
-  m.facilities.navRuins = true;
+  m.portals = [10]; m.repairs = ['nav'];
   expect(launchOptions(m, { ...o, startSuit: [...o.startSuit] }).startSuit).toEqual([]);
   expect(panelContents(m, 'hatch', { ...opts(), start: 11 }).choices).toEqual([]);
 });

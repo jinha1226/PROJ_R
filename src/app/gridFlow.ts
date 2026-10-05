@@ -59,11 +59,11 @@ export class GridFlow {
     this.meta = run.meta;
     this.lastEnergy = run.sim.s.run.energy;
     const s = run.sim.s;
-    const won = s.outcome === 'won';
+    const won = s.outcome === 'won', returned = s.outcome === 'returned';
     const rec = run.meta;
     this.router.go(new GridResult({
       energy: s.run.energy, killedBy: s.run.killedBy, suit: [...s.hero.suit],
-      won, floor: s.run.floor, kills: s.run.kills, level: s.hero.level, turns: Math.floor(s.time), best: rec.best, wins: rec.wins,
+      won, returned, floor: s.run.floor, kills: s.run.kills, level: s.hero.level, turns: Math.floor(s.time), best: rec.best, wins: rec.wins,
       again: () => { void this.ship((seed * 7919 + 104729) % 999983 + 1, true); }, quit: () => this.toTitle(),
     }));
   }

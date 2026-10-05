@@ -1,3 +1,5 @@
+import { hasPerk } from './mods';
+import { PERK_BALANCE } from './perks';
 import { dist, idx, type GridState } from './types';
 
 export function canRegenerate(s: GridState): boolean {
@@ -11,7 +13,20 @@ const REGEN_EVERY = 6;
 /** Six safe turns per HP; danger discards the bank, full health cannot stockpile it. */
 export function regenerate(s: GridState, spent: number, safeAtStart = true): void {
   const h = s.hero;
-  if (!safeAtStart || !canRegenerate(s)) { h.regenClock = 0; return; }
+  if (!safeAtStart || !canRegenerate(s)) {
+    h.regenClock = 0;
+    if (!h.alive || h.status?.burn || h.status?.poison || !hasPerk(h, 'regenPack') || h.hp >= h.maxHp) { h.regenCombat = 0; return; }
+    if (spent <= 0) return;
+    h.regenCombat = (h.regenCombat ?? 0) + spent;
+    const gained = Math.min(h.maxHp - h.hp, Math.floor((h.regenCombat + 1e-9) / PERK_BALANCE.combatRegen));
+    if (gained) {
+      h.hp += gained; h.regenCombat -= gained * PERK_BALANCE.combatRegen;
+      s.events.push({ t: h.nextAt, type: 'heal', src: h.id, dst: h.id, amount: gained, text: 'regen' });
+    }
+    if (h.hp >= h.maxHp) h.regenCombat = 0;
+    return;
+  }
+  h.regenCombat = 0;
   if (spent <= 0) return;
   h.regenClock = (h.regenClock ?? 0) + spent;
   const gained = Math.min(h.maxHp - h.hp, Math.floor((h.regenClock + 1e-9) / REGEN_EVERY));

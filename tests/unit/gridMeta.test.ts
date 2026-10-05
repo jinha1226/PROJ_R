@@ -65,3 +65,10 @@ it('preserves pre-round armory purchases and navigation progress as repairs', ()
   old.facilities.navCrypt = false; old.facilities.chargePlus = 0;
   data.set('projr.grid.meta.v1', JSON.stringify(old)); expect(loadMeta().repairs).toEqual(['workbench']);
 });
+it('migrates navigation purchases into portals and round-trips unlocked fitted hearts', () => {
+  const m = freshMeta();
+  data.set('projr.grid.meta.v1', JSON.stringify({ ...m, portals: [10, 99], facilities: { ...m.facilities, navCrypt: true } }));
+  const migrated = loadMeta(); expect(migrated.portals).toEqual([10, 5]); expect(migrated.facilities).not.toHaveProperty('navCrypt');
+  migrated.mods.unlocked = ['undyingHeart']; migrated.mods.fitted = { heart: 'undyingHeart' };
+  saveMeta(migrated); expect(loadMeta()).toEqual(migrated);
+});

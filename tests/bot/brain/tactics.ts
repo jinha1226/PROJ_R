@@ -93,7 +93,7 @@ export function tactic(s: GridState, mem: BotMemory): GAction | null {
   if (shot && (shot.awake || opener || !!target)) {
     mem.chargeWaits = 0;
     if (!shot.awake && !threats.length) {
-      const range = weaponRange(pistol(s));
+      const range = weaponRange(pistol(s), s.hero);
       const farther = safeSteps(s).filter(c => dist(c, shot.pos) > dist(h.pos, shot.pos) && dist(c, shot.pos) <= range
         && shotTargets(s, c).some(f => f.id === shot.id)).sort((a, b) => dist(b, shot.pos) - dist(a, shot.pos))[0];
       if (farther) return move(s, farther);

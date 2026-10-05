@@ -1,3 +1,6 @@
+import { takeStone } from './stones';
+import { hasPerk } from './mods';
+import { chargeDamage, meleePerks, shotPerks, tapCost, PERK_BALANCE } from './perks';
 import { preMelee } from './preMelee';
 import { bladeRound, takeRound, roundMult, roundHit } from './rounds';
 import { withOtherHand, otherHand } from './kata';
@@ -17,7 +20,7 @@ import { potionName, scrollName } from './lore';
 import { activeWeapon, addToBag } from './gear';
 import { isGun, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
-import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState } from './types';
+import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState, type Hero } from './types';
 
 const SNEAK = 2;
 const DAGGER_SNEAK = 3;
@@ -85,16 +88,23 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   h.fx.acted = 'melee';
   const eventStart = s.events.length;
   if (!w || !armed) {
+    let damage: readonly [number, number] = HERO.bash, chance = HERO.bashHit;
+    if (w?.group === 'pistol' && hasPerk(h, 'bayonetGrip')) {
+      const blade = h.gear.hands.find(w => w && WEAPONS[w.group].melee);
+      damage = heroDmg(s, { ...w, group: 'dagger', tier: blade?.tier ?? 1 }); chance = WEAPONS.dagger.hit;
+    }
     foe.awake = true;
-    const landed = preMelee(s, t, foe, () => strike(s, t, h, foe, HERO.bashHit, HERO.bash, h.fx.nextMult), 1);
+    const landed = preMelee(s, t, foe, () => strike(s, t, h, foe, chance,
+      [damage[0] + chargeDamage(h), damage[1] + chargeDamage(h)], h.fx.nextMult), 1);
     refillMelee(s, landed, eventStart);
+    if (landed) meleePerks(s, t, foe);
     if (landed) emit(s, 'meleeHit', { t, foe, hooks, src: w && isGun(w.group) ? 'bash' : 'unarmed' });
     afterBlow.forEach(resolve => resolve());
     emitKills(s, t, eventStart, 'meleeKill', hooks);
     return COST.bash;
   }
   const def = WEAPONS[w.group];
-  const dmg = heroDmg(s, w);
+  const dmg = heroDmg(s, w).map(n => n + chargeDamage(h)) as [number, number];
   // an invisible hero's blows land like sneak attacks
   const unseen = buffOn(h, 'invis', t);
   const hits: Ent[] = [];
@@ -102,7 +112,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
     const mult = (f.awake && !unseen ? 1 : w.group === 'dagger' ? DAGGER_SNEAK : SNEAK) * k * blowMult(s, t, f);
     f.awake = true;
     const hit = strike(s, t, h, f, def.hit, dmg, mult);
-    if (hit) hits.push(f);
+    if (hit) { hits.push(f); meleePerks(s, t, f); }
     return hit;
   });
   const landed = blow(foe, combo.finisher ? FINISH_MULT : 1);
@@ -145,15 +155,15 @@ function shoveShot(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shove: (
 /** A spear reaches a foe two cells away when the cell between is empty. */
 export function reachTarget(s: GridState, d: Cell): Ent | undefined {
   const h = s.hero;
-  if (activeWeapon(h.gear)?.group !== 'spear') return undefined;
+  if (activeWeapon(h.gear)?.group !== 'spear' && !hasPerk(h, 'hookArms')) return undefined;
   const mid = add(h.pos, d);
   // a closed door between stops the reach
-  if (!canStep(s.map, h.pos, d) || tileAt(s.map, mid) === 'door' || foeAt(s, mid) || !canStep(s.map, mid, d)) return undefined;
+  if (!canStep(s.map, h.pos, d) || !freeCell(s, mid) || !canStep(s.map, mid, d)) return undefined;
   return foeAt(s, add(mid, d));
 }
 
-export function weaponRange(w: Weapon | null): number {
-  return w && !WEAPONS[w.group].melee ? WEAPONS[w.group].range ?? 6 : 8;
+export function weaponRange(w: Weapon | null, h?: Hero): number {
+  return w && !WEAPONS[w.group].melee ? (WEAPONS[w.group].range ?? 6) - (h && w.group === 'pistol' && hasPerk(h, 'scatter') ? PERK_BALANCE.scatterRange : 0) : 8;
 }
 
 /** Can the weapon in hand fire with its current charge? */
@@ -168,11 +178,12 @@ export function canFire(s: GridState): boolean {
 export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shot: { chargeCost?: number; through?: Ent } = {}): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
-  const cost = shot.chargeCost ?? (w ? gunCost(s, w) : Infinity);
-  if (!h.alive || !foe.alive || !w || !isGun(w.group) || h.charge < cost || dist(h.pos, foe.pos) > weaponRange(w) || !shotClear(s, h.pos, foe.pos, shot.through)) return null;
+  const cost = w ? tapCost(h, shot.chargeCost ?? gunCost(s, w)) : Infinity;
+  if (!h.alive || !foe.alive || !w || !isGun(w.group) || h.charge < cost || dist(h.pos, foe.pos) > weaponRange(w, h) || !shotClear(s, h.pos, foe.pos, shot.through)) return null;
   emit(s, 'preShot', { t, foe, hooks, shotCost: cost });
   h.target = foe.id;
   h.fx.acted = 'shot';
+  h.fx.taps = (h.fx.taps ?? 0) + 1;
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, dst: foe.id, from: { ...h.pos }, to: { ...foe.pos }, text: w.group });
   if (!isGun(w.group)) return null;
   const eventStart = s.events.length;
@@ -182,14 +193,16 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   const elementMult = roundMult(s, t, round);
   const rapid = rapidStep(s, t, foe);
   const dmg = heroDmg(s, w);
-  const mult = (foe.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe) * elementMult;
+  const scope = !foe.awake && hasPerk(h, 'runeScope') ? PERK_BALANCE.runeDamage : 1;
+  const mult = scope * (foe.awake && !buffOn(h, 'invis', t) ? 1 : SNEAK) * rapid.mult * blowMult(s, t, foe) * elementMult;
   foe.awake = true;
   const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
+  const dealt = [...s.events].reverse().find(e => e.type === 'hit' && e.dst === foe.id)?.amount ?? 0;
   h.charge -= cost;
   hooks.noise(h.pos, Math.max(0, 4 + (h.modStats?.noise ?? 0)));
   h.fx.nextMult = 1;
-  if (hit) roundHit(s, t, foe, round);
-  afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w));
+  if (hit) { shotPerks(s, t, foe, dealt); roundHit(s, t, foe, round); }
+  afterShot(s, t, foe, hit, dmg, chanceAt, weaponRange(w, h));
   if (hit) emit(s, 'gunHit', { t, foe, hooks, shotCost: cost });
   return WEAPONS[w.group].time * rapid.time + emitKills(s, t, eventStart, 'gunKill', hooks, cost);
 }
@@ -198,7 +211,7 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
 export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) => void, noise?: (at: Cell, r: number) => void): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
-  if (!w || !canFire(s) || !s.barrels.some((b) => same(b, at)) || dist(h.pos, at) > weaponRange(w)) return null;
+  if (!w || !canFire(s) || !s.barrels.some((b) => same(b, at)) || dist(h.pos, at) > weaponRange(w, h)) return null;
   const others = s.barrels.filter((b) => !same(b, at));
   const saved = s.barrels;
   s.barrels = others;
@@ -208,6 +221,7 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
   if (isGun(w.group)) h.charge -= gunCost(s, w);
+  h.fx.taps = (h.fx.taps ?? 0) + 1;
   noise?.(h.pos, Math.max(0, 4 + (h.modStats?.noise ?? 0)));
   takeRound(s);
   explode(at);
@@ -220,7 +234,9 @@ export function pickUp(s: GridState, t: number): void {
   s.floorItems = s.floorItems.filter((f) => {
     if (!same(f.pos, s.hero.pos)) return true;
     const it = f.item;
+    if (it.kind === 'stone') { takeStone(s, t, it.id); return false; }
     if (it.kind === 'suit') {
+      s.run.stones.push(...(s.run.leftSuit?.stones ?? []));
       s.run.recovered = [...it.ids];
       s.events.push({ t, type: 'suit', text: it.ids.join(',') });
       return false;

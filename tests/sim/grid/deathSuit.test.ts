@@ -24,8 +24,8 @@ it('places only on the matching floor, at creation or descent, and once per run'
   expect(s.floorItems.filter(f => f.item.kind === 'suit')).toHaveLength(1);
   nextFloor(s); expect(s.floorItems.some(f => f.item.kind === 'suit')).toBe(false);
   const opts = { gun: 'pistol', start: 6, startSuit: [] } as const;
-  const a = newRunState(45, meta(6), { ...opts, startSuit: [] });
-  const b = newRunState(45, meta(6), { ...opts, startSuit: [] });
+  const a = newRunState(45, { ...meta(6), portals: [5], repairs: ['nav'] }, { ...opts, startSuit: [] });
+  const b = newRunState(45, { ...meta(6), portals: [5], repairs: ['nav'] }, { ...opts, startSuit: [] });
   expect(a.floorItems).toEqual(b.floorItems);
   expect(a.foes).toEqual(b.foes);
   expect(a.floorItems.some(f => f.item.kind === 'suit')).toBe(true);
@@ -80,7 +80,7 @@ it('a new death replaces the old suit; an empty-handed death keeps the old one (
   const m = meta(8);
   const s = newRunState(5, m, { gun: 'pistol', start: 1, startSuit: [] });
   s.hero.suit = ['chain']; s.outcome = 'dead';
-  expect(settleRun(m, s).suit).toEqual({ materials: freshMeta().materials, floor: 1, ids: ['chain'], killer: { kind: 'self' } });
+  expect(settleRun(m, s).suit).toEqual({ stones: [], materials: freshMeta().materials, floor: 1, ids: ['chain'], killer: { kind: 'self' } });
   s.hero.suit = [];
   const old = { ...m, suit: { floor: 3, ids: ['leap' as const], killer: { kind: 'minion' } } };
   expect(settleRun(old, s).suit).toEqual(old.suit);

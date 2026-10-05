@@ -22,11 +22,11 @@ it('requires materials and records the won core', () => {
 });
 it('gates energy shops and station power by repair', () => {
   const m = freshMeta(); m.energy = 2000; m.bossesKilled = [5, 10];
-  for (const id of ['round:fire', 'suitSlots3', 'chargePlus1', 'navCrypt', 'engrave:flow']) expect(buy(m, id)).toBe(false);
+  for (const id of ['round:fire', 'suitSlots3', 'chargePlus1', 'engrave:flow']) expect(buy(m, id)).toBe(false);
   expect(stationLit(m, 'armory')).toBe(false); expect(stationLit(m, 'core')).toBe(false);
   for (const id of ['pod', 'records', 'hatch'] as const) expect(stationLit(m, id)).toBe(true);
   m.repairs = ['workbench', 'suitlab', 'nav'];
-  for (const id of ['round:fire', 'suitSlots3', 'chargePlus1', 'navCrypt', 'engrave:flow']) expect(buy(m, id)).toBe(true);
+  for (const id of ['round:fire', 'suitSlots3', 'chargePlus1', 'engrave:flow']) expect(buy(m, id)).toBe(true);
   expect(stationLit(m, 'armory')).toBe(true);
 });
 it('migrates only legacy progress and preserves explicit repair state', () => {

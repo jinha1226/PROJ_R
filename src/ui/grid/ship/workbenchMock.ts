@@ -15,7 +15,7 @@ export const MOCK_MODS: ModDef[] = [
   { id: 'sprintLegs', slot: 'legs', name: '질주 다리', stats: { evasion: 0.05 }, cost: { soul: 3 } },
   { id: 'silencer', slot: 'back', name: '소음 차폐', stats: { noise: -2 }, cost: { relic: 3, remains: 1 } },
 ];
-const LABEL: Record<ModSlot, string> = { barrel: '총열', mag: '탄창', sight: '조준기', grip: '손잡이', chest: '흉갑', arms: '팔', legs: '다리', back: '등 장치' };
+const LABEL: Record<Exclude<ModSlot, 'heart'>, string> = { barrel: '총열', mag: '탄창', sight: '조준기', grip: '손잡이', chest: '흉갑', arms: '팔', legs: '다리', back: '등 장치' };
 const PISTOL: ModSlot[] = ['barrel', 'mag', 'sight', 'grip'];
 const BASE: [string, ModStat | null, number][] = [['총 피해', 'gunDmg', 5], ['명중', 'hit', 0.9], ['충전', 'maxCharge', 10], ['소음', 'noise', 4], ['체력', 'maxHp', 35], ['회피', 'evasion', 0.1], ['보호막', 'shield', 0]];
 
@@ -50,7 +50,7 @@ export class MockBench {
     return {
       open: true,
       materials: { ...this.materials },
-      slots: (Object.keys(LABEL) as ModSlot[]).map((slot) => ({ slot, part: PISTOL.includes(slot) ? 'pistol' : 'suit', label: LABEL[slot], fitted: find(this.fitted[slot]) })),
+      slots: (Object.keys(LABEL) as Exclude<ModSlot, 'heart'>[]).map((slot) => ({ slot, part: PISTOL.includes(slot) ? 'pistol' : 'suit', label: LABEL[slot], fitted: find(this.fitted[slot]) })),
       options: (slot) => MOCK_MODS.filter((m) => m.slot === slot).map((mod): WorkbenchOption => {
         const missing: Partial<Record<Material, number>> = {};
         for (const [k, n] of Object.entries(mod.cost)) if (this.materials[k as Material] < n!) missing[k as Material] = n! - this.materials[k as Material];

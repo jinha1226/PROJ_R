@@ -195,7 +195,7 @@ test('the ship deck: bump the armory, unlock fire rounds with energy, it is save
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   await page.addInitScript(() => {
-    try { if (!localStorage.getItem('projr.grid.meta.v1.seeded')) { localStorage.setItem('projr.grid.meta.v1', JSON.stringify({ energy: 200, repairs: ['workbench'], facilities: { armoryShotgun: false, armoryRifle: false, suitSlots: 1, chargePlus: 0, navCrypt: false, navRuins: false }, records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0 })); localStorage.setItem('projr.grid.meta.v1.seeded', '1'); } } catch { /* ignore */ }
+    try { if (!localStorage.getItem('projr.grid.meta.v1.seeded')) { localStorage.setItem('projr.grid.meta.v1', JSON.stringify({ energy: 200, repairs: ['workbench'], portals: [], facilities: { suitSlots: 2, chargePlus: 0 }, unlocked: ['gunRelay', 'spinShot'], records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0 })); localStorage.setItem('projr.grid.meta.v1.seeded', '1'); } } catch { /* ignore */ }
   });
   await page.goto('./?seed=21');
   await page.click('[data-testid="to-grid"]');

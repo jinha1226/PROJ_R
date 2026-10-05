@@ -1,13 +1,13 @@
 import { FAMILIES, FAMILY_NAMES } from '../../../sim/grid/resonance';
 import { ENGRAVES, type EngraveId } from '../../../sim/grid/engraveCore';
 import { SHOP, engraveShop, type MetaState } from '../../../sim/grid/meta';
-import type { RunOptions } from '../../../sim/grid/runSetup';
+import { allowedStart, type RunOptions } from '../../../sim/grid/runSetup';
 import { STATIONS, type StationId } from '../../../sim/grid/ship';
 import { ROUND_NAMES } from '../../../sim/grid/rounds';
 export const GUN_NAMES = { pistol: '권총' };
 export interface PanelChoice { id: string; label: string; enabled: boolean; selected: boolean }
 export function launchOptions(m: MetaState, o: RunOptions): RunOptions {
-  const start = o.start === 6 && m.facilities.navCrypt ? 6 : o.start === 11 && m.facilities.navRuins ? 11 : 1;
+  const start = allowedStart(m, o.start);
   return { gun: 'pistol', round: o.round && o.round !== 'plain' && m.rounds.includes(o.round) ? o.round : 'plain', start,
     startSuit: start === 1 ? [...new Set(o.startSuit.length ? o.startSuit : m.unlocked)].filter(id => m.unlocked.includes(id)).slice(0, m.facilities.suitSlots) : [] };
 }
@@ -29,8 +29,8 @@ export function panelContents(m: MetaState, id: StationId, options: RunOptions, 
   let choices: PanelChoice[] = [];
   if (id === 'armory') choices = (['plain', ...m.rounds] as const).map(r => ({ id: r, label: `${ROUND_NAMES[r]}탄`, enabled: true, selected: o.round === r }));
   if (id === 'nav') {
-    choices = [1, ...(m.facilities.navCrypt ? [6] : []), ...(m.facilities.navRuins ? [11] : [])].map(n => ({ id: String(n), label: `${n}층 출발`, enabled: true, selected: o.start === n }));
-    lines.push('지름길: 5층·10층 수호자 처치 필요');
+    choices = [1, ...(allowedStart(m, 6) === 6 ? [6] : []), ...(allowedStart(m, 11) === 11 ? [11] : [])].map(n => ({ id: String(n), label: `${n}층 출발`, enabled: true, selected: o.start === n }));
+    lines.push('포탈 출발 · 6층·11층');
   }
   if (id === 'records') lines.push(...m.records.map(i => `${ENGRAVES[i].name} — ${ENGRAVES[i].note}`));
   if (id === 'suitlab') lines.push(`시작 각인 ${m.facilities.suitSlots}칸 · 최대 충전 ${10 + m.facilities.chargePlus * 2}`);

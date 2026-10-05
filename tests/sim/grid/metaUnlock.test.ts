@@ -21,6 +21,7 @@ it('autofills only empty selections, filters explicit selections, and copies unl
   expect(s.hero.suit).toEqual(m.unlocked); expect(s.run.unlocked).toEqual(m.unlocked);
   expect(s.run.unlocked).not.toBe(m.unlocked);
   expect(newRunState(1, m, { gun: 'pistol', start: 1, startSuit: ['flow', 'spinShot', 'spinShot'] }).hero.suit).toEqual(['spinShot']);
+  m.portals = [5]; m.repairs = ['nav'];
   expect(newRunState(1, m, { gun: 'pistol', start: 6, startSuit: [] }).hero.suit).toEqual([]);
 });
 it('settles unique locked tastes and pays for every recovered engraving', () => {

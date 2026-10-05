@@ -1,3 +1,4 @@
+import { tapCost } from './perks';
 import { slashFoe, meleeExecute } from './meleeEffects';
 import { emitKills } from './attackTriggers';
 import { takeRound, roundMult, roundHit } from './rounds';
@@ -22,16 +23,16 @@ export function canRun(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boolea
   const gun = gunInHand(s), blade = otherHand(s), f = shotTarget(s, c);
   switch (id) {
     case 'shootNearest': return !!c.hooks && !!blade && isGun(blade.group) && h.charge >= gunCost(s, blade) && !!nearest(s);
-    case 'shootFoe': return !!gun && h.charge >= (c.chargeCost ?? gunCost(s, gun)) && inShot(s, gun, c);
+    case 'shootFoe': return !!gun && h.charge >= tapCost(h, c.chargeCost ?? gunCost(s, gun)) && inShot(s, gun, c);
     case 'dashSlash': return !!c.hooks && !!blade && WEAPONS[blade.group].melee && blade.group !== 'spear' && !!dashTarget(s);
-    case 'spinShot': return !!gun && h.charge >= 1 && (c.neighbours?.length ?? spinTargets(s, c).length + Number(!!c.foe)) >= 2 && spinTargets(s, c).length > 0;
+    case 'spinShot': return !!gun && h.charge >= tapCost(h, 1) && (c.neighbours?.length ?? spinTargets(s, c).length + Number(!!c.foe)) >= 2 && spinTargets(s, c).length > 0;
     case 'slashFoe': {
       const w = c.activeBlade ? activeWeapon(h.gear) : blade;
       return !!w && WEAPONS[w.group].melee && !!f?.alive && canSwingAt(s, h.pos, f.pos);
     }
     case 'execute': return !!f?.alive && (c.meleeExecute
       ? f !== h && f.kind !== 'champion'
-      : !!gun && h.charge >= 1 && dist(h.pos, f.pos) === 1);
+      : !!gun && h.charge >= tapCost(h, 1) && dist(h.pos, f.pos) === 1);
     case 'charge': case 'refund': return h.charge < h.maxCharge && (id === 'refund' ? c.shotCost ?? p : p) > 0;
     case 'heal': return h.hp < h.maxHp && p > 0;
     case 'shield': return p > 0;
@@ -76,17 +77,18 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
     case 'spinShot': {
       const gun = gunInHand(s)!;
       for (const target of spinTargets(s, c)) {
-        if (!h.alive || h.charge < 1) break;
+        const cost = tapCost(h, 1);
+        if (!h.alive || h.charge < cost) break;
         if (!target.alive) continue;
-        h.charge--;
+        h.charge -= cost; h.fx.taps = (h.fx.taps ?? 0) + 1;
         const round = takeRound(s);
         s.events.push({ t, type: 'shoot', src: h.id, dst: target.id, from: { ...h.pos }, to: { ...target.pos }, text: 'spin', group: gun.group });
         const start = s.events.length;
         target.awake = true;
         const hit = strike(s, t, h, target, 1, heroDmg(s, gun), roundMult(s, t, round));
         if (hit) roundHit(s, t, target, round, true);
-        if (hit) emit(s, 'gunHit', { ...c, foe: target, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: 1 });
-        emitKills(s, t, start, 'gunKill', c.hooks ?? REFLEX_HOOKS, 1);
+        if (hit) emit(s, 'gunHit', { ...c, foe: target, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: cost });
+        emitKills(s, t, start, 'gunKill', c.hooks ?? REFLEX_HOOKS, cost);
       }
       break;
     }
@@ -96,7 +98,8 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
     case 'execute': {
       if (c.meleeExecute) { meleeExecute(s, { ...c, foe: f }); break; }
       const start = s.events.length;
-      h.charge--;
+      const cost = tapCost(h, 1);
+      h.charge -= cost; h.fx.taps = (h.fx.taps ?? 0) + 1;
       const round = takeRound(s);
       s.events.push({ t, type: 'shoot', src: h.id, dst: f!.id, from: { ...h.pos }, to: { ...f!.pos }, text: 'execute', group: gunInHand(s)!.group });
       const base = f!.kind === 'champion' ? Math.ceil(f!.maxHp * 0.25) : f!.hp;
@@ -108,9 +111,9 @@ export function runEffect(s: GridState, id: EffectId, c: TriggerCtx, p = 1): boo
         s.events.push({ t, type: 'die', src: h.id, dst: f!.id, to: { ...f!.pos } });
       }
       roundHit(s, t, f!, round, true);
-      const shot = { ...c, foe: f, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: 1 };
+      const shot = { ...c, foe: f, hooks: c.hooks ?? REFLEX_HOOKS, shotCost: cost };
       emit(s, 'gunHit', shot);
-      emitKills(s, t, start, 'gunKill', shot.hooks, 1);
+      emitKills(s, t, start, 'gunKill', shot.hooks, cost);
       break;
     }
     case 'charge': case 'refund': h.charge = Math.min(h.maxCharge, h.charge + (id === 'refund' ? c.shotCost ?? p : p)); break;

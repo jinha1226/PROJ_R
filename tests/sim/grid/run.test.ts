@@ -42,7 +42,7 @@ describe('floors', () => {
     expect(s.telegraphs).toEqual([]);
     expect(s.foes.every((f) => f.alive && !f.awake)).toBe(true);
     // only the new floor's scattered consumables and materials lie about
-    expect(s.floorItems.every((f) => f.item.kind === 'potion' || f.item.kind === 'scroll' || f.item.kind === 'material')).toBe(true);
+    expect(s.floorItems.every((f) => f.item.kind === 'potion' || f.item.kind === 'scroll' || f.item.kind === 'material' || f.item.kind === 'stone')).toBe(true);
   });
 
   it('stepping onto the stairs goes down', () => {

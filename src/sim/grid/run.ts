@@ -1,3 +1,6 @@
+import { rollStone, stoneItem, STONE_DROPS } from './stones';
+import { floorPerks, PERK_BALANCE } from './perks';
+import { hasPerk } from './mods';
 import { placeDeathSuit } from './deathSuit';
 import { energyFor } from './meta';
 import { dropChance, zoneMaterial } from './materials';
@@ -19,6 +22,7 @@ const WANDER_EVERY = 150;
 /** Down the stairs: the hero (health, gear, level, statuses) goes on; the floor, its foes, fire, items and marks are new. */
 export function nextFloor(s: GridState): void {
   const floor = s.run.floor + 1;
+  floorPerks(s.hero);
   const map = generateMap(s.seed * 31 + floor, floor);
   s.map = { ...map, tiles: [...map.tiles] };
   s.run.floor = floor;
@@ -47,6 +51,8 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     if (f.alive || !aliveBefore.has(f.id)) continue;
     aliveBefore.delete(f.id);
     s.run.kills++;
+    if (hasPerk(s.hero, 'soulCell') && s.events.some(e => e.type === 'die' && e.dst === f.id && e.src === s.hero.id))
+      s.hero.charge = Math.min(s.hero.maxCharge, s.hero.charge + PERK_BALANCE.soulCharge);
     const amount = energyFor(f.kind as FoeKind, s.run.floor, !!f.elite);
     s.run.energy += amount;
     s.events.push({ t: s.time, type: 'energy', amount, to: { ...f.pos } });
@@ -54,6 +60,7 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
     s.hero.xp += (FOE_XP[f.kind as FoeKind] ?? 3) * (f.elite ? 3 : 1);
     if (f.elite || f.kind === 'champion') {
       const family = FAMILY[f.kind as FoeKind];
+      if (f.elite && s.rng.chance(STONE_DROPS.elite)) s.floorItems.push({ pos: { ...f.pos }, item: rollStone(s, family) });
       const offer = absorbOffer(s, family);
       if (offer.length) s.offers.push(offer);
       s.events.push({ t: s.time, type: 'absorb', src: s.hero.id, text: family });
@@ -67,6 +74,7 @@ export function settleKills(s: GridState, aliveBefore: Set<string>): void {
       if (s.run.floor === FLOORS) s.floorItems.push({ pos, item: { kind: 'core', name: '에너지원' } });
       else if (isBossFloor(s.run.floor)) {
         s.map.stairs = pos;
+        if (s.run.floor === 5 || s.run.floor === 10) s.floorItems.push({ pos: { ...pos }, item: stoneItem(`guardian${s.run.floor}`) });
         s.events.push({ t: s.time, type: 'stairs', to: { ...pos } });
       }
     }

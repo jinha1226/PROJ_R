@@ -67,3 +67,9 @@ it('a save that cannot be continued is dropped instead of blocking new runs', ()
   expect(continueGridRun()).toBeNull();
   expect(data.has('projr.grid.run.v1')).toBe(false);
 });
+it('settles a returned run once and removes its checkpoint', () => {
+  const session = startGridRun(4); session.sim.s.run.stones = ['scatter']; session.sim.s.run.materials.scrap = 7;
+  session.sim.s.outcome = 'returned'; session.checkpoint(); session.checkpoint();
+  expect(loadRun()).toBeNull(); expect(loadMeta().mods.unlocked).toEqual(['scatter']);
+  expect(loadMeta().materials.scrap).toBe(7); expect(loadMeta().wins).toBe(0); expect(loadMeta().coreSecured).toBe(false);
+});

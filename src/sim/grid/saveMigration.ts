@@ -1,3 +1,6 @@
+import { legacyModStats } from './legacyModStats';
+import { MODS, type ModSlot } from './mods';
+import { stoneMod } from './stones';
 import { savedMaterials } from './baseMigration';
 import { ENGRAVE_IDS, type EngraveId } from './engraveCore';
 import { makeWeapon, type Equipment } from './items';
@@ -17,6 +20,12 @@ const card = (c: OfferCard): boolean => typeof c === 'string' ? ENGRAVE_IDS.incl
 
 /** Normalize removed content before any gameplay or UI code reads it. */
 export function migrateRun(s: Pick<GridState, 'hero' | 'run' | 'records' | 'offers' | 'floorItems'>): void {
+  s.run.stones = Array.isArray(s.run.stones) ? s.run.stones.filter(id => !!stoneMod(id)) : [];
+  s.run.modsUnlocked = Array.isArray(s.run.modsUnlocked) ? s.run.modsUnlocked.filter(id => !!stoneMod(id)) : [];
+  s.hero.perks = Array.isArray(s.hero.perks) ? s.hero.perks.filter(id => MODS.some(m => m.perk === id)) : [];
+  if (!s.hero.baseMods && s.hero.modStats) s.hero.legacyMods ??= legacyModStats(s.hero.modStats);
+  s.hero.baseMods = savedMods(s.hero.baseMods);
+  s.hero.sockets = savedMods(s.hero.sockets, s.run.stones);
   s.run.materials = savedMaterials(s.run.materials);
   s.run.stock = savedMaterials(s.run.stock);
   s.run.tools ??= [];
@@ -39,4 +48,10 @@ export function migrateRun(s: Pick<GridState, 'hero' | 'run' | 'records' | 'offe
     if (f.item.kind === 'suit') f.item.ids = savedIds(f.item.ids);
     return [f];
   });
+}
+
+function savedMods(value: unknown, stones?: string[]): Partial<Record<ModSlot, string>> {
+  if (!value || typeof value !== 'object') return {};
+  return Object.fromEntries(Object.entries(value).filter(([slot, id]) => typeof id === 'string'
+    && (stones ? stoneMod(id)?.slot === slot && stones.includes(id) : MODS.some(m => m.id === id && m.slot === slot))));
 }

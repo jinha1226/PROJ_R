@@ -4,7 +4,7 @@ import { startGridRun, loadRun, continueGridRun } from '../../src/app/gridRun';
 afterEach(() => vi.unstubAllGlobals());
 it('launches ship selections, resumes, settles, and launches again with returned meta even without storage', () => {
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => { throw Error(); }, removeItem: () => {} });
-  const meta = freshMeta(); meta.rounds = ['shock']; meta.facilities.navCrypt = true;
+  const meta = freshMeta(); meta.rounds = ['shock']; meta.portals = [5]; meta.repairs = ['nav'];
   const run = startGridRun(33, { gun: 'pistol', round: 'shock', start: 6, startSuit: [] }, meta);
   expect(run.sim.s.run.floor).toBe(6); expect(run.sim.s.hero.gear.hands[0]?.group).toBe('pistol');
   run.sim.s.run.energy = 150; run.sim.s.outcome = 'dead'; run.checkpoint();

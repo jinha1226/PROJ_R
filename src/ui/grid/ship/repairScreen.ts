@@ -8,7 +8,7 @@ export interface RepairApi { meta(): MetaState; repair(id: SystemId): void; clos
 const TOOL_NAME = { cutter: '절단기', grapple: '갈고리', scanner: '스캐너' } as const;
 /** what each repair opens, in a few words */
 const OPENS: Record<SystemId, string[]> = {
-  workbench: ['개조', '원소탄'], suitlab: ['각인 해금', '시작 각인 칸'], nav: ['지름길'],
+  workbench: ['개조', '원소탄'], suitlab: ['각인 해금', '시작 각인 칸'], nav: ['포탈 출발'],
   lifeSupport: ['클론 수용'], pod: ['특기 클론'], core: ['출발'],
 };
 /** where each system sits on the hull drawing (x, y of its room) */

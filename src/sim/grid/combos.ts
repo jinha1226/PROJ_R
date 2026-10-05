@@ -116,7 +116,7 @@ export function swapCombo(s: GridState, t: number, hooks: ShotHooks): number {
     meleeAttack(s, t, { x: f.pos.x - h.pos.x, y: f.pos.y - h.pos.y }, f, hooks);
     return swapTime;
   }
-  const f = s.foes.filter((x) => x.alive && s.visible.has(idx(s.map, x.pos)) && dist(h.pos, x.pos) <= weaponRange(w) && shotClear(s, h.pos, x.pos))
+  const f = s.foes.filter((x) => x.alive && s.visible.has(idx(s.map, x.pos)) && dist(h.pos, x.pos) <= weaponRange(w, h) && shotClear(s, h.pos, x.pos))
     .sort((x, y) => want(x) - want(y) || dist(h.pos, x.pos) - dist(h.pos, y.pos))[0];
   if (!f || !canFire(s)) return cost;
   fire(s, t, 'swapstrike');
