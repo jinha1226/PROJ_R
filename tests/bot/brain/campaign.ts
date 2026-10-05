@@ -1,11 +1,11 @@
 import { ENGRAVES, type EngraveId } from '../../../src/sim/grid/engraveCore';
-import type { Family } from '../../../src/sim/grid/engraveDefs';
 import { GridSim } from '../../../src/sim/grid/gridSim';
 import { buy, engraveShop, freshMeta, settleRun, SHOP, type MetaState } from '../../../src/sim/grid/meta';
-import { canCraft, craft, fit, MODS, type ModDef } from '../../../src/sim/grid/mods';
+import { canCraft, craft, fit, MODS } from '../../../src/sim/grid/mods';
 import { canRepair, repair, type SystemId } from '../../../src/sim/grid/repairs';
 import type { GridState } from '../../../src/sim/grid/types';
 import { runBot, type BotResult } from '../runBot';
+import { scoreMod } from './stones';
 import { archetype, scoreCard } from './build';
 
 export interface CampaignRun extends BotResult {
@@ -17,21 +17,15 @@ const REPAIRS: SystemId[] = ['workbench', 'suitlab', 'nav', 'lifeSupport', 'pod'
 const SHOP_VALUE: Record<string, number> = {
   'round:fire': 16, 'round:shock': 15, suitSlots3: 14, suitSlots4: 13, chargePlus1: 12, chargePlus2: 11,
 };
-const modValue = (m: ModDef, family: Family): number => {
-  const v = m.stats;
-  return (v.maxHp ?? 0) + (v.shield ?? 0) * 2 + (v.evasion ?? 0) * 20
-    + (family === 'melee' ? (v.meleeDmg ?? 0) * 4
-      : (v.gunDmg ?? 0) * 4 + (v.hit ?? 0) * 30 + (v.maxCharge ?? 0) + -(v.swap ?? 0) * 8);
-};
 /** Only meta is edited here. Scoring contexts are detached read-only projections of the last run. */
 export function spendMeta(meta: MetaState, state: GridState): void {
   for (const id of REPAIRS) if (canRepair(meta, id)) repair(meta, id);
   const family = archetype(state);
-  for (const mod of [...MODS].sort((a, b) => modValue(b, family) - modValue(a, family))) {
+  for (const mod of [...MODS].sort((a, b) => scoreMod(b, family) - scoreMod(a, family))) {
     const old = MODS.find(m => m.id === meta.mods.fitted[mod.slot]);
-    if (modValue(mod, family) <= (old ? modValue(old, family) : 0)) continue;
+    if (scoreMod(mod, family) <= (old ? scoreMod(old, family) : 0)) continue;
     if (canCraft(meta, mod.id)) craft(meta, mod.id);
-    if (meta.mods.owned.includes(mod.id)) fit(meta, mod.slot, mod.id);
+    if (meta.mods.owned.includes(mod.id) || mod.slot === 'heart' && meta.mods.unlocked.includes(mod.id)) fit(meta, mod.slot, mod.id);
   }
   for (;;) {
     const context = { ...state, hero: { ...state.hero, suit: [], rounds: meta.rounds.slice(0, 2) } };
@@ -57,13 +51,13 @@ export function startSuit(meta: MetaState, state: GridState): EngraveId[] {
   }
   return suit;
 }
-export function runCampaign(seed: number, runs = 30): CampaignResult {
+export function runCampaign(seed: number, runs = 30, options: { startDeep?: boolean } = {}): CampaignResult {
   let meta = freshMeta();
   let context = GridSim.createRun(seed, meta, { gun: 'pistol', start: 1, startSuit: [] }).s;
   const results: CampaignRun[] = [];
   for (let i = 0; i < runs; i++) {
     const metaStart = structuredClone(meta), suit = startSuit(meta, context);
-    const result = runBot(seed + i * 7, { god: false, policy: 'smart', meta, startSuit: suit,
+    const result = runBot(seed + i * 7, { god: false, policy: 'smart', meta, campaign: true, startDeep: options.startDeep, startSuit: suit,
       round: meta.rounds[0], onFinish: s => { context = s; } });
     meta = settleRun(meta, context);
     const metaSettled = structuredClone(meta);

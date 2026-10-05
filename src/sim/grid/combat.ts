@@ -1,3 +1,4 @@
+import { reactivePush, rescueHero } from './perks';
 import { absorbShield } from './shield';
 import { emit } from './kataBus';
 import { losClear } from './fov';
@@ -60,11 +61,13 @@ export function strike(s: GridState, t: number, src: Ent, dst: Ent, chance: numb
   // small engraving boosts (a mark, last stand) are not crits; sneak attacks and finishers are
   if (roll === dmg[1] || mult >= 1.5) ev.crit = true;
   s.events.push(ev);
+  rescueHero(s, t, dst);
   if (dst.hp <= 0) {
     dst.hp = 0;
     dst.alive = false;
     s.events.push({ t, type: 'die', src: src.id, dst: dst.id, to: { ...dst.pos } });
   }
+  if (dst === s.hero && kind === 'melee') reactivePush(s, t, src);
   if (dst === s.hero && amount > 0) emit(s, 'hurt', { t, src: src.id, foe: s.foes.find(f => f.id === src.id) });
   return true;
 }

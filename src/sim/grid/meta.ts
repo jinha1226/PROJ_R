@@ -1,3 +1,4 @@
+import { stoneMod } from './stones';
 import { emptyMaterials, MATERIALS, type Materials } from './materials';
 import type { SystemId, ToolId } from './repairs';
 import type { ModSlot } from './mods';
@@ -8,28 +9,29 @@ import type { FoeKind, GridState } from './types';
 
 export type FacilityId = 'armory' | 'suitlab' | 'nav';
 export interface MetaState {
+  portals: number[];
   materials: Materials;
   repairs: SystemId[];
   tools: ToolId[];
   coreSecured: boolean;
   departed: boolean;
-  mods: { owned: string[]; fitted: Partial<Record<ModSlot, string>> };
+  mods: { unlocked: string[]; owned: string[]; fitted: Partial<Record<ModSlot, string>> };
   energy: number;
   rounds: Element[];
-  facilities: { suitSlots: 2 | 3 | 4; chargePlus: 0 | 1 | 2; navCrypt: boolean; navRuins: boolean };
+  facilities: { suitSlots: 2 | 3 | 4; chargePlus: 0 | 1 | 2 };
   unlocked: EngraveId[];
   tasted: EngraveId[];
   records: EngraveId[];
   startCandidates: EngraveId[];
-  suit?: { materials?: Materials; floor: number; ids: EngraveId[]; killer: { kind: string; elite?: boolean } };
+  suit?: { stones?: string[]; materials?: Materials; floor: number; ids: EngraveId[]; killer: { kind: string; elite?: boolean } };
   bossesKilled: number[];
   best: number;
   wins: number;
 }
 export function freshMeta(): MetaState {
   return {
-    materials: emptyMaterials(), repairs: [], tools: [], coreSecured: false, departed: false, mods: { owned: [], fitted: {} },
-    energy: 0, rounds: [], facilities: { suitSlots: 2, chargePlus: 0, navCrypt: false, navRuins: false },
+    materials: emptyMaterials(), repairs: [], tools: [], coreSecured: false, departed: false, mods: { unlocked: [], owned: [], fitted: {} },
+    portals: [], energy: 0, rounds: [], facilities: { suitSlots: 2, chargePlus: 0 },
     unlocked: ['gunRelay', 'spinShot'], tasted: [],
     records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0,
   };
@@ -41,8 +43,6 @@ export const SHOP: { id: string; name: string; cost: number; can(m: MetaState): 
   { id: 'suitSlots4', name: '시작 각인 칸 4', cost: 250, can: m => m.repairs.includes('suitlab') && m.facilities.suitSlots === 3, apply: m => { m.facilities.suitSlots = 4; } },
   { id: 'chargePlus1', name: '충전 최대치 +2', cost: 60, can: m => m.repairs.includes('suitlab') && m.facilities.chargePlus === 0, apply: m => { m.facilities.chargePlus = 1; } },
   { id: 'chargePlus2', name: '충전 최대치 +4', cost: 140, can: m => m.repairs.includes('suitlab') && m.facilities.chargePlus === 1, apply: m => { m.facilities.chargePlus = 2; } },
-  { id: 'navCrypt', name: '지하 묘지 지름길', cost: 150, can: m => m.repairs.includes('nav') && !m.facilities.navCrypt && m.bossesKilled.includes(5), apply: m => { m.facilities.navCrypt = true; } },
-  { id: 'navRuins', name: '고대 유적 지름길', cost: 300, can: m => m.repairs.includes('nav') && !m.facilities.navRuins && m.bossesKilled.includes(10), apply: m => { m.facilities.navRuins = true; } },
 ];
 export function engraveShop(m: MetaState): { id: string; name: string; cost: number }[] {
   return BASE_IDS.filter(id => !m.unlocked.includes(id)).map(id => ({
@@ -83,6 +83,10 @@ export function settleRun(meta: MetaState, s: GridState): MetaState {
   m.tasted = [...new Set([...m.tasted, ...(s.run.tasted ?? []), ...(s.run.recovered ?? [])])]
     .filter(id => BASE_IDS.includes(id) && !m.unlocked.includes(id));
   m.coreSecured ||= s.outcome === 'won';
+  if (s.outcome === 'won' || s.outcome === 'returned') {
+    m.mods.unlocked = [...new Set([...(m.mods.unlocked ?? []), ...(s.run.stones ?? []).flatMap(id => { const mod = stoneMod(id); return mod ? [mod.id] : []; })])];
+  }
+  if (s.run.portal === 5 || s.run.portal === 10) m.portals = [...new Set([...(m.portals ?? []), s.run.portal])];
   const lost = emptyMaterials();
   for (const mat of MATERIALS) {
     const total = s.run.materials[mat];
@@ -94,9 +98,10 @@ export function settleRun(meta: MetaState, s: GridState): MetaState {
     m.energy += 10 * s.run.recovered.length;
     delete m.suit;
   }
-  // an empty-handed death (say after a shortcut start) leaves the older suit where it lies
-  if (s.outcome === 'dead' && (s.hero.suit.length || MATERIALS.some(mat => lost[mat] > 0))) {
-    m.suit = { materials: lost, floor: s.run.floor, ids: [...s.hero.suit], killer: { ...(s.run.killedBy ?? { kind: 'self' }) } };
+  // An empty-handed death preserves old non-stone contents, but older stones are lost.
+  if (s.outcome === 'dead' && m.suit?.stones) delete m.suit.stones;
+  if (s.outcome === 'dead' && ((s.run.stones ?? []).length || s.hero.suit.length || MATERIALS.some(mat => lost[mat] > 0))) {
+    m.suit = { stones: [...(s.run.stones ?? [])], materials: lost, floor: s.run.floor, ids: [...s.hero.suit], killer: { ...(s.run.killedBy ?? { kind: 'self' }) } };
   }
   return m;
 }

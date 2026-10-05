@@ -30,7 +30,7 @@ export function stepToward(s: GridState, to: Cell): Cell | null {
 }
 export const shotTargets = (s: GridState, from = s.hero.pos) => {
   const w = pistol(s);
-  return w ? visibleFoes(s).filter(f => dist(from, f.pos) <= weaponRange(w) && shotClear(s, from, f.pos)) : [];
+  return w ? visibleFoes(s).filter(f => dist(from, f.pos) <= weaponRange(w, s.hero) && shotClear(s, from, f.pos)) : [];
 };
 export const safeSteps = (s: GridState) => {
   const danger = dangerCells(s);

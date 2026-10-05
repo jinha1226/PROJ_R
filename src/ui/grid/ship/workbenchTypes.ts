@@ -3,7 +3,7 @@
  * Task 5) produces exactly this; until it lands the screen runs on `workbenchMock.ts`.
  */
 export type Material = 'scrap' | 'soul' | 'relic' | 'remains';
-export type ModSlot = 'barrel' | 'mag' | 'sight' | 'grip' | 'chest' | 'arms' | 'legs' | 'back';
+export type ModSlot = 'barrel' | 'mag' | 'sight' | 'grip' | 'chest' | 'arms' | 'legs' | 'back' | 'heart';
 export type ModStat = 'gunDmg' | 'hit' | 'maxCharge' | 'noise' | 'swap' | 'maxHp' | 'evasion' | 'shield' | 'meleeDmg' | 'move';
 export interface ModDef { id: string; slot: ModSlot; name: string; stats: Partial<Record<ModStat, number>>; cost: Partial<Record<Material, number>> }
 export interface WorkbenchSlot { slot: ModSlot; part: 'pistol' | 'suit'; label: string; fitted: ModDef | null }

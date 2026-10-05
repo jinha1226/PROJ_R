@@ -1,3 +1,5 @@
+import { PERK_BALANCE } from './perks';
+import { hasPerk } from './mods';
 import { fire, has, type EngraveId } from './engraveCore';
 import type { Element } from './items';
 import { applyElement } from './status';
@@ -33,15 +35,15 @@ export function roundMult(s: GridState, t: number, round: ReturnType<typeof take
   return s.hero.rounds.length === 2 && round.element && round.previous && round.element !== round.previous
     && has(s, 'alternate') && fire(s, t, 'alternate') ? 1.5 : 1;
 }
-export function inflictRound(s: GridState, t: number, foe: Ent, el: Element, engraving = false): void {
+export function inflictRound(s: GridState, t: number, foe: Ent, el: Element, engraving = false, shot = false): void {
   if (!foe.alive) return;
   // Radius zero preserves the existing entity reactions without laying fire under the victim.
-  applyElement(s, t, el, foe.pos, 0, el === 'shock' ? [1, 2] : null, s.hero.id, undefined, s.hero.id, engraving);
+  applyElement(s, t, el, foe.pos, 0, el === 'shock' ? [1, 2] : null, s.hero.id, undefined, s.hero.id, engraving, Number(shot && hasPerk(s.hero, 'elemChamber')) * PERK_BALANCE.statusStrength);
 }
 export function roundHit(s: GridState, t: number, foe: Ent, round: ReturnType<typeof takeRound>, engraving = false): void {
   if (!round.element || !foe.alive) return;
-  inflictRound(s, t, foe, round.element, engraving);
-  if (round.third && foe.alive && has(s, 'echo') && fire(s, t, 'echo')) inflictRound(s, t, foe, round.element, true);
+  inflictRound(s, t, foe, round.element, engraving, true);
+  if (round.third && foe.alive && has(s, 'echo') && fire(s, t, 'echo')) inflictRound(s, t, foe, round.element, true, true);
 }
 export function bladeRound(s: GridState, t: number, foe: Ent): void {
   const el = loadedRound(s.hero);

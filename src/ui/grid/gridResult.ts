@@ -8,6 +8,7 @@ import type { Screen } from '../../app/router';
 export interface GridResultData {
   energy?: number;
   won: boolean;
+  returned?: boolean;
   killedBy?: RunState['killedBy'];
   suit?: EngraveId[];
   floor: number;
@@ -27,12 +28,12 @@ export class GridResult implements Screen {
   constructor(private readonly d: GridResultData) {}
 
   mount(root: HTMLElement): void {
-    const d = this.d;
+    const d = this.d, safe = d.won || d.returned;
     this.el.className = 'screen grid-result';
     this.el.dataset.testid = 'grid-result';
     this.el.innerHTML = `<div class="panel">
-      <h2 class="${d.won ? 'ok' : 'lost'}">${d.won ? '에너지원을 손에 넣었다' : '쓰러졌다'}</h2>
-      ${d.won ? '' : `<p>${deathLine(d.killedBy, d.floor)}</p>`}
+      <h2 class="${safe ? 'ok' : 'lost'}">${d.returned ? '귀환' : d.won ? '에너지원을 손에 넣었다' : '쓰러졌다'}</h2>
+      ${safe ? '' : `<p>${deathLine(d.killedBy, d.floor)}</p>`}
       <p>${d.floor}층 · ${zoneOf(d.floor).name}</p>
       <div class="gres-engravings">${(d.suit ?? []).map((id) => `<span>${ENGRAVES[id].name}</span>`).join('')}</div>
       <ul class="gres-stats">

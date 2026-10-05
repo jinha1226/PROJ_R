@@ -7,7 +7,7 @@ import { scatterLoot } from '../../../src/sim/grid/consumables';
 
 it.each([1, 6, 11] as const)('starts floor %i with the chosen gun and agent knife', start => {
   for (const gun of ['pistol'] as const) {
-    const s = newRunState(7, freshMeta(), { gun, start, startSuit: [] });
+    const s = newRunState(7, { ...freshMeta(), portals: [5, 10], repairs: ['nav'] }, { gun, start, startSuit: [] });
     expect(s.hero.gear.active).toBe(0);
     expect(s.hero.gear.hands[0]).toMatchObject({ group: gun, tier: 1 });
     expect(s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', tier: 1, name: '요원 칼' });

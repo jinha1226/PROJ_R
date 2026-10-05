@@ -97,6 +97,9 @@ export interface HeroFx {
   rapid: { target?: string; n: number };
   /** Last integer simulation turn healed by poison ticks; absent in old saves. */
   poisonSiphonTurn?: number;
+  taps?: number;
+  whirlActions?: number;
+  undyingUsed?: boolean;
   shots: number;
   roundShots: number;
   lastEl?: Element;

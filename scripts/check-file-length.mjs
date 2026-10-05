@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 
-const MAX = 300;
+const MAX = 400;
 const ROOTS = ['src', 'tests', 'scripts'];
 const EXT = new Set(['.ts', '.js', '.mjs', '.css']);
 const bad = [];

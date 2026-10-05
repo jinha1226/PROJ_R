@@ -1,3 +1,5 @@
+import { allowedStart } from '../../src/sim/grid/runSetup';
+import { pickStone } from './brain/stones';
 import { smartDecide, createMemory } from './brain/policy';
 import type { EngraveId } from '../../src/sim/grid/engraveCore';
 import type { Round } from '../../src/sim/grid/rounds';
@@ -10,7 +12,7 @@ import { exploreTarget } from '../../src/sim/grid/explore';
 import { findPath } from '../../src/sim/grid/path';
 import { canStep, idx, tileAt, type Cell, type GridState } from '../../src/sim/grid/types';
 
-export interface BotResult { seed: number; floor: number; outcome: string; actions: number; killedBy?: string; stuck?: string; level: number; kills: number; floorActions: number[]; floorDmg: number[]; floorHp: number[]; potions: number; scrolls: number; belt: number; build: string[] }
+export interface BotResult { stonesFound: string[]; stonesSocketed: string[]; stonesBanked: string[]; portalsOpened: number[]; safeEnd: boolean; seed: number; floor: number; outcome: string; actions: number; killedBy?: string; stuck?: string; level: number; kills: number; floorActions: number[]; floorDmg: number[]; floorHp: number[]; potions: number; scrolls: number; belt: number; build: string[] }
 
 const stepTo = (s: GridState, to: Cell): Cell | null => {
   const p = findPath(s.map, s.hero.pos, to, (c) => walkBlocked(s, c));
@@ -18,10 +20,11 @@ const stepTo = (s: GridState, to: Cell): Cell | null => {
 };
 
 /** One action by a plain policy: picks first, shoot what can be shot, walk to the core / stairs, explore, then hunt. */
-export function naiveDecide(sim: GridSim): Parameters<GridSim['act']>[0] {
+export function naiveDecide(sim: GridSim, campaign?: MetaState): Parameters<GridSim['act']>[0] {
   const s = sim.s;
   if (s.upgrades.length) return { kind: 'upgrade', i: 0 };
   if (s.offers.length) return { kind: 'choose', i: 0 };
+  if (s.stonePrompt) return pickStone(s, campaign);
   const h = s.hero;
   const w = activeWeapon(h.gear);
   const loaded = !!w && h.charge >= gunCost(s, w);
@@ -60,7 +63,7 @@ export let trapWalks = 0;
 
 export interface BotOptions {
   god: boolean; policy: 'naive' | 'smart'; meta?: MetaState; startSuit?: EngraveId[]; round?: Round;
-  maxActions?: number; onFinish?: (s: GridState) => void;
+  campaign?: boolean; startDeep?: boolean; maxActions?: number; onFinish?: (s: GridState) => void;
 }
 export function runBot(seed: number, options: BotOptions | boolean, maxActions = 40000, onStuck?: (s: GridState) => void): BotResult {
   // Preserve the diagnostic runner's old boolean API as the naive baseline.
@@ -68,10 +71,14 @@ export function runBot(seed: number, options: BotOptions | boolean, maxActions =
   const { god } = opts;
   maxActions = opts.maxActions ?? maxActions;
   const mem = createMemory();
-  const decide = (sim: GridSim) => opts.policy === 'smart' ? smartDecide(sim, mem) : naiveDecide(sim);
-  const sim = GridSim.createRun(seed, opts.meta ?? freshMeta(), { gun: 'pistol', start: 1, startSuit: opts.startSuit ?? [], round: opts.round });
+  const meta = opts.meta ?? freshMeta();
+  const campaign = opts.campaign ? meta : undefined;
+  const decide = (sim: GridSim) => opts.policy === 'smart' ? smartDecide(sim, mem, campaign) : naiveDecide(sim, campaign);
+  const start = opts.startDeep ? allowedStart(meta, 11) === 11 ? 11 : allowedStart(meta, 6) : 1;
+  const sim = GridSim.createRun(seed, meta, { gun: 'pistol', start, startSuit: opts.startSuit ?? [], round: opts.round });
   const s = sim.s;
   const floorActions: number[] = [];
+  const stonesFound: string[] = [], stonesSocketed: string[] = [], portalsOpened: number[] = [];
   let n = 0, onFloor = 0, floor = s.run.floor, blocked = 0;
   let stuck: string | undefined;
   const floorDmg: number[] = [0], floorHp: number[] = [s.hero.maxHp];
@@ -80,6 +87,9 @@ export function runBot(seed: number, options: BotOptions | boolean, maxActions =
     const a = decide(sim);
     const upgrade = a.kind === 'upgrade' && a.i !== null ? s.upgrades[0]?.[a.i] : undefined;
     const ev = sim.act(a);
+    stonesFound.push(...ev.filter(e => e.type === 'stone' && e.text).map(e => e.text!));
+    if (a.kind === 'socket' && a.stone && ev.some(e => e.type === 'buff' && e.text === a.stone)) stonesSocketed.push(a.stone);
+    portalsOpened.push(...ev.filter(e => e.type === 'portal').map(e => Number(e.text)));
     if (ev.some(e => e.type === 'drink' || e.type === 'use' && e.text?.startsWith('potion:'))) mem.potions++;
     if (ev.some(e => e.type === 'read')) {
       mem.scrolls++;
@@ -111,6 +121,7 @@ export function runBot(seed: number, options: BotOptions | boolean, maxActions =
   }
   floorActions.push(onFloor);
   opts.onFinish?.(s);
-  return { seed, floor: s.run.floor, outcome: s.outcome ?? (stuck ? 'stuck' : 'timeout'), actions: n, killedBy: s.run.killedBy?.kind, stuck, level: s.hero.level, kills: s.run.kills, floorActions, floorDmg, floorHp, potions: mem.potions, scrolls: mem.scrolls, belt: mem.belt,
+  const safeEnd = s.outcome === 'won' || s.outcome === 'returned';
+  return { stonesFound, stonesSocketed, stonesBanked: safeEnd ? [...s.run.stones] : [], portalsOpened, safeEnd, seed, floor: s.run.floor, outcome: s.outcome ?? (stuck ? 'stuck' : 'timeout'), actions: n, killedBy: s.run.killedBy?.kind, stuck, level: s.hero.level, kills: s.run.kills, floorActions, floorDmg, floorHp, potions: mem.potions, scrolls: mem.scrolls, belt: mem.belt,
     build: [...s.hero.suit, ...s.hero.rounds.map(r => `round:${r}`), ...mem.upgrades.map(u => `upgrade:${u}`)] };
 }

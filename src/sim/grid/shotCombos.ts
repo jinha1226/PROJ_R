@@ -33,10 +33,10 @@ export function rapidStep(s: GridState, t: number, foe: Ent): { mult: number; ti
 export function afterShot(s: GridState, t: number, foe: Ent, hit: boolean, dmg: readonly [number, number], chanceAt: (from: Cell, to: Cell) => number, range: number): void {
   const h = s.hero;
   const fx = h.fx;
-  const cost = gunCost(s, activeWeapon(h.gear)!);
-  const powered = () => h.alive && h.charge >= cost;
+  const powered = () => h.alive && h.charge >= gunCost(s, activeWeapon(h.gear)!);
   const extra = (f: Ent, from: Cell, text: string, mult = 1) => {
-    h.charge -= cost;
+    const cost = gunCost(s, activeWeapon(h.gear)!);
+    h.charge -= cost; h.fx.taps = (h.fx.taps ?? 0) + 1;
     const round = takeRound(s);
     s.events.push({ t, type: 'shoot', group: 'pistol', src: h.id, dst: f.id, from: { ...from }, to: { ...f.pos }, text });
     f.awake = true;

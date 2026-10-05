@@ -1,3 +1,5 @@
+import type { MetaState } from '../../../src/sim/grid/meta';
+import { pickStone } from './stones';
 import { pickOffer, pickUpgrade } from './build';
 import { emergency, fightUtility, utility } from './items';
 import { findPath } from '../../../src/sim/grid/path';
@@ -11,10 +13,11 @@ import { canRegenerate } from '../../../src/sim/grid/regen';
 
 export interface BotMemory { potions: number; scrolls: number; belt: number; upgrades: string[]; notes: string[]; bosses: string[]; chargeWaits: number; retreats: number; mappedFloors: number[]; lootGoal?: { floor: number; pos: Cell }; pursuit?: { floor: number; id: string; pos: Cell }; routeKey?: string; route: number[]; detour?: { floor: number; pos: Cell; steps: number } }
 export const createMemory = (): BotMemory => ({ potions: 0, scrolls: 0, belt: 0, upgrades: [], notes: [], bosses: [], chargeWaits: 0, retreats: 0, mappedFloors: [], route: [] });
-function decide(sim: GridSim, mem: BotMemory): GAction {
+function decide(sim: GridSim, mem: BotMemory, campaign?: MetaState): GAction {
   const s = sim.s, h = s.hero;
   if (s.upgrades.length) return pickUpgrade(s);
   if (s.offers.length) return pickOffer(s);
+  if (s.stonePrompt) return pickStone(s, campaign);
   if (h.hp > h.maxHp * 0.5) mem.retreats = 0;
   const urgent = emergency(s, mem); if (urgent) return urgent;
   const escape = dodge(s); if (escape) return escape;
@@ -24,7 +27,7 @@ function decide(sim: GridSim, mem: BotMemory): GAction {
   if (!awakeThreats(s).length && h.hp < h.maxHp * 0.85 && canRegenerate(s)
     && !(nearWave && h.hp >= h.maxHp * 0.6)) return { kind: 'wait' };
   const core = s.floorItems.find(f => f.item.kind === 'core');
-  const lootable = [...s.floorItems.filter(f => ['potion', 'scroll', 'material', 'suit'].includes(f.item.kind)),
+  const lootable = [...s.floorItems.filter(f => ['potion', 'scroll', 'material', 'suit', 'stone'].includes(f.item.kind)),
     ...s.chests.filter(c => !c.opened)];
   if (mem.lootGoal && (mem.lootGoal.floor !== s.run.floor || !lootable.some(f => same(f.pos, mem.lootGoal!.pos)))) delete mem.lootGoal;
   if (!awakeThreats(s).length && !mem.lootGoal) {
@@ -70,6 +73,6 @@ function recoverRoute(s: GridState, mem: BotMemory, action: GAction): GAction {
   }
   return action;
 }
-export function smartDecide(sim: GridSim, mem: BotMemory): GAction {
-  return recoverRoute(sim.s, mem, decide(sim, mem));
+export function smartDecide(sim: GridSim, mem: BotMemory, campaign?: MetaState): GAction {
+  return recoverRoute(sim.s, mem, decide(sim, mem, campaign));
 }

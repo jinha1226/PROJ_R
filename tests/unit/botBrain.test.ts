@@ -1,3 +1,6 @@
+import { freshMeta } from '../../src/sim/grid/meta';
+import { spendMeta } from '../bot/brain/campaign';
+import { runBot } from '../bot/runBot';
 import { runCampaign } from '../bot/brain/campaign';
 import { pickOffer, scoreCard } from "../bot/brain/build";
 import { describe, expect, it } from 'vitest';
@@ -217,4 +220,47 @@ it('breaks movement cycles by committing to a reachable exit', () => {
   }
   sim.s.hero.pos = { x: 7, y: 7 };
   expect(smartDecide(sim, mem)).toMatchObject({ kind: 'move', dir: { x: 1, y: 0 } });
+});
+
+describe('bot stones and portals', () => {
+  it('answers a stone prompt before combat, after upgrades and offers, without changing state', () => {
+    const sim = arena(), s = sim.s; foe(sim, 8, 7); s.run.stones = ['soulCell']; s.stonePrompt = 'soulCell';
+    s.hero.baseMods = { mag: 'extMag' };
+    const before = JSON.stringify(s);
+    expect(smartDecide(sim, createMemory())).toEqual({ kind: 'socket', stone: 'soulCell' }); expect(JSON.stringify(s)).toBe(before);
+    s.upgrades = [['hp']]; expect(smartDecide(sim, createMemory()).kind).toBe('upgrade'); s.upgrades = [];
+    s.offers = [['flow']]; expect(smartDecide(sim, createMemory()).kind).toBe('choose');
+  });
+  it('keeps a weaker stone and compares against the current socket', () => {
+    const sim = arena(), s = sim.s; s.run.stones = ['elemChamber', 'soulCell']; s.stonePrompt = 'elemChamber';
+    s.hero.sockets = { mag: 'soulCell' }; s.hero.baseMods = { mag: 'extMag' };
+    expect(smartDecide(sim, createMemory())).toEqual({ kind: 'socket', stone: null });
+  });
+  it('opens missing campaign portals, but sockets guardians in single runs and after unlocking', () => {
+    const sim = arena(), s = sim.s, m = freshMeta(); s.run.stones = ['guardian5']; s.stonePrompt = 'guardian5';
+    expect(smartDecide(sim, createMemory(), m)).toEqual({ kind: 'portal', stone: 'guardian5' });
+    expect(smartDecide(sim, createMemory())).toEqual({ kind: 'socket', stone: 'guardian5' });
+    m.portals = [5]; expect(smartDecide(sim, createMemory(), m)).toEqual({ kind: 'socket', stone: 'guardian5' });
+    s.hero.sockets = { heart: 'guardian5' }; expect(smartDecide(sim, createMemory(), m)).toEqual({ kind: 'socket', stone: null });
+  });
+  it('loots a nearby stone before descending', () => {
+    const sim = arena(); sim.s.map.stairs = { x: 8, y: 7 };
+    sim.s.floorItems.push({ pos: { x: 6, y: 7 }, item: { kind: 'stone', id: 'soulCell', name: '영혼 전지 마석' } });
+    expect(smartDecide(sim, createMemory())).toMatchObject({ kind: 'move', dir: { x: -1, y: 0 } });
+  });
+  it('crafts and fits unlocked stone mods and equips an unlocked heart for campaigns', () => {
+    const m = freshMeta(); m.materials = { scrap: 100, soul: 100, relic: 100, remains: 100 };
+    m.mods.unlocked = ['soulCell', 'undyingHeart']; spendMeta(m, arena().s);
+    expect(m.mods.fitted.mag).toBe('soulCell'); expect(m.mods.fitted.heart).toBe('undyingHeart'); expect(m.mods.owned).toContain('soulCell');
+  });
+  it('defaults to floor one and starts at the deepest authorized portal only when requested', () => {
+    const m = freshMeta(); m.portals = [5, 10]; m.repairs = ['nav'];
+    const base = { god: false, policy: 'smart' as const, meta: m, maxActions: 0 };
+    expect(runBot(3, base).floor).toBe(1); expect(runBot(3, { ...base, startDeep: true }).floor).toBe(11);
+    m.repairs = []; expect(runBot(3, { ...base, startDeep: true }).floor).toBe(1);
+  });
+});
+it('reports stone inventories, portals and safe endings per run', () => {
+  const r = runBot(3, { god: false, policy: 'smart', maxActions: 0 });
+  expect(r).toMatchObject({ stonesFound: [], stonesSocketed: [], stonesBanked: [], portalsOpened: [], safeEnd: false });
 });

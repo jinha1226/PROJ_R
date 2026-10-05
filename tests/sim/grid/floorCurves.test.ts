@@ -10,5 +10,6 @@ it.each([[1, 4, 2], [5, 6, 2], [6, 6, 3], [10, 8, 3], [11, 9, 4], [15, 9, 4]])('
   s.map.rooms = [{ x: 1, y: 1, w: 2, h: 2 }, { x: 5, y: 5, w: 7, h: 7 }];
   expect.soft(placeTraps(s.map, new Set(), createRng(3), floor)).toHaveLength(traps);
   expect(scatterLoot(s).filter(f => f.item.kind !== 'material')).toHaveLength(loot);
-  expect(scatterLoot(s)).toEqual(scatterLoot(s));
+  const rng = s.rng.getState(), first = scatterLoot(s);
+  s.rng = createRng(rng); expect(scatterLoot(s)).toEqual(first);
 });

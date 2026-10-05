@@ -1,6 +1,6 @@
 import type { Materials } from './materials';
 import type { ToolId } from './repairs';
-import type { ModStat } from './mods';
+import type { ModStat, PerkId, ModSlot } from './mods';
 import type { ToolSpot } from './toolSpots';
 import type { OfferCard } from './rounds';
 import type { StationId } from './ship';
@@ -8,7 +8,7 @@ import type { MetaState } from './meta';
 import type { UpgradeId } from './upgrades';
 import type { Rng } from '../../core/rng';
 import type { Gear } from './gear';
-import type { WeaponGroup, BeltItem, Consumable, Core, MaterialItem, Equipment, LostSuit } from './items';
+import type { WeaponGroup, BeltItem, Consumable, Core, MaterialItem, Equipment, LostSuit, StoneItem } from './items';
 import type { Lore, PotionKind, ScrollKind } from './lore';
 import type { EngraveId, HeroFx } from './engraveCore';
 
@@ -65,11 +65,15 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { elite?: boolean; id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
+export interface Ent { elite?: boolean; id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; statusSource?: Partial<Record<'burn' | 'poison', string>>; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
-export interface TileFx { pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
+export interface TileFx { src?: string; pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }
 export interface Hero extends Ent {
+  perks?: PerkId[];
+  sockets?: Partial<Record<ModSlot, string>>;
+  baseMods?: Partial<Record<ModSlot, string>>;
+  legacyMods?: Partial<Record<ModSlot, Partial<Record<ModStat, number>>>>;
   modStats?: Partial<Record<ModStat, number>>;
   shield?: number;
   rounds: import('./items').Element[];
@@ -79,6 +83,7 @@ export interface Hero extends Ent {
   charge: number;
   maxCharge: number;
   regenClock?: number;
+  regenCombat?: number;
   kind: 'hero';
   level: number;
   xp: number;
@@ -94,6 +99,7 @@ export interface Hero extends Ent {
 }
 export interface ChestState { pos: Cell; opened: boolean }
 export interface GridState {
+  stonePrompt?: string;
   mode?: 'ship';
   seed: number;
   time: number;
@@ -106,7 +112,7 @@ export interface GridState {
   visible: Set<number>;
   rng: Rng;
   events: GEvent[];
-  outcome?: 'won' | 'dead';
+  outcome?: 'won' | 'dead' | 'returned';
   /** indices into map.exits that have closed */
   closedExits: number[];
   /** danger steps already fired (0 none, 1 alarm, 2 reinforcements) */
@@ -132,15 +138,18 @@ export interface GridState {
 }
 /** A marked area that goes off on its caster's turn at or after `at` (a mage's spell, the champion's whirl). */
 export interface Telegraph { cells: Cell[]; center: Cell; src: string; kind: 'spell' | 'whirl'; el?: 'fire' | 'frost'; dmg: [number, number]; at: number }
-export interface RunState { materials: Materials; stock: Materials; tools: ToolId[]; unlocked?: EngraveId[]; tasted?: EngraveId[]; leftSuit?: MetaState['suit']; suitPlaced?: boolean; recovered?: EngraveId[]; energy: number; bossesKilled: number[]; killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
-export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | MaterialItem | LostSuit }
+export interface RunState { portal?: 5 | 10; stones: string[]; modsUnlocked: string[]; materials: Materials; stock: Materials; tools: ToolId[]; unlocked?: EngraveId[]; tasted?: EngraveId[]; leftSuit?: MetaState['suit']; suitPlaced?: boolean; recovered?: EngraveId[]; energy: number; bossesKilled: number[]; killedBy?: { kind: string; elite?: boolean }; floor: number; kills: number; won: boolean; floorStart: number; waves: number }
+export interface FloorItem { pos: Cell; item: Equipment | Consumable | Core | MaterialItem | LostSuit | StoneItem }
 export type GAction =
+  | { kind: 'portal'; stone: string }
+  | { kind: 'socket'; stone: string | null }
   | { kind: 'move'; dir: Cell; plain?: boolean } | { kind: 'shoot'; target?: string; at?: Cell } | { kind: 'wait' }
   | { kind: 'swap' } | { kind: 'equip'; bag: number } | { kind: 'wear'; bag: number } | { kind: 'drop'; bag: number }
   | { kind: 'use'; item: BeltItem; at?: Cell } | { kind: 'choose'; i: number | null; slot?: number } | { kind: 'search' }
   | { kind: 'upgrade'; i: number | null }
   | { kind: 'drink'; p: PotionKind } | { kind: 'read'; sc: ScrollKind } | { kind: 'throwPotion'; p: PotionKind; at: Cell };
 export type GEventType =
+  | 'stone' | 'stoneBreak' | 'portal'
   | 'chain' | 'move' | 'bump' | 'shoot' | 'hit' | 'miss' | 'die' | 'door' | 'open' | 'loot' | 'reload' | 'heal' | 'wait' | 'wake' | 'blocked'
   | 'alarm' | 'reinforce' | 'exitClosed' | 'extracting' | 'extracted' | 'dead'
   | 'shield' | 'swap' | 'equip' | 'wear' | 'drop' | 'pickup' | 'full' | 'stun' | 'push' | 'use' | 'explode' | 'frozen' | 'status'

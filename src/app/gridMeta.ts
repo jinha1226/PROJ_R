@@ -16,7 +16,7 @@ export function loadMeta(): MetaState {
       const legacy = !Object.hasOwn(m, 'unlocked');
       const slots = Number(m.facilities.suitSlots) + (legacy ? 1 : 0);
       const facilities = { ...defaults.facilities,
-        chargePlus: m.facilities.chargePlus ?? 0, navCrypt: !!m.facilities.navCrypt, navRuins: !!m.facilities.navRuins,
+        chargePlus: m.facilities.chargePlus ?? 0,
         suitSlots: ([2, 3, 4].includes(slots) ? slots : 2) as 2 | 3 | 4 };
       return { ...defaults, ...m, ...migrateBaseMeta({ ...m, facilities: { ...m.facilities, ...facilities } }), facilities, rounds: validElements(m.rounds), records: ids(m.records, defaults.records),
         startCandidates: ids(m.startCandidates, []), suit: m.suit ? { ...m.suit, materials: savedMaterials(m.suit.materials), ids: ids(m.suit.ids, []) } : undefined, unlocked: ids(m.unlocked, defaults.unlocked), tasted: ids(m.tasted, []), energy: nonnegative(m.energy), best: nonnegative(m.best), wins: nonnegative(m.wins) };

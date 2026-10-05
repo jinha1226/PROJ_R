@@ -8,7 +8,7 @@ import { navigate } from './gridBotNav';
 
 export type GridBotMode = 'decent' | 'pistol-only';
 export interface GridBotResult {
-  seed: number; mode: GridBotMode; outcome: 'won' | 'dead' | 'cap';
+  seed: number; mode: GridBotMode; outcome: 'won' | 'dead' | 'returned' | 'cap';
   floor: number; turns: number; actions: number; time: number; level: number;
   sightTurns: number; emptyChargeTurns: number; killer?: string;
 }

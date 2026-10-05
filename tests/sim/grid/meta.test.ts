@@ -35,7 +35,8 @@ describe('meta energy and facilities', () => {
   });
   it.each([1, 6, 11] as const)('sets up floor %i with level HP, charge, gear and copied records', start => {
     const m = freshMeta();
-    Object.assign(m.facilities, { suitSlots: 2, chargePlus: 2, navCrypt: true, navRuins: true });
+    Object.assign(m.facilities, { suitSlots: 2, chargePlus: 2 });
+    m.portals = [5, 10]; m.repairs = ['nav'];
     m.unlocked = ['dash', 'rapid', 'chain'];
     const s = newRunState(12, m, { gun: 'pistol', start, startSuit: m.unlocked });
     const level = start === 1 ? 1 : start === 6 ? 4 : 7;
@@ -79,7 +80,7 @@ describe('meta energy and facilities', () => {
     expect(result.best).toBe(10);
     expect(result.wins).toBe(outcome === 'won' ? 1 : 0);
     expect(result.bossesKilled).toEqual([5, 10]);
-    expect(result.suit).toEqual(outcome === 'dead' ? { materials: freshMeta().materials, floor: 10, ids: ['dash'], killer: { kind: 'mage', elite: true } } : undefined);
+    expect(result.suit).toEqual(outcome === 'dead' ? { stones: [], materials: freshMeta().materials, floor: 10, ids: ['dash'], killer: { kind: 'mage', elite: true } } : undefined);
   });
   it('does not leave an empty suit and defaults an unknown death to self', () => {
     const s = GridSim.create(3).s; s.outcome = 'dead';

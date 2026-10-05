@@ -20,6 +20,7 @@ export type Equipment = Weapon | Armor;
 /** A potion or scroll lying on the floor (picked up into the pack, not the bag). */
 export type Consumable = { kind: 'potion'; p: PotionKind; name: string } | { kind: 'scroll'; sc: ScrollKind; name: string };
 /** The final guardian's energy source; picking it up ends the run. */
+export interface StoneItem { kind: 'stone'; id: string; name: string }
 export interface Core { kind: 'core'; name: '에너지원' }
 export interface MaterialItem { kind: 'material'; mat: Material; n: number }
 export interface LostSuit { kind: 'suit'; ids: EngraveId[]; name: '남겨진 슈트' }

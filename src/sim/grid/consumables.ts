@@ -1,5 +1,6 @@
+import { rollStone } from './stones';
 import { zoneMaterial } from './materials';
-import { createRng, type Rng } from '../../core/rng';
+import { type Rng } from '../../core/rng';
 import { addBuff, clearBuff } from './buffs';
 import { noise } from './danger';
 import { offerFor } from './engrave';
@@ -104,7 +105,7 @@ export function readScroll(s: GridState, t: number, sc: ScrollKind): number | nu
 
 /** A couple of potions or scrolls lying in the rooms of a floor (its own dice; not the start room). */
 export function scatterLoot(s: GridState): FloorItem[] {
-  const rng = createRng((s.seed * 13 + s.run.floor * 7) >>> 0);
+  const rng = s.rng;
   const cells: Cell[] = [];
   for (const r of s.map.rooms.slice(1)) for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
     const c = { x, y };
@@ -115,6 +116,9 @@ export function scatterLoot(s: GridState): FloorItem[] {
   const shuffled = rng.shuffle(cells), count = 2 + Math.floor((s.run.floor - 1) / 5);
   const loot: FloorItem[] = shuffled.slice(0, count).map(pos => ({ pos, item: rollConsumable(rng) }));
   for (const pos of shuffled.slice(count, count + 2)) loot.push({ pos, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: 1 } });
-  for (const spot of s.map.toolSpots ?? []) loot.push({ pos: { ...spot.reward }, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: spot.n } });
+  for (const spot of s.map.toolSpots ?? []) {
+    loot.push({ pos: { ...spot.reward }, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: spot.n } });
+    loot.push({ pos: { ...spot.reward }, item: rollStone(s) });
+  }
   return loot;
 }
