@@ -73,6 +73,8 @@ export class ChainShowcase implements Screen {
   private stage!: HTMLElement;
   private start = 0;
   private fast = new URLSearchParams(location.search).get('feel') !== 'classic';
+  /** the pixel look (`?px=0` starts with the smooth one) */
+  private pixel = new URLSearchParams(location.search).get('px') !== '0';
   /** the last kill of the show, where the fast tempo turns to slow motion */
   private lastDie: GEvent | null = null;
   /** which build is showing (`?scene=fusion|blade|gun`) */
@@ -90,7 +92,9 @@ export class ChainShowcase implements Screen {
       <div class="cs-suit"></div>
       <div class="cs-stamp"></div>
       <div class="cs-top"><nav class="cs-scenes">${SCENES.map((sc, i) => `<button type="button" data-scene="${i}" data-testid="chain-scene-${sc.id}">${sc.name}</button>`).join('')}</nav>
-        <button type="button" class="cs-feel" data-testid="chain-feel"></button></div>`;
+        <button type="button" class="cs-feel" data-testid="chain-feel"></button>
+        <button type="button" class="cs-feel cs-px" data-testid="chain-pixel"></button></div>`;
+    this.el.querySelector('.cs-px')!.addEventListener('click', () => { this.pixel = !this.pixel; if (this.rt) this.rt.pixelated = this.pixel; this.showPixel(); });
     this.el.querySelector('.cs-feel')!.addEventListener('click', () => { this.fast = !this.fast; this.restart(); });
     this.el.querySelector('.cs-scenes')!.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-scene]');
@@ -111,6 +115,8 @@ export class ChainShowcase implements Screen {
   }
 
   private readonly onResize = () => this.fit();
+
+  private showPixel(): void { this.el.querySelector('.cs-px')!.textContent = this.pixel ? '화면: 도트' : '화면: HD'; }
 
   unmount(): void {
     removeEventListener('resize', this.onResize);
@@ -165,6 +171,8 @@ export class ChainShowcase implements Screen {
     this.sim = GridSim.fromState(s);
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, false, (e) => this.cue(e));
     this.rt.stayInMap = true;
+    this.rt.pixelated = this.pixel;
+    this.showPixel();
     this.fit();
     this.timer = setTimeout(() => this.play(0), OPEN_MS);
   }
