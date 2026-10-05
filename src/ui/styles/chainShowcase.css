@@ -24,6 +24,8 @@
 .cs-count em i { font-style: normal; }
 /* the fast tempo keeps the picture clear: no floating engraving names (the suit slots and the count tell it) */
 .chain-show.fast .gpops { display: none; }
-.cs-feel { position: absolute; left: 12px; top: 12px; z-index: 7; padding: 6px 12px; font: 13px 'GalmuriMono', monospace; color: #5dff8a; background: #021407e0; border: 1px solid #1f7a3e; cursor: pointer; }
-.cs-feel:hover { background: #5dff8a; color: #021006; }
-.chain-show.clean .cs-feel { display: none; }
+.cs-top { position: absolute; left: 12px; top: 12px; z-index: 7; display: flex; gap: 10px; flex-wrap: wrap; }
+.cs-scenes { display: flex; gap: 4px; }
+.cs-feel, .cs-scenes button { padding: 6px 12px; font: 13px 'GalmuriMono', monospace; color: #5dff8a; background: #021407e0; border: 1px solid #1f7a3e; cursor: pointer; }
+.cs-feel:hover, .cs-scenes button:hover, .cs-scenes button.on { background: #5dff8a; color: #021006; }
+.chain-show.clean .cs-top { display: none; }

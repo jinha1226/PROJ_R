@@ -12,7 +12,7 @@ function kinds(ev: GEvent[]): string[] {
   const out: string[] = [];
   for (const e of ev) {
     if (e.type === 'move' && e.text && ['dash', 'leap', 'kite'].includes(e.text)) out.push(e.text);
-    if (e.type === 'engrave' && e.text && ['tempest', 'spinShot', 'ricochet', 'pierce', 'execute', 'shoulder', 'wallslam', 'volley', 'reverseCut', 'bayonet', 'gunRelay', 'bladeRelay'].includes(e.text)) out.push(e.text);
+    if (e.type === 'engrave' && e.text && !['flow', 'dash', 'leap', 'kite'].includes(e.text)) out.push(e.text);
     if (e.type === 'push') out.push('push');
   }
   return out;
@@ -21,13 +21,25 @@ const flash = (ev: GEvent[]) => ev.filter(e => e.type === 'engrave').length * 2 
 const candidates = (sim: GridSim): GAction[] => [...DIRS.map(dir => ({ kind: 'move', dir }) as GAction), { kind: 'swap' }, ...sim.s.foes.filter(f => f.alive).map(f => ({ kind: 'shoot', target: f.id }) as GAction)];
 it('search the most varied single turn', () => {
   let best = { score: -1, desc: '' };
-  const SUITS: EngraveId[][] = [
+  const ALL: EngraveId[][] = [
     ['flow', 'gunRelay', 'spinShot', 'leap', 'tempest', 'kite'],
     ['flow', 'gunRelay', 'bladeRelay', 'leap', 'tempest', 'spinShot'],
     ['flow', 'gunRelay', 'spinShot', 'dash', 'leap', 'ricochet'],
     ['flow', 'gunRelay', 'bladeRelay', 'spinShot', 'tempest', 'pierce'],
+    ['flow', 'gunRelay', 'tempest', 'kite', 'pierce', 'bladeRelay'],
+    // blade builds (5, 6, 7)
+    ['flow', 'dash', 'leap', 'tempest', 'cull', 'fury'],
+    ['flow', 'dash', 'leap', 'tempest', 'shoulder', 'wallslam'],
+    ['flow', 'dash', 'tempest', 'cull', 'finisher', 'bloodlust'],
+    // gun builds (8, 9, 10)
+    ['flow', 'pierce', 'ricochet', 'volley', 'mark', 'barrage'],
+    ['flow', 'barrage', 'ricochet', 'quickdraw', 'pierce', 'kite'],
+    ['flow', 'rapid', 'volley', 'ricochet', 'pierce', 'thrift'],
   ];
-  for (let n = 0; n < 4000; n++) {
+  const GUN = (suit: EngraveId[]) => !suit.some(id => ['dash', 'leap', 'tempest', 'gunRelay', 'bladeRelay'].includes(id));
+  // SUIT=n searches one suit only (a scene per suit)
+  const SUITS = process.env.SUIT ? process.env.SUIT.split(',').map(i => ALL[Number(i)]!) : ALL;
+  for (let n = 0; n < Number(process.env.N ?? 4000); n++) {
     const rng = createRng(30000 + n);
     const suit = SUITS[n % SUITS.length]!;
     // foes in knots, so being surrounded (칼날 폭풍, 회전 사격) and leaping in happen
@@ -42,7 +54,7 @@ it('search the most varied single turn', () => {
         foes.push({ kind: rng.pick(['minion', 'minion', 'ghoul', 'archer', 'brute'] as FoeKind[]), x, y, hp: rng.int(1, 8) });
       }
     }
-    const s0 = showcaseState(30000 + n, suit, foes);
+    const s0 = showcaseState(30000 + n, suit, foes, undefined, GUN(suit) ? 'gun' : 'blade');
     s0.hero.fx.free = true;
     const sim = GridSim.fromState(s0);
     const plan: GAction[] = [];
@@ -74,7 +86,7 @@ it('search the most varied single turn', () => {
     }
     const variety = seen.size;
     const score = variety * 40 + total + plan.length * 6;
-    if (score > best.score) best = { score, desc: JSON.stringify({ seed: 30000 + n, score, variety, kinds: Object.fromEntries(seen), actions: plan.length, links, kills, suit, foes, plan }) };
+    if (score > best.score) best = { score, desc: JSON.stringify({ seed: 30000 + n, hand: GUN(suit) ? 'gun' : 'blade', score, variety, kinds: Object.fromEntries(seen), actions: plan.length, links, kills, suit, foes, plan }) };
   }
   console.log(best.desc);
 });

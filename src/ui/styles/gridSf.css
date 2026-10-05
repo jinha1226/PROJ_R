@@ -1,4 +1,4 @@
-/* Monitor skin for the grid sortie and the ship: a pixel monospace face, phosphor text, text gauges, square text keys, faint scanlines. */
+/* Monitor skin for the grid sortie and the ship: a pixel monospace face, phosphor text, text gauges, square text keys (the game picture itself stays clear). */
 @font-face { font-family: 'GalmuriMono'; src: url('/assets/fonts/GalmuriMono11.woff2') format('woff2'); font-display: swap; }
 .screen.grid, .grid-result {
   --gold: #c8f0e0;
@@ -16,9 +16,6 @@
   -webkit-font-smoothing: none;
 }
 .screen.grid .ghud { color: var(--t-fg); text-shadow: 0 0 4px #6fe0c855, 0 1px 0 #000; font-size: 12px; letter-spacing: 0; }
-/* the whole screen sits behind a faint tube: scanlines and a dark rim */
-.screen.grid .ghud::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  background: repeating-linear-gradient(to bottom, #00000000 0 2px, #0000002e 2px 3px), radial-gradient(ellipse at center, #0000 60%, #0008 100%); }
 .gh-term, .gh-arms, .gh-t-txt { display: none; }
 
 /* top-left: where you are, then the log */

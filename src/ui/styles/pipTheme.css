@@ -1,11 +1,9 @@
-/* Pixel phosphor terminal: one green (health keeps an amber), hard pixel corners and lines, a tube of scanlines. Applies under html.ui-pip. */
+/* Pixel phosphor terminal: one green (health keeps an amber), hard pixel corners and lines; scanlines only on the terminal screens (workbench, repair), not over the game. Applies under html.ui-pip. */
 .ui-pip .screen.grid, .ui-pip .grid-result, .ui-pip .wb {
   --t-fg: #5dff8a; --t-dim: #34a85c; --t-line: #1f7a3e; --t-warn: #e6ffb0; --t-ch: #9dffb8; --t-hp: #ffc94a; --t-bg: #021407e8;
   --pix: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
 }
 .ui-pip .screen.grid .ghud, .ui-pip .wb { text-shadow: 0 0 3px #3dff7a88; }
-/* the whole screen behind a green-tinted tube */
-.ui-pip .screen.grid .ghud::before { background: repeating-linear-gradient(to bottom, #00000000 0 2px, #00140840 2px 3px), radial-gradient(ellipse at center, #0000 55%, #000c 100%); }
 /* stepped pixel corners on every boxed element */
 .ui-pip .screen.grid .gh-term, .ui-pip .screen.grid .gh-target, .ui-pip .screen.grid .gt-btn, .ui-pip .screen.grid .gbelt-b, .ui-pip .screen.grid .gh-tile, .ui-pip .screen.grid .xzoom .btn, .ui-pip .screen.grid .grid-pixel,
 .ui-pip .screen.grid .kata-panel, .ui-pip .screen.grid .ship-hud, .ui-pip .screen.grid .ship-modal .panel, .ui-pip .screen.grid .gbag-panel, .ui-pip .screen.grid .glvl-panel, .ui-pip .screen.grid .glvl-card,
