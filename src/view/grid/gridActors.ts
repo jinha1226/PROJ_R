@@ -140,7 +140,7 @@ export class GridActors {
     if (v.actor.busyWith !== 'dash') v.actor.play(anim ?? this.meleeAnim(id!), anim === 'finisher' ? 1.5 : 1.7);
   }
 
-  /** Roll: a tumble to the next cell. */
+  /** Roll: a tumble to the next cell (the figure turns into the roll). */
   roll(id: string | undefined, cx: number, cy: number): void {
     this.moveTo(id, cx, cy);
     this.v(id)?.actor.play('roll', 2.4);
@@ -167,6 +167,9 @@ export class GridActors {
     const v = this.v(id);
     if (!v) return;
     this.handFor(id, group);
+    // mid-roll, mid-dash or in the air the move carries on: the shot is only its flash and tracer
+    const moving = v.actor.busyWith;
+    if (moving === 'roll' || moving === 'dash' || moving === 'leapUp' || v.air > 0) return;
     this.face(id, at);
     // a spin shot snaps round to each target instead of turning
     if (spin) v.yaw = v.facing;
