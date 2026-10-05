@@ -117,7 +117,19 @@ async function chainDemo(): Promise<void> {
   }
 }
 
+/** `?demo=souls`: the turn-based souls combat prototype. */
+async function soulsDemo(): Promise<void> {
+  try {
+    const [{ SoulsDemo }, lib, kit, weapons] = await Promise.all([import('../ui/souls/soulsDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    router.go(new SoulsDemo(lib, kit));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 if (params.get('demo') === 'kata') void kataDemo();
+else if (params.get('demo') === 'souls') void soulsDemo();
 else if (params.get('demo') === 'chain') void chainDemo();
 else if (params.get('demo') === 'workbench') void workbenchDemo();
 else if (params.get('screen') === 'sandbox') sandbox();
