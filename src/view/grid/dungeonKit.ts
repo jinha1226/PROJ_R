@@ -4,7 +4,11 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 export type DungeonPiece =
   | 'Wall_Modular' | 'Floor_Modular' | 'Column' | 'Column2' | 'Arch_Door' | 'Barrel' | 'Chest' | 'Chest_Gold' | 'Torch' | 'Banner_wall'
-  | 'Cobweb' | 'Cobweb2' | 'Skull' | 'Crate' | 'Stairs_Modular' | 'Trapdoor' | 'Trap_spikes' | 'Vase' | 'Bucket' | 'Brick' | 'Bag_Coins' | 'Sword_WallMount' | 'Coin_Pile';
+  | 'Cobweb' | 'Cobweb2' | 'Skull' | 'Crate' | 'Stairs_Modular' | 'Trapdoor' | 'Trap_spikes' | 'Vase' | 'Bucket' | 'Brick' | 'Bag_Coins' | 'Sword_WallMount' | 'Coin_Pile'
+  | 'Barrel2' | 'Floor_BricksSeparate' | 'Floor_BricksSeparate2' | 'Table_Small' | 'Table_Big' | 'Chair' | 'Banner' | 'Woodfire' | 'Bag_Standing' | 'Pedestal' | 'Statue_Horse';
+
+/** how much brighter the pack's colours are made */
+const LIFT = 1.7;
 
 /** One pack piece, re-centred: footprint centred on the origin, resting on y = 0. */
 export interface Piece { geometry: THREE.BufferGeometry; material: THREE.Material | THREE.Material[]; size: THREE.Vector3 }
@@ -34,6 +38,12 @@ export class DungeonKit {
       const c = box.getCenter(new THREE.Vector3());
       geometry.translate(-c.x, -box.min.y, -c.z);
       this.pieces.set(o.name, { geometry, material, size: box.getSize(new THREE.Vector3()) });
+    }
+    // the pack is coloured for a bright render; lift it so stone reads under torchlight (once per material)
+    for (const p of this.pieces.values()) for (const m of [p.material].flat() as THREE.MeshStandardMaterial[]) {
+      if (!m.color || m.userData.lifted) continue;
+      m.userData.lifted = true;
+      m.color.multiplyScalar(LIFT);
     }
   }
 

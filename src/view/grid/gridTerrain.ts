@@ -2,14 +2,14 @@ import * as THREE from 'three';
 import { idx, type GridMap, type GridState } from '../../sim/grid/types';
 import type { DungeonKit, DungeonPiece } from './dungeonKit';
 import { wallFaces, type WallFace } from './gridLayout';
-import { addDecor, cornerColumns } from './gridDecor';
+import { addDecor, cornerColumns, runColumns } from './gridDecor';
 import { chasmMesh, sealMesh } from './toolGates';
 
 /** Metres per grid cell. */
 export const CELL = 1.0;
 export const WALL_H = 1.5;
 const PANEL_DEPTH = 0.25;
-const CAP = new THREE.Color('#5a5048');
+const CAP = new THREE.Color('#77716a');
 const SEEN = 0.3;
 
 export const toWorld = (x: number, y: number): THREE.Vector3 => new THREE.Vector3(x * CELL, 0, y * CELL);
@@ -37,18 +37,29 @@ export class GridTerrain {
     const floors = m.tiles.map((t, i) => [t, i] as const).filter(([t]) => t !== 'wall' && t !== 'chasm').map(([, i]) => i);
     const q = new THREE.Quaternion();
     const up = new THREE.Vector3(0, 1, 0);
-    this.instance('Floor_Modular', floors, (i, p) => {
-      const pc = kit.piece('Floor_Modular')!;
+    // most cells get the full flagstone, some a loose-brick tile for variety
+    const loose = (i: number) => ((i * 2246822519) >>> 0) % 100 < 14;
+    const tile = (name: DungeonPiece) => (i: number, p: THREE.Vector3) => {
+      const pc = kit.piece(name) ?? kit.piece('Floor_Modular')!;
       q.setFromAxisAngle(up, ((i * 7) % 4) * (Math.PI / 2));
       return new THREE.Matrix4().compose(p.setY(-0.1), q, new THREE.Vector3(CELL / pc.size.x, 0.1 / pc.size.y, CELL / pc.size.z));
-    });
+    };
+    this.instance('Floor_Modular', floors, tile('Floor_Modular'));
+    // loose bricks lie on top of a few flagstones
+    if (kit.piece('Floor_BricksSeparate')) this.instance('Floor_BricksSeparate', floors.filter(loose), (i, p) => tile('Floor_BricksSeparate')(i, p).premultiply(new THREE.Matrix4().makeTranslation(0, 0.05, 0)));
     this.instanceFaces(faces);
-    const capCells = [...new Set(faces.map((f) => idx(m, f.wall)))];
-    const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 0.06, CELL), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), capCells.length);
-    capCells.forEach((i, k) => { const p = toWorld(i % m.w, Math.floor(i / m.w)); caps.setMatrixAt(k, new THREE.Matrix4().makeTranslation(p.x, WALL_H, p.z)); caps.setColorAt(k, new THREE.Color(0, 0, 0)); });
+    // a thin stone cap on top of each wall panel only, so walls read as walls and not as solid blocks
+    const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL + 0.02, 0.08, PANEL_DEPTH + 0.04), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), faces.length);
+    const capQ = new THREE.Quaternion();
+    faces.forEach((f, k) => {
+      const p = toWorld(f.wall.x + f.dir.x * (0.5 - PANEL_DEPTH / 2), f.wall.y + f.dir.y * (0.5 - PANEL_DEPTH / 2));
+      capQ.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yawFor(f.dir));
+      caps.setMatrixAt(k, new THREE.Matrix4().compose(p.setY(WALL_H), capQ, new THREE.Vector3(1, 1, 1)));
+      caps.setColorAt(k, new THREE.Color(0, 0, 0));
+    });
     this.root.add(caps);
-    this.instanced.push({ mesh: caps, cells: capCells, tint: CAP });
-    for (const c of cornerColumns(m, faces)) {
+    this.instanced.push({ mesh: caps, cells: faces.map((f) => idx(m, f.floor)), tint: CAP });
+    for (const c of [...cornerColumns(m, faces), ...runColumns(m, faces)]) {
       const col = kit.clone('Column', { height: WALL_H * 1.08 });
       col.position.set(c.at.x * CELL, 0, c.at.y * CELL);
       this.addProp(c.reveal, col);
@@ -60,7 +71,7 @@ export class GridTerrain {
 
   /** Floor litter in the zone's colour (puddles, bone chips, moss) on a fixed scatter of cells. */
   private addLitter(floors: number[], color: string): void {
-    const cells = floors.filter((i) => ((i * 2654435761) >>> 0) % 100 < 22 && this.m.tiles[i] === 'floor');
+    const cells = floors.filter((i) => ((i * 2654435761) >>> 0) % 100 < 9 && this.m.tiles[i] === 'floor');
     if (!cells.length) return;
     const mesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 7).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.35, metalness: 0.1 }), cells.length);
     cells.forEach((i, k) => {

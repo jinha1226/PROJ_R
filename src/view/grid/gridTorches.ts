@@ -83,7 +83,7 @@ export class GridTorches {
     for (const l of this.lights) {
       const t = l.userData.torch as Torch | undefined;
       if (!t) continue;
-      l.intensity = 12 * (1 + Math.sin(this.t * 9 + t.phase) * 0.1 + Math.sin(this.t * 17 + t.phase) * 0.06);
+      l.intensity = 8 * (1 + Math.sin(this.t * 9 + t.phase) * 0.1 + Math.sin(this.t * 17 + t.phase) * 0.06);
     }
   }
 

@@ -60,7 +60,7 @@ export class GridRuntime {
   pixelated = true;
   private playback = new Playback();
   private readonly hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
-  private readonly light = new THREE.PointLight('#ffd9a0', 16, 9, 1.4);
+  private readonly light = new THREE.PointLight('#fff0dc', 10, 9, 1.4);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;
@@ -82,7 +82,7 @@ export class GridRuntime {
     scene.background = new THREE.Color('#0b0b0e');
     scene.fog = null;
     const look = applyZoneLook(this.hemi, sim.s.run.floor, mobile);
-    const sun = new THREE.DirectionalLight('#9fb0ff', 0.16);
+    const sun = new THREE.DirectionalLight('#dfe6ff', 0.5);
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer, 2);
