@@ -10,6 +10,7 @@ import { WEAPONS, type BeltItem } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
 import { GridBag } from './gridBag';
 import { LevelUpPanel } from './levelUp';
+import { StonePanel } from './stonePanel';
 import { UpgradePanel } from './upgradePanel';
 import { GridBelt, THROWN } from './gridBelt';
 import { ThrowAim } from './throwAim';
@@ -45,7 +46,7 @@ export class GridScreen implements Screen {
   private touch: GridTouch | null = null;
   private zoom: ZoomControl | null = null;
   private bag: GridBag | null = null;
-  private levelUp: { panel: LevelUpPanel | UpgradePanel; offer: unknown } | null = null;
+  private levelUp: { panel: LevelUpPanel | UpgradePanel | StonePanel; offer: unknown } | null = null;
   private readonly belt = new GridBelt((it) => this.controls.push(it));
   private readonly throwing = new ThrowAim(() => this.s, (c) => this.controls.push(c), (a) => this.doAction(a), (cells, ok) => this.rt?.showAim(cells, ok));
   private cleanup: (() => void)[] = [];
@@ -196,7 +197,7 @@ export class GridScreen implements Screen {
   }
   private showLevelUp(): boolean {
     const upgrade = this.s.upgrades[0];
-    const offer = upgrade ?? this.s.offers[0];
+    const offer = upgrade ?? this.s.offers[0] ?? this.s.stonePrompt;
     if (this.levelUp && this.levelUp.offer === offer) return true;
     this.levelUp?.panel.el.remove();
     this.levelUp = null;
@@ -204,7 +205,8 @@ export class GridScreen implements Screen {
     this.stopWalk();
     const act = (a: GAction) => { this.doAction(a); };
     const panel = upgrade ? new UpgradePanel(upgrade, this.s.hero.level, act)
-      : new LevelUpPanel(this.s.offers[0]!, this.s.hero.suit, this.s.hero.level, act);
+      : this.s.offers[0] ? new LevelUpPanel(this.s.offers[0], this.s.hero.suit, this.s.hero.level, act)
+      : new StonePanel(this.s, this.s.stonePrompt!, act);
     this.levelUp = { panel, offer };
     this.el.appendChild(panel.el);
     return true;

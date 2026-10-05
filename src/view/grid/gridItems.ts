@@ -27,14 +27,16 @@ export class GridItems {
           : it.kind === 'suit' ? new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.34, 4, 8), new THREE.MeshStandardMaterial({ color: '#7fd8ff', emissive: '#2a9ad8', emissiveIntensity: 1.1 }))
           : it.kind === 'core' ? new THREE.Mesh(new THREE.OctahedronGeometry(0.3), new THREE.MeshStandardMaterial({ color: '#5ae0ff', emissive: '#5ae0ff', emissiveIntensity: 1.4 }))
           : it.kind === 'material' ? materialMesh(it.mat)
+          // a magic stone: a floating violet crystal; a guardian's core is larger and gold
+          : it.kind === 'stone' ? new THREE.Mesh(new THREE.OctahedronGeometry(it.id.startsWith('guardian') ? 0.28 : 0.2).scale(1, 1.5, 1), new THREE.MeshStandardMaterial({ color: it.id.startsWith('guardian') ? '#ffd23a' : '#c77dff', emissive: it.id.startsWith('guardian') ? '#ffb000' : '#9a3dff', emissiveIntensity: 1.3 }))
           : new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.12, 0.3), new THREE.MeshStandardMaterial({ color: '#8a8a92', metalness: 0.5 }));
-        if (it.kind !== 'material') model.rotation.set(0, 0, Math.PI / 2);
-        model.position.y = it.kind === 'core' ? 0.5 : 0.08;
-        g.userData.core = it.kind === 'core';
+        if (it.kind !== 'material' && it.kind !== 'stone') model.rotation.set(0, 0, Math.PI / 2);
+        model.position.y = it.kind === 'core' || it.kind === 'stone' ? 0.5 : 0.08;
+        g.userData.core = it.kind === 'core' || it.kind === 'stone';
         // fit within one cell (a spear lying down is otherwise longer than a tile)
         const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
         model.scale.multiplyScalar(Math.min(1, 0.8 / Math.max(size.x, size.z, 0.01)));
-        const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.36, 24), new THREE.MeshBasicMaterial({ color: it.kind === 'core' || it.kind === 'suit' ? '#5ae0ff' : it.kind === 'material' ? MATERIAL_HEX[it.mat] ?? '#ffd76a' : '#ffd76a', transparent: true, opacity: 0.55, depthWrite: false }));
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.36, 24), new THREE.MeshBasicMaterial({ color: it.kind === 'core' || it.kind === 'suit' ? '#5ae0ff' : it.kind === 'stone' ? '#c77dff' : it.kind === 'material' ? MATERIAL_HEX[it.mat] ?? '#ffd76a' : '#ffd76a', transparent: true, opacity: 0.55, depthWrite: false }));
         ring.rotation.x = -Math.PI / 2;
         ring.position.y = 0.02;
         g.add(model, ring);

@@ -31,6 +31,7 @@ import { Playback } from './playback';
 import { PixelPass } from './pixelPass';
 import { ShipIntro } from './shipIntro';
 import { Afterimages } from './afterimage';
+import { sensedFoes } from '../../sim/grid/perks';
 let ELEVATION = (45 * Math.PI) / 180;
 /** Scripted views (the comparison demo) may tilt the camera. */
 export const setCameraElevation = (deg: number): void => { ELEVATION = (deg * Math.PI) / 180; };
@@ -165,7 +166,12 @@ export class GridRuntime {
     this.actors.setGhost('hero', buffOn(s.hero, 'invis', s.time));
     this.actors.setSuitLights('hero', s.hero.suit.length);
     this.torches.shade(s, new THREE.Vector3(s.hero.pos.x * CELL, 1, s.hero.pos.y * CELL));
-    for (const f of s.foes) this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
+    // a thermal sight shows foes behind walls as faint ghosts
+    const sensed = new Set(sensedFoes(s));
+    for (const f of s.foes) {
+      this.actors.setVisible(f.id, s.visible.has(idx(s.map, f.pos)) || sensed.has(f.id) || (!f.alive && s.seen[idx(s.map, f.pos)] === 1));
+      if (f.alive) this.actors.setGhost(f.id, sensed.has(f.id));
+    }
     const hero = new THREE.Vector3(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
     const shown = s.foes.filter((f) => f.alive && f.awake && s.visible.has(idx(s.map, f.pos)));
     const aiming = shown.filter((f) => f.kind === 'archer' && archerCanShoot(s, f));

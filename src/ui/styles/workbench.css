@@ -87,3 +87,5 @@
 
 .wb-zone { fill: transparent; stroke: none; cursor: pointer; }
 .wb-part.sel .wb-zone { stroke: var(--t-warn); stroke-width: 0.8; stroke-dasharray: 2 2; }
+.wb-opt.locked { opacity: 0.55; }
+.wb-lock { margin-left: auto; font-size: 12px; color: var(--t-dim, #34a85c); letter-spacing: 0.04em; }

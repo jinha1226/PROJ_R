@@ -1,5 +1,5 @@
 import { overlaySvg, paintBench, type ArtColors } from './workbenchArt';
-import { MATERIAL_NAME, statLine, type Material, type ModSlot, type WorkbenchModel, type WorkbenchOption } from './workbenchTypes';
+import { MATERIAL_NAME, modLine, type Material, type ModSlot, type WorkbenchModel, type WorkbenchOption } from './workbenchTypes';
 import '../../styles/workbench.css';
 
 export interface WorkbenchApi { model(): WorkbenchModel; craft(id: string): void; fit(slot: ModSlot, id: string | null): void; close(): void }
@@ -68,12 +68,13 @@ export class WorkbenchScreen {
     }).join('');
     const btn = o.fitted ? `<button type="button" class="btn" data-act="unfit" data-id="${o.mod.id}">해제</button>`
       : o.owned ? `<button type="button" class="btn primary" data-act="fit" data-id="${o.mod.id}">장착</button>`
+      : o.locked ? '<span class="wb-lock">마석 필요</span>'
       : `<button type="button" class="btn" data-act="craft" data-id="${o.mod.id}" ${o.craftable && this.open ? '' : 'disabled'}>제작</button>`;
     const state = o.fitted ? '<em>장착됨</em>' : o.owned ? '<em class="own">보유</em>' : '';
-    return `<li class="wb-opt${this.preview === o.mod.id ? ' on' : ''}${o.fitted ? ' fitted' : ''}" data-row="${o.mod.id}">
+    return `<li class="wb-opt${this.preview === o.mod.id ? ' on' : ''}${o.fitted ? ' fitted' : ''}${o.locked ? ' locked' : ''}" data-row="${o.mod.id}">
       <div class="wb-opt-top"><b>${o.mod.name}</b>${state}</div>
-      <div class="wb-opt-stat">${statLine(o.mod.stats)}</div>
-      <div class="wb-opt-foot">${o.owned ? '' : cost}${btn}</div></li>`;
+      <div class="wb-opt-stat">${modLine(o.mod)}</div>
+      <div class="wb-opt-foot">${o.owned || o.locked ? '' : cost}${btn}</div></li>`;
   }
 
   render(): void {

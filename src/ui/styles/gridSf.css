@@ -131,3 +131,8 @@
 .gh-resonance .dim { color: var(--t-dim); opacity: 0.5; }
 .gh-resonance .lit { color: var(--t-warn); text-shadow: 0 0 5px currentColor; }
 .screen.grid .ship-hud .ship-mats { display: block; color: var(--t-dim); font-size: 12px; }
+/* a picked-up stone: one card, the slot it goes in, what it would break */
+.screen.grid .glvl.stone .glvl-cards { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
+.screen.grid .stone-card { cursor: default; }
+.screen.grid .stone-warn { color: #ffc94a; margin: 6px 0 0; font-size: 13px; }
+.screen.grid .stone-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
