@@ -41,10 +41,10 @@ export class GridFx {
   }
 
   /** A crossbow bolt flying from → to; `done` runs on arrival (hit or miss shows then). */
-  bolt(from: THREE.Vector3, to: THREE.Vector3, done: () => void): void {
+  bolt(from: THREE.Vector3, to: THREE.Vector3, done: () => void, thick = 1): void {
     const yaw = Math.atan2(to.x - from.x, to.z - from.z);
-    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.5, 6), new THREE.MeshBasicMaterial({ color: '#fff4d0' }));
-    const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.01, 1, 6, 1, true).translate(0, -0.5, 0), new THREE.MeshBasicMaterial({ color: '#ffb050', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025 * thick, 0.025 * thick, 0.5 * Math.sqrt(thick), 6), new THREE.MeshBasicMaterial({ color: '#fff4d0' }));
+    const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * thick, 0.01 * thick, 1, 6, 1, true).translate(0, -0.5, 0), new THREE.MeshBasicMaterial({ color: '#ffb050', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
     for (const m of [mesh, trail]) { m.rotation.order = 'YXZ'; m.rotation.y = yaw; m.rotation.x = Math.PI / 2; this.scene.add(m); }
     const cells = from.distanceTo(to) / CELL;
     this.bolts.push({ mesh, trail, from: from.clone().setY(1.1), to: to.clone().setY(1.0), t: 0, total: Math.max(0.05, cells / BOLT_SPEED), done });
@@ -77,8 +77,8 @@ export class GridFx {
 
   get timeScale(): number { return this.slowLeft > 0 ? this.slowScale : 1; }
 
-  hitStop(): void {
-    this.stop = HITSTOP;
+  hitStop(sec = HITSTOP): void {
+    this.stop = Math.max(this.stop, sec);
   }
 
   shake(sec = 0.12, amp = 0.18): void {

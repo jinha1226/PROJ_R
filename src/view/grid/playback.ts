@@ -1,3 +1,4 @@
+import { feel } from './feel';
 import type { GEvent } from '../../sim/grid/types';
 
 /** One game turn (time 1.0) plays in this many seconds. */
@@ -14,10 +15,12 @@ interface Cue { at: number; ev: GEvent }
  * lands before its strikes, a weave or parry shows before the counter, a shove before the shot that follows.
  */
 function holdAfter(ev: GEvent): number {
-  if (ev.type === 'move') return ev.text === 'leap' ? 0.26 : ev.text === 'dash' ? 0.1 : 0;
+  if (ev.type === 'move') return ev.text === 'leap' ? 0.26 : ev.text === 'dash' ? feel().dashHold : 0;
+  if (ev.type === 'shoot' && ev.src === 'hero') return feel().shotHold;
+  if (ev.type === 'die') return feel().dieHold;
   if (ev.type === 'dodge' || ev.type === 'parry') return 0.14;
   // an engraving's name shows a beat before the move it set off (a relay shot does not blur into the blow)
-  if (ev.type === 'engrave') return 0.12;
+  if (ev.type === 'engrave') return feel().engraveHold;
   return ev.type === 'push' ? 0.12 : 0;
 }
 

@@ -32,6 +32,7 @@ import { PixelPass } from './pixelPass';
 import { ShipIntro } from './shipIntro';
 import { Afterimages } from './afterimage';
 import { sensedFoes } from '../../sim/grid/perks';
+import { feel } from './feel';
 let ELEVATION = (45 * Math.PI) / 180;
 /** Scripted views (the comparison demo) may tilt the camera. */
 export const setCameraElevation = (deg: number): void => { ELEVATION = (deg * Math.PI) / 180; };
@@ -211,8 +212,10 @@ export class GridRuntime {
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
         const magic = e.text === 'spell';
-        this.fx.flash(from, magic ? '#b48aff' : '#ffd890', 22, 0.08);
-        this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); });
+        const f = feel(), mine = e.src === 'hero';
+        this.fx.flash(from, magic ? '#b48aff' : '#ffd890', mine ? f.flash : 22, 0.08);
+        if (mine && f.shotKick) this.fx.shake(0.07, f.shotKick);
+        this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); }, mine ? f.bolt : 1);
         break;
       }
       case 'hit': {
@@ -224,7 +227,7 @@ export class GridRuntime {
           this.particles.spray(p, e.dst === 'hero' ? '#ff4a30' : '#ffe6a8', e.crit ? 12 : 6);
           if (e.dst !== 'hero') this.gore(p, e.crit ? 8 : 4, at(e.src));
         }
-        this.fx.hitStop();
+        this.fx.hitStop(feel().hitStop);
         if (e.dst === 'hero') this.fx.hurt();
         if (e.crit) this.punch = 0.16;
         if (e.crit || e.dst === 'hero') this.fx.shake(e.crit ? 0.14 : 0.1, e.crit ? 0.22 : 0.14);
@@ -236,7 +239,7 @@ export class GridRuntime {
         break;
       }
       case 'reload': a.anim(e.src, 'reload'); break;
-      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') this.gore(p, 18, at(e.src)); break; }
+      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); this.fx.hitStop(feel().killStop); } break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'energy': if (e.to) this.fx.energy(cellVec(e.to), e.amount ?? 0); break;

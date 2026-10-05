@@ -5,6 +5,7 @@ import type { GridActors } from './gridActors';
 import type { GridFx } from './gridFx';
 import type { GridParticles } from './gridParticles';
 import type { EngravePops } from './engravePops';
+import { feel } from './feel';
 
 export interface CueKit { actors: GridActors; fx: GridFx; particles: GridParticles; pops: EngravePops; at(id?: string): THREE.Vector3 | undefined; punch(): void; trail(id: string | undefined, sec: number): void }
 
@@ -36,11 +37,11 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
       return true;
     case 'engrave':
       k.pops.engrave(e.text ?? '');
-      k.fx.slow(0.5, 0.45);
+      { const sl = feel().engraveSlow; if (sl) k.fx.slow(sl[0], sl[1]); }
       k.trail(e.src ?? 'hero', 0.5);
       return true;
     case 'chain':
-      k.fx.slow(1.4, 0.35);
+      { const sl = feel().chainSlow; if (sl) k.fx.slow(sl[0], sl[1]); }
       k.trail('hero', 1.1);
       k.pops.hits(e.amount ?? 0, true);
       return true;

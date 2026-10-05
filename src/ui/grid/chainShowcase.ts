@@ -5,6 +5,7 @@ import { makeWeapon } from '../../sim/grid/items';
 import { newState, refreshSight } from '../../sim/grid/state';
 import type { FoeKind, GAction, GEvent, GridMap, GridState } from '../../sim/grid/types';
 import { GridRuntime } from '../../view/grid/gridRuntime';
+import { setFeel } from '../../view/grid/feel';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import '../styles/grid.css';
@@ -27,7 +28,11 @@ const FOES: ShowFoe[] = [
   { kind: 'minion', x: 8, y: 6, hp: 2 },
 ];
 const D = (x: number, y: number): GAction => ({ kind: 'move', dir: { x, y } });
-const PLAN: GAction[] = [D(1, 0), D(1, -1), D(-1, 0), D(-1, -1), D(-1, -1)];
+const PLAN: GAction[] = [D(1, 0), D(1, -1), D(-1, 0), D(-1, -1)];
+/** the showcase's opening and moves (for tests and tuning) */
+export const SHOWCASE = { seed: SEED, suit: SUIT, foes: FOES, plan: PLAN };
+/** the fast (gun-kata) tempo: the show runs quicker, the next move starts over the end of the last one, slow motion waits for the last blow */
+const KATA = { speed: 1, beatMs: 140, zoom: 6.2, finalSlow: [1.1, 0.22] as const };
 const OPEN_MS = 1400;
 const BEAT_MS = 90;
 const END_MS = 3200;
@@ -59,6 +64,9 @@ export class ChainShowcase implements Screen {
   private best = 0;
   private stage!: HTMLElement;
   private start = 0;
+  private fast = new URLSearchParams(location.search).get('feel') !== 'classic';
+  /** the last kill of the show, where the fast tempo turns to slow motion */
+  private lastDie: GEvent | null = null;
 
   constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit) {}
 
@@ -69,7 +77,9 @@ export class ChainShowcase implements Screen {
       <div class="cs-bars"></div>
       <div class="cs-count"><b>0</b><span>연계</span><em>경과 <i>0</i>턴</em></div>
       <div class="cs-suit">${SUIT.map((id) => `<span data-id="${id}">${ENGRAVES[id].name}</span>`).join('')}</div>
-      <div class="cs-stamp"></div>`;
+      <div class="cs-stamp"></div>
+      <button type="button" class="cs-feel" data-testid="chain-feel"></button>`;
+    this.el.querySelector('.cs-feel')!.addEventListener('click', () => { this.fast = !this.fast; this.restart(); });
     root.appendChild(this.el);
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     addEventListener('resize', this.onResize);
@@ -78,7 +88,7 @@ export class ChainShowcase implements Screen {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      this.rt?.update(dt);
+      this.rt?.update(dt * (this.fast ? KATA.speed : 1));
       this.raf = requestAnimationFrame(loop);
     };
     this.raf = requestAnimationFrame(loop);
@@ -88,6 +98,7 @@ export class ChainShowcase implements Screen {
 
   unmount(): void {
     removeEventListener('resize', this.onResize);
+    setFeel('classic');
     cancelAnimationFrame(this.raf);
     clearTimeout(this.timer);
     this.rt?.dispose();
@@ -108,16 +119,21 @@ export class ChainShowcase implements Screen {
       if (slot) { slot.classList.remove('lit'); void slot.offsetWidth; slot.classList.add('lit'); }
     }
     if (e.type === 'die') this.kills++;
+    if (e === this.lastDie && this.rt) { this.rt.fx.slow(KATA.finalSlow[0], KATA.finalSlow[1]); this.rt.fx.shake(0.25, 0.3); }
   }
 
   /** Close on a wide screen; on a tall one the room's width still fits. */
   private fit(): void {
     const aspect = this.stage.clientWidth / Math.max(1, this.stage.clientHeight);
-    this.rt?.setZoom(Math.max(7.6, 12 / Math.max(0.1, aspect)));
+    this.rt?.setZoom(Math.max(this.fast ? KATA.zoom : 7.6, 12 / Math.max(0.1, aspect)));
   }
 
   private restart(): void {
     clearTimeout(this.timer);
+    setFeel(this.fast ? 'kata' : 'classic');
+    this.el.classList.toggle('fast', this.fast);
+    this.el.querySelector('.cs-feel')!.textContent = this.fast ? '템포: 빠름' : '템포: 기존';
+    this.lastDie = null;
     this.rt?.dispose();
     this.stage.replaceChildren();
     this.chain = 0; this.kills = 0;
@@ -140,10 +156,15 @@ export class ChainShowcase implements Screen {
     if (!a || s.outcome) return this.finish();
     const t0 = s.hero.nextAt;
     const ev = this.sim.act(a);
-    this.rt?.apply(ev, t0);
+    if (this.fast && i === PLAN.length - 1) this.lastDie = [...ev].reverse().find((e) => e.type === 'die') ?? null;
+    // the show keeps to the fight: level-up pillars and energy beams would cover the moves
+    this.rt?.apply(ev.filter((e) => e.type !== 'levelUp' && e.type !== 'energy'), t0);
     this.el.querySelector('.cs-count i')!.textContent = String(Math.round((s.hero.nextAt - this.start) * 10) / 10);
     this.el.classList.add('slow');
-    const wait = () => { if (this.rt?.busy) this.timer = setTimeout(wait, 60); else this.timer = setTimeout(() => this.play(i + 1), BEAT_MS); };
+    const wait = () => {
+      if (this.rt?.busy) this.timer = setTimeout(wait, 30);
+      else this.timer = setTimeout(() => this.play(i + 1), this.fast ? KATA.beatMs : BEAT_MS);
+    };
     wait();
   }
 
