@@ -6,7 +6,7 @@ const waitWorld = (page: Page) => page.waitForFunction(() => ((window as unknown
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('projr.extract.v2')!) as { mercs: { id: string }[]; party: string[]; stash: { id: string }[]; tavern: { fee: number }[]; gold: number });
 
 const fresh = async (page: Page) => {
-  await page.goto('./?seed=21');
+  await page.goto('./?seed=21&legacy=1');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.click('[data-testid="to-extract"]');

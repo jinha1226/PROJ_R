@@ -14,7 +14,7 @@ const finishBattle = async (page: Page) => {
 };
 
 const newRun = async (page: Page, seed: string) => {
-  await page.goto('./');
+  await page.goto('./?legacy=1');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.fill('[data-testid="run-seed"]', seed);

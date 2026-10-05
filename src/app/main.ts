@@ -18,6 +18,9 @@ import { UalLibrary } from '../view/grid/ualActor';
 import { DungeonKit } from '../view/grid/dungeonKit';
 import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
 import { clearRun, loadHall, loadRun } from './save';
+import { BootTitle } from '../ui/grid/bootTitle';
+import { GRID_ASSETS } from './gridAssets';
+import { loadRun as loadGridRun } from './gridRun';
 
 const root = document.getElementById('app')!;
 const router = new Router(root);
@@ -27,19 +30,32 @@ if (params.get('ui') !== 'classic') document.documentElement.classList.add('ui-p
 const urlSeed = Number(params.get('seed')) || 0;
 let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: urlSeed || 1 };
 
+const gridSeed = (): number => urlSeed || Math.floor(Math.random() * 99999) + 1;
+
+/** The game's title: the ship's boot log (`?legacy=1` shows the old prototype menu). */
 function title(): void {
+  if (params.get('legacy') === '1') return legacyTitle();
+  router.go(new BootTitle({
+    assets: GRID_ASSETS,
+    hasRun: () => loadGridRun() !== null,
+    start: () => new GridFlow(router, root, title).start(gridSeed()),
+    resume: () => new GridFlow(router, root, title).continue(),
+  }));
+}
+
+function legacyTitle(): void {
   router.go(new TitleScreen({
     hasSave: () => loadRun() !== null,
     newRun: (seed) => new WeekFlow(router, root, title).start(seed),
     continueRun: () => {
       const r = loadRun();
-      if (!r) return title();
+      if (!r) return legacyTitle();
       try {
         new WeekFlow(router, root, title).resume(r);
       } catch (e) {
         console.error('broken save discarded', e);
         clearRun();
-        title();
+        legacyTitle();
       }
     },
     hall: () => router.go(new HallScreen(loadHall(), title)),

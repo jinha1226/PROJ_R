@@ -1,0 +1,47 @@
+/* The title as the ship's boot log on a phosphor tube. */
+@font-face { font-family: 'GalmuriMono'; src: url('/assets/fonts/GalmuriMono11.woff2') format('woff2'); font-display: swap; }
+.boot {
+  --b-fg: #5dff8a; --b-dim: #34a85c; --b-line: #1f7a3e; --b-warn: #ffc94a; --b-err: #ff5a4a;
+  position: fixed; inset: 0; overflow: hidden; display: grid; place-items: center;
+  background: radial-gradient(ellipse at 50% 42%, #072a12 0%, #031208 45%, #010603 100%);
+  color: var(--b-fg); font-family: 'GalmuriMono', ui-monospace, monospace; text-shadow: 0 0 4px #3dff7a99;
+  animation: boot-on 0.5s ease-out;
+}
+/* scanlines and the tube's dark edge */
+.boot::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, #0000 0 2px, #00000059 2px 3px), radial-gradient(ellipse at center, #0000 50%, #000d 100%);
+  animation: boot-flicker 6s steps(1) infinite;
+}
+.boot-tube { width: min(560px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 14px; }
+.boot-logo {
+  margin: 0; font: clamp(56px, 13vw, 112px)/1 'GalmuriMono', monospace; letter-spacing: 0.08em; color: var(--b-fg);
+  text-shadow: 0 0 6px #3dff7acc, 0 0 22px #3dff7a66, 4px 4px 0 #0b3d1a;
+}
+.boot-sub { margin: -6px 0 6px; color: var(--b-dim); font-size: 14px; letter-spacing: 0.3em; }
+.boot-log { display: flex; flex-direction: column; gap: 3px; min-height: 7.5em; font-size: 14px; }
+.boot-row { white-space: pre; }
+.boot-row .d { color: var(--b-line); }
+.boot-row .v.warn { color: var(--b-warn); text-shadow: 0 0 4px #ffc94a88; }
+.boot-row .v.err { color: var(--b-err); }
+.boot-row .v.wait { color: var(--b-dim); animation: boot-blink 0.6s steps(1) infinite; }
+.boot-bar { font-size: 13px; color: var(--b-dim); letter-spacing: 0.04em; }
+.boot-bar.done { color: var(--b-fg); }
+.boot-menu { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+.boot-item {
+  all: unset; cursor: pointer; padding: 6px 12px 6px 28px; font-size: 20px; color: var(--b-fg); position: relative;
+  min-width: 180px; touch-action: manipulation;
+}
+.boot-item::before { content: '>'; position: absolute; left: 10px; opacity: 0; }
+.boot-item.on, .boot-item:hover, .boot-item:focus-visible { background: var(--b-fg); color: #021006; text-shadow: none; }
+.boot-item.on::before, .boot-item:hover::before { opacity: 1; }
+.boot-item.go { animation: boot-blink 0.12s steps(1) 3; }
+/* switching off: the picture collapses into a line, then a dot */
+.boot.off .boot-tube { animation: boot-off 0.32s ease-in forwards; }
+.boot.off { animation: boot-dark 0.32s ease-in forwards; }
+@keyframes boot-on { from { filter: brightness(3) saturate(0); transform: scaleY(0.02); } to { filter: none; transform: none; } }
+@keyframes boot-off { 60% { transform: scale(1, 0.02); filter: brightness(3); } to { transform: scale(0, 0.02); filter: brightness(4); } }
+@keyframes boot-dark { to { background: #000; } }
+@keyframes boot-blink { 50% { opacity: 0; } }
+@keyframes boot-flicker { 0%, 96%, 100% { opacity: 1; } 97% { opacity: 0.82; } 98% { opacity: 1; } 99% { opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) { .boot, .boot::after, .boot.off .boot-tube, .boot.off { animation: none; } }

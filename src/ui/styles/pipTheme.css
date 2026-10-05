@@ -24,3 +24,8 @@
 .ui-pip .wb .btn { background: #04200b !important; border-color: var(--t-dim) !important; color: var(--t-fg) !important; }
 .ui-pip .wb .btn.primary { background: var(--t-fg) !important; color: #021006 !important; text-shadow: none; }
 .ui-pip .wb-grid { stroke: #1f7a3e40; }
+
+/* loading between screens: one terminal line in the middle of a dark tube */
+.ui-pip .loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #031208 0%, #010603 100%); color: #5dff8a; font: 16px 'GalmuriMono', ui-monospace, monospace; text-shadow: 0 0 4px #3dff7a99; }
+.ui-pip .loading::after { content: '▌'; margin-left: 4px; animation: pip-cursor 0.8s steps(1) infinite; }
+@keyframes pip-cursor { 50% { opacity: 0; } }
