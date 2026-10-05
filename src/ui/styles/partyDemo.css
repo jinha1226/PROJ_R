@@ -1,0 +1,23 @@
+/* the party prototype: hero cards along the bottom, controls top left, a dim veil while paused */
+.screen.grid.party .grid-stage { position: absolute; inset: 0; }
+.pd-top { position: absolute; left: 12px; top: 12px; z-index: 6; display: flex; gap: 6px; align-items: center; font: 12px 'GalmuriMono', monospace; }
+.pd-top button, .pd-skills button { font: 12px 'GalmuriMono', monospace; color: #5dff8a; background: #021407e0; border: 1px solid #1f7a3e; padding: 5px 10px; cursor: pointer; }
+.pd-top button:hover, .pd-skills button:hover:not(:disabled) { background: #5dff8a; color: #021006; }
+.pd-msg { color: #ffc94a; margin-left: 8px; text-shadow: 0 1px 0 #000; }
+.pd-cards { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 6; display: flex; gap: 8px; }
+.pd-card { width: 210px; padding: 6px 8px; background: #021407e0; border: 1px solid #1f7a3e; color: #9dffb8; font: 12px 'GalmuriMono', monospace; cursor: pointer; display: grid; gap: 4px; }
+.pd-card.on { border-color: #e6ffb0; box-shadow: 0 0 0 1px #e6ffb0; }
+.pd-card.dead { opacity: 0.4; }
+.pd-card b { font-weight: normal; color: #e6ffb0; }
+.pd-hp { position: relative; height: 12px; background: #1a0d05; border: 1px solid #5a3a1a; }
+.pd-hp i { position: absolute; inset: 0 auto 0 0; background: #c8922a; }
+.pd-hp span { position: relative; padding-left: 4px; font-size: 10px; line-height: 12px; color: #fff; text-shadow: 0 1px 0 #000; }
+.pd-skills { display: flex; gap: 4px; }
+.pd-skills button { flex: 1; padding: 3px 4px; font-size: 11px; }
+.pd-skills button:disabled { opacity: 0.45; cursor: default; }
+.pd-help { position: absolute; left: 0; right: 0; bottom: 8px; margin: 0; text-align: center; font: 11px 'GalmuriMono', monospace; color: #34a85c; z-index: 6; }
+.pd-labels { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+.pd-label { position: absolute; transform: translate(-50%, -100%); font: 11px 'GalmuriMono', monospace; color: #c8d0c0; text-shadow: 0 1px 0 #000, 0 0 3px #000; white-space: nowrap; }
+.pd-label.on { color: #e6ffb0; }
+.pd-pause { position: absolute; inset: 0; display: none; place-items: start center; padding-top: 14vh; z-index: 5; pointer-events: none; font: 20px 'GalmuriMono', monospace; letter-spacing: 0.4em; color: #e6ffb0; background: #00000033; }
+.screen.grid.party.paused .pd-pause { display: grid; }

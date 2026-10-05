@@ -128,7 +128,19 @@ async function soulsDemo(): Promise<void> {
   }
 }
 
+/** `?demo=party`: three heroes in real time with pause (a look at party control). */
+async function partyDemo(): Promise<void> {
+  try {
+    const [{ PartyDemo }, lib, kit, weapons] = await Promise.all([import('../ui/party/partyDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    router.go(new PartyDemo(lib, kit));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 if (params.get('demo') === 'kata') void kataDemo();
+else if (params.get('demo') === 'party') void partyDemo();
 else if (params.get('demo') === 'souls') void soulsDemo();
 else if (params.get('demo') === 'chain') void chainDemo();
 else if (params.get('demo') === 'workbench') void workbenchDemo();

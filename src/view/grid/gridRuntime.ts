@@ -123,6 +123,12 @@ export class GridRuntime {
     this.actors.sync(this.sim.s);
     this.refresh();
   }
+  /** A live game's events (time flowing, not turns): play them as they come, without hurrying what is still showing. */
+  applyLive(events: GEvent[], startTime: number): void {
+    this.playback.push(events, startTime);
+    this.actors.sync(this.sim.s);
+    this.refresh();
+  }
   /** Down the stairs: rebuild the floor, the figures and the lights; drop what was left of the last show. */
   private newFloor(): void {
     const s = this.sim.s;

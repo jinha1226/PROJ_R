@@ -62,6 +62,9 @@ interface View {
   dead: boolean;
 }
 
+/** Looks set by id (party heroes drawn as heroes, with their own colours and weapons; their health bars show). */
+export const LOOK_BY_ID = new Map<string, UalLook>();
+
 /** One model per entity: chases its cell, faces where it goes, lunges, recoils and flinches on cue. */
 export class GridActors {
   private readonly bars = new HpBars();
@@ -75,15 +78,17 @@ export class GridActors {
   sync(s: GridState): void {
     for (const e of [s.hero, ...s.foes]) {
       const existing = this.views.get(e.id);
-      if (existing) { this.bars.update(existing.bar, e.kind === 'hero' ? { ...e, alive: false } : e); continue; }
+      const hideBar = e.kind === 'hero' && !LOOK_BY_ID.has(e.id);
+      if (existing) { this.bars.update(existing.bar, hideBar ? { ...e, alive: false } : e); continue; }
       this.kinds.set(e.id, e.kind);
-      const base = e.kind === 'hero' ? LOOK.hero : foeLook(LOOK[e.kind], e.kind, speciesOf(s.run.floor));
+      const byId = LOOK_BY_ID.get(e.id);
+      const base = byId ?? (e.kind === 'hero' ? LOOK.hero : foeLook(LOOK[e.kind], e.kind, speciesOf(s.run.floor)));
       const look = { ...base, scale: base.scale * (e.elite ? 1.12 : 1) * FIGURE_SCALE };
       const actor = new UalActor(this.lib, look);
-      actor.root.add(ring(e.kind === 'hero' || e.elite ? '#e0a64a' : '#d0533f', look.scale));
+      actor.root.add(ring(e.kind === 'hero' || e.elite || byId ? '#e0a64a' : '#d0533f', look.scale));
       const bar = this.bars.create(2.35 * look.scale);
       actor.root.add(bar);
-      this.bars.update(bar, e.kind === 'hero' ? { ...e, alive: false } : e);
+      this.bars.update(bar, hideBar ? { ...e, alive: false } : e);
       const x = e.pos.x * CELL;
       const z = e.pos.y * CELL;
       actor.root.position.set(x, 0, z);
@@ -253,7 +258,7 @@ export class GridActors {
 
   /** Which close-quarters motion: skeleton blades and bare hands jab, ranged weapons in hand bash, the rest swing. */
   private meleeAnim(id: string): UalAnim {
-    const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : LOOK[this.kindOf(id)].weapon;
+    const w = this.heroWeapon && id === 'hero' ? this.heroWeapon : (LOOK_BY_ID.get(id) ?? LOOK[this.kindOf(id)]).weapon;
     if (this.kindOf(id) === 'ghoul') return 'scratch';
     if (w === 'blade' || w === 'none') return 'jab';
     if (w === 'bow' || w === 'crossbow' || w === 'pistol') return 'bash';
