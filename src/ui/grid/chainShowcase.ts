@@ -12,31 +12,36 @@ import '../styles/gridSf.css';
 import '../styles/chainShowcase.css';
 
 /**
- * The longest chain found by searching real layouts (tests/bot/chainSearch.bot.ts): one slash sets off six engravings,
- * and the free actions after it keep the chain going. Everything here is the real simulation, only the opening is placed.
+ * A long, moving chain found by searching real layouts (tests/bot/chainSearch.bot.ts): dashes into slashes, blade kills
+ * firing the gun, gun kills dashing again. Everything is the real simulation; only the opening and the moves are chosen.
  */
 const ROWS = ['#############', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#...........#', '#############'];
-const SEED = 4056;
-const SUIT: EngraveId[] = ['tempest', 'gunRelay', 'momentum', 'ricochet', 'mark', 'flow'];
-const FOES: { kind: FoeKind; x: number; y: number; hp: number }[] = [
-  { kind: 'minion', x: 7, y: 4, hp: 1 }, { kind: 'minion', x: 9, y: 5, hp: 3 }, { kind: 'archer', x: 11, y: 7, hp: 4 }, { kind: 'minion', x: 9, y: 1, hp: 2 },
-  { kind: 'minion', x: 1, y: 2, hp: 2 }, { kind: 'ghoul', x: 1, y: 4, hp: 4 }, { kind: 'minion', x: 5, y: 3, hp: 1 }, { kind: 'ghoul', x: 8, y: 7, hp: 5 },
-  { kind: 'minion', x: 2, y: 6, hp: 5 }, { kind: 'minion', x: 2, y: 7, hp: 5 },
+export type ShowFoe = { kind: FoeKind; x: number; y: number; hp: number };
+const SEED = 5220;
+const SUIT: EngraveId[] = ['dash', 'bladeRelay', 'bayonet', 'trance', 'mark', 'gunRelay'];
+const FOES: ShowFoe[] = [
+  { kind: 'archer', x: 7, y: 2, hp: 7 }, { kind: 'minion', x: 10, y: 2, hp: 6 }, { kind: 'ghoul', x: 9, y: 4, hp: 8 }, { kind: 'minion', x: 1, y: 3, hp: 9 },
+  { kind: 'minion', x: 8, y: 7, hp: 1 }, { kind: 'brute', x: 4, y: 1, hp: 4 }, { kind: 'ghoul', x: 7, y: 1, hp: 7 }, { kind: 'archer', x: 10, y: 1, hp: 3 },
+  { kind: 'ghoul', x: 7, y: 7, hp: 2 }, { kind: 'ghoul', x: 2, y: 2, hp: 9 }, { kind: 'archer', x: 9, y: 1, hp: 5 }, { kind: 'archer', x: 5, y: 2, hp: 1 },
+  { kind: 'minion', x: 8, y: 2, hp: 7 },
 ];
+const D = (x: number, y: number): GAction => ({ kind: 'move', dir: { x, y } });
+const PLAN: GAction[] = [D(1, -1), D(1, 1), D(0, -1), D(1, 1), D(0, -1), D(1, 0), D(1, 0), D(1, 0), D(1, 0), D(1, 0)];
 const OPEN_MS = 1400;
-const BEAT_MS = 450;
+const BEAT_MS = 380;
 const END_MS = 3200;
 
-function setup(): GridState {
-  const hero = { x: 6, y: 4 };
-  const m: GridMap = { w: ROWS[0]!.length, h: ROWS.length, tiles: [], rooms: [], start: hero, exits: [], chests: [], spawns: FOES.map((f, i) => ({ kind: f.kind, pos: { x: f.x, y: f.y }, group: i + 1 })), barrels: [] };
+/** The showcase room: the hero (blade in hand, a tough body so the show is not cut short) and the placed foes, all awake. */
+export function showcaseState(seed: number, suit: EngraveId[], foes: ShowFoe[], hero = { x: 6, y: 4 }): GridState {
+  const m: GridMap = { w: ROWS[0]!.length, h: ROWS.length, tiles: [], rooms: [], start: hero, exits: [], chests: [], spawns: foes.map((f, i) => ({ kind: f.kind, pos: { x: f.x, y: f.y }, group: i + 1 })), barrels: [] };
   for (const row of ROWS) for (const c of row) m.tiles.push(c === '#' ? 'wall' : 'floor');
-  const s = newState(m, SEED, 'pistol', 3);
+  const s = newState(m, seed, 'pistol', 3);
   s.hero.gear.hands[1] = { ...makeWeapon('dagger', 2), name: '요원 칼' };
   s.hero.gear.active = 1;
-  s.hero.suit = [...SUIT];
+  s.hero.suit = [...suit];
   s.hero.charge = s.hero.maxCharge = 20;
-  s.foes.forEach((f, i) => { f.awake = true; f.hp = Math.min(f.maxHp, FOES[i]!.hp); });
+  s.hero.hp = s.hero.maxHp = 200;
+  s.foes.forEach((f, i) => { f.awake = true; f.hp = Math.min(f.maxHp, foes[i]!.hp); });
   refreshSight(s);
   return s;
 }
@@ -116,19 +121,17 @@ export class ChainShowcase implements Screen {
     this.chain = 0; this.kills = 0;
     this.el.querySelector('.cs-count b')!.textContent = '0';
     this.el.querySelector('.cs-stamp')!.className = 'cs-stamp';
-    this.sim = GridSim.fromState(setup());
+    this.sim = GridSim.fromState(showcaseState(SEED, SUIT, FOES));
     this.rt = new GridRuntime(this.stage, this.sim, this.lib, this.kit, false, (e) => this.cue(e));
     this.fit();
     this.timer = setTimeout(() => this.play(0), OPEN_MS);
   }
 
-  /** The opening slash, then free shots while anything is left to shoot. */
+  /** The chosen moves one by one, each played out before the next. */
   private play(i: number): void {
     const s = this.sim.s;
-    const a: GAction | null = i === 0 ? { kind: 'move', dir: { x: 1, y: 0 } }
-      : s.hero.gear.active !== 0 ? { kind: 'swap' }
-      : (() => { const t = this.sim.autoTarget(); return t ? { kind: 'shoot', target: t } as GAction : null; })();
-    if (!a || i > 8 || s.outcome) return this.finish();
+    const a = PLAN[i];
+    if (!a || s.outcome) return this.finish();
     const t0 = s.hero.nextAt;
     const ev = this.sim.act(a);
     this.rt?.apply(ev, t0);
