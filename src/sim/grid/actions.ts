@@ -26,8 +26,12 @@ import { meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange,
 export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.pos, c));
 
 /** Cells tap-walking must route around: a shut chest, a barrel (walking into one sets it off), a living foe. */
+export const stepBlocked = (s: GridState, c: Cell): boolean =>
+  !!s.map.stations?.some(p => same(p.pos, c)) || chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f.alive && same(f.pos, c));
+
+/** Hazard-avoiding routes may still choose to avoid known traps. */
 export const walkBlocked = (s: GridState, c: Cell): boolean =>
-  !!s.map.stations?.some(p => same(p.pos, c)) || chestAt(s, c)?.opened === false || s.barrels.some((b) => same(b, c)) || s.foes.some((f) => f.alive && same(f.pos, c)) || s.traps.some((tr) => tr.found && same(tr.pos, c));
+  stepBlocked(s, c) || s.traps.some((tr) => tr.found && same(tr.pos, c));
 
 /** A chest holds maybe a piece of equipment (bag, or the floor when full) and some supplies. */
 function openChest(s: GridState, t: number, c: Cell): void {
@@ -109,8 +113,13 @@ export function heroAct(s: GridState, a: GAction, hooks: ActHooks): number | nul
       h.pos = to;
       hooks.noise(to, STEP_NOISE);
       pickUp(s, t);
+      const trap = s.traps.findIndex(tr => tr.found && same(tr.pos, to));
+      if (trap >= 0) {
+        s.traps.splice(trap, 1);
+        s.events.push({ t, type: 'disarm', src: h.id, to: { ...to } });
+      }
       onEnter(s, h, t);
-      return COST.move;
+      return trap >= 0 ? 2 : COST.move;
     }
     case 'shoot': {
       if (a.at) return shootCell(s, t, a.at, (c) => explodeBarrels(s, t, c, h.id), hooks.noise);

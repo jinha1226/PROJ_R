@@ -134,10 +134,10 @@ describe('bot safety and decision contracts', () => {
     const second = smartDecide(sim, createMemory()); expect(second.kind).toBe('move');
     if (second.kind === 'move') expect(dangerCells(sim.s).has(idx(sim.s.map, add(sim.s.hero.pos, second.dir)))).toBe(false);
   });
-  it('does not mistake shotChance for line of sight', () => {
+  it('reports no shot chance and does not shoot through a wall', () => {
     const sim = arena(); const f = foe(sim, 10, 7, 8, 'archer');
     sim.s.map.tiles[idx(sim.s.map, { x: 9, y: 7 })] = 'wall';
-    expect(sim.shotChance(f.id)).not.toBeNull();
+    expect(sim.shotChance(f.id)).toBeNull();
     expect(smartDecide(sim, createMemory()).kind).not.toBe('shoot');
   });
   it('rests before entering visible adjacent stairs', () => {

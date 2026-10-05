@@ -33,7 +33,7 @@ export function heroDmg(s: GridState, w: Weapon): [number, number] {
   const melee = WEAPONS[w.group].melee;
   // strength above 10 adds to every melee blow
   const str = melee ? Math.max(0, s.hero.str - 10) : 0;
-  const bonus = melee ? s.hero.bonus.meleeDmg + Number(resonance(s).melee) : isGun(w.group) ? s.hero.bonus.gunDmg : 0;
+  const bonus = melee ? s.hero.bonus.meleeDmg + Number(resonance(s).melee) : isGun(w.group) ? s.hero.bonus.gunDmg + Number(resonance(s).ranged) : 0;
   return [lo + up + str + bonus, hi + up + str + bonus];
 }
 

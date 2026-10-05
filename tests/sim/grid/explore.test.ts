@@ -15,9 +15,8 @@ describe('exploration frontier', () => {
     expect(exploreTarget(s)).toEqual({ x: 5, y: 1 });
     expect(exploreTarget(s)).toEqual(exploreTarget(s));
   });
-  it.each(['trap', 'barrel', 'foe', 'chest'])('cannot cross a %s', (kind) => {
+  it.each(['barrel', 'foe', 'chest'])('cannot cross a %s', (kind) => {
     const s = corridor(), pos = { x: 3, y: 1 };
-    if (kind === 'trap') s.traps.push({ pos, kind: 'spike', found: true });
     if (kind === 'barrel') s.barrels.push(pos);
     if (kind === 'chest') s.chests.push({ pos, opened: false });
     if (kind === 'foe') s.foes.push({ ...s.hero, id: 'block', kind: 'minion', pos });

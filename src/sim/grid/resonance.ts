@@ -20,4 +20,4 @@ export function resonance(s: GridState): Record<Family, boolean> {
   return { melee: counts.melee >= 3, ranged: counts.ranged >= 3, fusion: counts.fusion >= 3, element: counts.element >= 3 };
 }
 
-export const pistolCost = (s: GridState, base: number): number => Math.max(1, base - Number(resonance(s).ranged));
+export const pistolCost = (_s: GridState, base: number): number => base;

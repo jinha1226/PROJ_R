@@ -53,7 +53,7 @@ export const ENGRAVES: Record<EngraveId, { name: string; note: string; fits: Fit
   ironwall: { name: '철벽', note: '패링 → 보호막 3', fits: 'melee', base: true, cost: 60, family: 'melee', tags: ['패링', '방어'] },
   cull: { name: '처단', note: '체력 30% 이하 적 근접 → 처치', fits: 'melee', base: true, cost: 90, family: 'melee', tags: ['처치'] },
   tempest: { name: '칼날 폭풍', note: '포위 → 붙은 적 전부 베기', fits: 'melee', base: true, cost: 90, family: 'melee', tags: ['포위'] },
-  gale: { name: '질풍', note: '칼 처치 → 다음 행동 0턴', fits: 'melee', base: true, cost: 100, family: 'melee', tags: ['처치'] },
+  gale: { name: '질풍', note: '칼로 둘 이상 처치 → 다음 행동 0턴', fits: 'melee', base: true, cost: 100, family: 'melee', tags: ['처치'] },
   rebound: { name: '반동', note: '벽에 박음 → 충전 +2', fits: 'melee', base: true, cost: 50, family: 'melee', tags: ['기절'] },
   quickdraw: { name: '속사', note: '사격 처치 → 충전 +1', fits: 'ranged', base: true, cost: 50, family: 'ranged', tags: ['처치'] },
   pierce: { name: '관통탄', note: '사격 → 뒤의 적 하나 더', fits: 'ranged', base: true, cost: 70, family: 'ranged', tags: ['관통'] },

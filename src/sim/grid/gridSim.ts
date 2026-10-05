@@ -4,7 +4,7 @@ import { shipAct } from './ship';
 import { newRunState, type RunOptions } from './runSetup';
 import type { MetaState } from './meta';
 import { recordDeath } from './deathRecap';
-import { autoTarget, heroAct } from './actions';
+import { autoTarget, heroAct, shootable } from './actions';
 import { noise, updateAwareness } from './danger';
 import { nextFloor, settleKills, updateWanderers } from './run';
 import { runUntilHero } from './clock';
@@ -138,7 +138,7 @@ export class GridSim {
   shotChance(id: string): number | null {
     const f = this.s.foes.find((x) => x.id === id && x.alive);
     const w = activeWeapon(this.s.hero.gear);
-    if (!f || !w || WEAPONS[w.group].melee) return null;
+    if (!f || !w || WEAPONS[w.group].melee || !shootable(this.s).includes(id)) return null;
     return hitChance(this.s.map, this.s.hero.pos, f.pos, WEAPONS[w.group].hit + (this.s.hero.modStats?.hit ?? 0));
   }
 }

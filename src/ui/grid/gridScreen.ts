@@ -4,7 +4,7 @@ import { loadPixel, savePixel } from '../../app/gridPreferences';
 import { exploreTarget } from '../../sim/grid/explore';
 import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
-import { shootable, walkBlocked } from '../../sim/grid/actions';
+import { shootable, stepBlocked, walkBlocked } from '../../sim/grid/actions';
 import { activeWeapon } from '../../sim/grid/gear';
 import { WEAPONS, type BeltItem } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
@@ -216,8 +216,8 @@ export class GridScreen implements Screen {
   private walkTo(c: Cell): void {
     const s = this.s;
     if (!walkable(tileAt(s.map, c))) return;
-    this.walk = findPath(s.map, s.hero.pos, c, (p) => walkBlocked(s, p) || (this.exploring && !s.seen[idx(s.map, p)]));
-    this.walkTimer = 0;
+    const unseen = (p: Cell) => this.exploring && !s.seen[idx(s.map, p)]; // known traps: round them if possible, else cross
+    this.walk = findPath(s.map, s.hero.pos, c, (p) => walkBlocked(s, p) || unseen(p)) ?? findPath(s.map, s.hero.pos, c, (p) => stepBlocked(s, p) || unseen(p)); this.walkTimer = 0;
   }
   private input(dt: number): void {
     const cmd = this.controls.take();
@@ -254,7 +254,7 @@ export class GridScreen implements Screen {
     const next = this.walk.shift();
     const h = this.s.hero.pos;
     if (this.exploring && next && this.s.map.stairs && same(next, this.s.map.stairs)) { this.stopWalk(); return; }
-    if (!next || dist(next, h) !== 1 || (walkBlocked(this.s, next) && !(this.s.map.stations?.some(p => same(p.pos, next)) && this.walk.length === 0))) { this.stopWalk(); return; }
+    if (!next || dist(next, h) !== 1 || (stepBlocked(this.s, next) && !(this.s.map.stations?.some(p => same(p.pos, next)) && this.walk.length === 0))) { this.stopWalk(); return; }
     if (!this.doAction({ kind: 'move', dir: { x: next.x - h.x, y: next.y - h.y }, plain: true })) this.stopWalk();
     if (this.walk && !this.walk.length) this.walk = null;
   }
