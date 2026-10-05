@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
 import { same } from '../../sim/grid/types';
-import { CLASSES, SKILLS, entOf, partyRoom, tick, useSkill, type Party } from '../../sim/party/partySim';
+import { CLASSES, SKILLS, entOf, partyRoom, queueSkill, tick, type Party } from '../../sim/party/partySim';
 import { findPath } from '../../sim/grid/path';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
@@ -45,7 +45,7 @@ export class PartyDemo implements Screen {
     this.el.querySelector('.pd-top')!.addEventListener('click', (e) => {
       const k = (e.target as HTMLElement).closest<HTMLElement>('[data-k]')?.dataset.k;
       if (k === 'pause') this.paused = !this.paused;
-      if (k === 'speed') this.speed = this.speed === 1 ? 2 : 1;
+      if (k === 'speed') { this.speed = this.speed === 1 ? 2 : 1; this.pace(); }
       if (k === 'restart') this.restart();
       this.draw();
     });
@@ -90,6 +90,7 @@ export class PartyDemo implements Screen {
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, false);
     this.rt.setZoom(9);
     this.rt.stayInMap = true;
+    this.pace();
     this.sel = 'hero';
     this.paused = false;
   }
@@ -108,10 +109,11 @@ export class PartyDemo implements Screen {
 
   private message(text: string): void { this.el.querySelector('.pd-msg')!.textContent = text; }
 
-  private skill(slot: 0 | 1): void {
-    const ev = useSkill(this.p, this.sel, slot);
-    if (ev.length) this.rt?.applyLive(ev, this.p.time);
-  }
+  /** Skills are orders: queued now (paused or not), cast on the hero's next moment as time runs. */
+  private skill(slot: 0 | 1): void { queueSkill(this.p, this.sel, slot); }
+
+  /** Figures walk at the pace units step (about one cell per 0.9 of game time). */
+  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85); }
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
@@ -160,7 +162,7 @@ export class PartyDemo implements Screen {
     const t = this.p.time;
     const cards = HEROES.map((id, i) => {
       const u = this.p.units.find((x) => x.id === id)!, e = entOf(this.p, id)!, cls = CLASSES[u.cls!];
-      const skills = cls.skills.map((s, k) => { const left = Math.max(0, u.ready[k]! - t); return `<button type="button" data-skill="${k}" ${left > 0 || !e.alive ? 'disabled' : ''}>${k ? 'W' : 'Q'} ${SKILLS[s].name}${left > 0 ? ` ${left.toFixed(0)}` : ''}</button>`; }).join('');
+      const skills = cls.skills.map((s, k) => { const left = Math.max(0, u.ready[k]! - t); const q = u.queued === k; return `<button type="button" data-skill="${k}" class="${q ? 'queued' : ''}" ${left > 0 || !e.alive ? 'disabled' : ''}>${k ? 'W' : 'Q'} ${SKILLS[s].name}${q ? ' 예약' : left > 0 ? ` ${left.toFixed(0)}` : ''}</button>`; }).join('');
       return `<div class="pd-card${id === this.sel ? ' on' : ''}${e.alive ? '' : ' dead'}" data-hero="${id}"><b>${i + 1} ${cls.name}</b><div class="pd-hp"><i style="width:${(e.hp / e.maxHp) * 100}%"></i><span>${e.hp}/${e.maxHp}</span></div><div class="pd-skills">${skills}</div></div>`;
     }).join('');
     // only when something shown changed (a rebuilt button mid-click would swallow the click)

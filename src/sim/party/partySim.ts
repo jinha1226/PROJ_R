@@ -20,7 +20,7 @@ export const SKILLS: Record<SkillId, { name: string; cd: number }> = {
 };
 const FOES = { goblin: { hp: 22, dmg: [3, 5] as [number, number], range: 1, atk: 1.0, move: 0.8 }, archer: { hp: 16, dmg: [3, 5] as [number, number], range: 6, atk: 1.3, move: 1.0 } };
 
-export interface Unit { id: string; side: 'hero' | 'foe'; cls?: ClassId; foe?: keyof typeof FOES; nextAt: number; order: Order; ready: [number, number]; tauntUntil: number; tauntBy?: string }
+export interface Unit { id: string; side: 'hero' | 'foe'; cls?: ClassId; foe?: keyof typeof FOES; nextAt: number; order: Order; ready: [number, number]; tauntUntil: number; tauntBy?: string; queued?: 0 | 1 }
 export interface Party { s: GridState; units: Unit[]; time: number }
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
@@ -108,11 +108,25 @@ export function tick(p: Party, dt: number): GEvent[] {
     const next = p.units.filter((u) => alive(p, u)).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
+    // a skill the player queued goes off on the hero's own moment, in place of its usual action
+    if (next.queued !== undefined && p.time >= next.ready[next.queued]) {
+      const slot = next.queued;
+      next.queued = undefined;
+      const cast = useSkill(p, next.id, slot);
+      if (cast.length) { ev.push(...cast); continue; }
+    }
     next.nextAt = p.time + turn(p, next, p.time, ev);
   }
   p.time = end;
   p.s.time = end;
   return ev;
+}
+
+/** Queue a hero's skill (as in FTL: orders are given at any time, even paused; they happen as time runs). Again cancels it. */
+export function queueSkill(p: Party, id: string, slot: 0 | 1): void {
+  const u = p.units.find((x) => x.id === id && x.side === 'hero');
+  if (!u || !alive(p, u) || p.time < u.ready[slot]) return;
+  u.queued = u.queued === slot ? undefined : slot;
 }
 
 /** A hero's skill, now, if it is ready; it costs a short moment. */

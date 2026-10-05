@@ -123,6 +123,8 @@ export class GridRuntime {
     this.actors.sync(this.sim.s);
     this.refresh();
   }
+  /** How fast figures walk between cells (a live game sets it from how often its units step). */
+  setWalkSpeed(cellsPerSecond: number): void { this.actors.walkSpeed = cellsPerSecond; }
   /** A live game's events (time flowing, not turns): play them as they come, without hurrying what is still showing. */
   applyLive(events: GEvent[], startTime: number): void {
     this.playback.push(events, startTime);

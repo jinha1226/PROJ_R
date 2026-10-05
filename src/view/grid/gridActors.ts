@@ -72,6 +72,9 @@ export class GridActors {
   private readonly views = new Map<string, View>();
   private readonly kinds = new Map<string, Ent['kind']>();
 
+  /** walking pace in cells per second (a live game slows it to match how often its units step) */
+  walkSpeed?: number;
+
   constructor(private readonly lib: UalLibrary) {}
 
   /** Creates models for entities that do not have one yet (reinforcements appear mid-run). */
@@ -297,7 +300,7 @@ export class GridActors {
       const step = frozen ? 0 : dt;
       const px = v.x;
       const pz = v.z;
-      const g = glide({ x: v.x / CELL, z: v.z / CELL }, { x: v.tx / CELL, z: v.tz / CELL }, step);
+      const g = glide({ x: v.x / CELL, z: v.z / CELL }, { x: v.tx / CELL, z: v.tz / CELL }, step, this.walkSpeed);
       v.x = g.x * CELL;
       v.z = g.z * CELL;
       const moved = Math.hypot(v.x - px, v.z - pz);

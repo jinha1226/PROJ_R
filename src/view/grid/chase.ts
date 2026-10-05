@@ -11,11 +11,11 @@ const CATCHUP_GAP = 1.2;
 const CATCHUP_SEC = 0.12;
 
 /** Moves a model toward its cell at a steady walking pace (no ease-out stall at each cell); more than a cell behind, it hurries. */
-export function glide(cur: { x: number; z: number }, target: { x: number; z: number }, dt: number): { x: number; z: number } {
+export function glide(cur: { x: number; z: number }, target: { x: number; z: number }, dt: number, walk = WALK_SPEED): { x: number; z: number } {
   const dx = target.x - cur.x;
   const dz = target.z - cur.z;
   const d = Math.hypot(dx, dz);
-  const speed = d > CATCHUP_GAP ? d / CATCHUP_SEC : WALK_SPEED;
+  const speed = d > CATCHUP_GAP ? d / CATCHUP_SEC : walk;
   const step = speed * dt;
   if (step >= d) return { x: target.x, z: target.z };
   return { x: cur.x + (dx / d) * step, z: cur.z + (dz / d) * step };
