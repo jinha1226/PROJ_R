@@ -15,7 +15,7 @@ describe('grid look layout', () => {
     expect(left.dir).toEqual({ x: 1, y: 0 });
   });
 
-  it('torches hang on wall faces, spread at least five tiles apart', () => {
+  it('torches hang on wall faces, spread at least four tiles apart', () => {
     const m = generateMap(7);
     const spots = torchSpots(m);
     expect(spots.length).toBeGreaterThan(8);
@@ -26,7 +26,7 @@ describe('grid look layout', () => {
     for (let i = 0; i < spots.length; i++) for (let j = i + 1; j < spots.length; j++) {
       const a = spots[i]!.floor;
       const b = spots[j]!.floor;
-      expect(Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))).toBeGreaterThanOrEqual(5);
+      expect(Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))).toBeGreaterThanOrEqual(4);
     }
     expect(torchSpots(m)).toEqual(spots);
   });

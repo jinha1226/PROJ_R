@@ -4,7 +4,7 @@ import { dist, tileAt, walkable, type Cell, type GridMap } from '../../sim/grid/
 export interface WallFace { wall: Cell; floor: Cell; dir: Cell }
 
 const SIDES: Cell[] = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
-const TORCH_GAP = 5;
+const TORCH_GAP = 4;
 
 /** Every wall side you could see from the floor (where a wall panel is drawn). */
 export function wallFaces(m: GridMap): WallFace[] {

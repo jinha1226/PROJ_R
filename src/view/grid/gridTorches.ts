@@ -5,9 +5,11 @@ import { torchSpots, type WallFace } from './gridLayout';
 import { CELL, toWorld, yawFor } from './gridTerrain';
 
 const TORCH_Y = 1.05;
-const LIGHT_RANGE = 6.5;
+const LIGHT_RANGE = 7.5;
+/** every third torch burns in the zone's accent colour (a brazier, a crystal) */
+const ACCENT_EVERY = 3;
 
-interface Torch { face: WallFace; model: THREE.Object3D; flame: THREE.Mesh; at: THREE.Vector3; cell: number; phase: number }
+interface Torch { face: WallFace; model: THREE.Object3D; flame: THREE.Mesh; at: THREE.Vector3; cell: number; phase: number; color: string; power: number }
 
 /** Wall torches: a model and a flickering flame each; only the few nearest seen torches get a real light (phones stay fast). */
 let halo: THREE.SpriteMaterial | null = null;
@@ -33,9 +35,11 @@ export class GridTorches {
   private readonly lights: THREE.PointLight[] = [];
   private t = 0;
 
-  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1, look: { torch: string; flame: string } = { torch: '#ff9a40', flame: '#ffb347' }) {
+  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1, look: { torch: string; flame: string; accent?: string } = { torch: '#ff9a40', flame: '#ffb347' }) {
     const haloMat = haloMaterial().clone();
     haloMat.color.set(look.flame);
+    const accentHalo = haloMaterial().clone();
+    accentHalo.color.set(look.accent ?? look.flame);
     const flameGeo = new THREE.SphereGeometry(0.07, 8, 6);
     const spots = torchSpots(m);
     spots.filter((_, i) => Math.floor((i + 1) * density) > Math.floor(i * density)).forEach((face, n) => {
@@ -43,16 +47,17 @@ export class GridTorches {
       const model = kit.clone('Torch', { height: 0.5 });
       model.position.set(base.x, TORCH_Y - 0.25, base.z);
       model.rotation.y = yawFor(face.dir);
-      const flame = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: look.flame, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const accent = !!look.accent && n % ACCENT_EVERY === ACCENT_EVERY - 1;
+      const flame = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: accent ? look.accent : look.flame, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false }));
       const at = new THREE.Vector3(base.x + face.dir.x * 0.28 * CELL, TORCH_Y + 0.22, base.z + face.dir.y * 0.28 * CELL);
       flame.position.copy(at);
       // a soft additive halo stands in for bloom (cheap on phones)
-      const halo = new THREE.Sprite(haloMat);
-      halo.scale.setScalar(1.1);
+      const halo = new THREE.Sprite(accent ? accentHalo : haloMat);
+      halo.scale.setScalar(accent ? 1.5 : 1.2);
       flame.add(halo);
       model.visible = flame.visible = false;
       this.root.add(model, flame);
-      this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7 });
+      this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7, color: accent ? look.accent! : look.torch, power: accent ? 11 : 15 });
     });
     for (let i = 0; i < lightCount; i++) {
       const l = new THREE.PointLight(look.torch, 0, LIGHT_RANGE, 1.8);
@@ -68,7 +73,7 @@ export class GridTorches {
     this.lights.forEach((l, i) => {
       const t = near[i];
       l.userData.torch = t;
-      if (t) l.position.copy(t.at).add(new THREE.Vector3(t.face.dir.x * 0.3, 0, t.face.dir.y * 0.3));
+      if (t) { l.position.copy(t.at).add(new THREE.Vector3(t.face.dir.x * 0.3, 0, t.face.dir.y * 0.3)); l.color.set(t.color); }
       else l.intensity = 0;
     });
   }
@@ -83,7 +88,7 @@ export class GridTorches {
     for (const l of this.lights) {
       const t = l.userData.torch as Torch | undefined;
       if (!t) continue;
-      l.intensity = 8 * (1 + Math.sin(this.t * 9 + t.phase) * 0.1 + Math.sin(this.t * 17 + t.phase) * 0.06);
+      l.intensity = t.power * (1 + Math.sin(this.t * 9 + t.phase) * 0.1 + Math.sin(this.t * 17 + t.phase) * 0.06);
     }
   }
 
