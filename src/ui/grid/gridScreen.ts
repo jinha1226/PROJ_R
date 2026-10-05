@@ -4,19 +4,21 @@ import { loadPixel, savePixel } from '../../app/gridPreferences';
 import { exploreTarget } from '../../sim/grid/explore';
 import type { Screen } from '../../app/router';
 import { HoldRepeat, interruption, quantize8 } from '../../app/input/gridInput';
-import { shootable, stepBlocked, walkBlocked } from '../../sim/grid/actions';
+import { shootable, stepBlocked } from '../../sim/grid/actions';
 import { activeWeapon } from '../../sim/grid/gear';
 import { WEAPONS, type BeltItem } from '../../sim/grid/items';
 import { canFire } from '../../sim/grid/weapons';
 import { GridBag } from './gridBag';
 import { LevelUpPanel } from './levelUp';
+import { plannedPath } from './plannedPath';
+import { HoverPath } from './hoverPath';
+import { MiniMap } from './miniMap';
 import { StonePanel } from './stonePanel';
 import { UpgradePanel } from './upgradePanel';
 import { GridBelt, THROWN } from './gridBelt';
 import { ThrowAim } from './throwAim';
 import { weaponState } from './weaponInfo';
 import type { GridSim } from '../../sim/grid/gridSim';
-import { findPath } from '../../sim/grid/path';
 import { dist, idx, same, tileAt, walkable, type Cell, type GAction } from '../../sim/grid/types';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
@@ -47,6 +49,8 @@ export class GridScreen implements Screen {
   private zoom: ZoomControl | null = null;
   private bag: GridBag | null = null;
   private levelUp: { panel: LevelUpPanel | UpgradePanel | StonePanel; offer: unknown } | null = null;
+  private hover: HoverPath | null = null;
+  private readonly mini = new MiniMap();
   private readonly belt = new GridBelt((it) => this.controls.push(it));
   private readonly throwing = new ThrowAim(() => this.s, (c) => this.controls.push(c), (a) => this.doAction(a), (cells, ok) => this.rt?.showAim(cells, ok));
   private cleanup: (() => void)[] = [];
@@ -82,6 +86,7 @@ export class GridScreen implements Screen {
     }
     this.api.ship?.mount(this.el, this.rt);
     this.el.appendChild(this.hud.el);
+    if (!this.api.ship) this.el.appendChild(this.mini.el);
     this.el.append(this.belt.el, this.throwing.bar);
     this.touch = new GridTouch((c) => this.controls.push(c), mobile);
     this.el.appendChild(this.touch.el);
@@ -89,6 +94,10 @@ export class GridScreen implements Screen {
     this.cleanup.push(attachMouseAim(stage, () => this.s, (x, y) => rt.cellAt(x, y),
       () => !this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim && !this.api.ship?.blocked,
       () => { this.stopWalk(); this.throwing.command('cancel', null); }));
+    const hover = new HoverPath(stage, () => this.s, (x, y) => rt.cellAt(x, y),
+      () => !this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim && !this.api.ship?.blocked && !this.walk, (cells) => rt.showPath(cells));
+    this.hover = hover;
+    this.cleanup.push(() => hover.dispose());
     this.cleanup.push(attachFoePress(this.el, () => this.s, (x, y) => rt.cellAt(x, y), (id) => {
       if (!this.levelUp && !this.bag && !this.s.outcome && !this.throwing.aim) { this.stopWalk(); this.touch?.releaseStick(); this.s.hero.target = id; }
     }));
@@ -233,8 +242,7 @@ export class GridScreen implements Screen {
   private walkTo(c: Cell): void {
     const s = this.s;
     if (!walkable(tileAt(s.map, c))) return;
-    const unseen = (p: Cell) => this.exploring && !s.seen[idx(s.map, p)]; // known traps: round them if possible, else cross
-    this.walk = findPath(s.map, s.hero.pos, c, (p) => walkBlocked(s, p) || unseen(p)) ?? findPath(s.map, s.hero.pos, c, (p) => stepBlocked(s, p) || unseen(p)); this.walkTimer = 0;
+    this.walk = plannedPath(s, c, this.exploring); this.walkTimer = 0;
   }
   private input(dt: number): void {
     const cmd = this.controls.take();
@@ -279,6 +287,8 @@ export class GridScreen implements Screen {
     const s = this.s;
     this.controls.pollPad();
     if (!s.outcome) this.input(dt);
+    this.hover?.refresh();
+    if (!this.api.ship) this.mini.draw(s);
     this.rt!.update(dt);
     const target = this.api.sim.autoTarget();
     const chance = target ? this.api.sim.shotChance(target) : null;

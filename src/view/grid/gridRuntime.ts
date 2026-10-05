@@ -153,6 +153,9 @@ export class GridRuntime {
   }
   skipIntro(): void { this.intro?.skip(); }
   powerShip(meta: MetaState): void { if (this.terrain instanceof ShipTerrain) this.terrain.power(meta); }
+  showPath(cells: { x: number; y: number }[] | null): void {
+    this.elements.setPath(cells);
+  }
   showAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
     this.elements.setAim(cells, ok);
   }

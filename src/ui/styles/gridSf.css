@@ -133,3 +133,6 @@
 .screen.grid .stone-card { cursor: default; }
 .screen.grid .stone-warn { color: #ffc94a; margin: 6px 0 0; font-size: 13px; }
 .screen.grid .stone-acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
+/* the small map: top left, under the floor line, hard pixels */
+.screen.grid .grid-minimap { position: absolute; left: 8px; top: calc(env(safe-area-inset-top, 0px) + 80px); height: auto; image-rendering: pixelated; background: #021407d8; border: 1px solid var(--t-line, #1f7a3e); padding: 3px; pointer-events: none; z-index: 3; }
+.grid.landscape .grid-minimap { left: var(--hud-left); top: calc(var(--hud-top) + 22px); }

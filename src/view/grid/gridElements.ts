@@ -20,6 +20,11 @@ export class GridElements {
   private readonly tiles = new THREE.Group();
   private readonly marks = new THREE.Group();
   private readonly aim = new THREE.Group();
+  /** the hovered walk: a dotted trail and a framed end cell */
+  private readonly path = new THREE.Group();
+  private readonly pathDot = new THREE.MeshBasicMaterial({ color: '#c8ffd8', transparent: true, opacity: 0.75, depthWrite: false });
+  private readonly pathEnd = new THREE.MeshBasicMaterial({ color: '#5dff8a', transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
+  private pathKey = '';
   private readonly barrels = new Map<string, THREE.Object3D>();
   private stairs: THREE.Object3D | null = null;
   private readonly traps = new THREE.Group();
@@ -29,7 +34,7 @@ export class GridElements {
   private t = 0;
 
   constructor(private readonly kit: DungeonKit, s: GridState) {
-    this.root.add(this.tiles, this.marks, this.aim, this.traps);
+    this.root.add(this.tiles, this.marks, this.aim, this.traps, this.path);
     for (const b of s.barrels) {
       const o = kit.clone('Barrel', { width: CELL * 0.6 });
       o.position.copy(toWorld(b.x, b.y));
@@ -119,6 +124,24 @@ export class GridElements {
       m.position.copy(toWorld(c.x, c.y)).setY(0.05);
       this.aim.add(m);
     }
+  }
+
+  /** Shows where a click would walk: a dot on every step and a frame on the last cell (null hides it). */
+  setPath(cells: { x: number; y: number }[] | null): void {
+    const key = cells ? cells.map((c) => `${c.x},${c.y}`).join(';') : '';
+    if (key === this.pathKey) return;
+    this.pathKey = key;
+    for (const o of this.path.children) (o as THREE.Mesh).geometry.dispose();
+    this.path.clear();
+    if (!cells?.length) return;
+    cells.forEach((c, i) => {
+      const last = i === cells.length - 1;
+      const geo = last ? new THREE.RingGeometry(CELL * 0.3, CELL * 0.42, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2) : new THREE.PlaneGeometry(CELL * 0.14, CELL * 0.14).rotateX(-Math.PI / 2);
+      const m = new THREE.Mesh(geo, last ? this.pathEnd : this.pathDot);
+      m.position.copy(toWorld(c.x, c.y)).setY(0.06);
+      m.renderOrder = 5;
+      this.path.add(m);
+    });
   }
 
   /** Is there a barrel at a grid cell (for tap-to-shoot)? */
