@@ -90,6 +90,8 @@ export class PartyDemo implements Screen {
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, false);
     this.rt.setZoom(9);
     this.rt.stayInMap = true;
+    // the smooth look (no pixel pass)
+    this.rt.pixelated = false;
     this.pace();
     this.sel = 'hero';
     this.paused = false;
