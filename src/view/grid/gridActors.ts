@@ -97,6 +97,12 @@ export class GridActors {
     return id ? this.views.get(id) : undefined;
   }
 
+  /** The figure's scene object (for afterimages). */
+  figure(id: string | undefined): THREE.Object3D | undefined {
+    const v = this.v(id);
+    return v && !v.dead ? v.actor.root : undefined;
+  }
+
   pos(id: string): THREE.Vector3 | undefined {
     const v = this.views.get(id);
     return v ? new THREE.Vector3(v.x + v.ox, 0, v.z + v.oz) : undefined;

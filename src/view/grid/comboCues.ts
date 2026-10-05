@@ -6,7 +6,7 @@ import type { GridFx } from './gridFx';
 import type { GridParticles } from './gridParticles';
 import type { EngravePops } from './engravePops';
 
-export interface CueKit { actors: GridActors; fx: GridFx; particles: GridParticles; pops: EngravePops; at(id?: string): THREE.Vector3 | undefined; punch(): void }
+export interface CueKit { actors: GridActors; fx: GridFx; particles: GridParticles; pops: EngravePops; at(id?: string): THREE.Vector3 | undefined; punch(): void; trail(id: string | undefined, sec: number): void }
 
 const TRAP_COLOR: Record<string, string> = { spike: '#d8d8d8', alarm: '#ffd23a', poison: '#7ad04a', fire: '#ff6a2a', teleport: '#b48aff', net: '#c8b090' };
 const TRAP_LABEL: Record<string, string> = { spike: '가시 함정!', alarm: '경보!', poison: '독가스!', fire: '화염 함정!', teleport: '순간이동!', net: '그물!' };
@@ -26,8 +26,8 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'move':
       if (!e.to || (e.text !== 'dash' && e.text !== 'leap' && e.text !== 'roll')) return false;
       if (e.text === 'roll') { a.roll(e.src, e.to.x, e.to.y); const p = k.at(e.src); if (p) k.particles.spray(p, '#d8d0c0', 6); }
-      else if (e.text === 'dash') { a.dash(e.src, e.to.x, e.to.y); const p = k.at(e.src); if (p) k.particles.spray(p, '#d8d0c0', 8); }
-      else a.leap(e.src, e.to.x, e.to.y);
+      else if (e.text === 'dash') { a.dash(e.src, e.to.x, e.to.y); k.trail(e.src, 0.22); const p = k.at(e.src); if (p) k.particles.spray(p, '#d8d0c0', 8); }
+      else { a.leap(e.src, e.to.x, e.to.y); k.trail(e.src, 0.3); }
       return true;
     case 'push':
       if (!e.to) return false;
@@ -37,9 +37,11 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'engrave':
       k.pops.engrave(e.text ?? '');
       k.fx.slow(0.5, 0.45);
+      k.trail(e.src ?? 'hero', 0.5);
       return true;
     case 'chain':
       k.fx.slow(1.4, 0.35);
+      k.trail('hero', 1.1);
       k.pops.hits(e.amount ?? 0, true);
       return true;
     case 'combo': {

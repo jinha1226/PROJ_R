@@ -30,6 +30,7 @@ import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
 import { PixelPass } from './pixelPass';
 import { ShipIntro } from './shipIntro';
+import { Afterimages } from './afterimage';
 let ELEVATION = (45 * Math.PI) / 180;
 /** Scripted views (the comparison demo) may tilt the camera. */
 export const setCameraElevation = (deg: number): void => { ELEVATION = (deg * Math.PI) / 180; };
@@ -63,6 +64,9 @@ export class GridRuntime {
   /** the ship's waking shot and the hatch beacon (ship only) */
   private intro?: ShipIntro;
   private zoomMul = 1;
+  private readonly ghosts = new Afterimages();
+  /** dims the screen edge while the game runs slow (an engraving moment) */
+  private readonly slowmo = document.createElement('div');
   constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, theme?: { theme: 'ship'; kit: ShipKit; meta: MetaState }) {
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
@@ -83,12 +87,14 @@ export class GridRuntime {
     this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density, look);
     this.elements = new GridElements(kit, sim.s);
     this.mapRef = sim.s.map;
-    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root);
+    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root, this.ghosts.root);
+    this.slowmo.className = 'grid-slowmo';
+    el.appendChild(this.slowmo);
     this.banner.className = 'grid-banner';
     el.appendChild(this.banner);
     this.fx = new GridFx(scene, el, (p) => this.project(p), mobile ? 1 : 4);
     this.pops = new EngravePops(el);
-    this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; } };
+    this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; }, trail: (id, sec) => { if (id) this.ghosts.trailOf(() => this.actors.figure(id), sec, id === 'hero' ? '#6dffb4' : '#ff8a6a'); } };
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
@@ -254,6 +260,8 @@ export class GridRuntime {
     this.torches.update(dt);
     this.items.update(dt);
     this.elements.update(dt);
+    this.ghosts.update(dt);
+    this.slowmo.classList.toggle('on', this.fx.timeScale < 1);
     this.particles.update(this.fx.frozen ? 0 : scaled, this.center);
     this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
@@ -305,6 +313,8 @@ export class GridRuntime {
     this.banner.remove();
     this.pops.dispose();
     this.intro?.dispose();
+    this.ghosts.dispose();
+    this.slowmo.remove();
     this.pixel.dispose();
     this.terrain.dispose();
     this.h.dispose();
