@@ -33,6 +33,8 @@ import { ShipIntro } from './shipIntro';
 import { Afterimages } from './afterimage';
 import { sensedFoes } from '../../sim/grid/perks';
 import { feel } from './feel';
+import { StrikeFx } from './strikeFx';
+import { StrikeCues } from './strikeCues';
 let ELEVATION = (45 * Math.PI) / 180;
 /** Scripted views (the comparison demo) may tilt the camera. */
 export const setCameraElevation = (deg: number): void => { ELEVATION = (deg * Math.PI) / 180; };
@@ -69,6 +71,8 @@ export class GridRuntime {
   /** keep the view inside the map instead of following the hero past its edge (the showcase) */
   stayInMap = false;
   private readonly ghosts = new Afterimages();
+  private readonly strikeFx = new StrikeFx();
+  private strikes!: StrikeCues;
   /** dims the screen edge while the game runs slow (an engraving moment) */
   private readonly slowmo = document.createElement('div');
   constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, theme?: { theme: 'ship'; kit: ShipKit; meta: MetaState }) {
@@ -91,7 +95,7 @@ export class GridRuntime {
     this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density, look);
     this.elements = new GridElements(kit, sim.s);
     this.mapRef = sim.s.map;
-    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root, this.ghosts.root);
+    scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root, this.ghosts.root, this.strikeFx.root);
     this.slowmo.className = 'grid-slowmo';
     el.appendChild(this.slowmo);
     this.banner.className = 'grid-banner';
@@ -99,6 +103,8 @@ export class GridRuntime {
     this.fx = new GridFx(scene, el, (p) => this.project(p), mobile ? 1 : 4);
     this.pops = new EngravePops(el);
     this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; }, trail: (id, sec) => { if (id) this.ghosts.trailOf(() => this.actors.figure(id), sec, id === 'hero' ? '#6dffb4' : '#ff8a6a'); } };
+    // the figures are rebuilt on each floor, so the cues ask for the current set
+    this.strikes = new StrikeCues(this.strikeFx, () => this.actors, this.particles);
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
@@ -192,6 +198,7 @@ export class GridRuntime {
     const a = this.actors;
     const at = (id?: string) => (id ? a.pos(id) : undefined);
     const key = `${e.src}>${e.dst}`;
+    if (e.src === 'hero' || e.type === 'engrave') this.strikes.note(e);
     const shot = this.pending.get(key);
     if (shot && !shot.ready && (e.type === 'hit' || e.type === 'miss' || e.type === 'die')) { shot.queue.push(e); return; }
     if (comboCue({ ...this.kit2, actors: a }, e)) { this.onCue(e); return; }
@@ -199,7 +206,11 @@ export class GridRuntime {
       case 'move': if (e.to) a.moveTo(e.src, e.to.x, e.to.y); break;
       case 'bump': {
         const p = at(e.dst);
-        if (p) { a.lunge(e.src, p, e.text === 'finisher' ? 'finisher' : undefined, e.group); const from = at(e.src)!; this.fx.transient.slash(p.x, p.z, Math.atan2(p.z - from.z, p.x - from.x)); }
+        if (p) {
+          a.lunge(e.src, p, e.text === 'finisher' ? 'finisher' : undefined, e.group);
+          const from = at(e.src)!;
+          if (e.src === 'hero') this.strikes.slash(e, p, from); else this.fx.transient.slash(p.x, p.z, Math.atan2(p.z - from.z, p.x - from.x));
+        }
         break;
       }
       case 'shoot': {
@@ -215,6 +226,7 @@ export class GridRuntime {
         this.pending.set(key, entry);
         const magic = e.text === 'spell';
         const f = feel(), mine = e.src === 'hero';
+        if (mine) this.strikes.shot(e, from, p);
         this.fx.flash(from, magic ? '#b48aff' : '#ffd890', mine ? f.flash : 22, 0.08);
         if (mine && f.shotKick) this.fx.shake(0.07, f.shotKick);
         this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); }, mine ? f.bolt : 1);
@@ -241,7 +253,7 @@ export class GridRuntime {
         break;
       }
       case 'reload': a.anim(e.src, 'reload'); break;
-      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); this.fx.hitStop(feel().killStop); } break; }
+      case 'die': { a.die(e.dst); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); this.fx.hitStop(feel().killStop); if (e.dst) this.strikes.kill(e.dst, p); } break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'energy': if (e.to) this.fx.energy(cellVec(e.to), e.amount ?? 0); break;
@@ -272,6 +284,8 @@ export class GridRuntime {
     this.items.update(dt);
     this.elements.update(dt);
     this.ghosts.update(dt);
+    this.strikeFx.update(scaled);
+    this.strikes.update(dt);
     this.slowmo.classList.toggle('on', this.fx.timeScale < 1);
     this.particles.update(this.fx.frozen ? 0 : scaled, this.center);
     this.punch = Math.max(0, this.punch - dt);
@@ -336,6 +350,7 @@ export class GridRuntime {
     this.pops.dispose();
     this.intro?.dispose();
     this.ghosts.dispose();
+    this.strikeFx.dispose();
     this.slowmo.remove();
     this.pixel.dispose();
     this.terrain.dispose();

@@ -267,6 +267,16 @@ export class UalActor {
     this.start(CLIP.death, false, 1.3, 0.05);
   }
 
+  /** Cuts a part off at a bone (it and everything below it shrink away); returns where it was and the body colour, or null. */
+  sever(boneName: string): { at: THREE.Vector3; color: THREE.Color; size: number } | null {
+    const b = this.root.getObjectByName(boneName);
+    if (!b || this.shaped.some(([s]) => s === b && s.scale.x < 0.01)) return null;
+    const at = b.getWorldPosition(new THREE.Vector3());
+    this.shaped = this.shaped.filter(([s]) => s !== b);
+    this.shaped.push([b, new THREE.Vector3(1e-4, 1e-4, 1e-4)]);
+    return { at, color: new THREE.Color(this.look.body).multiplyScalar(0.35), size: this.look.scale };
+  }
+
   update(dt: number): void {
     this.mixer.update(dt);
     // the species build rides on top of whatever the clip set this frame

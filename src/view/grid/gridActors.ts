@@ -97,6 +97,21 @@ export class GridActors {
     return id ? this.views.get(id) : undefined;
   }
 
+  /** Cuts a head or an arm off a figure (it must still be standing in the scene). */
+  sever(id: string | undefined, part: 'head' | 'armL' | 'armR'): { at: THREE.Vector3; color: THREE.Color; size: number } | null {
+    const v = this.v(id);
+    return v ? v.actor.sever(part === 'head' ? 'Head' : part === 'armL' ? 'upperarm_l' : 'upperarm_r') : null;
+  }
+
+  /** A body knocked a little way from the blow that killed it (it lies there). */
+  fling(id: string | undefined, from: THREE.Vector3, dist: number): void {
+    const v = this.v(id);
+    if (!v) return;
+    const dx = v.x - from.x, dz = v.z - from.z, len = Math.hypot(dx, dz) || 1;
+    v.x += (dx / len) * dist; v.z += (dz / len) * dist;
+    v.tx = v.x; v.tz = v.z;
+  }
+
   /** The figure's scene object (for afterimages). */
   figure(id: string | undefined): THREE.Object3D | undefined {
     const v = this.v(id);

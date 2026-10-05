@@ -35,6 +35,7 @@ it('search the most varied single turn', () => {
     ['flow', 'pierce', 'ricochet', 'volley', 'mark', 'barrage'],
     ['flow', 'barrage', 'ricochet', 'quickdraw', 'pierce', 'kite'],
     ['flow', 'rapid', 'volley', 'ricochet', 'pierce', 'thrift'],
+    ['flow', 'kite', 'volley', 'ricochet', 'pierce', 'rapid'],
   ];
   const GUN = (suit: EngraveId[]) => !suit.some(id => ['dash', 'leap', 'tempest', 'gunRelay', 'bladeRelay'].includes(id));
   // SUIT=n searches one suit only (a scene per suit)
