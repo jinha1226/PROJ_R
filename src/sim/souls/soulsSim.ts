@@ -6,7 +6,7 @@ import { FOES, HERO, MOVES, WEAPONS, shapeCells, type FoeId, type FoeStrike, typ
 
 export type SoulsAction =
   | { kind: 'move'; dir: Cell } | { kind: 'dodge'; dir: Cell } | { kind: 'light' } | { kind: 'heavy' }
-  | { kind: 'guard' } | { kind: 'parry' } | { kind: 'heal' } | { kind: 'weapon'; id: WeaponId } | { kind: 'face'; dir: Cell };
+  | { kind: 'guard' } | { kind: 'parry' } | { kind: 'defend' } | { kind: 'heal' } | { kind: 'weapon'; id: WeaponId } | { kind: 'face'; dir: Cell };
 
 interface FoeBody { id: string; def: FoeId; poise: number; facing: Cell; intent?: FoeStrike & { at: number; cells: Cell[] }; staggerUntil: number; turn: number; hitAt: number }
 export interface Hero { stamina: number; poise: number; flasks: number; weapon: WeaponId; facing: Cell; spentAt: number; hitAt: number; guard: [number, number]; parry: [number, number]; staggerUntil: number }
@@ -79,6 +79,8 @@ export function act(g: Souls, a: SoulsAction): GEvent[] {
     cost = strike.cost;
     spend(g, t0, strike.stamina);
   } else if (a.kind === 'guard') { cost = MOVES.guard.cost; h.guard = [t0, t0 + cost + 0.3]; }
+  // one defence: a blow in its first moments is parried, a later one is guarded
+  else if (a.kind === 'defend') { cost = MOVES.guard.cost; h.parry = [t0, t0 + MOVES.parry.window]; h.guard = [t0 + MOVES.parry.window, t0 + cost + 0.3]; }
   else if (a.kind === 'parry') { cost = MOVES.parry.cost; h.parry = [t0, t0 + MOVES.parry.window]; spend(g, t0, MOVES.parry.stamina); }
   else if (a.kind === 'heal') { if (h.flasks <= 0) return [{ t: t0, type: 'blocked', src: 'hero' }]; cost = MOVES.heal.cost; healAt = t0 + cost; ev.push({ t: t0, type: 'drink', src: 'hero', to: { ...s.hero.pos } }); }
   let end = t0 + cost;

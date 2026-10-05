@@ -64,3 +64,16 @@ it('striking a staggered foe is a critical hit', () => {
   const ev = act(g, { kind: 'light' });
   expect(ev.some((e) => e.type === 'hit' && e.dst !== 'hero' && e.crit)).toBe(true);
 });
+
+it('one defence parries a blow that lands in its first moments and guards a later one', () => {
+  // the soldier's swing lands 0.9 after it is shown: defending at 0.8 catches it 0.1 in — a parry
+  const early = arena([{ id: 'soldier', x: 6, y: 5 }]);
+  act(early, { kind: 'guard' });
+  expect(act(early, { kind: 'defend' }).some((e) => e.type === 'parry' && e.src === 'hero')).toBe(true);
+  // after a dagger jab (0.6) the swing is 0.3 away: past the 0.25 parry window, so it is guarded
+  const late = arena([{ id: 'soldier', x: 6, y: 5 }], 'dagger');
+  act(late, { kind: 'light' });
+  const ev = act(late, { kind: 'defend' });
+  expect(ev.some((e) => e.type === 'parry' && e.src === 'hero')).toBe(false);
+  expect(ev.some((e) => e.type === 'shield' && e.src === 'hero')).toBe(true);
+});

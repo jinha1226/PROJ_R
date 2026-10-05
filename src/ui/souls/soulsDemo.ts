@@ -51,7 +51,7 @@ export class SoulsDemo implements Screen {
       <div class="sd-hud"><div class="sd-bar hp"><i></i><span></span></div><div class="sd-bar st"><i></i><span></span></div><div class="sd-bar po"><i></i><span></span></div><p class="sd-info"></p></div>
       <div class="sd-top"><nav class="sd-scenes">${SCENES.map((sc, i) => `<button type="button" data-scene="${i}">${sc.name}</button>`).join('')}</nav>
         <nav class="sd-weapons">${(Object.keys(WEAPONS) as WeaponId[]).map((w) => `<button type="button" data-weapon="${w}">${WEAPONS[w].name}</button>`).join('')}</nav></div>
-      <div class="sd-acts"></div><p class="sd-help">이동 WASD·QEZC / 클릭 · 약공 J · 강공 K · 회피 Space(+Shift 방향) · 가드 L · 패링 I · 회복 H</p>`;
+      <div class="sd-acts"></div><p class="sd-help">이동 WASD·QEZC·클릭 · 구르기 Shift+방향 · 공격 J · 방어 L · 회복 H</p>`;
     root.appendChild(this.el);
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.el.querySelector('.sd-scenes')!.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-scene]'); if (b) { this.scene = Number(b.dataset.scene); this.restart(); } });
@@ -86,8 +86,11 @@ export class SoulsDemo implements Screen {
     return { kind: 'dodge', dir: pick?.dir ?? { x: 0, y: 1 } };
   }
 
+  /** The three buttons: the weapon's attack, one defence (parry early, guard late), heal; a roll stays on Shift+direction. */
   private actionFor(id: string): SoulsAction {
-    return id === 'dodge' ? this.bestDodge() : ({ kind: id } as SoulsAction);
+    if (id === 'dodge') return this.bestDodge();
+    if (id === 'attack') return { kind: 'light' };
+    return { kind: id } as SoulsAction;
   }
 
   private do(a: SoulsAction): void {
@@ -104,7 +107,7 @@ export class SoulsDemo implements Screen {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const dir = KEY_DIR[k];
     if (dir) { e.preventDefault(); this.do(e.shiftKey ? { kind: 'dodge', dir } : { kind: 'move', dir }); return; }
-    const map: Record<string, string> = { j: 'light', k: 'heavy', ' ': 'dodge', l: 'guard', i: 'parry', h: 'heal' };
+    const map: Record<string, string> = { j: 'attack', l: 'defend', h: 'heal', ' ': 'dodge' };
     if (map[k]) { e.preventDefault(); this.do(this.actionFor(map[k]!)); }
     if (k === 'r') this.restart();
   }
@@ -134,7 +137,7 @@ export class SoulsDemo implements Screen {
     this.el.querySelector('.sd-info')!.textContent = end || `시간 ${s.time.toFixed(1)} · 회복약 ${h.flasks} · ${WEAPONS[h.weapon].name}`;
     this.el.querySelectorAll<HTMLElement>('[data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === h.weapon));
     const w = WEAPONS[h.weapon];
-    const acts: [string, string, string][] = [['light', `약공 ${w.light.name}`, `${w.light.cost}`], ['heavy', `강공 ${w.heavy.name}`, `${w.heavy.cost}`], ['dodge', '회피', '0.8'], ['guard', '가드', '0.8'], ['parry', '패링', '0.6'], ['heal', '회복', '1.6']];
+    const acts: [string, string, string][] = [['attack', `공격 · ${w.light.name}`, `${w.light.cost}`], ['defend', '방어', '0.8'], ['heal', `회복 ${h.flasks}`, '1.6']];
     this.el.querySelector('.sd-acts')!.innerHTML = acts.map(([id, name, cost]) => {
       const o = end ? { text: '', tone: '' } : outcome(g, this.actionFor(id));
       return `<button type="button" data-act="${id}" class="${o.tone}"><b>${name}</b><small>${cost}</small><em>${o.text}</em></button>`;
