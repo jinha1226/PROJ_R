@@ -106,7 +106,19 @@ async function workbenchDemo(): Promise<void> {
   host.appendChild(screen.el);
 }
 
+/** `?demo=chain`: the longest chain the engravings make, looping (for a look, or a recording with `&clean=1`). */
+async function chainDemo(): Promise<void> {
+  try {
+    const [{ ChainShowcase }, lib, kit, weapons] = await Promise.all([import('../ui/grid/chainShowcase'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    router.go(new ChainShowcase(lib, kit));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 if (params.get('demo') === 'kata') void kataDemo();
+else if (params.get('demo') === 'chain') void chainDemo();
 else if (params.get('demo') === 'workbench') void workbenchDemo();
 else if (params.get('screen') === 'sandbox') sandbox();
 else title();

@@ -1,0 +1,21 @@
+/* the maximum-chain showcase: the game picture, letterbox bars, a big chain count, the suit slots lighting up as they fire */
+.screen.grid.chain-show .grid-stage { position: absolute; inset: 0; }
+.cs-bars::before, .cs-bars::after { content: ''; position: absolute; left: 0; right: 0; height: 0; background: #000; z-index: 3; transition: height 0.3s; }
+.cs-bars::before { top: 0; } .cs-bars::after { bottom: 0; }
+.chain-show.slow .cs-bars::before, .chain-show.slow .cs-bars::after { height: 8vh; }
+.cs-count { position: absolute; right: 4vw; top: 12vh; z-index: 5; display: flex; align-items: baseline; gap: 8px; color: var(--t-fg, #5dff8a); font-family: 'GalmuriMono', monospace; text-shadow: 0 0 8px #3dff7acc, 3px 3px 0 #0b3d1a; pointer-events: none; }
+.cs-count b { font-size: clamp(48px, 9vw, 112px); font-weight: normal; line-height: 1; }
+.cs-count span { font-size: clamp(16px, 2vw, 24px); letter-spacing: 0.2em; color: var(--t-dim, #34a85c); }
+.cs-count.pop b { animation: cs-pop 0.28s ease-out; }
+.cs-suit { position: absolute; left: 50%; bottom: 10vh; transform: translateX(-50%); z-index: 5; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 92vw; pointer-events: none; }
+.cs-suit span { padding: 4px 10px; font: 13px 'GalmuriMono', monospace; color: var(--t-dim, #34a85c); border: 1px solid var(--t-line, #1f7a3e); background: #021407d0; }
+.cs-suit span.lit { animation: cs-lit 0.9s ease-out; }
+.cs-stamp { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; z-index: 6; opacity: 0; pointer-events: none; font-family: 'GalmuriMono', monospace; }
+.cs-stamp.on { opacity: 1; animation: cs-stamp 0.4s ease-out; }
+.cs-stamp b { font-size: clamp(56px, 10vw, 128px); font-weight: normal; color: var(--t-warn, #e6ffb0); text-shadow: 0 0 12px #3dff7aaa, 4px 4px 0 #0b3d1a; }
+.cs-stamp span { font-size: clamp(18px, 2.4vw, 28px); letter-spacing: 0.3em; color: var(--t-fg, #5dff8a); }
+.chain-show.clean .cs-count, .chain-show.clean .cs-suit, .chain-show.clean .cs-stamp { display: none; }
+.chain-show .gpops { z-index: 5; }
+@keyframes cs-pop { from { transform: scale(1.6); color: #fff; } to { transform: none; } }
+@keyframes cs-lit { 0% { background: #5dff8a; color: #021006; } 100% { background: #021407d0; color: var(--t-dim, #34a85c); } }
+@keyframes cs-stamp { from { transform: scale(1.4); opacity: 0; } to { transform: none; opacity: 1; } }
