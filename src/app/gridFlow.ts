@@ -21,7 +21,8 @@ export class GridFlow {
   constructor(private readonly router: Router, private readonly root: HTMLElement, private readonly toTitle: () => void) {}
 
   start(seed: number): void {
-    void this.ship(seed);
+    // from the title a clone wakes in the pod, as after a run
+    void this.ship(seed, true);
   }
 
   continue(): void {

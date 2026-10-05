@@ -116,6 +116,7 @@ export class GridScreen implements Screen {
       if ((e.pointerType !== 'mouse' || e.button === 0) && t && t.id === e.pointerId && Math.hypot(e.clientX - t.x, e.clientY - t.y) < TAP_PX && performance.now() - t.at < TAP_MS) this.onTap(e.clientX, e.clientY, e.pointerType === 'mouse');
     });
     (window as unknown as { __PROJR_GRID__: unknown }).__PROJR_GRID__ = { state: () => this.s, act: (a: GAction) => this.doAction(a), walkTo: (c: Cell) => this.walkTo(c), walking: () => !!this.walk, toStairs: () => { if (this.s.map.stairs) this.walkTo(this.s.map.stairs); } };
+    if (this.api.ship?.api.wake) this.wakeUp(rt);
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
@@ -128,6 +129,20 @@ export class GridScreen implements Screen {
   private visibleFoes(): Set<string> {
     const s = this.s;
     return new Set(s.foes.filter((f) => f.alive && s.visible.has(idx(s.map, f.pos))).map((f) => f.id));
+  }
+  /** The clone steps out of the pod while the camera pulls back; a key or a tap cuts the shot short. */
+  private wakeUp(rt: GridRuntime): void {
+    rt.playIntro();
+    const from = { ...this.s.hero.pos };
+    const steps: [number, Cell, Cell][] = [[1150, from, { x: 1, y: 1 }], [1500, { x: from.x + 1, y: from.y + 1 }, { x: 0, y: 1 }]];
+    for (const [ms, at, dir] of steps) {
+      const id = setTimeout(() => { if (same(this.s.hero.pos, at) && !this.api.ship?.blocked) this.doAction({ kind: 'move', dir, plain: true }); }, ms);
+      this.cleanup.push(() => clearTimeout(id));
+    }
+    const cut = () => rt.skipIntro();
+    window.addEventListener('keydown', cut, { once: true });
+    this.el.addEventListener('pointerdown', cut, { once: true });
+    this.cleanup.push(() => window.removeEventListener('keydown', cut));
   }
   private doAction(a: GAction): boolean {
     const s = this.s;

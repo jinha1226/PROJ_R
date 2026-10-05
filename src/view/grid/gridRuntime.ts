@@ -29,6 +29,7 @@ import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
 import { PixelPass } from './pixelPass';
+import { ShipIntro } from './shipIntro';
 let ELEVATION = (45 * Math.PI) / 180;
 /** Scripted views (the comparison demo) may tilt the camera. */
 export const setCameraElevation = (deg: number): void => { ELEVATION = (deg * Math.PI) / 180; };
@@ -59,6 +60,9 @@ export class GridRuntime {
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;
   private clock = 0;
+  /** the ship's waking shot and the hatch beacon (ship only) */
+  private intro?: ShipIntro;
+  private zoomMul = 1;
   constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, theme?: { theme: 'ship'; kit: ShipKit; meta: MetaState }) {
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
@@ -73,6 +77,7 @@ export class GridRuntime {
     if (!theme) kit.tint(look.tint);
     this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
+    if (theme) { this.intro = new ShipIntro(this.stationAt.get('st-pod'), this.stationAt.get('st-hatch'), theme.meta.best === 0); scene.add(this.intro.root); }
     if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.62; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
     this.actors = new GridActors(lib);
     this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density, look);
@@ -124,6 +129,13 @@ export class GridRuntime {
     this.banner.classList.add('on');
     this.refresh();
   }
+  /** A clone steps out of the pod: start close on it and pull back (any input cuts it short). */
+  playIntro(): void {
+    if (!this.intro?.pod) return;
+    this.intro.start();
+    this.fx.transient.burst(this.intro.pod.x, this.intro.pod.z, '#b8ffd0', 1.4, 0.9);
+  }
+  skipIntro(): void { this.intro?.skip(); }
   powerShip(meta: MetaState): void { if (this.terrain instanceof ShipTerrain) this.terrain.power(meta); }
   showAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
     this.elements.setAim(cells, ok);
@@ -246,7 +258,11 @@ export class GridRuntime {
     this.punch = Math.max(0, this.punch - dt);
     const hero = this.actors.pos('hero') ?? this.center;
     // the small ship deck stays framed in the middle; in the dungeon the camera follows the hero
-    const aim = this.stationAt.size ? new THREE.Vector3(((this.sim.s.map.w - 1) / 2) * CELL, 0, ((this.sim.s.map.h - 1) / 2) * CELL) : hero;
+    const deck = new THREE.Vector3(((this.sim.s.map.w - 1) / 2) * CELL, 0, ((this.sim.s.map.h - 1) / 2) * CELL);
+    const shot = this.intro?.update(dt);
+    this.zoomMul = shot?.zoom ?? 1;
+    const aim = shot && this.intro?.pod ? this.intro.pod.clone().lerp(deck, shot.k) : this.stationAt.size ? deck : hero;
+    if (shot) { this.center.x = aim.x; this.center.z = aim.z; }
     this.center.x = chase(this.center.x, aim.x, dt, CAM_K);
     this.center.z = chase(this.center.z, aim.z, dt, CAM_K);
     this.light.position.set(hero.x, 2.6, hero.z);
@@ -260,7 +276,7 @@ export class GridRuntime {
     const cam = this.h.camera;
     const aspect = (cam.userData.aspect as number | undefined) ?? 9 / 16;
     // a heavy hit punches the camera in for a moment
-    const half = (this.height * (1 - 0.07 * Math.sin((this.punch / 0.16) * Math.PI))) / 2;
+    const half = (this.height * this.zoomMul * (1 - 0.07 * Math.sin((this.punch / 0.16) * Math.PI))) / 2;
     Object.assign(cam, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
     cam.updateProjectionMatrix();
     const c = this.center.clone().add(this.fx.jolt());
@@ -288,6 +304,7 @@ export class GridRuntime {
     this.elements.dispose();
     this.banner.remove();
     this.pops.dispose();
+    this.intro?.dispose();
     this.pixel.dispose();
     this.terrain.dispose();
     this.h.dispose();
