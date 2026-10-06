@@ -1,3 +1,4 @@
+import { foeTurn } from './partyFoeAi';
 import { tickBurns } from './partyEngrave';
 import { spawnFoe } from '../grid/foes';
 import { makeWeapon } from '../grid/items';
@@ -43,7 +44,7 @@ function spawnWave(p: Party): void {
   const front = free(FRONT), back = free(BACK);
   WAVES[p.wave]!.forEach((kind: FoeId, i) => {
     const pos = (kind === 'archer' ? back.shift() ?? front.shift() : front.shift() ?? back.shift()) ?? { x: 12, y: 1 + (i % 8) };
-    const e = spawnFoe(p.s, kind === 'goblin' ? 'minion' : kind === 'warlord' ? 'champion' : kind, pos, true);
+    const e = spawnFoe(p.s, kind === 'goblin' ? 'minion' : kind === 'warlord' ? 'champion' : kind === 'shaman' ? 'mage' : kind, pos, true);
     e.hp = e.maxHp = FOES[kind].hp;
     p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, nextAt: p.time + 0.2 * i });
   });
@@ -75,6 +76,8 @@ export function promote(p: Party, id: string): GEvent[] {
 
 /** A unit's own moment: follow a move order (then hold there), else fight — close in, or keep range and shoot. */
 function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
+  const special = foeTurn(p, u, t, ev);
+  if (special !== undefined) return special;
   const e = entOf(p, u.id)!, st = stats(u, t);
   if (u.order?.kind === 'move') {
     const cell = u.order.cell;

@@ -29,4 +29,4 @@ export const SKILL_DESC: Record<SkillId, string> = {
   stealth: '4초 은신 · 다음 공격 2.5배', backstab: '대상 곁으로 순간이동해 2배 찌르기', frenzy: '5초간 공격 속도 2배', aimed: '강력한 한 발',
 };
 
-export const FOE_NAME: Record<FoeId, string> = { warlord: '장군', goblin: '고블린', archer: '고블린 궁수', brute: '오우거' };
+export const FOE_NAME: Record<FoeId, string> = { ghoul: '구울', shaman: '주술사', warlord: '마왕군 장군', goblin: '고블린', archer: '고블린 궁수', brute: '오우거' };

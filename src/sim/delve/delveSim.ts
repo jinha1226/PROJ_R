@@ -14,7 +14,7 @@ import { placeParty, takeParty, type Carry } from '../roam/carry';
 
 export const DELVE_SIGHT = 8;
 /** the dungeon's kinds, as the party knows them */
-const FOE_OF: Record<string, FoeId> = { minion: 'goblin', ghoul: 'goblin', archer: 'archer', mage: 'archer', brute: 'brute', champion: 'warlord' };
+const FOE_OF: Record<string, FoeId> = { minion: 'goblin', ghoul: 'ghoul', archer: 'archer', mage: 'shaman', brute: 'brute', champion: 'warlord' };
 
 export interface DelveParty extends RoamParty { floor: number; seed: number; rooms: DelveRoom[]; chests: (ChestSpot & { opened: boolean })[]; oreNodes: { pos: Cell; left: number; progress: number }[]; shrine?: { pos: Cell; used: boolean }; floorItems: { pos: Cell; item: Item }[]; boss: boolean; roomTime: number; lootReaped: Set<string>; handledMoves: WeakSet<GEvent> }
 
@@ -40,7 +40,7 @@ function populate(p: DelveParty): void {
   p.s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, kind = FOE_OF[e.kind] ?? 'goblin';
     e.hp = e.maxHp = Math.round(FOES[kind].hp * scale * (sp.elite ? 1.8 : 1));
-    p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, asleep: true, group: sp.group, nextAt: 0.15 * i });
+    p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, foeScale: scale, asleep: true, group: sp.group, nextAt: 0.15 * i });
   });
 }
 

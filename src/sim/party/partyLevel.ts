@@ -10,7 +10,7 @@ export const LEVEL_XP = [0, 10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 5
 export const MAX_LEVEL = LEVEL_XP.length;
 /** health a level adds */
 const HP_PER_LEVEL = 4;
-const XP: Record<string, number> = { goblin: 4, archer: 4, brute: 10 };
+const XP: Record<string, number> = { goblin: 4, archer: 4, brute: 10, ghoul: 4, shaman: 6, warlord: 60 };
 
 export const levelOf = (u: Unit): number => u.level ?? 1;
 /** the base class whose traits a clone may take (an advanced class keeps its base's) */

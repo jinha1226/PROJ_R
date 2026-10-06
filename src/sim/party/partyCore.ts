@@ -10,6 +10,7 @@ import { PROMOTE_LEVEL, T, type TraitId } from './partyTraits';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
+  foeScale?: number; mendReady?: number; slamReady?: number; slamPending?: boolean; called?: boolean;
   name?: string; hero?: HeroSoulId;
   gear?: Loadout;
   echoPending?: boolean;
@@ -75,7 +76,10 @@ const passive = (u: Unit) => (u.cls ? CLASSES[u.cls].passive : undefined);
 
 /** What a unit's basic attack is: the hero's weapon, or the foe's kind. */
 export function stats(u: Unit, t = 0): { dmg: [number, number]; range: number; atk: number; move: number } {
-  if (!u.cls) return FOES[u.foe!];
+  if (!u.cls) {
+    const f = FOES[u.foe!], scale = u.foeScale ?? 1;
+    return { ...f, dmg: [Math.round(f.dmg[0] * scale), Math.round(f.dmg[1] * scale)] };
+  }
   const w = WEAPONS[u.weapon!];
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
   return { dmg: w.dmg, range, atk: w.atk * G.atk(u) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
