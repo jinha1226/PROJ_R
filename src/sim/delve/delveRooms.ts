@@ -11,7 +11,7 @@ import type { DelveParty } from './delveSim';
 export function setupRooms(p: DelveParty, f: DelveFloor): void {
   const rng = createRng((p.seed ^ 0x73ae) + p.floor * 977);
   p.rooms = f.rooms; p.chests = f.chests.map((c) => ({ ...c, opened: false }));
-  p.oreNodes = f.ore.map((pos) => ({ pos, left: rng.int(3, 5), progress: 0 }));
+  p.oreNodes = f.ore.map((pos) => ({ pos, left: rng.int(2, 2), progress: 0 }));
   p.shrine = f.shrine ? { pos: f.shrine, used: false } : undefined;
   p.floorItems = []; p.boss = f.boss; p.roomTime = p.time; p.lootReaped = new Set(); p.handledMoves = new WeakSet();
   for (const u of living(p)) if (u.hero && !p.foundHeroes.includes(u.hero)) p.foundHeroes.push(u.hero);
@@ -88,7 +88,7 @@ function deaths(p: DelveParty, ev: GEvent[]): void {
     } else if (u.foe === 'warlord') {
       drops.push(item(p, 'rare'), item(p, 'rare')); material(p, 'crystal', 3, ev);
       ev.push({ t: p.time, type: 'victory', to: { ...e.pos } });
-    } else if (u.side === 'foe' && e.elite && p.s.rng.chance(0.6)) drops.push(item(p, 'fine'));
+    } else if (u.side === 'foe' && e.elite && p.s.rng.chance(0.15)) drops.push(item(p, 'fine'));
     for (const it of drops) p.floorItems.push({ pos: { ...e.pos }, item: it });
   }
 }
@@ -114,7 +114,7 @@ export function roomStep(p: DelveParty, before: Map<string, Cell>, ev: GEvent[])
     if (c.tier === 1) {
       if (p.s.rng.chance(0.6)) { const ore = p.s.rng.chance(0.5); material(p, ore ? 'ore' : 'bio', ore ? p.s.rng.int(3, 6) : p.s.rng.int(4, 8), ev); }
       else give('common');
-    } else if (c.tier === 2) { give('fine'); material(p, 'ore', p.s.rng.int(2, 4), ev); }
+    } else if (c.tier === 2) { give('fine'); material(p, 'ore', p.s.rng.int(1, 2), ev); }
     else { give('rare'); give('common'); material(p, 'crystal', p.s.rng.int(1, 2), ev); }
   }
   for (const node of p.oreNodes) {

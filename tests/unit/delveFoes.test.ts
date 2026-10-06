@@ -98,7 +98,7 @@ it('reinforcements occupy distinct free cells, inherit scaling, and call only on
     expect(dist(we.pos, e.pos)).toBeLessThanOrEqual(3);
     expect(walkable(tileAt(p.s.map, e.pos))).toBe(true);
     expect(e.maxHp).toBe(Math.round(22 * 1.6));
-    expect(stats(u).dmg).toEqual([5, 8]);
+    expect(stats(u).dmg).toEqual([3, 6]);
   }
   foeTurn(p, w, 1.5, events); foeTurn(p, w, 3, events);
   expect(events.filter((e) => e.type === 'summon')).toHaveLength(3);

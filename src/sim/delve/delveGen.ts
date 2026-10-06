@@ -99,7 +99,7 @@ function roles(map: GridMap, rng: Rng, floor: number): DelveRoom[] {
   const assign = (kind: RoomKind) => { pool.pop()!.kind = kind; };
   assign('vault'); assign('den');
   for (let n = rng.int(1, 2); n > 0; n--) assign('ore');
-  if (rng.chance(0.5)) assign('shrine');
+  if (rng.chance(0.8)) assign('shrine');
   if (floor >= 2 && rng.chance(0.4)) assign('crypt');
   return rooms;
 }
@@ -132,7 +132,7 @@ function contents(f: DelveFloor, floor: number, loot: Rng, spawns: Rng): void {
     const c = centre(rect);
     if (kind === 'shrine') { f.shrine = c; taken.add(idx(m, c)); }
     if (kind === 'crypt') { f.crypt = c; taken.add(idx(m, c)); }
-    const tier = kind === 'vault' ? 3 : kind === 'den' ? 2 : kind === 'normal' && loot.chance(0.25) ? 1 : undefined;
+    const tier = kind === 'vault' ? 3 : kind === 'den' ? 2 : kind === 'normal' && loot.chance(0.08) ? 1 : undefined;
     if (tier) {
       const pos = loot.pick(cellsOf(m, rect, taken));
       f.chests.push({ pos, tier }); m.chests.push(pos); taken.add(idx(m, pos));
