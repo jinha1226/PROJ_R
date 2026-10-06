@@ -51,7 +51,7 @@ export function newDelve(seed = 1, floor = 1): DelveParty {
   const map = floorMap(seed, floor);
   const s = newState(map, seed + floor * 31, 'pistol', floor);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], nextClone: 1, base: { ...map.start }, floor, seed };
+  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], nextClone: 1, bio: 0, base: { ...map.start }, floor, seed };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
   populate(p);
   look(p);

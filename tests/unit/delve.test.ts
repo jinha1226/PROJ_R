@@ -54,6 +54,7 @@ it('a walk under the player\'s hand goes on by itself until it arrives', () => {
 
 it('a companion heals the hurt by itself', () => {
   const p = newDelve(2);
+  p.bio = 100;
   take(p, 0); take(p, 1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start }; for (let i = 0; i < 20; i++) delveTick(p, 0.1);
   const second = clones(p)[1]!;
@@ -68,6 +69,7 @@ it('a companion heals the hurt by itself', () => {
 
 it('down the stairs: a new floor, the living clones come along, the fallen stay behind', () => {
   const p = newDelve(3);
+  p.bio = 100;
   take(p, 0); take(p, 1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start }; for (let i = 0; i < 20; i++) delveTick(p, 0.1);
   calm(p); delveTick(p, 0.1);
@@ -101,4 +103,37 @@ it('when a band notices the party every walk stops where it is', () => {
   expect(woke).toBe(true);
   expect(p.combat).toBe(true);
   expect(hero.order).toBeNull();
+});
+
+it('a carried soul gets no body without bio-matter; foes leave bio-matter when they fall', () => {
+  const p = newDelve(2);
+  take(p, 0); take(p, 1);
+  entOf(p, 'hero')!.pos = { ...p.s.map.start };
+  for (let i = 0; i < 20; i++) delveTick(p, 0.1);
+  expect(clones(p)).toHaveLength(1);
+  expect(p.carried).toHaveLength(1);
+  const foes = p.units.filter((u) => u.side === 'foe');
+  for (const f of foes.slice(0, 9)) damage(p, p.time, 'hero', f, 999, []);
+  const ev = delveTick(p, 0.1);
+  const got = ev.filter((e) => e.type === 'loot' && e.text === 'bio').reduce((n, e) => n + e.amount!, 0);
+  expect(got).toBeGreaterThanOrEqual(25);
+  // standing by the lift with enough gathered, the carried soul gets its body at once
+  expect(clones(p)).toHaveLength(2);
+  expect(p.bio).toBe(got - 25);
+});
+
+it('the last clone falling with no bio-matter ends it; with enough, one empty body wakes at the lift', () => {
+  const p = newDelve(2);
+  damage(p, 0, 'x', clones(p)[0]!, 999, []);
+  const ev = delveTick(p, 0.1);
+  expect(p.over).toBe(true);
+  expect(ev.some((e) => e.type === 'dead')).toBe(true);
+  expect(delveTick(p, 5)).toEqual([]);
+  const q = newDelve(2);
+  q.bio = 30;
+  damage(q, 0, 'x', clones(q)[0]!, 999, []);
+  for (let i = 0; i < 50; i++) delveTick(q, 0.1);
+  expect(q.over).toBeFalsy();
+  expect(clones(q).filter((u) => entOf(q, u.id)!.alive)).toHaveLength(1);
+  expect(q.bio).toBe(5);
 });

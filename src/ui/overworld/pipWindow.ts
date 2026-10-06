@@ -1,6 +1,6 @@
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES, PROMOTIONS, SKILLS, WEAPONS } from '../../sim/party/partyDefs';
-import { clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
+import { BODY_COST, clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, SKILL_DESC, classIcon } from './classIcons';
 
 export type PipTab = 'stat' | 'bag';
@@ -59,6 +59,6 @@ export class PipWindow {
   private bag(p: RoamParty): string {
     const items = p.carried.map((c) => `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span></div>`);
     const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
-    return `<section class="pip-bag"><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div></section>`;
+    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div></section>`;
   }
 }

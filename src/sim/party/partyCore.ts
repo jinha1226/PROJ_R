@@ -24,6 +24,8 @@ export interface Unit {
   group?: number;
   /** the soul a hero carries (what drops where it falls) */
   soul?: BaseClass;
+  /** a fallen foe whose bio-matter has been gathered */
+  reaped?: boolean;
   /** a companion uses its skills by itself (on unless the player turns it off) */
   manualSkills?: boolean;
 }

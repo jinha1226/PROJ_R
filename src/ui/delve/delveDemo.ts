@@ -7,7 +7,7 @@ import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { command, promote } from '../../sim/party/partySim';
 import { queueSkill } from '../../sim/party/partySkills';
-import { clones, orderTo } from '../../sim/roam/roam';
+import { BODY_COST, clones, orderTo } from '../../sim/roam/roam';
 import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
@@ -145,6 +145,7 @@ export class DelveDemo implements Screen {
       if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'drop') this.hud.toast('영혼석 떨어짐');
+      if (e.type === 'dead') { this.hud.toast('전멸'); this.log.add(e.t, '전멸 · 재료 부족', 'warn'); }
       // in real time a clone falling low slows the world for a moment instead of stopping it
       if (e.type === 'hit' && this.mode === 'realtime' && unitOf(this.p, e.dst!)?.side === 'hero') {
         const h = entOf(this.p, e.dst!)!;
@@ -265,6 +266,6 @@ export class DelveDemo implements Screen {
     const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
     const keys = p.combat && turn ? '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종' : '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대';
     this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p), myTurn: this.myTurn,
-      area: `<div><span>지하</span><b>${p.floor}층</b></div><div><span>처치</span><b>${this.kills}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div>${p.carried.length ? `<div class="soul"><span>영혼</span><b>${p.carried.length}</b></div>` : ''}` });
+      area: `<div><span>지하</span><b>${p.floor}층</b></div><div><span>처치</span><b>${this.kills}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${p.bio}/${BODY_COST}</b></div>${p.carried.length ? `<div class="soul"><span>영혼</span><b>${p.carried.length}</b></div>` : ''}` });
   }
 }

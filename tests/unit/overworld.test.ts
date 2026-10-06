@@ -81,6 +81,7 @@ const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (
 it('a soul picked up by a clone that has one is carried home; at the ship it gets a new body', () => {
   const p = newWorld(3);
   calm(p);
+  p.bio = 100;
   const [a, b] = p.souls;
   entOf(p, 'hero')!.pos = { ...a!.pos };
   worldTick(p, 0.1);
@@ -96,6 +97,7 @@ it('a soul picked up by a clone that has one is carried home; at the ship it get
 it('out of combat an order walks the whole party there behind the chosen clone', () => {
   const p = newWorld(3);
   calm(p);
+  p.bio = 100;
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start, x: p.s.map.start.x + 2 }; worldTick(p, 0.1);
@@ -107,8 +109,9 @@ it('out of combat an order walks the whole party there behind the chosen clone',
   expect(dist(entOf(p, 'hero')!.pos, goal)).toBeLessThanOrEqual(2);
 });
 
-it('a fallen clone drops its soul; when the last one falls the ship wakes a new empty body', () => {
+it('a fallen clone drops its soul; when the last one falls the ship wakes a new empty body (if it has the bio-matter)', () => {
   const p = newWorld(3);
+  p.bio = 25;
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
   const at = { ...entOf(p, 'hero')!.pos };
   damage(p, p.time, 'x', clones(p)[0]!, 999, []);

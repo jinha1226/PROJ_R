@@ -9,6 +9,8 @@
 .wh-area span { color: #34a85c; }
 .wh-area b { font-weight: normal; color: #e6ffb0; }
 .wh-area .soul b { color: #c8a8ff; }
+.wh-area .bio b { color: #ff9a6a; }
+.wh-area .bio.ok b { color: #8ff0ff; }
 .wh-bl { left: 12px; bottom: 12px; width: 330px; min-height: 120px; }
 .wh-cap { font-size: 10px; color: #34a85c; letter-spacing: 0.3em; border-bottom: 1px solid #0f3a1e; margin-bottom: 4px; }
 .wl-line { font-size: 11px; line-height: 1.55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

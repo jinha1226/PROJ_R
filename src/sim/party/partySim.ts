@@ -137,7 +137,7 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
  */
 export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
-  if (p.waiting) return ev;
+  if (p.waiting || (p as { over?: boolean }).over) return ev;
   const end = p.time + dt;
   for (let guard = 0; guard < 100; guard++) {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];

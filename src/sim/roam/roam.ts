@@ -15,8 +15,12 @@ export interface RoamParty extends Party {
   nextClone: number;
   /** where new bodies come out (the ship, or the lift down) */
   base: Cell;
-  /** when the base wakes a new empty body after the last clone fell */
+  /** when the base wakes a new empty body after the last clone fell (if it has the stuff for one) */
   rewakeAt?: number;
+  /** bio-matter gathered from the fallen: what new bodies are printed from */
+  bio: number;
+  /** every clone fell and there was not enough bio-matter for another body */
+  over?: boolean;
   /** how far the clones see */
   sight: number;
 }
@@ -29,6 +33,10 @@ const LEASH = 12;
 export const MAX_CLONES = 3;
 /** how near the base a clone must stand for another body to be printed */
 const BASE_REACH = 5;
+/** bio-matter one new body takes */
+export const BODY_COST = 25;
+/** bio-matter a fallen foe leaves (elites twice as much) */
+const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8 };
 
 export const blank = (): Omit<Unit, 'id' | 'side'> => ({ nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
@@ -92,10 +100,16 @@ function souls(p: RoamParty, ev: GEvent[]): void {
     if (by.cls === 'shell') implant(p, by, soul.cls, ev); else p.carried.push(soul.cls);
   }
   for (const u of living(p)) if (u.cls === 'shell' && p.carried.length) implant(p, u, p.carried.shift()!, ev);
-  if (!p.combat && p.carried.length && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) print(p, p.carried.shift(), ev);
-  if (!living(p).length) {
+  // a carried soul gets a body at the base, if there is bio-matter enough for one
+  if (!p.combat && p.carried.length && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
+    p.bio -= BODY_COST;
+    print(p, p.carried.shift(), ev);
+  }
+  // the last clone fell: one more empty body if the stuff is there, else it is over
+  if (!living(p).length && !p.over) {
+    if (p.bio < BODY_COST) { p.over = true; ev.push({ t, type: 'dead', text: 'wiped' }); return; }
     p.rewakeAt ??= t + 3;
-    if (t >= p.rewakeAt) { p.rewakeAt = undefined; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
+    if (t >= p.rewakeAt) { p.rewakeAt = undefined; p.bio -= BODY_COST; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
   }
 }
 
@@ -104,6 +118,15 @@ function souls(p: RoamParty, ev: GEvent[]): void {
  * A clone under the player's hand stops walking when something new happens (a band wakes, it is hurt), as in Jupiter Hell.
  */
 export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent[]): void {
+  // the fallen leave bio-matter, gathered at once (each body counted once, however it fell)
+  for (const f of p.units) {
+    const e = entOf(p, f.id);
+    if (f.side !== 'foe' || f.reaped || !e || e.alive) continue;
+    f.reaped = true;
+    const n = (BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1);
+    p.bio += n;
+    ev.push({ t: p.time, type: 'loot', to: { ...e.pos }, amount: n, text: 'bio' });
+  }
   souls(p, ev);
   if (!living(p).length) return;
   if (!entOf(p, p.leader ?? '')?.alive) p.leader = living(p)[0]!.id;

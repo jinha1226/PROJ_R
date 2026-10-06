@@ -8,6 +8,7 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { promote } from '../../sim/party/partySim';
 import { queueSkill } from '../../sim/party/partySkills';
 import { claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
+import { BODY_COST } from '../../sim/roam/roam';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
@@ -98,7 +99,7 @@ export class WorldDemo implements Screen {
       this.el.classList.toggle('paused', this.paused && !this.pip.open);
       const taken = this.p.camps.filter((c) => c.cleared).length;
       this.hud.draw(this.p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log,
-        area: `<div><span>영역</span><b>${Math.round(claimedShare(this.p) * 100)}%</b></div><div><span>진지</span><b>${taken}/${this.p.camps.length}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div>${this.p.carried.length ? `<div class="soul"><span>영혼</span><b>${this.p.carried.length}</b></div>` : ''}`,
+        area: `<div><span>영역</span><b>${Math.round(claimedShare(this.p) * 100)}%</b></div><div><span>진지</span><b>${taken}/${this.p.camps.length}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${this.p.bio}/${BODY_COST}</b></div>${this.p.carried.length ? `<div class="soul"><span>영혼</span><b>${this.p.carried.length}</b></div>` : ''}`,
         mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대' });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
@@ -126,6 +127,7 @@ export class WorldDemo implements Screen {
       if (e.type === 'buff' && e.text === 'print') { this.message(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
       if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼석 떨어짐');
+      if (e.type === 'dead') this.message('전멸');
     }
   }
 
