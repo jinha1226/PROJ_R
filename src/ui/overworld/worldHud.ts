@@ -11,7 +11,9 @@ export interface HudActions { menu(): void; stat(): void; bag(): void; select(id
   /** pass the turn (Space) — shown on the clone's turn */
   wait?: () => void;
   /** open the level-up trait choice for a clone */
-  traits?: (id: string) => void }
+  traits?: (id: string) => void;
+  /** the build panel (the surface only) */
+  build?: () => void }
 
 /**
  * The screen's frame, laid out like Jupiter Hell: the minimap top left, floor/turn/bio top centre, the log bottom left,
@@ -27,13 +29,14 @@ export class WorldHud {
       <aside class="wh-bl"><div class="wh-cap">기록</div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
         ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}${a.wait ? '<button type="button" data-k="wait" hidden>대기</button>' : ''}
-        <button type="button" data-k="stat">상태 <kbd>C</kbd></button><button type="button" data-k="bag">가방 <kbd>I</kbd></button><button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
+        ${a.build ? '<button type="button" data-k="build">건설 <kbd>B</kbd></button>' : ''}<button type="button" data-k="stat">상태 <kbd>C</kbd></button><button type="button" data-k="bag">가방 <kbd>I</kbd></button><button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
       <aside class="wh-br"></aside>
       <div class="wh-party"></div>`);
     el.querySelector('.wh-btns')!.addEventListener('click', (e) => {
       const k = (e.target as HTMLElement).closest<HTMLElement>('[data-k]')?.dataset.k;
       if (k === 'menu') a.menu();
       if (k === 'stat') a.stat();
+      if (k === 'build') a.build?.();
       if (k === 'bag') a.bag();
       if (k === 'descend') a.descend?.();
       if (k === 'ascend') a.ascend?.();

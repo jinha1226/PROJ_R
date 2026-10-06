@@ -35,6 +35,7 @@
   - `textures/stone/floor_*.jpg`: Monastery Stone Floor, `textures/stone/wall_*.jpg`: Castle Brick 01. 1K 색(AO를 곱해 넣음)·노멀(GL)·거칠기(512px). 던전 바닥과 벽에 월드 좌표로 이어 붙임
 - **Ultimate Space Kit** — Quaternius, CC0 1.0 (poly.pizza 묶음)
   - `models/scifi/pod.glb`: House Cylinder(다리 셋 달린 돔 캡슐)를 그대로 가져와 착륙 포드로 씀
+  - `models/scifi/base.glb`: Roof Radar(망루)·Geodesic Dome(의무실)·Base Large(대장간)를 이름 붙은 노드로 묶음
 - 라이선스 사본: `models/qpack/LICENSE.txt`
 
 ## 가공 내용

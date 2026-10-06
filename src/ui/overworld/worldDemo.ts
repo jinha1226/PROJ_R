@@ -1,3 +1,5 @@
+import { BuildMode } from './buildMode';
+import { startFloors } from '../../sim/base/drill';
 import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
@@ -49,6 +51,7 @@ export class WorldDemo implements Screen {
   private mini: WorldMinimap | null = null;
   private sel = 'hero';
   private paused = false;
+  private build!: BuildMode;
   private readonly over = document.createElement('div');
   private speed = 1;
   private zoom = 14;
@@ -84,7 +87,8 @@ export class WorldDemo implements Screen {
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
-      ...(this.opts.onDrill ? { descend: () => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p)); }, descendLabel: '▼ 시추공' } : {}),
+      ...(this.opts.onDrill ? { descend: () => this.descend(), descendLabel: '▼ 시추공' } : {}),
+      build: () => this.build.toggle(),
       select: (id) => this.select(id),
       skill: (id) => queueUltimate(this.p, id || this.sel),
       promote: () => this.live(promote(this.p, this.sel)),
@@ -101,6 +105,8 @@ export class WorldDemo implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
+    this.build = new BuildMode(() => this.p, (ev) => this.live(ev), import.meta.env.BASE_URL, (open) => { if (open) { this.pausedBeforePip = this.paused; this.paused = true; } else this.paused = this.pausedBeforePip; });
+    for (const part of this.build.parts) this.el.appendChild(part);
     // the run is over (no clone left, no bio-matter for a body): say so and offer the way on, instead of a frozen field
     this.over.className = 'pip-win menu-win';
     this.over.hidden = true;
@@ -137,11 +143,12 @@ export class WorldDemo implements Screen {
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
       }
+      this.build.update();
       this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open);
+      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.build.open);
       const bio = `<span class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${this.p.bio}/${BODY_COST}</b></span>${this.p.carried.length ? `<span class="soul">영혼 <b>${this.p.carried.length}</b></span>` : ''}`;
       this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>${bio}`, mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
@@ -178,12 +185,15 @@ export class WorldDemo implements Screen {
   private restart(): void {
     LOOK_BY_ID.clear();
     this.p = this.opts.party ?? newWorld(this.seed);
+    // `?rich`: a stocked base for trying the build panel
+    if (new URLSearchParams(location.search).has('rich') && this.p.ore < 200) { this.p.ore = 300; this.p.crystal = 40; this.p.bio = 60; }
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p, nature: this.opts.nature });
     this.rt.setZoom(this.zoom);
+    this.rt.addOverlay(this.build.view.root);
     this.rt.pixelated = loadDot();
     this.pace();
     this.select(this.p.leader ?? 'hero');
@@ -224,8 +234,17 @@ export class WorldDemo implements Screen {
   /** Walk speed in cells per second of shown time: units step about every 0.85 of game time, and the show runs at min(speed, SHOW_MAX). */
   private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
 
+  /** Down the shaft: with deeper starts open, first ask which floor. */
+  private descend(): void {
+    if (!canDrill(this.p) || !this.opts.onDrill) return;
+    const floors = startFloors(this.p), go = (f: number) => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p), f); };
+    if (floors.length > 1) this.build.chooseFloor(floors, go); else go(1);
+  }
+
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
+    if (k === 'escape' && this.build.open) { this.build.close(); return; }
+    if (k === 'b' && !this.pip.open && !this.menu.open) { this.build.toggle(); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
@@ -253,6 +272,7 @@ export class WorldDemo implements Screen {
   private click(e: PointerEvent): void {
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
+    if (this.build.click(c, coarsePointer())) return;
     const at = this.unitAt(c);
     if (at?.side === 'hero') { this.select(at.id); return; }
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
@@ -265,7 +285,7 @@ export class WorldDemo implements Screen {
   }
 
   private marks(): void {
-    if (!this.rt) return;
+    if (!this.rt || this.build.marks(this.rt, this.hover)) return;
     const me = unitOf(this.p, this.sel);
     const e = me && entOf(this.p, me.id);
     const o = me?.order;
