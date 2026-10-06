@@ -1,8 +1,16 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Cell } from '../../sim/grid/types';
 import type { WorldFog } from './worldFog';
 
 const FALL = 2.4;
+/** how wide the pod model stands (metres): a little under its two cells */
+const POD_WIDTH = 2.1;
+
+let podModel: Promise<THREE.Object3D | null> | null = null;
+/** Quaternius' domed capsule on legs (Ultimate Space Kit, CC0), loaded once; null if it cannot be had (the built capsule stays). */
+const loadPod = (): Promise<THREE.Object3D | null> =>
+  (podModel ??= new GLTFLoader().loadAsync(`${import.meta.env.BASE_URL}assets/models/scifi/pod.glb`).then((g) => g.scene as THREE.Object3D).catch(() => null));
 const OPEN = 0.8;
 
 /**
@@ -17,6 +25,8 @@ export class LandingPod {
   private readonly scorch: THREE.Mesh;
   private readonly door: THREE.Mesh;
   private t = -1;
+  /** how far the hatch slides aside when it opens */
+  private slide = 0.62;
   private thumped = false;
 
   constructor(base: Cell, fog: WorldFog, private readonly onThump: () => void = () => undefined) {
@@ -26,12 +36,14 @@ export class LandingPod {
     shell.position.y = 1.25;
     const nose = new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.9, 12), hull);
     nose.position.y = 2.65;
-    this.body.add(shell, nose);
+    const built = new THREE.Group();
+    built.add(shell, nose);
+    this.body.add(built);
     for (let k = 0; k < 3; k++) {
       const a = (k / 3) * Math.PI * 2, leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), dark);
       leg.position.set(Math.cos(a) * 0.85, 0.45, Math.sin(a) * 0.85);
       leg.rotation.set(Math.sin(a) * 0.45, 0, -Math.cos(a) * 0.45);
-      this.body.add(leg);
+      built.add(leg);
     }
     // the door faces the way the clone walks out (south, toward the start cell)
     this.door = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.06), new THREE.MeshBasicMaterial({ color: '#5ae0ff' }));
@@ -40,6 +52,25 @@ export class LandingPod {
     glow.position.set(0, 2.05, 0.8);
     this.body.add(this.door, glow);
     for (const m of [shell, nose]) { m.castShadow = true; m.receiveShadow = true; }
+    // the modelled capsule takes the built one's place once it has loaded; the lit door stays on its front
+    void loadPod().then((src) => {
+      if (!src) return;
+      const m = src.clone(true);
+      const box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
+      const k = POD_WIDTH / Math.max(size.x, size.z);
+      m.scale.setScalar(k);
+      m.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k, -(box.min.z + size.z / 2) * k);
+      m.traverse((o) => { const mesh = o as THREE.Mesh; if (!mesh.isMesh) return; mesh.castShadow = mesh.receiveShadow = true; mesh.material = fog.apply((mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial); });
+      built.visible = false;
+      this.body.add(m);
+      const h = size.y * k;
+      // a dim hatch on the capsule's face (the model has its own lights); the strip above goes
+      this.door.scale.set(0.55, 0.55, 1);
+      (this.door.material as THREE.MeshBasicMaterial).color.set('#2a8aa0');
+      this.door.position.set(0, h * 0.4, POD_WIDTH * 0.37);
+      this.slide = 0.3;
+      glow.visible = false;
+    });
     this.flame = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.6, 10, 1, true), new THREE.MeshBasicMaterial({ color: '#ffb050', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
     this.flame.rotation.x = Math.PI;
     this.flame.position.y = -0.9;
@@ -75,7 +106,7 @@ export class LandingPod {
       this.dust.scale.setScalar(1 + d * 3.5);
       (this.dust.material as THREE.MeshBasicMaterial).opacity = Math.max(0, 0.55 - d * 0.9);
       // the door slides aside
-      this.door.position.x = Math.min(1, d / OPEN) * 0.62;
+      this.door.position.x = Math.min(1, d / OPEN) * this.slide;
       if (d > OPEN + 0.6) { this.t = -1; (this.dust.material as THREE.MeshBasicMaterial).opacity = 0; }
     }
   }

@@ -65,23 +65,29 @@ export class UalLibrary {
   }
 }
 
-let bowTurn: THREE.Quaternion | null = null;
+const grips = new Map<string, THREE.Quaternion>();
 /**
- * The left-hand turn that stands a bow upright (limbs up and down, facing ahead) — measured once on a spare mannequin
- * a third of the way into the bow shot, where the arm is raised and drawing.
+ * The hand turn that stands a held thing upright (its +y to the sky, facing ahead) in a given pose — measured once on a
+ * spare mannequin at a point of the clip: the bow a third into the shot (arm raised, drawing), a caster's stick in the spell stance.
  */
-function bowGrip(lib: UalLibrary): THREE.Quaternion {
-  if (bowTurn) return bowTurn;
-  const model = lib.spawn(), clip = lib.clips.get(CLIP.shootBow), hand = bone(model, 'hand_l');
-  if (!clip || !hand) return (bowTurn = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)));
-  const mixer = new THREE.AnimationMixer(model);
-  mixer.clipAction(clip).play();
-  mixer.setTime(clip.duration * 0.35);
-  model.updateMatrixWorld(true);
-  bowTurn = hand.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion()));
-  mixer.stopAllAction();
-  return bowTurn;
+function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: number): THREE.Quaternion {
+  const key = `${clipName}|${handName}`, hit = grips.get(key);
+  if (hit) return hit;
+  const model = lib.spawn(), clip = lib.clips.get(clipName), hand = bone(model, handName);
+  let q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2));
+  if (clip && hand) {
+    const mixer = new THREE.AnimationMixer(model);
+    mixer.clipAction(clip).play();
+    mixer.setTime(clip.duration * at);
+    model.updateMatrixWorld(true);
+    q = hand.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion()));
+    mixer.stopAllAction();
+  }
+  grips.set(key, q);
+  return q;
 }
+const bowGrip = (lib: UalLibrary) => uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35);
+const CASTER = new Set<WeaponLook>(['staff', 'wand', 'symbol']);
 
 const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined => {
   let hit: THREE.Object3D | undefined;
@@ -222,7 +228,11 @@ export class UalActor {
     this.heldKind = kind;
     // a bow is held in the left hand (the right one draws the string), standing upright in front when drawn
     if (kind === 'bow' && this.offHand) { this.held.quaternion.copy(bowGrip(this.lib)); this.offHand.add(this.held); }
-    else this.hand.add(this.held);
+    else {
+      // a caster's stick stands upright in the spell stance instead of lying along the forearm
+      if (CASTER.has(kind)) this.held.quaternion.copy(uprightGrip(this.lib, 'Spell_Simple_Idle_Loop', 'hand_r', 0.3));
+      this.hand.add(this.held);
+    }
   }
 
   /** The weapon of the other hand, shown in the left hand ('none' clears it). */

@@ -31,7 +31,8 @@ export function weaponMesh(kind: WeaponLook): THREE.Object3D {
     case 'spear': g.add(box(0.04, 1.5, 0.04, wood, 0.45), box(0.05, 0.22, 0.08, metal, 1.3)); break;
     case 'mace': g.add(box(0.05, 0.55, 0.05, wood, 0.22), box(0.18, 0.18, 0.18, metal, 0.55)); break;
     // casters: a tall staff crowned with a glowing stone, a short wand with a lit tip, a gold sun on a handle
-    case 'staff': g.add(box(0.06, 1.5, 0.06, wood, 0.45), box(0.16, 0.16, 0.16, glow('#5ae0ff'), 1.25), box(0.1, 0.06, 0.1, gold, 1.14)); break;
+    // the staff's foot ends a little below the hand (held mid-shaft, it would run into the ground)
+    case 'staff': g.add(box(0.06, 1.2, 0.06, wood, 0.45), box(0.16, 0.16, 0.16, glow('#5ae0ff'), 1.12), box(0.1, 0.06, 0.1, gold, 1.02)); break;
     case 'wand': g.add(box(0.04, 0.45, 0.04, wood, 0.18), box(0.08, 0.08, 0.08, glow('#d07aff'), 0.44)); break;
     case 'symbol': g.add(box(0.04, 0.35, 0.04, wood, 0.12), box(0.24, 0.24, 0.04, gold, 0.42), box(0.1, 0.1, 0.05, glow('#fff0a0'), 0.42)); break;
     case 'bow': g.add(box(0.04, 0.9, 0.04, wood, 0, 0.12), box(0.01, 0.88, 0.01, metal, 0, 0.02)); break;
