@@ -82,3 +82,11 @@ it('a party wiped out below comes up empty: a body is printed if bio-matter allo
   expect(t.over).toBeFalsy();
   expect(clones(t).map((u) => u.cls)).toEqual(['shell']);
 });
+
+it('the pod stands in the way but does not block sight (no dark wedge behind it before or after it lands)', () => {
+  const w = generateWorld(2, { pod: true });
+  for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    const t = w.map.tiles[idx(w.map, { x: w.base.x + dx!, y: w.base.y + dy! })]!;
+    expect(t).toBe('chasm');
+  }
+});

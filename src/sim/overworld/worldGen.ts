@@ -86,6 +86,8 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
   const drill = opts.pod ? { x: base.x - 3, y: base.y } : undefined;
   if (drill) set(drill, 'drill');
   const map: GridMap = { w: N, h: N, tiles: ground.map((g) => TILE[g]), rooms: [], start: { x: base.x, y: base.y + 3 }, exits: [], chests: [], spawns: [], barrels: [] };
+  // the pod is a small capsule: in the way, but nothing to hide behind (the crashed ship stays a wall)
+  if (opts.pod) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) map.tiles[idx(map, { x: base.x + dx!, y: base.y + dy! })] = 'chasm';
   connect(map, ground, camps.map((c) => c.pos));
   for (const camp of camps) {
     const cells = ring(camp.pos, 2).filter((c) => map.tiles[idx(map, c)] === 'floor');
