@@ -4,6 +4,8 @@ import { upgradeDrill } from '../../src/sim/base/drill';
 import { autoDefend, defencePower, onRaidReturn, raidSize, startRaid } from '../../src/sim/base/raids';
 import { place } from '../../src/sim/base/buildings';
 import { raidTurn } from '../../src/sim/base/raidAi';
+import { departSurface } from '../../src/sim/base/trips';
+import { takeParty } from '../../src/sim/roam/carry';
 import { alive, entOf } from '../../src/sim/party/partyCore';
 import { dist, type GEvent } from '../../src/sim/grid/types';
 const setup = () => { const p = newSurface(42); p.ore = 200; p.crystal = 20; return p; };
@@ -12,19 +14,32 @@ describe('raids', () => {
     const p = setup(); upgradeDrill(p);
     expect(p.raidClock).toBe(0);
     expect(onRaidReturn(p)).toMatchObject([{ text: 'raidSoon', amount: raidSize(p) }]);
-    onRaidReturn(p); expect(p.raid?.size).toBe(raidSize(p));
+    // the raid night waits for the player: ready, sides known, nobody out there yet
+    expect(onRaidReturn(p)).toMatchObject([{ text: 'raidReady', amount: raidSize(p) }]);
+    expect(p.raid).toBeNull(); expect(p.raidReady?.size).toBe(raidSize(p));
+    expect(p.units.some(u => u.side === 'foe')).toBe(false);
+    startRaid(p); expect(p.raid?.size).toBe(raidSize(p)); expect(p.raidReady).toBeNull();
     for (const u of p.units.filter(u => u.group === p.raid!.group)) entOf(p, u.id)!.alive = false;
     expect(worldTick(p, .1).some(e => e.text === 'raidWon')).toBe(true);
     expect(p.raidsDone).toBe(1);
     expect(onRaidReturn(p).some(e => e.text === 'raidSoon')).toBe(true);
-    onRaidReturn(p); expect(p.raid).not.toBeNull();
+    onRaidReturn(p); expect(p.raidReady).not.toBeNull();
   });
   it('arms on fourth completed trip without an upgrade', () => {
     const p = setup();
     for (let i = 0; i < 4; i++) expect(onRaidReturn(p)).toEqual([]);
     expect(p.trips).toBe(4); expect(p.raidClock).toBe(0);
     expect(onRaidReturn(p).some(e => e.text === 'raidSoon')).toBe(true);
-    onRaidReturn(p); expect(p.raid).not.toBeNull();
+    onRaidReturn(p); expect(p.raidReady).not.toBeNull();
+  });
+  it('a ready raid keeps the party home and comes in from the sides it showed', () => {
+    const p = setup(); upgradeDrill(p); onRaidReturn(p); onRaidReturn(p);
+    const sides = p.raidReady!.sides;
+    expect(departSurface(p, 1, takeParty(p))).toBeNull();
+    startRaid(p);
+    const m = p.s.map, edgeOf = (c: { x: number; y: number }) => c.x === 0 ? 0 : c.x === m.w - 1 ? 1 : c.y === 0 ? 2 : 3;
+    const spawned = p.units.filter(u => u.group === p.raid!.group).map(u => edgeOf(entOf(p, u.id)!.pos));
+    expect(spawned.every(e => sides.includes(e))).toBe(true);
   });
   it('spawns awake raiders on connected map edges and advances toward the pod', () => {
     const p = setup(); startRaid(p);

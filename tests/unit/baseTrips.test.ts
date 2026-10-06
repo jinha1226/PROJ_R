@@ -25,14 +25,17 @@ describe('base trips', () => {
     expect([p.drillLevel, p.podHp, p.raidsDone]).toEqual([1, 150, 0]);
     const next = departSurface(p, 10, takeParty(p))!;
     next.deepest = 8; const ev = returnToSurface(p, takeParty(next));
-    expect(ev.some(e => e.type === 'summon')).toBe(true); expect(p.raid).not.toBeNull(); expect(p.deepest).toBe(8);
+    // the raid night waits at the pod until the player starts it, and nobody may leave meanwhile
+    expect(ev.some(e => e.text === 'raidReady')).toBe(true); expect(p.raidReady).not.toBeNull(); expect(p.deepest).toBe(8);
     expect(departSurface(p, 11, takeParty(p))).toBeNull(); expect(canDrill(p)).toBe(false);
+    expect(startRaid(p).some(e => e.type === 'summon')).toBe(true); expect(p.raid).not.toBeNull();
   });
   it('a wiped carry still starts and resolves the scheduled raid', () => {
     const p = newSurface(); p.ore = 30; upgradeDrill(p);
     returnToSurface(p, takeParty(p));
     const d = departSurface(p, 4, takeParty(p))!; d.s.hero.alive = false;
-    returnToSurface(p, takeParty(d)); expect(p.raid).not.toBeNull();
+    returnToSurface(p, takeParty(d)); expect(p.raidReady).not.toBeNull();
+    startRaid(p); expect(p.raid).not.toBeNull();
     p.podHp = 0; expect(worldTick(p, 1).some(e => e.text === 'raidLost')).toBe(true);
     expect(p.raid).toBeNull(); expect(p.podHp).toBe(100);
   });

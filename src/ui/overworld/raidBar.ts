@@ -1,0 +1,55 @@
+import { alive, type Unit } from '../../sim/party/partyCore';
+import { autoDefend, defencePower, startRaid } from '../../sim/base/raids';
+import type { GEvent } from '../../sim/grid/types';
+import type { WorldParty } from '../../sim/overworld/worldSim';
+
+const SIDE = ['서쪽', '동쪽', '북쪽', '남쪽'];
+/** auto-defence wins outright when the base outweighs the wave by this much (as the simulation rules) */
+const AUTO_MARGIN = 1.2;
+const POD_MAX = 200;
+
+/**
+ * The raid line under the top bar: a night that has come (where they will come from, their strength against ours,
+ * start it or let the defences settle it), then the fight's state (the pod's health, raiders left).
+ */
+export class RaidBar {
+  readonly el = document.createElement('div');
+  private html = '';
+
+  constructor(private readonly p: () => WorldParty, private readonly live: (ev: GEvent[]) => void, private readonly screen: HTMLElement) {
+    this.el.className = 'raid-bar';
+    this.el.addEventListener('click', (e) => {
+      const k = (e.target as HTMLElement).closest<HTMLElement>('[data-r]')?.dataset.r, p = this.p();
+      if (k === 'start') this.live(startRaid(p));
+      if (k === 'auto') { const ev = startRaid(p); autoDefend(p, ev); this.live(ev); }
+    });
+  }
+
+  update(): void {
+    const p = this.p();
+    let html = '';
+    if (p.raidReady) {
+      const def = Math.round(defencePower(p)), size = p.raidReady.size;
+      html = `<b class="rb-night">습격의 밤</b><span>${p.raidReady.sides.map((s) => SIDE[s]).join(' · ')}에서</span><span>규모 <b>${size}</b> / 방어력 <b class="${def >= size ? 'ok' : 'low'}">${def}</b></span>
+        <button type="button" data-r="start">습격 시작</button>${def >= size * AUTO_MARGIN ? '<button type="button" data-r="auto">자동 방어</button>' : ''}`;
+    } else if (p.raid) {
+      const left = p.units.filter((u: Unit) => u.group === p.raid!.group && alive(p, u)).length;
+      html = `<b class="rb-fight">습격</b><span>포드 <b class="${p.podHp < POD_MAX / 3 ? 'low' : ''}">${Math.max(0, Math.round(p.podHp))}/${POD_MAX}</b></span><span>남은 적 <b>${left}</b></span>`;
+    }
+    // the land darkens while a raid is near or under way
+    this.screen.classList.toggle('night', !!(p.raidReady || p.raid));
+    if (html === this.html) return;
+    this.html = html;
+    this.el.innerHTML = html;
+    this.el.hidden = !html;
+  }
+}
+
+/** The log/toast line for a raid event, or undefined for other events. */
+export function raidNote(e: GEvent, p: WorldParty): string | undefined {
+  if (e.type === 'buff' && e.text === 'raidSoon') return `다음 귀환 때 습격 · 규모 ${e.amount} / 방어력 ${Math.round(defencePower(p))}`;
+  if (e.type === 'buff' && e.text === 'raidReady') return '습격의 밤 · 준비되면 시작';
+  if (e.type === 'buff' && e.text === 'raidWon') return '습격 격퇴';
+  if (e.type === 'dead' && e.text === 'raidLost') return '포드 함락 · 자원과 건물 일부 잃음';
+  return undefined;
+}

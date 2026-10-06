@@ -1,4 +1,5 @@
 import { BuildMode } from './buildMode';
+import { RaidBar, raidNote } from './raidBar';
 import { startFloors } from '../../sim/base/drill';
 import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
@@ -52,6 +53,7 @@ export class WorldDemo implements Screen {
   private sel = 'hero';
   private paused = false;
   private build!: BuildMode;
+  private raidBar!: RaidBar;
   private readonly over = document.createElement('div');
   private speed = 1;
   private zoom = 14;
@@ -107,6 +109,8 @@ export class WorldDemo implements Screen {
     this.el.appendChild(this.menu.el);
     this.build = new BuildMode(() => this.p, (ev) => this.live(ev), import.meta.env.BASE_URL, (open) => { if (open) { this.pausedBeforePip = this.paused; this.paused = true; } else this.paused = this.pausedBeforePip; });
     for (const part of this.build.parts) this.el.appendChild(part);
+    this.raidBar = new RaidBar(() => this.p, (ev) => this.live(ev), this.el);
+    this.el.appendChild(this.raidBar.el);
     // the run is over (no clone left, no bio-matter for a body): say so and offer the way on, instead of a frozen field
     this.over.className = 'pip-win menu-win';
     this.over.hidden = true;
@@ -144,6 +148,7 @@ export class WorldDemo implements Screen {
         this.autoPause();
       }
       this.build.update();
+      this.raidBar.update();
       this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
@@ -179,6 +184,8 @@ export class WorldDemo implements Screen {
       if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
       if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼 소멸');
       if (e.type === 'dead' && e.text !== 'raidLost') { this.message('전멸'); this.over.hidden = false; }
+      const note = raidNote(e, this.p);
+      if (note) { this.message(note); this.log.add(this.p.time, note, 'warn'); }
     }
   }
 
@@ -187,6 +194,8 @@ export class WorldDemo implements Screen {
     this.p = this.opts.party ?? newWorld(this.seed);
     // `?rich`: a stocked base for trying the build panel
     if (new URLSearchParams(location.search).has('rich') && this.p.ore < 200) { this.p.ore = 300; this.p.crystal = 40; this.p.bio = 60; }
+    // `?raid`: a raid night waiting at the pod, for trying the raid screen
+    if (new URLSearchParams(location.search).has('raid') && !this.p.raid && !this.p.raidReady) this.p.raidReady = { size: 40, sides: [0, 2] };
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.warned.clear();
     this.rt?.dispose();
@@ -248,7 +257,7 @@ export class WorldDemo implements Screen {
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e') { this.togglePip(k === 'c' ? 'stat' : 'gear'); return; }
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'l') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];

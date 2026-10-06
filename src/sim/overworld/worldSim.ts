@@ -19,7 +19,9 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   /** the drill rig over the shaft down (the pod's landing ground) */
   drill?: Cell;
   drillLevel: number; buildings: Building[]; nextBuilding: number;
-  trips: number; raidClock: number | null; raidsDone: number; deepest: number; podHp: number; raid: Raid | null; away: boolean; baseEvents: GEvent[];
+  trips: number; raidClock: number | null; raidsDone: number; deepest: number; podHp: number; raid: Raid | null;
+  /** a raid night that has come but waits for the player to start it: its size and the edges it will come from (0 W, 1 E, 2 N, 3 S) */
+  raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
   pod?: boolean }
 
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', archer: 'archer', brute: 'brute' };
@@ -34,7 +36,7 @@ function fromWorld(w: World, seed: number): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, raidClock: null, raidsDone: 0, deepest: 1, podHp: 200, raid: null, away: false, baseEvents: [], buildings: [], nextBuilding: 1, drillLevel: 0, drill: w.drill, pod: w.pod };
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, raidClock: null, raidsDone: 0, deepest: 1, podHp: 200, raid: null, raidReady: null, away: false, baseEvents: [], buildings: [], nextBuilding: 1, drillLevel: 0, drill: w.drill, pod: w.pod };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
@@ -91,4 +93,4 @@ export function worldTick(p: WorldParty, dt: number): GEvent[] {
 export const claimedShare = (p: WorldParty): number => p.claimed.reduce((a, b) => a + b, 0) / p.claimed.length;
 
 /** The whole living party stands by the drill rig and nothing hunts it: they can go down the shaft. */
-export const canDrill = (p: WorldParty): boolean => !!p.drill && !p.away && !p.raid && !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.drill!) <= 2);
+export const canDrill = (p: WorldParty): boolean => !!p.drill && !p.away && !p.raid && !p.raidReady && !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.drill!) <= 2);

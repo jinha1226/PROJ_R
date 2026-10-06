@@ -23,13 +23,16 @@ export function onRaidReturn(p: WorldParty, deepest = p.deepest): GEvent[] {
   if (p.raidClock === null) { if (p.trips >= 4 || p.drillLevel > 0) p.raidClock = 0; return []; }
   p.raidClock++;
   if (p.raidClock % 2 === 1) return [{ t: p.time, type: 'buff', text: 'raidSoon', amount: raidSize(p) }];
-  return startRaid(p);
+  // the night has come: the edges are chosen now (so they can be shown), the wave waits for the player to start it
+  p.raidReady = { size: raidSize(p), sides: p.s.rng.shuffle([0, 1, 2, 3]).slice(0, p.s.rng.int(1, 2)) };
+  return [{ t: p.time, type: 'buff', text: 'raidReady', amount: p.raidReady.size }];
 }
 /** Open connected entry cells on one or two opposing edges of the generated rock border. */
 export function startRaid(p: WorldParty): GEvent[] {
   if (p.away || p.raid) return [];
   const size = raidSize(p), group = 1000 + p.raidsDone, m = p.s.map;
-  const sides = p.s.rng.shuffle([0, 1, 2, 3]).slice(0, p.s.rng.int(1, 2));
+  const sides = p.raidReady?.sides ?? p.s.rng.shuffle([0, 1, 2, 3]).slice(0, p.s.rng.int(1, 2));
+  p.raidReady = null;
   const cells: Cell[] = [];
   for (const side of sides) for (let off = -2; off <= 2; off++) {
     const c = side === 0 ? { x: 0, y: p.base.y + off } : side === 1 ? { x: m.w - 1, y: p.base.y + off } : side === 2 ? { x: p.base.x + off, y: 0 } : { x: p.base.x + off, y: m.h - 1 };

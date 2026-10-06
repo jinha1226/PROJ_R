@@ -263,7 +263,7 @@ export class DelveDemo implements Screen {
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e') { this.togglePip(k === 'c' ? 'stat' : 'gear'); return; }
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'l') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];

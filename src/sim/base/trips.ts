@@ -7,7 +7,8 @@ import { onRaidReturn } from './raids';
 
 /** The surface freezes until return; a live raid must be resolved before departure. */
 export function departSurface(p: WorldParty, seed: number, carry: Carry, floor = 1): DelveParty | null {
-  if (p.away || p.raid || !carry.clones.length) return null;
+  // a raid under way or one waiting to be started keeps the party home
+  if (p.away || p.raid || p.raidReady || !carry.clones.length) return null;
   const delve = startDelve(p, seed, carry, floor);
   if (delve) p.away = true;
   return delve;
