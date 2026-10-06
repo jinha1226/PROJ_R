@@ -183,3 +183,27 @@
 .trait-card .pips i.on { background: #5dff8a; }
 .trait-card .pips i.next { background: #e6ffb0; animation: wh-blink 0.8s steps(2) infinite; }
 @media (orientation: portrait) and (max-width: 700px) { .trait-cards { grid-template-columns: 1fr; } .trait-card { min-height: 0; } }
+
+/* the stick and the big buttons: only on phones held upright */
+.tp { display: none; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .tp { display: block; }
+  .tp-pad { position: absolute; z-index: 7; left: 14px; bottom: 18px; }
+  .tp-base { width: 132px; height: 132px; border-radius: 50%; border: 2px solid #1f7a3e; background: radial-gradient(circle, #03140acc, #010a05aa); box-shadow: inset 0 0 18px #0a3a1a; display: grid; place-items: center; }
+  .tp-knob { width: 54px; height: 54px; border-radius: 50%; background: #1f7a3e; border: 2px solid #5dff8a; box-shadow: 0 0 10px #5dff8a66; pointer-events: none; }
+  .tp-btns { position: absolute; z-index: 7; right: 12px; bottom: 18px; display: grid; grid-template-columns: repeat(2, 66px); gap: 8px; }
+  .tp-btns button { height: 62px; font: 13px 'GalmuriMono', monospace; color: #5dff8a; background: #021407e6; border: 1px solid #1f7a3e; }
+  .tp-btns [data-a="attack"] { color: #ff8a6a; border-color: #ff8a6a; }
+  .tp-btns [data-a="wait"] { color: #e6ffb0; border-color: #e6ffb0; }
+  /* the party moves up to the top right; the controls fold under the map; the duplicate wait button goes */
+  .wh-party { left: auto; right: 6px; top: 6px; bottom: auto; width: 164px; display: grid; grid-template-columns: 1fr; gap: 4px; }
+  .pf { grid-template-columns: 30px 1fr; gap: 5px; padding: 4px; }
+  .pf-face { width: 30px; height: 30px; }
+  .pf-face .cls-icon { width: 22px; height: 22px; }
+  .pf-skill { height: 30px; }
+  .wh-tr { left: 6px; right: auto; top: 214px; width: 112px; gap: 3px; }
+  .wh-mode { font-size: 11px; letter-spacing: 0.1em; text-align: left; }
+  .wh-btns { justify-content: flex-start; }
+  .wh-btns button { font-size: 10px; padding: 5px 6px; }
+  .wh-btns [data-k="wait"], .wh-btns [data-k="stat"], .wh-btns [data-k="bag"] { display: none; }
+}

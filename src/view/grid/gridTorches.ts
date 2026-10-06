@@ -57,7 +57,7 @@ export class GridTorches {
       flame.add(halo);
       model.visible = flame.visible = false;
       this.root.add(model, flame);
-      this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7, color: accent ? look.accent! : look.torch, power: accent ? 11 : 15 });
+      this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7, color: accent ? look.accent! : look.torch, power: accent ? 9 : 12 });
     });
     for (let i = 0; i < lightCount; i++) {
       const l = new THREE.PointLight(look.torch, 0, LIGHT_RANGE, 1.8);
@@ -73,7 +73,8 @@ export class GridTorches {
     this.lights.forEach((l, i) => {
       const t = near[i];
       l.userData.torch = t;
-      if (t) { l.position.copy(t.at).add(new THREE.Vector3(t.face.dir.x * 0.3, 0, t.face.dir.y * 0.3)); l.color.set(t.color); }
+      // the light sits back against the wall and a little up, so a figure standing right below a torch is lit, not burnt out
+      if (t) { l.position.copy(t.at).add(new THREE.Vector3(-t.face.dir.x * 0.2, 0.45, -t.face.dir.y * 0.2)); l.color.set(t.color); }
       else l.intensity = 0;
     });
   }

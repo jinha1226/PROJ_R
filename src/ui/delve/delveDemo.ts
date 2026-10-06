@@ -23,13 +23,14 @@ import { WorldHud } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
 import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
 import { DelveMinimap } from './delveMinimap';
+import { TouchPad } from '../overworld/touchPad';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
 import '../styles/partyDemo.css';
 import '../styles/worldHud.css';
 
 /** game time per real second at normal speed */
-const RATE = 2.4;
+const RATE = 3.6;
 const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
 type Mode = 'turn' | 'realtime';
@@ -49,6 +50,7 @@ export class DelveDemo implements Screen {
   private hud!: WorldHud;
   private pip!: PipWindow;
   private picker!: TraitPicker;
+  private pad!: TouchPad;
   private mini!: DelveMinimap;
   private log = new WorldLog();
   private sel = 'hero';
@@ -94,6 +96,8 @@ export class DelveDemo implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
+    this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
@@ -118,6 +122,7 @@ export class DelveDemo implements Screen {
         const t0 = this.p.time, slow = this.mode === 'realtime' && now < this.slowUntil ? 0.35 : 1;
         this.live(delveTick(this.p, dt * RATE * this.speed * slow), t0);
       }
+      this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
@@ -240,6 +245,34 @@ export class DelveDemo implements Screen {
     if (k === 'q' || k === 'w') this.skill(this.sel, k === 'q' ? 0 : 1);
     if (k === '>' || k === '.') this.down();
     if (k === 'r') this.restart();
+  }
+
+  /** The stick: one step that way (on the clone's turn a step is its action; otherwise a short walk the party follows). */
+  private nudge(dx: number, dy: number): void {
+    const e = entOf(this.p, this.sel);
+    if (!e?.alive || this.pip.open || this.picker.open) return;
+    const c = { x: e.pos.x + dx, y: e.pos.y + dy };
+    if (!walkable(tileAt(this.p.s.map, c)) || this.unitAt(c)) return;
+    if (this.myTurn) this.live(command(this.p, { kind: 'move', cell: c }));
+    else orderTo(this.p, this.sel, c);
+  }
+
+  /** The nearest foe in sight: struck now on the clone's turn, else marked as its target. */
+  private attackNearest(): void {
+    const e = entOf(this.p, this.sel);
+    if (!e?.alive) return;
+    const foe = this.p.units.filter((u) => u.side === 'foe' && !u.asleep && entOf(this.p, u.id)?.alive && this.p.s.visible.has(idx(this.p.s.map, entOf(this.p, u.id)!.pos)))
+      .sort((a, b) => Math.hypot(entOf(this.p, a.id)!.pos.x - e.pos.x, entOf(this.p, a.id)!.pos.y - e.pos.y) - Math.hypot(entOf(this.p, b.id)!.pos.x - e.pos.x, entOf(this.p, b.id)!.pos.y - e.pos.y))[0];
+    if (!foe) return;
+    if (this.myTurn) this.live(command(this.p, { kind: 'attack', target: foe.id }));
+    else unitOf(this.p, this.sel)!.order = { kind: 'attack', target: foe.id };
+  }
+
+  /** Wait: pass the turn on the clone's turn, otherwise stop where it stands. */
+  private waitOrStop(): void {
+    if (this.myTurn) { this.live(command(this.p, { kind: 'wait' })); return; }
+    const u = unitOf(this.p, this.sel), e = entOf(this.p, this.sel);
+    if (u && e?.alive) u.order = this.p.combat ? { kind: 'hold', cell: { ...e.pos } } : null;
   }
 
   private unitAt(c: Cell) { return this.p.units.find((u) => entOf(this.p, u.id)?.alive && same(entOf(this.p, u.id)!.pos, c) && this.p.s.visible.has(idx(this.p.s.map, c))); }

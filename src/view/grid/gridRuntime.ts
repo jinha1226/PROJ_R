@@ -323,7 +323,8 @@ export class GridRuntime {
     if (this.stayInMap && !this.stationAt.size) aim = this.clampAim(aim.clone());
     this.center.x = chase(this.center.x, aim.x, dt, CAM_K);
     this.center.z = chase(this.center.z, aim.z, dt, CAM_K);
-    this.light.position.set(hero.x, 2.6, hero.z);
+    // the lamp round the party hangs a little behind it (away from the camera): figures are rimmed, not burnt out
+    this.light.position.set(hero.x, 2.6, hero.z - 1.2);
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));

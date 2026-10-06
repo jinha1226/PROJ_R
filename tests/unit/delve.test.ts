@@ -142,3 +142,32 @@ it('below ground nobody wakes when the party falls; at the pod one empty body wa
   expect(clones(q).filter((u) => entOf(q, u.id)!.alive)).toHaveLength(1);
   expect(q.bio).toBe(5);
 });
+
+it('walking through a door opens it', () => {
+  const p = newDelve(2);
+  calm(p);
+  const m = p.s.map;
+  const doors = m.tiles.map((t, i) => (t === 'door' ? i : -1)).filter((i) => i >= 0);
+  const d = doors[0]!, cell = { x: d % m.w, y: Math.floor(d / m.w) };
+  clones(p)[0]!.order = { kind: 'move', cell };
+  const ev: ReturnType<typeof delveTick> = [];
+  for (let i = 0; i < 1500 && m.tiles[d] === 'door'; i++) ev.push(...delveTick(p, 0.1));
+  expect(m.tiles[d]).toBe('open');
+  expect(ev.some((e) => e.type === 'door')).toBe(true);
+});
+
+it('an archer with a foe at its side shoots it point-blank instead of only rolling away', () => {
+  const p = newDelve(2);
+  take(p, 0);
+  const f = p.units.find((u) => u.side === 'foe')!, fe = entOf(p, f.id)!;
+  const h = entOf(p, 'hero')!;
+  fe.pos = { x: h.pos.x + 1, y: h.pos.y }; fe.hp = 999; f.asleep = false; f.nextAt = 999;
+  let shots = 0;
+  for (let i = 0; i < 60; i++) {
+    // keep the foe at the archer's side
+    fe.pos = { x: h.pos.x + 1, y: h.pos.y };
+    if (p.s.map.tiles[fe.pos.y * p.s.map.w + fe.pos.x] !== 'floor') break;
+    shots += delveTick(p, 0.1).filter((e) => e.src === 'hero' && e.type === 'shoot').length;
+  }
+  expect(shots).toBeGreaterThan(1);
+});

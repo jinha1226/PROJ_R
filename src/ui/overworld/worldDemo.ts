@@ -16,6 +16,7 @@ import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { PipWindow } from './pipWindow';
 import { TraitPicker } from './traitPicker';
+import { TouchPad } from './touchPad';
 import { pickTrait } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/partyTraits';
 import { WorldHud } from './worldHud';
@@ -30,7 +31,7 @@ import '../styles/worldDemo.css';
 import '../styles/worldHud.css';
 
 /** game time per real second at normal speed */
-const RATE = 2.4;
+const RATE = 3.6;
 /** figures animate at most this much faster (a quicker game just covers more ground per second) */
 const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
@@ -50,6 +51,7 @@ export class WorldDemo implements Screen {
   private hud!: WorldHud;
   private pip!: PipWindow;
   private picker!: TraitPicker;
+  private pad!: TouchPad;
   private pausedBeforePip = false;
   private hover: { x: number; y: number } | null = null;
   private landing = false;
@@ -88,6 +90,8 @@ export class WorldDemo implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
+    this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
     this.zoom = startZoom(this.zoom);
     // a pointer-up that ends a pinch or a drag is not a click
@@ -112,6 +116,7 @@ export class WorldDemo implements Screen {
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
       }
+      this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
@@ -260,6 +265,29 @@ export class WorldDemo implements Screen {
   private togglePip(tab: 'stat' | 'bag'): void {
     if (!this.pip.open && !this.picker.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
+  }
+
+  /** The stick: a short walk that way (the party follows out of a fight). */
+  private nudge(dx: number, dy: number): void {
+    const e = entOf(this.p, this.sel);
+    if (!e?.alive || this.pip.open || this.picker.open) return;
+    const c = { x: e.pos.x + dx, y: e.pos.y + dy };
+    if (walkable(tileAt(this.p.s.map, c)) && !this.unitAt(c)) orderTo(this.p, this.sel, c);
+  }
+
+  /** The nearest foe in sight becomes the chosen clone's target. */
+  private attackNearest(): void {
+    const e = entOf(this.p, this.sel);
+    if (!e?.alive) return;
+    const d = (id: string) => Math.hypot(entOf(this.p, id)!.pos.x - e.pos.x, entOf(this.p, id)!.pos.y - e.pos.y);
+    const foe = this.p.units.filter((u) => u.side === 'foe' && !u.asleep && entOf(this.p, u.id)?.alive && this.p.s.visible.has(idx(this.p.s.map, entOf(this.p, u.id)!.pos))).sort((a, b) => d(a.id) - d(b.id))[0];
+    if (foe) unitOf(this.p, this.sel)!.order = { kind: 'attack', target: foe.id };
+  }
+
+  /** Stop where it stands (holding the spot in a fight). */
+  private stop(): void {
+    const u = unitOf(this.p, this.sel), e = entOf(this.p, this.sel);
+    if (u && e?.alive) u.order = this.p.combat ? { kind: 'hold', cell: { ...e.pos } } : null;
   }
 
   /** a living unit the party can see on that cell */

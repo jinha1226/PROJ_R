@@ -31,6 +31,8 @@ export interface Unit {
   level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
   /** when grit can hold a killing blow again */
   gritReady?: number;
+  /** when a ranged clone may next roll away from a foe at its side */
+  rollReady?: number;
   /** the cell an archer last shot from and how many shots in a row from it (steady aim) */
   steadyAt?: Cell; steady?: number;
   /** a companion uses its skills by itself (on unless the player turns it off) */
@@ -88,6 +90,9 @@ export function stepToward(p: Party, u: Unit, to: Cell, t: number, ev: GEvent[])
   if (!next || occupied(p, next, u.id)) return false;
   ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...next } });
   e.pos = next;
+  // a closed door swings open as someone walks through it
+  const k = idx(p.s.map, next);
+  if (p.s.map.tiles[k] === 'door') { p.s.map.tiles[k] = 'open'; ev.push({ t, type: 'door', src: u.id, to: { ...next } }); }
   return true;
 }
 
