@@ -1,5 +1,6 @@
 import { cellAtScreen, cellVec, shotGroup } from './runtimeHelpers';
 import { ShipTerrain } from './shipTerrain';
+import { WorldTerrain, type WorldLook } from '../overworld/worldTerrain';
 import { heroLook } from './heroLook';
 import { speciesOf } from './species';
 import type { ShipKit } from './shipKit';
@@ -43,7 +44,9 @@ const CAM_K = 8;
 /** Draws a grid sortie: the map, models chasing their cells, and each turn's events replayed as a quick overlapping show. */
 export class GridRuntime {
   private readonly h: SceneHandle;
-  private terrain: GridTerrain | ShipTerrain;
+  private terrain: GridTerrain | ShipTerrain | WorldTerrain;
+  /** the figure the camera follows */
+  focusId = 'hero';
   actors: GridActors;
   private elements: GridElements;
   private mapRef: GridSim['s']['map'];
@@ -76,7 +79,8 @@ export class GridRuntime {
   private strikes!: StrikeCues;
   /** dims the screen edge while the game runs slow (an engraving moment) */
   private readonly slowmo = document.createElement('div');
-  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, theme?: { theme: 'ship'; kit: ShipKit; meta: MetaState }) {
+  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, themeIn?: { theme: 'ship'; kit: ShipKit; meta: MetaState } | { theme: 'world'; look: WorldLook }) {
+    const theme = themeIn?.theme === 'ship' ? themeIn : undefined, world = themeIn?.theme === 'world' ? themeIn.look : undefined;
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     const scene = this.h.scene;
@@ -87,13 +91,15 @@ export class GridRuntime {
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer, 2);
-    if (!theme) kit.tint(look.tint);
-    this.terrain = theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
+    if (!theme && !world) kit.tint(look.tint);
+    this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
+    // daylight on the open land
+    if (world) { this.hemi.color.set('#e4ecff'); this.hemi.groundColor.set('#4a4030'); this.hemi.intensity = 1.05; this.light.intensity = 0.6; sun.intensity = 0; }
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
     if (theme) { this.intro = new ShipIntro(this.stationAt.get('st-pod'), this.stationAt.get('st-hatch'), theme.meta.best === 0); scene.add(this.intro.root); }
     if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.62; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
     this.actors = new GridActors(lib);
-    this.torches = new GridTorches(sim.s.map, kit, look.lights, theme ? 0 : look.density, look);
+    this.torches = new GridTorches(sim.s.map, kit, look.lights, theme || world ? 0 : look.density, look);
     this.elements = new GridElements(kit, sim.s);
     this.mapRef = sim.s.map;
     scene.add(this.terrain.root, this.actors.root, this.torches.root, this.particles.root, this.items.root, this.elements.root, this.ghosts.root, this.strikeFx.root);
@@ -292,6 +298,7 @@ export class GridRuntime {
     this.fx.update(dt);
     this.pops.update(dt);
     if (this.terrain instanceof ShipTerrain) this.terrain.update(dt);
+    if (this.terrain instanceof WorldTerrain) this.terrain.update(dt, this.center);
     this.actors.update(scaled, this.fx.frozen);
     this.torches.update(dt);
     this.items.update(dt);
@@ -302,7 +309,7 @@ export class GridRuntime {
     this.slowmo.classList.toggle('on', this.fx.timeScale < 1);
     this.particles.update(this.fx.frozen ? 0 : scaled, this.center);
     this.punch = Math.max(0, this.punch - dt);
-    const hero = this.actors.pos('hero') ?? this.center;
+    const hero = this.actors.pos(this.focusId) ?? this.actors.pos('hero') ?? this.center;
     // the small ship deck stays framed in the middle; in the dungeon the camera follows the hero
     const deck = new THREE.Vector3(((this.sim.s.map.w - 1) / 2) * CELL, 0, ((this.sim.s.map.h - 1) / 2) * CELL);
     const shot = this.intro?.update(dt);

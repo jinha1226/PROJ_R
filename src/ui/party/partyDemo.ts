@@ -3,7 +3,7 @@ import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
 import { same, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf, type Party } from '../../sim/party/partyCore';
-import { CLASSES, DEFAULT_PICKS, HERO_IDS, PROMOTIONS, SKILLS, WAVES, WEAPONS, type Pick } from '../../sim/party/partyDefs';
+import { CLASSES, DEFAULT_PICKS, HERO_IDS, WAVES, type Pick } from '../../sim/party/partyDefs';
 import { nextWave, partyRoom, promote, tick } from '../../sim/party/partySim';
 import { queueSkill } from '../../sim/party/partySkills';
 import { findPath } from '../../sim/grid/path';
@@ -12,6 +12,7 @@ import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { PartyPick, lookOf } from './partyPick';
+import { heroCardsHtml } from './heroCards';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
 import '../styles/partyDemo.css';
@@ -187,13 +188,7 @@ export class PartyDemo implements Screen {
     this.el.querySelector<HTMLElement>('[data-k="next"]')!.hidden = !more;
     this.el.classList.toggle('paused', this.paused);
     if (this.over() && !more) this.message(HERO_IDS.some((h) => this.alive(h)) ? '승리 · R 다시' : '전멸 · R 다시');
-    const t = this.p.time;
-    const cards = HERO_IDS.map((id, i) => {
-      const u = unitOf(this.p, id)!, e = entOf(this.p, id)!, cls = CLASSES[u.cls!], promo = PROMOTIONS[u.cls!];
-      const skills = cls.skills.map((s, k) => { const left = Math.max(0, u.ready[k]! - t); const q = u.queued === k; return `<button type="button" data-skill="${k}" class="${q ? 'queued' : ''}" ${left > 0 || !e.alive ? 'disabled' : ''}>${k ? 'W' : 'Q'} ${SKILLS[s].name}${q ? ' 예약' : left > 0 ? ` ${left.toFixed(0)}` : ''}</button>`; }).join('');
-      const adv = promo && e.alive ? (u.promoteReady ? `<button type="button" class="pd-promote" data-promote>전직 → ${CLASSES[promo.to].name}</button>` : `<small class="pd-adv">${CLASSES[promo.to].name} ${u.progress}/${promo.need}</small>`) : '';
-      return `<div class="pd-card${id === this.sel ? ' on' : ''}${e.alive ? '' : ' dead'}" data-hero="${id}"><b>${i + 1} ${cls.name} <small>${WEAPONS[u.weapon!].name}</small></b><div class="pd-hp"><i style="width:${(e.hp / e.maxHp) * 100}%"></i><span>${e.hp}/${e.maxHp}${u.shield ? ` +${u.shield}` : ''}</span></div><div class="pd-skills">${skills}</div>${adv}</div>`;
-    }).join('');
+    const cards = heroCardsHtml(this.p, this.sel);
     // only when something shown changed (a rebuilt button mid-click would swallow the click)
     if (cards !== this.cardsHtml) { this.cardsHtml = cards; this.el.querySelector('.pd-cards')!.innerHTML = cards; }
   }

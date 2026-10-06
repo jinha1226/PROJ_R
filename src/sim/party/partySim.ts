@@ -77,6 +77,14 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
       // blocked: stand where it got to
       u.order = { kind: 'hold', cell: { ...e.pos } };
     } else u.order = { kind: 'hold', cell };
+    // out of combat a walk just ends there
+    if (p.combat === false) { u.order = null; return 0.3; }
+  }
+  // out of combat the others keep near the leader
+  if (u.side === 'hero' && !u.order && p.combat === false) {
+    const lead = p.leader ? entOf(p, p.leader) : undefined;
+    if (!lead?.alive || p.leader === u.id || dist(e.pos, lead.pos) <= 2) return 0.3;
+    return stepToward(p, u, lead.pos, t, ev) ? st.move : 0.4;
   }
   if (u.order?.kind === 'hold') {
     // holding: strike whatever is in reach from here, never step off
@@ -102,7 +110,7 @@ export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
   const end = p.time + dt;
   for (let guard = 0; guard < 100; guard++) {
-    const next = p.units.filter((u) => alive(p, u)).sort((a, b) => a.nextAt - b.nextAt)[0];
+    const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
     // a queued skill goes off on the hero's own moment in place of its usual action; it waits (the hero closes in) while it has no target in reach

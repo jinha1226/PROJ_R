@@ -18,8 +18,20 @@ export interface Unit {
   guardReady: number;
   /** kills that count toward this hero's advanced class */
   progress: number; promoteReady?: boolean;
+  /** a camp foe that has not noticed the party yet (takes no turns) */
+  asleep?: boolean;
+  /** the camp a foe belongs to (they wake together) */
+  group?: number;
 }
-export interface Party { s: GridState; units: Unit[]; time: number; wave: number }
+export interface Party {
+  s: GridState; units: Unit[]; time: number; wave: number;
+  /** on the world map: false while no awake foe is near (orders then move the whole party; arrival does not hold) */
+  combat?: boolean;
+  /** the hero the others follow out of combat */
+  leader?: string;
+  /** world-map rules turn on (targets only awake foes nearby) */
+  roam?: boolean;
+}
 
 export const entOf = (p: Party, id: string): Ent | undefined => (id === 'hero' ? p.s.hero : p.s.foes.find((f) => f.id === id));
 export const unitOf = (p: Party, id: string): Unit | undefined => p.units.find((u) => u.id === id);
@@ -46,7 +58,7 @@ export function targetOf(p: Party, u: Unit, t: number): Unit | undefined {
   if (u.side === 'foe' && u.tauntBy && t < u.tauntUntil) { const by = p.units.find((x) => x.id === u.tauntBy && alive(p, x)); if (by) return by; }
   if (u.order?.kind === 'attack') { const id = u.order.target; const o = p.units.find((x) => x.id === id && alive(p, x)); if (o) return o; u.order = null; }
   const me = posOf(p, u);
-  return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil)).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+  return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil) && !(p.roam && (x.asleep || dist(posOf(p, x), me) > 10))).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
 }
 
 /** One step toward `to` along a free path (other bodies block, the goal itself does not). */
@@ -81,6 +93,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
   }
+  // a blow on a sleeping camp wakes the whole camp
+  if (dst.asleep) for (const f of p.units) if (f.side === 'foe' && f.group === dst.group) f.asleep = false;
   e.hp = Math.max(0, e.hp - amount);
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   if (e.hp <= 0) {
