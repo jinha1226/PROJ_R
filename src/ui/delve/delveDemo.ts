@@ -180,7 +180,8 @@ export class DelveDemo implements Screen {
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer());
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = false;
-    this.rt.enableBloom();
+    // a light touch of glow: torches and lamps bleed a little, nothing blows out
+    this.rt.enableBloom({ strength: 0.32, radius: 0.35, threshold: 0.86 });
     this.rt.focusId = this.sel;
     this.pace();
   }

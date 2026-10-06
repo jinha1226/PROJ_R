@@ -353,7 +353,7 @@ export class GridRuntime {
     cam.lookAt(c);
   }
   /** The glow pass (fires and lamps bleed light), as on the world map. */
-  enableBloom(): void { this.bloom ??= new Bloom(this.h.renderer, this.h.scene, this.h.camera); }
+  enableBloom(glow?: { strength: number; radius: number; threshold: number }): void { this.bloom ??= new Bloom(this.h.renderer, this.h.scene, this.h.camera, glow); }
   setZoom(h: number): void {
     this.height = h;
   }

@@ -90,3 +90,15 @@ it('left alone a floor never throws', () => {
   const p = newDelve(5);
   for (let i = 0; i < 2000; i++) expect(() => delveTick(p, 0.1)).not.toThrow();
 });
+
+it('when a band notices the party every walk stops where it is', () => {
+  const p = newDelve(1);
+  take(p, 0);
+  const hero = clones(p)[0]!;
+  hero.order = { kind: 'move', cell: { x: 12, y: 25 } }; p.leader = 'hero';
+  let woke = false;
+  for (let i = 0; i < 400 && !woke; i++) woke = delveTick(p, 0.05).some((e) => e.type === 'wake');
+  expect(woke).toBe(true);
+  expect(p.combat).toBe(true);
+  expect(hero.order).toBeNull();
+});

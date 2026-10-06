@@ -124,6 +124,8 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   const was = p.combat;
   p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= 12);
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
+  // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band
+  if (!was && p.combat) for (const u of living(p)) if (u.order?.kind === 'move') u.order = null;
   const hand = p.manual ? p.units.find((u) => u.id === p.manual) : undefined;
   if (hand?.order?.kind === 'move' && (woke.size || (entOf(p, hand.id)?.hp ?? 0) < (hpBefore.get(hand.id) ?? 0))) hand.order = null;
 }
