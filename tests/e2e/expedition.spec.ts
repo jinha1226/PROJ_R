@@ -9,7 +9,7 @@ test('the title drops a pod: an empty clone steps out beside it, the drill rig w
   await expect(page.locator('.wh-mini canvas')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.wh-party .pf')).toHaveCount(1);
   await expect(page.locator('.wh-party .pf')).toContainText('빈 몸');
-  await expect(page.locator('.wh-top')).toContainText('재료');
+  await expect(page.locator('.wh-top')).toContainText('턴');
   await expect(page.locator('.wh-log')).toContainText('포드 착륙');
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');

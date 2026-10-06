@@ -10,7 +10,7 @@ import { cardTarget, targetCardHtml } from '../overworld/targetCard';
 import { tapCell } from './tapCell';
 import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
-import { BODY_COST, clones, orderTo } from '../../sim/roam/roam';
+import { clones, orderTo } from '../../sim/roam/roam';
 import { canAscend, canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
 import { GridRuntime } from '../../view/grid/gridRuntime';
@@ -71,6 +71,10 @@ export class DelveDemo implements Screen {
   private hover: Cell | null = null;
   /** game time of each clone's last swing at a vein */
   private readonly swungAt = new Map<string, number>();
+  /** whether the last tick moved anyone (followers still catching up keep time going) */
+  private movedLast = true;
+  /** turn-based: a wait runs time on to here */
+  private waitUntil = 0;
   private warned = new Set<string>();
   private slowUntil = 0;
   private raf = 0;
@@ -107,6 +111,7 @@ export class DelveDemo implements Screen {
       speed: (v) => { this.speed = v; this.pace(); },
       mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
       dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
+      pip: (tab) => this.togglePip(tab),
       restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       close: () => { this.paused = this.pausedBeforePip; },
     });
@@ -133,9 +138,11 @@ export class DelveDemo implements Screen {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still()) {
         const t0 = this.p.time, slow = this.mode === 'realtime' && now < this.slowUntil ? 0.35 : 1;
-        this.live(delveTick(this.p, dt * RATE * this.speed * slow), t0);
+        const ev = delveTick(this.p, dt * RATE * this.speed * slow);
+        this.movedLast = ev.some((e) => e.type === 'move');
+        this.live(ev, t0);
       }
       this.pad.update(dt);
       this.props?.update(dt);
@@ -298,8 +305,24 @@ export class DelveDemo implements Screen {
   /** Wait: pass the turn on the clone's turn, otherwise stop where it stands. */
   private waitOrStop(): void {
     if (this.myTurn) { this.live(command(this.p, { kind: 'wait' })); return; }
+    // turn-based and nothing doing: wait passes one turn
+    if (this.mode === 'turn' && !this.p.combat) { this.waitUntil = this.p.time + 1; return; }
     const u = unitOf(this.p, this.sel), e = entOf(this.p, this.sel);
     if (u && e?.alive) u.order = this.p.combat ? { kind: 'hold', cell: { ...e.pos } } : null;
+  }
+
+  /**
+   * Turn-based out of a fight, time moves only while something is being done (as in Jupiter Hell): a clone walking or
+   * sent somewhere, a vein being worked, a wait under way. Standing about, the turn count holds.
+   */
+  private still(): boolean {
+    if (this.mode !== 'turn' || this.p.combat || this.movedLast || this.p.time < this.waitUntil) return false;
+    return !clones(this.p).some((u) => {
+      const e = entOf(this.p, u.id);
+      if (!e?.alive) return false;
+      if (u.order?.kind === 'move' || u.order?.kind === 'attack') return true;
+      return this.p.oreNodes.some((n) => n.left > 0 && dist(n.pos, e.pos) <= 1);
+    });
   }
 
   private unitAt(c: Cell) { return this.p.units.find((u) => entOf(this.p, u.id)?.alive && same(entOf(this.p, u.id)!.pos, c) && this.p.s.visible.has(idx(this.p.s.map, c))); }
@@ -360,9 +383,10 @@ export class DelveDemo implements Screen {
   }
 
   private drawHud(): void {
-    const p = this.p, turn = this.mode === 'turn';
-    const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
-    const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${p.bio}/${BODY_COST}</b></span>${p.ore ? `<span>광석 <b>${p.ore}</b></span>` : ''}${p.crystal ? `<span class="soul">마정석 <b>${p.crystal}</b></span>` : ''}${p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : ''}`;
+    const p = this.p;
+    // no mode banner: the top centre says floor and turn, the frames say whose turn it is
+    const mode = '';
+    const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span>`;
     const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
     this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target });
   }

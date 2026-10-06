@@ -189,7 +189,9 @@
 .tp { display: none; }
 @media (pointer: coarse) {
   .tp { display: block; }
-  .tp-zone { position: absolute; z-index: 7; left: 0; bottom: 0; width: 52%; height: 34%; }
+  /* under the HUD (party frames, level-up buttons stay tappable); the log lets touches through to it */
+  .tp-zone { position: absolute; z-index: 5; left: 0; bottom: 0; width: 52%; height: 34%; }
+  .wh-bl { pointer-events: none; }
   .tp-base { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; border: 2px solid #1f7a3e; background: radial-gradient(circle, #03140acc, #010a05aa); box-shadow: inset 0 0 18px #0a3a1a; display: grid; place-items: center; opacity: 0; pointer-events: none; }
   .tp-zone.on .tp-base { opacity: 1; }
   .tp-knob { width: 54px; height: 54px; border-radius: 50%; background: #1f7a3e; border: 2px solid #5dff8a; box-shadow: 0 0 10px #5dff8a66; pointer-events: none; }
@@ -351,3 +353,13 @@
 .pr-gear { color: #9dffb8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pr-promo { color: #ffd76a; font-size: 11px; animation: wh-blink 1s steps(2) infinite; }
 @media (orientation: portrait) and (max-width: 700px) { .pr-row { grid-template-columns: 1fr 90px; } .pr-gear { grid-column: 1 / -1; } }
+
+/* ---- what is on a unit: trigger buffs (green), statuses (red), turns left ---- */
+.u-chips { display: flex; flex-wrap: wrap; gap: 2px 3px; margin: 2px 0; }
+.u-chips i { font: 9px 'GalmuriMono', monospace; font-style: normal; padding: 0 3px; border: 1px solid; line-height: 13px; }
+.u-chips i.good { color: #8ff0ff; border-color: #2a7a8a; background: #021014; }
+.u-chips i.bad { color: #ff8a7a; border-color: #8a2a1e; background: #140402; }
+.wh-target .u-chips { margin: 0; }
+
+/* the top right keeps only the menu (and the shaft or lift when there); no mode banner */
+.wh-mode { display: none; }

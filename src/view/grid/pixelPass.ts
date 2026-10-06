@@ -76,7 +76,11 @@ export class PixelPass {
             // shadows lifted before the snap: the palette's darkest entries would swallow a dim figure whole
             // near-black stays flat black: the unseen dark must not crawl with dither dots
             float lum = max(max(gl_FragColor.r, gl_FragColor.g), gl_FragColor.b);
-            vec3 c = pow(clamp(gl_FragColor.rgb, 0.0, 1.0), vec3(lift)) + (bayer(floor(vUv / texel)) - 0.5) * spread * smoothstep(0.03, 0.1, lum);
+            // figures are drawn clean and bright (no dither, shadows lifted more); the ground sits a touch darker behind them
+            vec3 fig = ringAt(vec2(0.0));
+            bool isFig = fig.r + fig.g + fig.b >= 0.02;
+            vec3 base = pow(clamp(gl_FragColor.rgb, 0.0, 1.0), vec3(isFig ? lift * 0.62 : lift)) * (isFig ? 1.22 : 0.88);
+            vec3 c = base + (bayer(floor(vUv / texel)) - 0.5) * (isFig ? 0.0 : spread * smoothstep(0.03, 0.1, lum));
             vec3 best = pal[0]; float bd = 1e9;
             for (int k = 0; k < PAL_N; k++) {
               vec3 e = (c - pal[k]) * vec3(0.55, 0.75, 0.4);
@@ -106,11 +110,12 @@ export class PixelPass {
 
   render(scene: THREE.Scene, camera: THREE.Camera): void {
     const r = this.renderer;
-    r.getSize(this.size);
+    r.getDrawingBufferSize(this.size);
+    // a whole number of screen pixels per dot (about `lines` along the short side): fractional scaling makes dots uneven and mushy
     const short = Math.max(1, Math.min(this.size.x, this.size.y));
-    const k = this.look.lines ? this.look.lines / short : 1 / this.px;
-    const h = Math.max(this.look.lines ? 1 : 120, Math.round(this.size.y * k));
-    const w = Math.max(1, Math.round(this.size.x * k));
+    const k = Math.max(1, Math.round(this.look.lines ? short / this.look.lines : this.px * r.getPixelRatio()));
+    const h = Math.max(1, Math.round(this.size.y / k));
+    const w = Math.max(1, Math.round(this.size.x / k));
     if (this.target.width !== w || this.target.height !== h) {
       this.target.setSize(w, h);
       this.mask.setSize(w, h);

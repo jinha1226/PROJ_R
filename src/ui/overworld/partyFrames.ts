@@ -4,6 +4,7 @@ import { entOf, unitOf, type Party, type Unit } from '../../sim/party/partyCore'
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { CLASS_TINT, classIcon } from './classIcons';
+import { unitChips } from './unitChips';
 
 /** A skill as a square with its key and a dark sweep for the time left (or lit when queued). */
 function skillTile(u: Unit, t: number, alive: boolean, big: boolean): string {
@@ -35,7 +36,7 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
     const state = u.order?.kind === 'hold' ? '고수' : u.order?.kind === 'attack' ? '공격' : u.order?.kind === 'move' ? '이동' : u.ultQueued ? '예약' : '';
     return `<div class="pf${id === sel ? ' on' : ''}${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
       <div class="pf-face">${classIcon(u.cls!)}<kbd>${i + 1}</kbd></div>
-      <div class="pf-body"><div class="pf-name">${cls.name}${state ? `<small>${state}</small>` : ''}</div>${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}
+      <div class="pf-body"><div class="pf-name">${cls.name}${state ? `<small>${state}</small>` : ''}</div>${hpBar(e.hp, e.maxHp, u.shield)}${unitChips(u, t)}${levelHtml(u)}
       <div class="pf-skills">${skillTile(u,t,e.alive,false)}</div></div></div>`;
   }).join('');
 }
@@ -49,5 +50,5 @@ export function detailHtml(p: Party, id: string): string {
   const skills = skillTile(u,p.time,true,true);
   return `<div class="dt-head" style="--tint:${CLASS_TINT[u.cls!]}"><div class="pf-face big">${classIcon(u.cls!)}</div>
     <div><b>${cls.name}</b><div class="dt-sub">${w.name} · 피해 ${w.dmg[0]}–${w.dmg[1]} · 사거리 ${w.range}</div>${cls.passiveName ? `<div class="dt-pas">◆ ${cls.passiveName}</div>` : '<div class="dt-pas dim">영혼 없음</div>'}</div></div>
-    ${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}<div class="dt-skills">${skills}</div>${adv}`;
+    ${hpBar(e.hp, e.maxHp, u.shield)}${unitChips(u, p.time)}${levelHtml(u)}<div class="dt-skills">${skills}</div>${adv}`;
 }

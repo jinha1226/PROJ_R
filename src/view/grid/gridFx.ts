@@ -56,8 +56,9 @@ export class GridFx {
     mesh.position.copy(at); this.scene.add(mesh); this.beams.push({ mesh, life: 0.5 });
   }
 
-  number(text: string, kind: NumberKind, at: THREE.Vector3): void {
-    const p = this.project(at.clone().setY(2.0));
+  /** A floating label over a point; `height` lifts it (loot floats above the blow that dropped it). */
+  number(text: string, kind: NumberKind, at: THREE.Vector3, height = 2.0): void {
+    const p = this.project(at.clone().setY(height));
     this.numbers.show(text, kind, p.left, p.top);
   }
 

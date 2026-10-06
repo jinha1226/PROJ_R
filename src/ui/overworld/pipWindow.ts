@@ -1,14 +1,14 @@
-import { kitOf, promotionOptions, promote } from '../../sim/party/classKit';
+import { kitOf, promote } from '../../sim/party/classKit';
 import type { GEvent } from '../../sim/grid/types';
 import type { ClassId } from '../../sim/party/partyDefs';
 import { traitText } from '../../sim/party/traitText';
-import { gearHtml, WHEN } from './pipGear';
-import { classesHtml } from './pipClasses';
+import { gearHtml, packHtml, WHEN } from './pipGear';
+import { promotionHtml } from './pipClasses';
 import { rosterHtml } from './pipRoster';
 import { ULT_TEXT } from './ultText';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { itemName } from '../../sim/delve/items';
-import { equip,unequip,sacrifice,useItem,weaponStats,PACK_SIZE } from '../../sim/delve/gear';
+import { equip,unequip,sacrifice,useItem,weaponStats } from '../../sim/delve/gear';
 import { CATALOG } from '../../sim/delve/catalog';
 import { entOf, unitOf, targetOf, posOf } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
@@ -17,8 +17,8 @@ import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 
-export type PipTab = 'roster' | 'stat' | 'gear' | 'class' | 'bag';
-const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', gear: '장비', class: '직업', bag: '가방' };
+export type PipTab = 'roster' | 'stat' | 'gear' | 'bag';
+const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', gear: '장비', bag: '가방' };
 const BAG_SLOTS = 12;
 
 /** The Pip-Boy style window: the clones' records (status), their gear, the class tree, and what the party carries (bag). The game waits while it is open. */
@@ -56,9 +56,9 @@ export class PipWindow {
 
   private draw(): void {
     const p = this.p();
-    const tabs = (['roster', 'stat', 'gear', 'class', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
+    const tabs = (['roster', 'stat', 'gear', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
     const body = this.tab === 'roster' ? rosterHtml(p) : this.tab === 'stat' ? this.stat(p) : this.tab === 'bag' ? this.bag(p)
-      : `<nav class="pip-side">${this.side(p)}</nav>${this.tab === 'gear' ? gearHtml(p, unitOf(p, this.who)) : classesHtml(p, unitOf(p, this.who))}`;
+      : `<nav class="pip-side">${this.side(p)}</nav>${gearHtml(p, unitOf(p, this.who))}`;
     this.el.innerHTML = `<div class="pip-frame"><header>${tabs}<span class="pip-title">R-7 기록 장치</span><button type="button" data-close>✕</button></header>
       <div class="pip-body">${body}</div><footer>L 명단 · C 상태 · E 장비 · I 가방 · Esc 닫기</footer></div>`;
   }
@@ -75,7 +75,7 @@ export class PipWindow {
     const side = this.side(p);
     const u = unitOf(p, this.who), e = u && entOf(p, u.id);
     if (!u || !e) return `<nav class="pip-side">${side}</nav>`;
-    const cls = CLASSES[u.cls!], w = {...WEAPONS[u.weapon!],...weaponStats(u),name:u.gear?.weapon?itemName(u.gear.weapon):WEAPONS[u.weapon!].name,note:u.gear?.weapon?CATALOG[u.gear.weapon.def]!.tags.join(' · '):WEAPONS[u.weapon!].note}, promo = promotionOptions(p,u);
+    const cls = CLASSES[u.cls!], w = {...WEAPONS[u.weapon!],...weaponStats(u),name:u.gear?.weapon?itemName(u.gear.weapon):WEAPONS[u.weapon!].name,note:u.gear?.weapon?CATALOG[u.gear.weapon.def]!.tags.join(' · '):WEAPONS[u.weapon!].note};
     const kit=kitOf(u), innate=kit.innate.map((t)=>`<li><b>${t.id}</b><span>${WHEN[t.when] ?? t.when}${t.nth ? ` ${t.nth}` : ''} 때 발동</span><em>고유</em></li>`).join('');
     const skills=innate+(kit.ultimate?`<li><b>${ULT_NAMES[kit.ultimate]}</b><span>${ULT_TEXT[kit.ultimate]}</span><em>대기 ${kit.ultCd}턴</em></li>`:'')||'<li class="dim">없음</li>';
     const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
@@ -84,13 +84,13 @@ export class PipWindow {
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
       <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${w.dmg[0]}–${w.dmg[1]} · ${(1 / w.atk).toFixed(1)}회/턴 · 사거리 ${w.range}</dd>
-      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${promo.map(o=>`<dt>전직</dt><dd>${CLASSES[o.to].name} ${o.met?'가능':'미달'}</dd>`).join('')}</dl>
+      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd></dl>${promotionHtml(p, u)}
       <h4>기술</h4><ul class="pip-skills">${skills}</ul><h4>특성</h4><ul class="pip-skills">${traits}</ul></section>`;
   }
 
   private bag(p: RoamParty): string {
     const items = p.carried.map((soul) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span></div>`; });
     const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
-    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div><h4>광석 <small>${p.ore}</small> · 마정석 <small>${p.crystal}</small></h4><h4>장비·소모품 <small>${p.pack.length}/${PACK_SIZE} · 장비 탭에서</small></h4></section>`;
+    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div><h4>광석 <small>${p.ore}</small> · 마정석 <small>${p.crystal}</small></h4></section><section class="pg pip-bag">${packHtml(p, unitOf(p, this.who) ?? clones(p).find((u) => entOf(p, u.id)?.alive))}</section>`;
   }
 }

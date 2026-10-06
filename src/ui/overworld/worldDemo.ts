@@ -14,7 +14,6 @@ import { promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
-import { BODY_COST } from '../../sim/roam/roam';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import type { NatureKit } from '../../view/overworld/natureKit';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
@@ -103,6 +102,8 @@ export class WorldDemo implements Screen {
     this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },
       dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
+      pip: (tab) => this.togglePip(tab),
+      build: () => this.build.toggle(),
       restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       close: () => { this.paused = this.pausedBeforePip; },
     });
@@ -154,8 +155,7 @@ export class WorldDemo implements Screen {
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.build.open);
-      const bio = `<span class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${this.p.bio}/${BODY_COST}</b></span>${this.p.carried.length ? `<span class="soul">영혼 <b>${this.p.carried.length}</b></span>` : ''}`;
-      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>${bio}`, mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>`, mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };

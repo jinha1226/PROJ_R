@@ -28,8 +28,8 @@ export class WorldHud {
       <aside class="wh-tl"><div class="wh-mini"></div></aside>
       <aside class="wh-bl"><div class="wh-cap">기록</div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
-        ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}${a.wait ? '<button type="button" data-k="wait" hidden>대기</button>' : ''}
-        ${a.build ? '<button type="button" data-k="build">건설 <kbd>B</kbd></button>' : ''}<button type="button" data-k="stat">상태 <kbd>C</kbd></button><button type="button" data-k="bag">가방 <kbd>I</kbd></button><button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
+        ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}
+        <button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
       <aside class="wh-br"></aside>
       <div class="wh-party"></div>`);
     el.querySelector('.wh-btns')!.addEventListener('click', (e) => {

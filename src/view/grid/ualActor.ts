@@ -86,7 +86,8 @@ function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: nu
   grips.set(key, q);
   return q;
 }
-const bowGrip = (lib: UalLibrary) => uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35);
+/** the bow at rest hangs upright from the lowered hand; drawn, it stands upright in front of the body */
+const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3));
 const CASTER = new Set<WeaponLook>(['staff', 'wand', 'symbol']);
 
 const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined => {
@@ -174,6 +175,7 @@ export class UalActor {
       if ((e as unknown as { action: THREE.AnimationAction }).action !== this.current) return;
       this.busy = false;
       this.busyKind = null;
+      this.bowDrawn(false);
       if (!this.dead) this.loopOn(this.loop === 'run', this.loop === 'run' ? 1.5 : 1, 0.12);
     });
     this.start(this.idleClip, true, 1, 0);
@@ -227,7 +229,7 @@ export class UalActor {
     this.held = weaponMesh(kind);
     this.heldKind = kind;
     // a bow is held in the left hand (the right one draws the string), standing upright in front when drawn
-    if (kind === 'bow' && this.offHand) { this.held.quaternion.copy(bowGrip(this.lib)); this.offHand.add(this.held); }
+    if (kind === 'bow' && this.offHand) { this.held.quaternion.copy(bowGrip(this.lib, false)); this.offHand.add(this.held); }
     else {
       // a caster's stick stands upright in the spell stance instead of lying along the forearm
       if (CASTER.has(kind)) this.held.quaternion.copy(uprightGrip(this.lib, 'Spell_Simple_Idle_Loop', 'hand_r', 0.3));
@@ -261,7 +263,13 @@ export class UalActor {
     this.busyKind = loop ? null : anim;
     if (loop) { this.loopOn(anim === 'run', speed, 0.06); return; }
     this.dropUpper(0.06);
+    this.bowDrawn(anim === 'shootBow');
     this.start(name, loop, speed, 0.06);
+  }
+
+  /** Turns a held bow to the drawn grip for a shot, back to the resting one after. */
+  private bowDrawn(on: boolean): void {
+    if (this.heldKind === 'bow' && this.held) this.held.quaternion.copy(bowGrip(this.lib, on));
   }
 
   setLocomotion(running: boolean): void {
