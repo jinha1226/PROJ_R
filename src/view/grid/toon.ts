@@ -14,6 +14,32 @@ function toonRamp(): THREE.DataTexture {
   return ramp;
 }
 
+let lit = true;
+/** Figures lit like the scanned stone round them (the default), or in the older banded toon look. */
+export const setFigureLit = (on: boolean): void => { lit = on; };
+export const figureLit = (): boolean => lit;
+
+/** The material a figure part is drawn with: plain physical shading by default, so bodies sit in the same light as the floor. */
+export function figureMat(color: string, rim?: string, rimStrength?: number, map?: THREE.Texture): FigureMat {
+  if (!lit) return toonMat(color, rim, rimStrength, map);
+  return withRim(new THREE.MeshStandardMaterial({ color, map: map ?? null, roughness: 0.78, metalness: 0 }), rim, (rimStrength ?? 0.55) * 0.45);
+}
+
+/** A faint light on the edges turned away from the camera, so a lit figure still stands off the dark floor. */
+export function withRim<M extends THREE.MeshStandardMaterial>(m: M, rim = '#ffcf9a', strength = 0.2): M {
+  const rimColor = new THREE.Color(rim).multiplyScalar(strength);
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uRim = { value: rimColor };
+    sh.fragmentShader = sh.fragmentShader
+      .replace('void main() {', 'uniform vec3 uRim;\nvoid main() {')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        { float facing = clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0);
+          totalEmissiveRadiance += uRim * pow(1.0 - facing, 3.0); }`);
+  };
+  m.customProgramCacheKey = () => `lit-rim-${rim}-${strength}`;
+  return m;
+}
+
 /** A banded material with a rim of light on the edges facing away from the camera, so the figure stands off a dark floor. */
 export function toonMat(color: string, rim = '#9fd8ff', rimStrength = 0.55, map?: THREE.Texture): THREE.MeshToonMaterial {
   const m = new THREE.MeshToonMaterial({ color, gradientMap: toonRamp(), map: map ?? null });

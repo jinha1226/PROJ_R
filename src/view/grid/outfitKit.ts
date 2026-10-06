@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { toonMat, type FigureMat } from './toon';
+import { figureLit, figureMat, withRim, type FigureMat } from './toon';
 
 export type OutfitSet = 'Peasant' | 'Ranger';
 export type OutfitExtra = 'hood' | 'pauldron';
@@ -76,7 +76,13 @@ export class OutfitKit {
     for (const sm of parts) {
       const src = sm.material as THREE.MeshStandardMaterial;
       let mat = mats.get(src);
-      if (!mat) { mat = isSkin(src) ? toonMat(skin, rim, rimStrength) : toonMat(look.tint, rim, rimStrength, src.map ?? undefined); mats.set(src, mat); }
+      if (!mat) {
+        // lit: the outfit's own colour, normal and roughness maps under the tint; toon: the colour map only
+        if (isSkin(src)) mat = figureMat(skin, rim, rimStrength);
+        else if (figureLit()) { const c = withRim(src.clone(), rim, rimStrength * 0.45); c.color.set(look.tint); mat = c; }
+        else mat = figureMat(look.tint, rim, rimStrength, src.map ?? undefined);
+        mats.set(src, mat);
+      }
       const worn = new THREE.SkinnedMesh(sm.geometry, mat);
       // the second outfit's rig loads with suffixed names (spine_01_1): match them to the mannequin's plain ones
       const own = sm.skeleton.bones.map((b) => bones.get(b.name) ?? bones.get(b.name.replace(/_\d+$/, '')));

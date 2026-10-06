@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { boneParts } from './boneParts';
-import { toonMat, type FigureMat } from './toon';
+import { figureMat, type FigureMat } from './toon';
 import type { Species } from './species';
 
 /** The few rigid bits that sell a species at pixel size: goblin ears, orc tusks and pauldron, skeleton eye holes and ribs. */
 export function buildSpeciesParts(model: THREE.Object3D, species: Species, skin: string): FigureMat[] {
   const { at, v, piece } = boneParts(model);
   const mats: FigureMat[] = [];
-  const mat = (color: string) => { const m = toonMat(color, '#ffd9a0', 0.35); mats.push(m); return m; };
+  const mat = (color: string) => { const m = figureMat(color, '#ffd9a0', 0.35); mats.push(m); return m; };
   const head = at('Head');
   if (species === 'goblin') {
     const ear = mat(skin);

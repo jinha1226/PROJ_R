@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { boneParts } from './boneParts';
-import { toonMat, type FigureMat } from './toon';
+import { figureMat, type FigureMat } from './toon';
 
 /** The armour pieces' materials: shell and plates take hit flashes; `lights` are the engraving lamps on the backpack. */
 export interface SuitParts { mats: FigureMat[]; lights: THREE.MeshStandardMaterial[] }
@@ -17,7 +17,7 @@ const LAMP_OFF = '#13242b';
 export function buildSuitArmor(model: THREE.Object3D): SuitParts {
   const mats: FigureMat[] = [];
   const lights: THREE.MeshStandardMaterial[] = [];
-  const mat = (color: string) => { const m = toonMat(color); mats.push(m); return m; };
+  const mat = (color: string) => { const m = figureMat(color); mats.push(m); return m; };
   const shell = mat('#4a5866');
   const plate = mat('#8794a2');
   const dark = mat('#1a222b');

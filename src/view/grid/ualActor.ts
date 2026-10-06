@@ -5,7 +5,7 @@ import { weaponMesh, type WeaponLook } from './weaponMeshes';
 import { weaponKit } from './weaponKit';
 import { buildBlockBody, type BlockLook } from './blockBody';
 import { buildSuitArmor, lightSuit } from './suitArmor';
-import { addOutlines, toonMat, type FigureMat } from './toon';
+import { addOutlines, figureLit, figureMat, type FigureMat } from './toon';
 import { shapeBones, type BodyShape, type Species } from './species';
 import { buildSpeciesParts } from './speciesParts';
 import { OutfitKit, type OutfitLook } from './outfitKit';
@@ -111,7 +111,7 @@ export class UalActor {
       const tinted = src.map((mat, i) => {
         void mat;
         // banded light and a cool rim for the agent, a warm rim for the dungeon's folk
-        const c = toonMat(i === 0 ? look.body : look.trim, look.suit ? '#9fd8ff' : '#ffcf9a', look.suit ? 0.6 : 0.4);
+        const c = figureMat(i === 0 ? look.body : look.trim, look.suit ? '#9fd8ff' : '#ffcf9a', look.suit ? 0.6 : 0.4);
         this.mats.push(c);
         return c;
       });
@@ -129,7 +129,8 @@ export class UalActor {
       if (spine && rel) this.hunch = [spine, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0).applyQuaternion(rel), look.shape.hunch)];
     }
     // a dark one-pixel shell keeps the figure apart from the floor once pixelated
-    if (!look.block) addOutlines(model, 0.03);
+    // lit figures carry only a hairline outline (the toon look keeps the heavy one)
+    if (!look.block) addOutlines(model, figureLit() ? 0.012 : 0.03);
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
