@@ -5,9 +5,9 @@ import { emit, CHAIN_CAP } from '../../src/sim/party/triggers';
 import type { GEvent } from '../../src/sim/grid/types';
 
 describe('trigger bus', () => {
-  it('caps recursive extra hits at five follow-ups', () => {
+  it('caps a repeating effect that calls itself at the chain limit', () => {
     const p = partyRoom(), u = p.units[0]!, ev: GEvent[] = []; let n = 0;
-    u.triggers = [{ id: '연타', when: 'hit', run: (p, c) => { n++; c.src.progress++; emit(p, 'hit', c); } }];
+    u.triggers = [{ id: '연타', when: 'hit', repeat: true, run: (p, c) => { n++; c.src.progress++; emit(p, 'hit', c); } }];
     emit(p, 'hit', { t: 0, src: u, ev }); expect(n).toBe(CHAIN_CAP);
   });
   it('honours cooldowns across repeated hits', () => {

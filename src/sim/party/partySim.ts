@@ -1,5 +1,5 @@
 import { expireSummons } from './kitEffects';
-import { emit } from './triggers';
+import { action, emit } from './triggers';
 import { tickStatuses } from './status';
 import { foeTurn } from './partyFoeAi';
 import { tickGrounds } from '../delve/catalogEffects';
@@ -202,6 +202,7 @@ export function command(p: Party, c: Command): GEvent[] {
   } else if (c.kind === 'wait') {
     u.nextAt = p.time + 0.5;
     ev.push({ t: p.time, type: 'wait', src: u.id });
+    action(p, () => emit(p, 'wait', { t: p.time, src: u, ev }));
   } else {
     u.order = c.kind === 'move' ? { kind: 'move', cell: c.cell } : { kind: 'attack', target: c.target };
     u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);

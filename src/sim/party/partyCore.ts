@@ -167,7 +167,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     }
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
-    if(soak>0 && dst.shield===0)shieldBroken(p,dst,t,ev);
+    if(soak>0 && dst.shield===0){shieldBroken(p,dst,t,ev);emit(p,'shieldBreak',{t,src:dst,target:attacker,amount:soak,ev});}
   }
   // a blow on a sleeping camp wakes the whole camp
   if (dst.asleep) for (const f of p.units) if (f.side === 'foe' && f.group === dst.group) f.asleep = false;
@@ -177,15 +177,18 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     ev.push({ t, type: 'buff', src: dst.id, dst: dst.id, text: 'grit' });
   }
   if(dst.traits?.immortal && amount>=e.hp && !dst.immortalUsed) {dst.immortalUsed=true;dst.immuneUntil=t+3;amount=0;}
+  const prevHp = e.hp;
   e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   if (e.hp <= 0) {
     e.alive = false;
     ev.push({ t, type: 'die', src, dst: dst.id, to: { ...e.pos } });
+    const master = dst.summoner ? unitOf(p, dst.summoner) : undefined;
+    if (master && alive(p, master)) emit(p, 'summonDied', { t, src: master, target: dst, ev });
     const killer = unitOf(p, src);
     if (killer?.side === 'hero' && dst.side === 'foe') {
 
-      emit(p, 'kill', { t, src: killer, target: dst, amount, ev });
+      emit(p, 'kill', { t, src: killer, target: dst, amount, over: Math.max(0, amount - prevHp), ev });
       // mana flow: a kill takes seconds off the killer's skills
 
     }

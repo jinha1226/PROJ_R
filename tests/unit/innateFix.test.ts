@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { partyRoom } from '../../src/sim/party/partySim';
 import { damage, entOf, stats, strike } from '../../src/sim/party/partyCore';
 import { KITS } from '../../src/sim/party/classKit';
-import { action, emit } from '../../src/sim/party/triggers';
+import { action, emit, CHAIN_CAP } from '../../src/sim/party/triggers';
 import { heal, fireball } from '../../src/sim/party/kitEffects';
 import { CATALOG } from '../../src/sim/delve/catalog';
 import type { ClassId } from '../../src/sim/party/partyDefs';
@@ -75,7 +75,7 @@ it('guardian redirects thirty percent only when its effect executes', () => {
     const p=partyRoom(),guard=p.units[0]!,ally=p.units[1]!,actor=p.units[2]!;
     guard.cls='guardian';guard.weapon='swordShield';guard.shield=0;ally.shield=0;actor.weapon='fists';
     entOf(p,ally.id)!.pos={x:3,y:3};entOf(p,actor.id)!.pos={x:1,y:1};
-    actor.triggers=Array.from({length:5},(_,i)=>({id:`budget${i}`,when:'hit' as const,run:()=>{actor.progress++;}}));
+    actor.triggers=Array.from({length:CHAIN_CAP},(_,i)=>({id:`budget${i}`,when:'hit' as const,run:()=>{actor.progress++;}}));
     const hp=entOf(p,ally.id)!.hp,guardHp=entOf(p,guard.id)!.hp;
     action(p,()=>{if(full)emit(p,'hit',{t:0,src:actor,ev:[]});damage(p,0,'trap',ally,40,[]);});
     return [hp-entOf(p,ally.id)!.hp,guardHp-entOf(p,guard.id)!.hp];
