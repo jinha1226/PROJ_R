@@ -3,6 +3,13 @@ import { CONSUMABLES, type ConsumableId } from '../../sim/delve/catalog';
 import type { GEvent } from '../../sim/grid/types';
 import { posOf, targetOf, unitOf } from '../../sim/party/partyCore';
 import type { RoamParty } from '../../sim/roam/roam';
+import { icon } from '../grid/icons';
+
+/** each consumable as a small coloured line icon (the name stays in the tooltip) */
+const ICON: Record<ConsumableId, [string, string]> = {
+  potion: ['potion', '#ff6a6a'], rage: ['potion', '#ffb04a'], poisonJar: ['potion', '#8ad05a'], fireBomb: ['bomb', '#ff7a3a'], iceBomb: ['bomb', '#6ac4ff'],
+  smoke: ['cloud', '#b0b8c0'], cleanse: ['scroll', '#e6ffb0'], boltWand: ['charge', '#ffe25a'],
+};
 
 /** consumables thrown at a foe: without one in reach they stay in the bag */
 const THROWN = new Set<ConsumableId>(['fireBomb', 'iceBomb', 'poisonJar', 'boltWand']);
@@ -32,7 +39,7 @@ export class QuickSlots {
   update(): void {
     const kinds = new Map<ConsumableId, { id: string; n: number }>();
     for (const it of this.p().pack) if ('consumable' in it) { const k = kinds.get(it.consumable); kinds.set(it.consumable, { id: k?.id ?? it.id, n: (k?.n ?? 0) + (it.charges ?? 1) }); }
-    const html = [...kinds].map(([c, k]) => `<button type="button" data-q="${k.id}">${CONSUMABLES[c]}<small>${k.n}</small></button>`).join('');
+    const html = [...kinds].map(([c, k]) => `<button type="button" data-q="${k.id}" title="${CONSUMABLES[c]}" style="color:${ICON[c][1]}">${icon(ICON[c][0])}<small>${k.n}</small></button>`).join('');
     if (html === this.html) return;
     this.html = html;
     this.el.innerHTML = html;

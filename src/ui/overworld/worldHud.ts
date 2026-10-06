@@ -68,10 +68,11 @@ export class WorldHud {
   }
 
   /** Writes a part only when its markup changed (a rebuilt button under the cursor would eat the click). */
-  private put(sel: string, html: string): void {
-    if (this.cache.get(sel) === html) return;
+  private put(sel: string, html: string): boolean {
+    if (this.cache.get(sel) === html) return false;
     this.cache.set(sel, html);
     this.el.querySelector(sel)!.innerHTML = html;
+    return true;
   }
 
   /** status: the top-centre line (floor, turn, bio); mode: the fight banner; and whether the stairs, the lift or a turn is waiting. */
@@ -85,7 +86,12 @@ export class WorldHud {
     show('ascend', view.lift);
     show('wait', view.myTurn);
     this.put('.wh-log', view.log.html());
-    this.put('.wh-party', partyFramesHtml(p, ids, sel));
+    if (this.put('.wh-party', partyFramesHtml(p, ids, sel))) {
+      // on an upright phone the log sits just above the portraits, however tall they come out
+      const party = this.el.querySelector<HTMLElement>('.wh-party')!;
+      const top = party.getBoundingClientRect().top;
+      if (top > 0) this.el.style.setProperty('--log-bottom', `${Math.round(this.el.getBoundingClientRect().bottom - top + 4)}px`);
+    }
     this.put('.wh-br', detailHtml(p, sel));
   }
 }

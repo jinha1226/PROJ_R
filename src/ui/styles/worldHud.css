@@ -124,7 +124,7 @@
   .pf-name { font-size: 10px; }
   .pf-skill { width: 50px; height: 28px; }
   .pf-skill .sn { display: block; position: absolute; left: 3px; right: 3px; top: 50%; transform: translateY(-50%); font-size: 9px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
-  .pf-hp { height: 14px; }
+  .pf-hp { height: 10px; }
   .wh-toast { font-size: 14px; top: 14%; }
 }
 
@@ -139,15 +139,15 @@
   .wh-mode { font-size: 13px; letter-spacing: 0.2em; }
   .wh-btns button { font-size: 11px; padding: 7px 8px; }
   .wh-party { left: 6px; right: 6px; bottom: 8px; transform: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-  .pf { grid-template-columns: 1fr; gap: 3px; padding: 4px; }
-  .pf-face { width: 100%; height: 30px; }
-  .pf-face .cls-icon { width: 26px; height: 26px; }
+  .pf { grid-template-columns: 1fr; gap: 2px; padding: 3px; }
+  .pf-face { width: 100%; height: 22px; }
+  .pf-face .cls-icon { width: 18px; height: 18px; }
   .pf-name { font-size: 10px; }
   .pf-name small { display: none; }
   .pf-skills { justify-content: space-between; }
-  .pf-skill { flex: 1; height: 38px; }
+  .pf-skill { flex: 1; height: 22px; }
   .pf-skill .sn { display: block; position: absolute; left: 3px; right: 3px; top: 50%; transform: translateY(-50%); font-size: 9px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
-  .pf-hp { height: 14px; }
+  .pf-hp { height: 10px; }
   .wh-toast { font-size: 14px; top: 22%; white-space: nowrap; }
   .pip-body { grid-template-columns: 1fr; grid-auto-rows: max-content; }
   .pip-side { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }

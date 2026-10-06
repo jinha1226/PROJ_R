@@ -115,7 +115,7 @@ export class DelveScreen implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
@@ -143,7 +143,7 @@ export class DelveScreen implements Screen {
         this.movedLast = ev.some((e) => e.type === 'move');
         this.live(ev, t0);
       }
-      this.pad.update(dt);
+      this.pad.update(dt, !!this.p.combat);
       this.props?.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.miningCue.update(this.p, this.rt);

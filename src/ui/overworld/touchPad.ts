@@ -1,4 +1,4 @@
-export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; stat(): void; explore?(): void; tap?(x: number, y: number): void }
+export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; explore?(): void; tap?(x: number, y: number): void }
 
 /** how often a held stick asks for another step (real seconds) */
 const REPEAT = 0.2;
@@ -7,8 +7,8 @@ const DEADZONE = 14;
 
 /**
  * Touch screens: a stick that is not there until a thumb lands in the lower-left zone, then appears under it (eight ways;
- * held, it keeps stepping; a touch that never moves is passed on as a tap on the field) — and four big buttons bottom right:
- * attack the nearest foe, wait (pass the turn, or stop), bag, status.
+ * held, it keeps stepping; a touch that never moves is passed on as a tap on the field) — and three big buttons bottom right:
+ * attack the nearest foe, wait in a fight (pass the turn) or explore out of one, bag.
  */
 export class TouchPad {
   readonly el = document.createElement('div');
@@ -19,11 +19,15 @@ export class TouchPad {
   private timer = 0;
   private origin: { x: number; y: number } | null = null;
   private moved = false;
+  /** the middle button: wait in a fight, explore out of one */
+  private readonly act: HTMLElement;
+  private fighting = false;
 
   constructor(private readonly a: PadActions) {
     this.el.className = 'tp';
     this.el.innerHTML = `<div class="tp-zone"><div class="tp-base"><div class="tp-knob"></div></div></div>
-      <div class="tp-btns"><button type="button" data-a="attack">공격</button><button type="button" data-a="wait">대기</button><button type="button" data-a="explore">탐험</button><button type="button" data-a="stat">상태</button><button type="button" data-a="bag">가방</button></div>`;
+      <div class="tp-btns"><button type="button" data-a="attack">공격</button><button type="button" data-a="act">탐험</button><button type="button" data-a="bag">가방</button></div>`;
+    this.act = this.el.querySelector('[data-a="act"]')!;
     this.zone = this.el.querySelector('.tp-zone')!;
     this.base = this.el.querySelector('.tp-base')!;
     this.knob = this.el.querySelector('.tp-knob')!;
@@ -64,10 +68,8 @@ export class TouchPad {
     this.el.querySelector('.tp-btns')!.addEventListener('click', (e) => {
       const k = (e.target as HTMLElement).closest<HTMLElement>('[data-a]')?.dataset.a;
       if (k === 'attack') a.attack();
-      if (k === 'wait') a.wait();
+      if (k === 'act') { if (this.fighting || !a.explore) a.wait(); else a.explore(); }
       if (k === 'bag') a.bag();
-      if (k === 'stat') a.stat();
-      if (k === 'explore') a.explore?.();
     });
   }
 
@@ -77,8 +79,9 @@ export class TouchPad {
     this.zone.classList.remove('on');
   }
 
-  /** a held stick keeps stepping */
-  update(dt: number): void {
+  /** a held stick keeps stepping; the middle button follows the fight */
+  update(dt: number, fighting = false): void {
+    if (fighting !== this.fighting) { this.fighting = fighting; this.act.textContent = fighting ? '대기' : '탐험'; this.act.classList.toggle('wait', fighting); }
     if (!this.dirNow) return;
     this.timer -= dt;
     if (this.timer <= 0) { this.timer = REPEAT; this.a.dir(this.dirNow.x, this.dirNow.y); }

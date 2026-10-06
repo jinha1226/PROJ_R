@@ -124,25 +124,27 @@
 /* ---- quick slots: the pack's consumables, one tap each ---- */
 .quick-slots { position: absolute; z-index: 6; left: 50%; bottom: 104px; transform: translateX(-50%); display: flex; gap: 4px; }
 .quick-slots[hidden] { display: none; }
-.quick-slots button { font: 11px 'GalmuriMono', monospace; color: #e6ffb0; background: #021006e6; border: 1px solid #1f7a3e; padding: 5px 8px; cursor: pointer; display: flex; gap: 4px; align-items: baseline; }
-.quick-slots button small { color: #ffd76a; }
+.quick-slots button { position: relative; font: 11px 'GalmuriMono', monospace; color: #e6ffb0; background: #021006e6; border: 1px solid #1f7a3e; width: 40px; height: 40px; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.quick-slots button .gi { width: 20px; height: 20px; }
+.quick-slots button small { position: absolute; right: 2px; bottom: 1px; font-size: 9px; color: #ffd76a; }
 /* the log tells more: ten lines on a desk screen, six on a phone */
 .wh-log .wl-line:nth-last-child(n + 11) { display: none; }
 @media (max-height: 520px) and (orientation: landscape) { .wl-line:nth-last-child(n + 4) { display: block; } .wh-log .wl-line:nth-last-child(n + 7) { display: none; } }
 
-/* ---- upright phones: a small map; from the bottom up: the five buttons in a row, the portraits, the quick slots, the log ---- */
+/* ---- upright phones: a small map; along the bottom the quick slots (left) and three buttons (right); the portraits above, the log above them ---- */
 @media (orientation: portrait) and (max-width: 700px) {
   .wh-tl { width: 78px; }
   .wh-mini canvas { width: 68px; height: 68px; }
   .wh-area { display: none; }
-  .tp-btns { left: 6px; right: 6px; bottom: 6px; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .tp-btns { left: auto; right: 6px; bottom: 6px; grid-template-columns: repeat(3, 58px); gap: 4px; }
   .tp-btns button { height: 44px; font-size: 12px; }
+  .quick-slots { left: 6px; right: 196px; bottom: 6px; transform: none; flex-wrap: nowrap; overflow-x: auto; }
+  .quick-slots button { width: 44px; height: 44px; flex: none; }
   .wh-party { left: 6px; right: 6px; top: auto; bottom: 56px; width: auto; transform: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-  .quick-slots { left: 6px; right: 6px; bottom: 140px; transform: none; flex-wrap: wrap; }
-  .wh-bl { display: block; left: 6px; right: 6px; bottom: 176px; width: auto; min-height: 0; padding: 4px 6px; }
+  .wh-bl { display: block; left: 6px; right: 6px; bottom: var(--log-bottom, 150px); width: auto; min-height: 0; padding: 4px 6px; }
   .wh-bl .wl-line { display: block; font-size: 10px; line-height: 1.45; }
   .wh-bl .wl-line:nth-last-child(n + 7) { display: none; }
-  .tp-zone { bottom: 280px; height: 30%; width: 64%; }
+  .tp-zone { bottom: calc(var(--log-bottom, 150px) + 104px); height: 30%; width: 64%; }
 }
 .pip-slot.soul button { font: 10px 'GalmuriMono', monospace; color: #021006; background: var(--tint); border: 0; padding: 2px 6px; cursor: pointer; }
 /* top centre: the floor and turn, then what the party holds */
