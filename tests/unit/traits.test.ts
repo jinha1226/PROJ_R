@@ -39,3 +39,11 @@ it('finish, morale, grit, bond and combo work end to end', () => {
   const ev: Parameters<typeof emit>[2]['ev']=[];emit(q,'nth',{t:0,src:v,target:g,ev});expect(ev.some(e=>e.type==='bump')).toBe(true);
   const first=entOf(q,g.id)!.hp; q.s.rng.chance=c=>c>0.2; strike(q,v,g,0,[]);expect(entOf(q,g.id)!.hp).toBeLessThan(first);
 });
+it.each([[9,11],[13,15]])('keystone due at a milestone survives a jump from %i to %i', async (from, to) => {
+  const {gainXp, LEVEL_XP, pickTrait} = await import('../../src/sim/party/partyLevel');
+  const p=partyRoom(),u=p.units[0]!;u.level=from;u.xp=LEVEL_XP[from-1]!;
+  u.picks=1;u.offer=['vital'];
+  gainXp(p,u,LEVEL_XP[to-1]!-u.xp,[]);expect(u.level).toBe(to);
+  pickTrait(p,u.id,'vital'); expect(u.offer).toHaveLength(4);expect(TRAITS[u.offer![3]!]!.pool).toBe('keystone');
+  const stone=u.offer![3]!;pickTrait(p,u.id,stone);expect(u.offer?.length??3).toBe(3);
+});

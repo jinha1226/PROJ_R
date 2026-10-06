@@ -16,6 +16,10 @@ export function rollOffer(p:Party,u:Unit):string[] {
   // Exhausted two-card advanced pools fall back to that class's base pool.
   if(own.length<2)own.push(...available.filter(d=>d.pool===(LINE[u.cls!]??u.soul)&&!own.includes(d)));
   const cards=[...draw(own,2),...draw(available.filter(d=>d.pool==='common'),1)];
-  if([10,14].includes(u.level??1)&&!Object.keys(u.traits??{}).some(id=>TRAITS[id]?.pool==='keystone'))cards.push(...draw(available.filter(d=>d.pool==='keystone'),1));
+  const due = u.pendingKeystones ?? ([10,14].includes(u.level??1) ? 1 : 0);
+  if(due > 0 && !Object.keys(u.traits??{}).some(id=>TRAITS[id]?.pool==='keystone')) {
+    cards.push(...draw(available.filter(d=>d.pool==='keystone'),1));
+    if(u.pendingKeystones !== undefined) u.pendingKeystones--;
+  }
   return cards;
 }

@@ -49,7 +49,7 @@ export interface Unit {
   /** a fallen foe whose bio-matter has been gathered */
   reaped?: boolean; raised?: boolean;
   /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */
-  level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
+  pendingKeystones?: number; level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
   /** when grit can hold a killing blow again */
   gritReady?: number;
   /** when a ranged clone may next roll away from a foe at its side */

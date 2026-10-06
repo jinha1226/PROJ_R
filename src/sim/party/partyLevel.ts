@@ -30,8 +30,10 @@ export { rollOffer } from './traitPool';
 export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
   if (!u.cls || u.cls === 'shell') return;
   u.xp = (u.xp ?? 0) + Math.round(n*(1+(u.traits?.seasoned??0)*.1));
+  u.pendingKeystones ??= 0;
   while (levelOf(u) < MAX_LEVEL && u.xp >= LEVEL_XP[levelOf(u)]!) {
     u.level = levelOf(u) + 1;
+    if ([10,14].includes(u.level)) u.pendingKeystones++;
     u.picks = (u.picks ?? 0) + 1;
     refitHp(p, u);
     ev.push({ t: p.time, type: 'levelUp', src: u.id, dst: u.id, amount: u.level });
