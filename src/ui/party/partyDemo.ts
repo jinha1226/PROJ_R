@@ -102,12 +102,14 @@ export class PartyDemo implements Screen {
 
   private restart(): void {
     this.picks.forEach((pk, i) => LOOK_BY_ID.set(HERO_IDS[i]!, lookOf(pk.cls, pk.weapon)));
-    this.p = partyRoom(this.picks);
+    const ev: GEvent[] = [];
+    this.p = partyRoom(this.picks, 11, ev);
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, false);
     this.rt.setZoom(9);
+    this.rt.applyLive(ev, this.p.time);
     this.rt.stayInMap = true;
     // the smooth look (no pixel pass)
     this.rt.pixelated = false;
@@ -118,7 +120,7 @@ export class PartyDemo implements Screen {
   }
 
   /** The next band walks in (the view picks up the new figures). */
-  private next(): void { if (nextWave(this.p)) { this.rt?.applyLive([], this.p.time); this.message(''); } }
+  private next(): void { const ev: GEvent[] = []; if (nextWave(this.p, ev)) { this.rt?.applyLive(ev, this.p.time); this.message(''); } }
 
   private alive(id: string): boolean { return entOf(this.p, id)?.alive ?? false; }
   private cleared(): boolean { return this.p.units.every((u) => u.side === 'hero' || !this.alive(u.id)); }

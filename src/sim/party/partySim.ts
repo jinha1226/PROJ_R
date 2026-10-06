@@ -24,7 +24,7 @@ const GUARD = 3;
 const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** A room with the three picked heroes on the left and the first band on the right (heroes beyond the first stand in the foe list for the view, as allies). */
-export function partyRoom(picks: Pick[] = DEFAULT_PICKS, seed = 11): Party {
+export function partyRoom(picks: Pick[] = DEFAULT_PICKS, seed = 11, ev: GEvent[] = []): Party {
   const m: GridMap = { w: ROWS[0]!.length, h: ROWS.length, tiles: [], rooms: [], start: { x: 3, y: 4 }, exits: [], chests: [], barrels: [],
     spawns: [{ kind: 'minion', pos: { x: 2, y: 3 }, group: 0 }, { kind: 'minion', pos: { x: 2, y: 6 }, group: 0 }] };
   for (const row of ROWS) for (const c of row) m.tiles.push(c === '#' ? 'wall' : 'floor');
@@ -40,7 +40,7 @@ export function partyRoom(picks: Pick[] = DEFAULT_PICKS, seed = 11): Party {
     p.units.push({ ...blank(), id: HERO_IDS[i]!, side: 'hero', cls: pick.cls, weapon: pick.weapon });
   });
   spawnWave(p);
-  p.combat=true; for(const u of p.units) if(u.side==='hero') emit(p,'combatStart',{t:0,src:u,ev:[]});
+  p.combat=true; for(const u of p.units) if(u.side==='hero') emit(p,'combatStart',{t:0,src:u,ev});
   return p;
 }
 
@@ -56,7 +56,7 @@ function spawnWave(p: Party): void {
 }
 
 /** Once the field is clear the next band comes in; the living heroes catch their breath (a third of their health). False when none is left. */
-export function nextWave(p: Party): boolean {
+export function nextWave(p: Party, ev: GEvent[] = []): boolean {
   if (p.units.some((u) => u.side === 'foe' && alive(p, u)) || p.wave >= WAVES.length - 1) return false;
   p.wave++;
   for (const u of p.units) {
@@ -64,7 +64,7 @@ export function nextWave(p: Party): boolean {
     if (u.side === 'hero' && e.alive) e.hp = Math.min(e.maxHp, e.hp + Math.round(e.maxHp / 3));
   }
   spawnWave(p);
-  for(const u of p.units) if(u.side==='hero') {u.crisisUsed=false;u.immortalUsed=false;emit(p,'combatStart',{t:p.time,src:u,ev:[]});}
+  for(const u of p.units) if(u.side==='hero') {u.crisisUsed=false;u.immortalUsed=false;emit(p,'combatStart',{t:p.time,src:u,ev});}
   return true;
 }
 

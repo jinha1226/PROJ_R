@@ -18,6 +18,7 @@ function consume(p: RoamParty, heroId: string, itemId: string, cell?: Cell): GEv
     if (id === 'boltWand' && (same(posOf(p, u), at) || (it.charges ?? 3) <= 0))
         return [];
     const inArea = p.units.filter(x => alive(p, x) && dist(posOf(p, x), at) <= 1);
+    if (id === 'potion' && entOf(p,u.id)!.hp >= entOf(p,u.id)!.maxHp) return [];
     if (id === 'potion') {
         const e = entOf(p, u.id)!, amount = Math.min(e.maxHp - e.hp, Math.round(e.maxHp * .4 * G.healTaken(u)));
         e.hp += amount;
