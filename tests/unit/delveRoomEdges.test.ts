@@ -4,7 +4,7 @@ import { roomStep } from '../../src/sim/delve/delveRooms';
 import { HERO_SOULS } from '../../src/sim/delve/heroSouls';
 import { PACK_SIZE } from '../../src/sim/delve/gear';
 import { entOf, unitOf, stepToward, damage } from '../../src/sim/party/partyCore';
-import { useSkill } from '../../src/sim/party/partySkills';
+import { useUltimate } from '../../src/sim/party/ultimate';
 import { command } from '../../src/sim/party/partySim';
 import { implant, print } from '../../src/sim/roam/roam';
 import { placeParty, takeParty } from '../../src/sim/roam/carry';
@@ -160,7 +160,7 @@ it('a lethal backstab landing trap resolves before the rogue can strike', () => 
   const foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;
   e.alive = true; e.hp = 100; e.pos = { x: 10, y: 7 }; foe.asleep = false;
   for (let y = 6; y <= 8; y++) for (let x = 9; x <= 11; x++) p.s.traps.push({ pos: { x, y }, kind: 'spike', found: false });
-  const ev = useSkill(p, u.id, 1);
+  const ev = useUltimate(p, u.id);
   expect(me.alive).toBe(false); expect(e.hp).toBe(100);
   expect(ev.some((v) => v.type === 'hit' && v.src === u.id)).toBe(false);
   expect(ev.filter((v) => v.type === 'trap')).toHaveLength(1);

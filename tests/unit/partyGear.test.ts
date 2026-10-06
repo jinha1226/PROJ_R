@@ -3,7 +3,7 @@ import { G, starterGear } from '../../src/sim/delve/gear';
 import { damage, entOf, stats, strike, unitOf } from '../../src/sim/party/partyCore';
 import { basicHit, tickBurns } from '../../src/sim/party/partyEngrave';
 import { partyRoom, tick } from '../../src/sim/party/partySim';
-import { useSkill } from '../../src/sim/party/partySkills';
+import { useUltimate } from '../../src/sim/party/ultimate';
 import { newDelve } from '../../src/sim/delve/delveSim';
 import { takeParty } from '../../src/sim/roam/carry';
 import type { GEvent } from '../../src/sim/grid/types';
@@ -33,7 +33,7 @@ it('taunt exposure, foreign marks, shatter and executioner affect direct skill d
   const p = setup(), u = unitOf(p, 'hero')!, a = unitOf(p, 'ally-1')!, foe = p.units.find((x) => x.side === 'foe')!;
   const f = entOf(p, foe.id)!;
   f.pos = { ...entOf(p, u.id)!.pos, x: 4 }; f.hp = f.maxHp = 500;
-  u.gear!.trinkets = ['link_bait', null]; useSkill(p, u.id, 0);
+  u.gear!.trinkets = ['link_bait', null]; useUltimate(p, u.id);
   damage(p, 0, a.id, foe, 10, []); expect(f.hp).toBe(485);
   foe.markBy = u.id; foe.markUntil = 4;
   damage(p, 0, a.id, foe, 10, []); expect(f.hp).toBe(465);
@@ -56,10 +56,10 @@ it('guard links transfer once even when both adjacent heroes wear one', () => {
 it('echo only responds to another nearby successful cast and retains stronger empowerment', () => {
   const p = setup(), a = unitOf(p, 'ally-1')!, caster = unitOf(p, 'hero')!;
   a.gear!.trinkets = ['link_echo', null]; a.empower = 2.5;
-  useSkill(p, caster.id, 0); expect(a.empower).toBe(2.5);
-  a.empower = 1; caster.ready[0] = 0;
-  useSkill(p, caster.id, 0); expect(a.empower).toBe(2);
-  a.empower = 1; useSkill(p, caster.id, 0); expect(a.empower).toBe(1);
+  useUltimate(p, caster.id); expect(a.empower).toBe(2.5);
+  a.empower = 1; caster.ultReady = 0;
+  useUltimate(p, caster.id); expect(a.empower).toBe(2);
+  a.empower = 1; useUltimate(p, caster.id); expect(a.empower).toBe(1);
 });
 
 it('basic-hit procs heal actual damage and burn three ticks; frostbite delays the next moment', () => {

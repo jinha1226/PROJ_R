@@ -15,7 +15,7 @@ function callBand(p: Party, u: Unit, t: number, ev: GEvent[]): void {
     const e = spawnFoe(p.s, 'minion', c, true);
     e.hp = e.maxHp = Math.round(FOES.goblin.hp * (u.foeScale ?? 1));
     e.group = u.group ?? -1;
-    p.units.push({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, id: e.id, side: 'foe', foe: 'goblin', foeScale: u.foeScale, group: u.group,
+    p.units.push({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, id: e.id, side: 'foe', foe: 'goblin', foeScale: u.foeScale, group: u.group,
       asleep: false, nextAt: t + 0.5, order: null, ready: [0, 0], tauntUntil: 0, shield: 0,
       hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
     ev.push({ t, type: 'summon', src: u.id, dst: e.id, to: { ...c } });

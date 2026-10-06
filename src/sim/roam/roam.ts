@@ -50,10 +50,10 @@ export const BODY_COST = 25;
 /** bio-matter a fallen foe leaves (elites twice as much) */
 const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8, ghoul: 3, shaman: 4, warlord: 30 };
 
-export const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
+export const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** The clones (living or not) in the order they were made. */
-export const clones = (p: Party): Unit[] => p.units.filter((u) => u.side === 'hero');
+export const clones = (p: Party): Unit[] => p.units.filter((u) => u.side === 'hero' && !u.summoner);
 export const living = (p: Party): Unit[] => clones(p).filter((u) => alive(p, u));
 export const nearest = (p: Party, c: Cell): number => Math.min(...living(p).map((u) => dist(entOf(p, u.id)!.pos, c)));
 

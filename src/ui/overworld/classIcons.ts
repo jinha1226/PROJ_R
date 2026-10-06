@@ -1,7 +1,8 @@
-import type { ClassId, FoeId, SkillId } from '../../sim/party/partyDefs';
+import { LINE } from '../../sim/party/classKit';
+import type { ClassId, FoeId } from '../../sim/party/partyDefs';
 
 /** A small line emblem per class (24×24 viewBox, drawn in the current colour). */
-const PATH: Record<ClassId, string> = {
+const PATH: Partial<Record<ClassId, string>> = {
   shell: '<circle cx="12" cy="12" r="7" fill="none" stroke-dasharray="3 3"/>',
   warrior: '<path d="M6 18 L16 8 M14 6 L18 10 M5 15 L9 19"/><path d="M15 14 l4 0 l0 4 q-2 2 -4 0 z" />',
   berserker: '<path d="M7 19 L15 7 M12 5 q6 1 6 7 q-3 -3 -6 -7 z M9 19 L17 7"/>',
@@ -13,20 +14,13 @@ const PATH: Record<ClassId, string> = {
 };
 
 export function classIcon(cls: ClassId): string {
-  return `<svg class="cls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PATH[cls]}</svg>`;
+  return `<svg class="cls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PATH[cls] ?? PATH[LINE[cls] ?? 'warrior']}</svg>`;
 }
 
 /** the colour that marks each class on the frames */
-export const CLASS_TINT: Record<ClassId, string> = {
+export const CLASS_TINT: Partial<Record<ClassId, string>> = {
   shell: '#9aa4b0', warrior: '#7aa8ff', berserker: '#ff7a5a', archer: '#8fdc6a', sniper: '#c8d070',
   mage: '#c890ff', cleric: '#ffd76a', rogue: '#ff6a8a',
-};
-
-/** what each skill does, in a few words */
-export const SKILL_DESC: Record<SkillId, string> = {
-  taunt: '주변 적이 5초간 나를 노림', whirl: '곁의 적 모두 베기', pierce: '일직선 관통 사격', volley: '세 발 연속 사격',
-  fireball: '폭발 · 주변까지 화상', frost: '대상을 얼려 묶음', heal: '가장 다친 아군 회복', ward: '주변 아군 보호막',
-  stealth: '4초 은신 · 다음 공격 2.5배', backstab: '대상 곁으로 순간이동해 2배 찌르기', frenzy: '5초간 공격 속도 2배', aimed: '강력한 한 발',
 };
 
 export const FOE_NAME: Record<FoeId, string> = { ghoul: '구울', shaman: '주술사', warlord: '마왕군 장군', goblin: '고블린', archer: '고블린 궁수', brute: '오우거' };

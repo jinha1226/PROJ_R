@@ -2,8 +2,8 @@ import { expect, it } from 'vitest';
 import { tileAt, type GEvent } from '../../src/sim/grid/types';
 import { damage, entOf, strike, unitOf } from '../../src/sim/party/partyCore';
 import { gainXp, LEVEL_XP, pickTrait, PROMOTE_LEVEL } from '../../src/sim/party/partyLevel';
-import { useSkill } from '../../src/sim/party/partySkills';
-import { SKILLS } from '../../src/sim/party/partyDefs';
+import { useUltimate } from '../../src/sim/party/ultimate';
+import { KITS } from '../../src/sim/party/classKit';
 import { TRAITS } from '../../src/sim/party/partyTraits';
 import { delveTick, newDelve } from '../../src/sim/delve/delveSim';
 import { clones } from '../../src/sim/roam/roam';
@@ -64,14 +64,14 @@ it('toughness adds health at once; resonance shortens cooldowns; grit holds a ki
   const f = p.units.find((x) => x.side === 'foe')!;
   entOf(p, f.id)!.pos = { x: e.pos.x + 3, y: e.pos.y };
   f.asleep = false;
-  useSkill(p, u.id, 0);
-  expect(u.ready[0]).toBeCloseTo(p.time + SKILLS.pierce.cd * 0.9);
+  useUltimate(p, u.id);
+  expect(u.ultReady).toBeCloseTo(p.time + KITS.archer.ultCd * 0.9);
   u.offer = ['grit', 'eagle', 'sprint'];
   pickTrait(p, u.id, 'grit');
-  damage(p, p.time, f.id, u, 999, []);
+  damage(p, p.time, 'trap', u, 999, []);
   expect(e.alive).toBe(true);
   expect(e.hp).toBe(1);
-  damage(p, p.time, f.id, u, 999, []);
+  damage(p, p.time, 'trap', u, 999, []);
   expect(e.alive).toBe(false);
 });
 
@@ -83,13 +83,13 @@ it('an archer shooting again and again from the same spot hits harder with stead
   entOf(p, f.id)!.pos = { x: entOf(p, 'hero')!.pos.x + 3, y: entOf(p, 'hero')!.pos.y };
   entOf(p, f.id)!.hp = 9999;
   for (let i = 0; i < 12; i++) strike(p, u, f, p.time, []);
-  expect(u.steady).toBe(9);
+  expect(u.steady).toBe(12);
 });
 
 it('the advanced class waits for level 8 on the roaming maps', () => {
   const p = withArcher();
   const u = clones(p)[0]!;
-  u.progress = 99;
+  u.progress = 99; u.traits = { vital: 3 }; u.weapon = 'crossbow';
   for (const f of p.units.filter((x) => x.side === 'foe').slice(0, 2)) {
     entOf(p, f.id)!.pos = { x: entOf(p, 'hero')!.pos.x + 6, y: entOf(p, 'hero')!.pos.y };
     damage(p, p.time, 'hero', f, 999, []);

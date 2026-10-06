@@ -5,7 +5,7 @@ import { same, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf, type Party } from '../../sim/party/partyCore';
 import { CLASSES, DEFAULT_PICKS, HERO_IDS, WAVES, type Pick } from '../../sim/party/partyDefs';
 import { nextWave, partyRoom, promote, tick } from '../../sim/party/partySim';
-import { queueSkill } from '../../sim/party/partySkills';
+import { queueUltimate } from '../../sim/party/ultimate';
 import { findPath } from '../../sim/grid/path';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
@@ -61,7 +61,7 @@ export class PartyDemo implements Screen {
       const card = t.closest<HTMLElement>('[data-hero]');
       if (card) this.sel = card.dataset.hero!;
       const skill = t.closest<HTMLElement>('[data-skill]');
-      if (skill) queueSkill(this.p, this.sel, Number(skill.dataset.skill) as 0 | 1);
+      if (skill) queueUltimate(this.p, this.sel);
       if (t.closest('[data-promote]')) this.live(promote(this.p, this.sel));
       this.draw();
     });
@@ -147,10 +147,10 @@ export class PartyDemo implements Screen {
     const k = e.key.toLowerCase();
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     if (k === '1' || k === '2' || k === '3') this.sel = HERO_IDS[Number(k) - 1]!;
-    if (k === 'q') queueSkill(this.p, this.sel, 0);
-    if (k === 'w') queueSkill(this.p, this.sel, 1);
+    if (k === 'r') queueUltimate(this.p, this.sel);
+    
     if (k === 'n') this.next();
-    if (k === 'r') this.restart();
+    if (k === 'f5') this.restart();
   }
 
   /** On a hero: select it. With a hero selected: a foe is its target, a floor cell its place to go and hold. */

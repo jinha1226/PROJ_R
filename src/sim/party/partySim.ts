@@ -1,3 +1,4 @@
+import { emit } from './triggers';
 import { tickStatuses } from './status';
 import { foeTurn } from './partyFoeAi';
 import { tickBurns } from './partyEngrave';
@@ -6,10 +7,9 @@ import { makeWeapon } from '../grid/items';
 import { newState } from '../grid/state';
 import { DIRS, canStep, dist, same, tileAt, walkable, type Cell, type Ent, type GEvent, type GridMap } from '../grid/types';
 import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
-import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, PROMOTIONS, WAVES, type FoeId, type Pick } from './partyDefs';
-import { useSkill } from './partySkills';
-import { autoSkill } from './partyAuto';
-import { refitHp } from './partyLevel';
+import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } from './partyDefs';
+import { useUltimate, aiUltimate } from './ultimate';
+import { promote as promoteTo, promotionOptions } from './classKit';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -18,7 +18,7 @@ const BACK: Cell[] = [{ x: 13, y: 2 }, { x: 13, y: 7 }, { x: 13, y: 4 }, { x: 13
 
 /** how far round its spot a holding fighter steps out to meet foes */
 const GUARD = 3;
-const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
+const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** A room with the three picked heroes on the left and the first band on the right (heroes beyond the first stand in the foe list for the view, as allies). */
 export function partyRoom(picks: Pick[] = DEFAULT_PICKS, seed = 11): Party {
@@ -37,6 +37,7 @@ export function partyRoom(picks: Pick[] = DEFAULT_PICKS, seed = 11): Party {
     p.units.push({ ...blank(), id: HERO_IDS[i]!, side: 'hero', cls: pick.cls, weapon: pick.weapon });
   });
   spawnWave(p);
+  p.combat=true; for(const u of p.units) if(u.side==='hero') emit(p,'combatStart',{t:0,src:u,ev:[]});
   return p;
 }
 
@@ -60,19 +61,14 @@ export function nextWave(p: Party): boolean {
     if (u.side === 'hero' && e.alive) e.hp = Math.min(e.maxHp, e.hp + Math.round(e.maxHp / 3));
   }
   spawnWave(p);
+  for(const u of p.units) if(u.side==='hero') {u.crisisUsed=false;emit(p,'combatStart',{t:p.time,src:u,ev:[]});}
   return true;
 }
 
 /** A hero who has met its advanced class's condition takes it: new skills and engraving, more health. */
 export function promote(p: Party, id: string): GEvent[] {
-  const u = unitOf(p, id);
-  const promo = u?.cls && PROMOTIONS[u.cls];
-  if (!u || !promo || !u.promoteReady || !alive(p, u)) return [];
-  const e = entOf(p, id)!;
-  if (u.level === undefined) { const more = CLASSES[promo.to].hp - CLASSES[u.cls!].hp; e.maxHp += more; e.hp += more; }
-  u.cls = promo.to; u.ready = [p.time, p.time]; u.queued = undefined; u.promoteReady = false; u.progress = 0;
-  if (u.level !== undefined) refitHp(p, u);
-  return [{ t: p.time, type: 'buff', src: id, dst: id, text: 'promote' }];
+  const u = unitOf(p,id); const to = u && promotionOptions(p,u).find(o=>o.met)?.to;
+  return to ? promoteTo(p,id,to) : [];
 }
 
 /** A unit's own moment: follow a move order (then hold there), else fight — close in, or keep range and shoot. */
@@ -142,11 +138,8 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
 /** One unit's moment: a companion may reach for a skill, a queued skill goes off (it waits while it has no target in reach), else its usual action. */
 function moment(p: Party, u: Unit, ev: GEvent[]): void {
   const start = ev.length;
-  if (p.roam && u.side === 'hero' && u.id !== p.manual && !u.manualSkills) autoSkill(p, u);
-  if (u.queued !== undefined && p.time >= u.ready[u.queued]) {
-    const cast = useSkill(p, u.id, u.queued);
-    if (cast.length) { u.queued = undefined; ev.push(...cast); p.onMovement?.(ev.slice(start), ev); return; }
-  }
+  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const at = aiUltimate(p,u); if(at !== null) { u.ultQueued=true; u.ultCell=at; } }
+  if(u.ultQueued) { const cast=useUltimate(p,u.id,u.ultCell); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; } }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);
 }
@@ -158,6 +151,8 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
 export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
   if (p.waiting || (p as { over?: boolean }).over) return ev;
+  for (const u of p.units) if(u.summonedUntil !== undefined && u.summonedUntil <= p.time) entOf(p,u.id)!.alive=false;
+  for (const u of p.units) u.promoteReady=promotionOptions(p,u).some(o=>o.met);
   if (p.combat === false) for (const u of p.units) u.crisisUsed = false;
   let statusTime = p.time;
   const end = p.time + dt;
@@ -174,6 +169,7 @@ export function tick(p: Party, dt: number): GEvent[] {
       if (o?.kind === 'move' && same(at, o.cell)) next.order = null;
       if (next.order?.kind !== 'move') { p.waiting = true; p.s.time = p.time; return ev; }
     }
+    if ((next.status.freeze?.until ?? 0) > p.time || (next.status.stun?.until ?? 0) > p.time) { next.nextAt = Math.max(next.status.freeze?.until ?? 0,next.status.stun?.until ?? 0); continue; }
     moment(p, next, ev);
   }
   tickStatuses(p, statusTime, end, ev);
@@ -183,15 +179,15 @@ export function tick(p: Party, dt: number): GEvent[] {
   return ev;
 }
 
-export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'skill'; slot: 0 | 1 } | { kind: 'wait' };
+export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'ultimate'; cell?: Cell } | { kind: 'wait' };
 
 /** The manual clone's turn: one action (a walk goes on by itself until something new happens). Time then runs again. */
 export function command(p: Party, c: Command): GEvent[] {
   const u = p.units.find((x) => x.id === p.manual);
   if (!p.waiting || !u || !alive(p, u)) return [];
   const ev: GEvent[] = [];
-  if (c.kind === 'skill') {
-    const cast = useSkill(p, u.id, c.slot);
+  if (c.kind === 'ultimate') {
+    const cast = useUltimate(p, u.id, c.cell);
     if (!cast.length) return [];
     ev.push(...cast);
   } else if (c.kind === 'wait') {

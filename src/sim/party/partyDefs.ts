@@ -1,6 +1,6 @@
-export type ClassId = 'shell' | 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue' | 'berserker' | 'sniper';
+export type AdvancedClass = 'berserker' | 'guardian' | 'sniper' | 'hunter' | 'elementalist' | 'necromancer' | 'inquisitor' | 'healer' | 'assassin' | 'toxicologist';
+export type ClassId = 'shell' | BaseClass | AdvancedClass | 'veteran';
 export type BaseClass = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue';
-export type SkillId = 'taunt' | 'whirl' | 'pierce' | 'volley' | 'fireball' | 'frost' | 'heal' | 'ward' | 'stealth' | 'backstab' | 'frenzy' | 'aimed';
 export type WeaponId = 'fists' | 'swordShield' | 'greataxe' | 'longbow' | 'crossbow' | 'staff' | 'wand' | 'mace' | 'symbol' | 'daggers' | 'knives';
 /** a class's own rule, always on (the class engraving) */
 export type Passive = 'none' | 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank' | 'rage' | 'farShot';
@@ -20,33 +20,27 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   knives: { name: '투척 단검', dmg: [4, 7], range: 4, atk: 1.0, look: 'dagger', note: '원거리' },
 };
 
-export interface ClassDef { name: string; hp: number; move: number; skills: SkillId[]; weapons: WeaponId[]; passive: Passive; passiveName: string; magic?: boolean }
+export interface ClassDef { name: string; hp: number; move: number; weapons: WeaponId[]; passive: Passive; passiveName: string; magic?: boolean }
 export const CLASSES: Record<ClassId, ClassDef> = {
-  shell: { name: '빈 몸', hp: 30, move: 0.9, skills: [], weapons: ['fists'], passive: 'none', passiveName: '' },
-  warrior: { name: '전사', hp: 80, move: 0.9, skills: ['taunt', 'whirl'], weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
-  archer: { name: '궁수', hp: 40, move: 0.9, skills: ['pierce', 'volley'], weapons: ['longbow', 'crossbow'], passive: 'firstShot', passiveName: '상처 없는 적에게 2배' },
-  mage: { name: '마법사', hp: 45, move: 1.0, skills: ['fireball', 'frost'], weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
-  cleric: { name: '성직자', hp: 50, move: 0.95, skills: ['heal', 'ward'], weapons: ['mace', 'symbol'], passive: 'guardian', passiveName: '아군 위기 시 보호막', magic: true },
-  rogue: { name: '도적', hp: 55, move: 0.75, skills: ['stealth', 'backstab'], weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
-  berserker: { name: '광전사', hp: 85, move: 0.85, skills: ['frenzy', 'whirl'], weapons: ['swordShield', 'greataxe'], passive: 'rage', passiveName: '체력 절반 이하 피해 1.5배' },
-  sniper: { name: '저격수', hp: 45, move: 0.9, skills: ['aimed', 'pierce'], weapons: ['longbow', 'crossbow'], passive: 'farShot', passiveName: '사거리 +2 · 5칸 밖 2배' },
+  shell: { name: '빈 몸', hp: 30, move: 0.9, weapons: ['fists'], passive: 'none', passiveName: '' },
+  warrior: { name: '전사', hp: 80, move: 0.9, weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
+  archer: { name: '궁수', hp: 40, move: 0.9, weapons: ['longbow', 'crossbow'], passive: 'firstShot', passiveName: '상처 없는 적에게 2배' },
+  mage: { name: '마법사', hp: 45, move: 1.0, weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
+  cleric: { name: '성직자', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'guardian', passiveName: '아군 위기 시 보호막', magic: true },
+  rogue: { name: '도적', hp: 55, move: 0.75, weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
+  berserker: { name: '광전사', hp: 85, move: 0.85, weapons: ['swordShield', 'greataxe'], passive: 'rage', passiveName: '체력 절반 이하 피해 1.5배' },
+  sniper: { name: '저격수', hp: 45, move: 0.9, weapons: ['longbow', 'crossbow'], passive: 'farShot', passiveName: '사거리 +2 · 5칸 밖 2배' },
+  guardian: { name: '수호기사', hp: 80, move: 0.9, weapons: ['swordShield', 'mace'], passive: 'none', passiveName: '수호기사' },
+  hunter: { name: '사냥꾼', hp: 40, move: 0.9, weapons: ['longbow', 'crossbow', 'daggers'], passive: 'none', passiveName: '사냥꾼' },
+  elementalist: { name: '원소술사', hp: 45, move: 1, weapons: ['staff'], passive: 'none', passiveName: '원소술사', magic: true },
+  necromancer: { name: '강령술사', hp: 45, move: 1, weapons: ['staff'], passive: 'none', passiveName: '강령술사', magic: true },
+  inquisitor: { name: '심판관', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'none', passiveName: '심판관', magic: true },
+  healer: { name: '치유사', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'none', passiveName: '치유사', magic: true },
+  assassin: { name: '암살자', hp: 55, move: 0.75, weapons: ['daggers'], passive: 'none', passiveName: '암살자' },
+  toxicologist: { name: '독술사', hp: 55, move: 0.75, weapons: ['daggers'], passive: 'none', passiveName: '독술사' },
+  veteran: { name: '베테랑', hp: 80, move: 0.9, weapons: ['swordShield', 'greataxe', 'mace', 'longbow', 'crossbow', 'staff', 'symbol', 'daggers'], passive: 'none', passiveName: '베테랑' },
 };
 export const BASE_CLASSES: BaseClass[] = ['warrior', 'archer', 'mage', 'cleric', 'rogue'];
-
-/** advanced classes open mid-run when the hero has fought a certain way (Path of Achra style) */
-export const PROMOTIONS: Partial<Record<ClassId, { to: ClassId; need: number; label: string }>> = {
-  warrior: { to: 'berserker', need: 2, label: '체력 절반 이하에서 처치' },
-  archer: { to: 'sniper', need: 2, label: '5칸 밖에서 처치' },
-};
-
-export const SKILLS: Record<SkillId, { name: string; cd: number }> = {
-  taunt: { name: '도발', cd: 8 }, whirl: { name: '회전베기', cd: 6 },
-  pierce: { name: '관통 사격', cd: 6 }, volley: { name: '연사', cd: 8 },
-  fireball: { name: '화염구', cd: 7 }, frost: { name: '냉기', cd: 6 },
-  heal: { name: '치유', cd: 6 }, ward: { name: '보호막', cd: 10 },
-  stealth: { name: '은신', cd: 10 }, backstab: { name: '급소 찌르기', cd: 7 },
-  frenzy: { name: '광분', cd: 10 }, aimed: { name: '조준 사격', cd: 7 },
-};
 
 export type FoeId = 'goblin' | 'archer' | 'brute' | 'ghoul' | 'shaman' | 'warlord';
 export const FOES: Record<FoeId, { hp: number; dmg: [number, number]; range: number; atk: number; move: number }> = {

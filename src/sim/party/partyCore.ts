@@ -1,3 +1,5 @@
+import { kitMult, proficient, LINE } from './classKit';
+import { heal } from './kitEffects';
 import { emit, type TriggerDef } from './triggers';
 import { movedStatus, statusMult, type Status, type StatusId } from './status';
 import type { HeroSoulId } from '../delve/heroSouls';
@@ -6,13 +8,15 @@ import { basicHit, engravingMult, guardLink } from './partyEngrave';
 import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
 import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
-import { CLASSES, FOES, PROMOTIONS, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
-import { PROMOTE_LEVEL, T, type TraitId } from './partyTraits';
+import { CLASSES, FOES, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
+import { T, type TraitId } from './partyTraits';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
+  ultReady: number; ultQueued?: boolean; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
+  lowHp?: boolean;
   foeScale?: number; mendReady?: number; slamReady?: number; slamPending?: boolean; called?: boolean;
   name?: string; hero?: HeroSoulId;
   gear?: Loadout;
@@ -88,7 +92,7 @@ export function stats(u: Unit, t = 0): { dmg: [number, number]; range: number; a
   }
   const w = WEAPONS[u.weapon!];
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * G.atk(u) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
+  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && u.lowHp ? 0.5 : 1) * G.atk(u) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u).range): boolean {
@@ -125,28 +129,21 @@ export function stepToward(p: Party, u: Unit, to: Cell, t: number, ev: GEvent[])
 }
 
 /** The class engravings that scale a hero's blow on this target. */
-export function passiveMult(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[]): number {
-  const me = entOf(p, u.id)!, te = entOf(p, target.id)!;
-  switch (passive(u)) {
-    case 'firstShot': return te.hp === te.maxHp ? 2 : 1;
-    case 'shatter': if (!G.wears(u, 'link_shatter') && t < target.frozenUntil) { target.frozenUntil = 0; ev.push({ t, type: 'react', src: u.id, to: { ...te.pos }, text: 'shatter' }); return 2; } return 1;
-    case 'flank': return targetOf(p, target, t)?.id !== u.id ? 1.6 : 1;
-    case 'rage': return me.hp < me.maxHp / 2 ? 1.5 : 1;
-    case 'farShot': return dist(me.pos, te.pos) >= 5 ? 2 : 1;
-    default: return 1;
-  }
+export function passiveMult(p: Party, u: Unit, target: Unit, t: number, _ev: GEvent[]): number {
+  void _ev; return kitMult(p, u, target, t);
 }
 
 export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[], secondary = false): void {
   const e = entOf(p, dst.id)!;
-  if (!e.alive) return;
+  if (!e.alive || t < (dst.immuneUntil ?? 0)) return;
   const attacker = unitOf(p, src);
+  if(attacker && !alive(p,attacker) && !secondary) return;
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') amount = Math.round(amount * G.dmg(attacker) * engravingMult(p, attacker, dst, t));
   if (dst.side === 'hero') {
     const guard = WEAPONS[dst.weapon!].guard;
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));
-    const link = secondary ? undefined : guardLink(p, dst);
+    const link = secondary ? undefined : guardLink(p, dst) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
     if (link) { const share = Math.round(amount * 0.3); amount -= share; if (share > 0) damage(p, t, src, link, share, ev, true); }
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
@@ -158,14 +155,14 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     amount = e.hp - 1; dst.gritReady = t + T.gritCd(dst);
     ev.push({ t, type: 'buff', src: dst.id, dst: dst.id, text: 'grit' });
   }
-  e.hp = Math.max(0, e.hp - amount);
+  e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   if (e.hp <= 0) {
     e.alive = false;
     ev.push({ t, type: 'die', src, dst: dst.id, to: { ...e.pos } });
     const killer = unitOf(p, src);
     if (killer?.side === 'hero' && dst.side === 'foe') {
-      credit(p, killer, e.pos);
+
       emit(p, 'kill', { t, src: killer, target: dst, amount, ev });
       // mana flow: a kill takes seconds off the killer's skills
       const f = T.flow(killer);
@@ -174,26 +171,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     return;
   }
   if (dst.side === 'hero') { emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); if (e.hp < e.maxHp * 0.5) emit(p, 'crisis', { t, src: dst, target: attacker, ev }); }
-  if (dst.side === 'hero' && e.hp < e.maxHp * 0.3) guardian(p, dst, t, ev);
-}
 
-/** A cleric wards an ally who drops low (once in a while). */
-function guardian(p: Party, ally: Unit, t: number, ev: GEvent[]): void {
-  const cleric = p.units.find((x) => x.side === 'hero' && alive(p, x) && passive(x) === 'guardian' && t >= x.guardReady);
-  if (!cleric) return;
-  cleric.guardReady = t + 12;
-  ally.shield = Math.min(30, ally.shield + 15);
-  ev.push({ t, type: 'buff', src: cleric.id, dst: ally.id, text: 'ward' });
-}
-
-/** A kill made the way the hero's advanced class asks for counts toward it. */
-function credit(p: Party, u: Unit, at: Cell): void {
-  const promo = u.cls && PROMOTIONS[u.cls];
-  if (!promo || u.promoteReady) return;
-  const me = entOf(p, u.id)!;
-  const counts = u.cls === 'warrior' ? me.hp < me.maxHp / 2 : u.cls === 'archer' ? dist(me.pos, at) >= 5 : false;
-  // on the roaming maps the advanced class also waits for its level
-  if (counts && ++u.progress >= promo.need && (!p.roam || (u.level ?? 1) >= PROMOTE_LEVEL)) u.promoteReady = true;
 }
 
 /** Is the target tucked beside cover on the shooter's side (a wall, a tree, a boulder…)? Point-blank ignores it. */
@@ -221,8 +199,8 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
   const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target));
   const blocked = st.range <= 1 && p.s.rng.chance(T.block(target));
   if (blocked || !p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
-  const crit = p.s.rng.chance(0.05 + T.crit(u));
-  let m = mult * (crit ? 1.5 : 1) * statusMult(p, u, target, u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
+  const crit = (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'archer' && te.hp === te.maxHp) || p.s.rng.chance(0.05 + T.crit(u));
+  let m = mult * (crit ? 1.5 : 1) * statusMult(p, u, target, u.weapon === 'greataxe' || u.weapon === 'crossbow' || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'mage'), t, ev);
   if (u.side === 'hero') {
     const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
     m *= passiveMult(p, u, target, t, ev) * empowerment;
@@ -233,20 +211,15 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
     // bond: each ally close by; steady aim: shots in a row from the same spot; a critical blow
     const near = p.units.filter((x) => x.side === 'hero' && x !== u && alive(p, x) && dist(posOf(p, x), e.pos) <= 2).length;
     m *= 1 + T.bond(u) * near;
-    if (st.range > 1 && T.steadyMax(u)) {
-      u.steady = u.steadyAt && u.steadyAt.x === e.pos.x && u.steadyAt.y === e.pos.y ? Math.min(T.steadyMax(u), (u.steady ?? 0) + 1) : 0;
-      u.steadyAt = { ...e.pos };
-      m *= 1 + 0.1 * u.steady;
-    }
-
   }
   if (target.side === 'hero' && covered) m *= T.coverTaken(target);
   const hp = te.hp;
   damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev);
+  if (t < (u.leechUntil ?? 0)) heal(p,u,u,(hp-te.hp)*0.3,t,ev);
   emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, ev });
   if (!alive(p, u)) return;
   if (basic) basicHit(p, u, target, t, hp - te.hp, ev);
-  if (st.range <= 1 && G.wears(target, 'thorns')) damage(p, t, target.id, u, 3, ev, true);
+  if (st.range <= 1 && alive(p,target) && G.wears(target, 'thorns')) damage(p, t, target.id, u, 3, ev, true);
   const w = u.weapon ? WEAPONS[u.weapon] : undefined;
   if (w?.cleave || w?.splash) {
     const around = w.cleave ? e.pos : te.pos;
@@ -254,5 +227,5 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
   }
   if (w?.stun && te.alive && p.s.rng.chance(w.stun)) target.nextAt = Math.max(target.nextAt, t + 1.2);
   // a warrior struck in melee sometimes strikes straight back
-  if (u.side === 'foe' && st.range <= 1 && te.alive && passive(target) === 'counter' && p.s.rng.chance(T.counter(target))) strike(p, target, u, t + 0.1, ev);
+
 }

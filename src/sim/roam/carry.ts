@@ -5,10 +5,10 @@ import type { CarriedSoul, HeroSoulId } from '../delve/heroSouls';
 import { living, look, type RoamParty } from './roam';
 
 /** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the bio-matter, the next clone's number. */
-export interface Carry { pack: Item[]; potions: number; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
+export interface Carry { time: number; pack: Item[]; potions: number; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
 
 export function takeParty(p: RoamParty): Carry {
-  return { pack: structuredClone(p.pack), potions: p.potions, nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: structuredClone(u), hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), bio: p.bio, nextClone: p.nextClone };
+  return { time: p.time, pack: structuredClone(p.pack), potions: p.potions, nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: structuredClone(u), hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), bio: p.bio, nextClone: p.nextClone };
 }
 
 /** Puts a party that came up or down the shaft beside the map's start (the first clone keeps the hero's place in the state; if it fell, that slot lies empty off the map). */
@@ -22,7 +22,11 @@ export function placeParty(p: RoamParty, c: Carry): void {
     const at = { x: m.start.x + (i % 2), y: m.start.y + (i >> 1) };
     const e = k.unit.id === 'hero' ? s.hero : spawnFoe(s, 'minion', at, false);
     e.id = k.unit.id; e.pos = at; e.hp = k.hp; e.maxHp = k.maxHp; e.alive = true; e.awake = false;
-    return { ...structuredClone(k.unit), order: null, queued: undefined, nextAt: p.time, ready: [p.time, p.time] } as Unit;
+    const unit = structuredClone(k.unit), shift = p.time-c.time;
+    unit.ultReady = p.time+Math.max(0,unit.ultReady-c.time);
+    for(const key of Object.keys(unit.trig)) unit.trig[key]! += shift;
+    for(const status of Object.values(unit.status)) if(status) { status.until += shift; if(status.next!==undefined) status.next += shift; }
+    return { ...unit, order: null, queued: undefined, nextAt: p.time, ready: [p.time, p.time] } as Unit;
   });
   p.units = [...heroes, ...p.units];
   p.pack = structuredClone(c.pack); p.potions = c.potions; p.nextItem = c.nextItem;

@@ -6,7 +6,7 @@ import { idx, same, walkable, tileAt, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { promote } from '../../sim/party/partySim';
-import { queueSkill } from '../../sim/party/partySkills';
+import { queueUltimate } from '../../sim/party/ultimate';
 import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
 import { BODY_COST } from '../../sim/roam/roam';
@@ -82,7 +82,7 @@ export class WorldDemo implements Screen {
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
       ...(this.opts.onDrill ? { descend: () => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p)); }, descendLabel: '▼ 시추공' } : {}),
       select: (id) => this.select(id),
-      skill: (id, slot) => queueSkill(this.p, id || this.sel, slot),
+      skill: (id) => queueUltimate(this.p, id || this.sel),
       promote: () => this.live(promote(this.p, this.sel)),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
     });
@@ -216,9 +216,9 @@ export class WorldDemo implements Screen {
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];
     if ((k === '1' || k === '2' || k === '3') && pick) this.select(pick);
-    if (k === 'q') queueSkill(this.p, this.sel, 0);
-    if (k === 'w') queueSkill(this.p, this.sel, 1);
-    if (k === 'r') this.restart();
+    if (k === 'r') queueUltimate(this.p, this.sel);
+    
+    if (k === 'f5') this.restart();
   }
 
   /** A walk toward a cell, seen or not (the minimap uses it too). */

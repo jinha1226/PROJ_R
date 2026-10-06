@@ -6,7 +6,7 @@ import { idx, same, walkable, tileAt, type Cell, type GEvent } from '../../sim/g
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { command, promote } from '../../sim/party/partySim';
-import { queueSkill } from '../../sim/party/partySkills';
+import { queueUltimate } from '../../sim/party/ultimate';
 import { BODY_COST, clones, orderTo } from '../../sim/roam/roam';
 import { canAscend, canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
@@ -84,7 +84,7 @@ export class DelveDemo implements Screen {
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
       ...(this.opts.onAscend ? { ascend: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } } : {}),
       select: (id) => this.select(id),
-      skill: (id, slot) => this.skill(id || this.sel, slot),
+      skill: (id) => this.skill(id || this.sel),
       promote: () => this.live(promote(this.p, this.sel)),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       descend: () => this.down(),
@@ -236,9 +236,9 @@ export class DelveDemo implements Screen {
   }
 
   /** On the chosen clone's own turn a skill is its action now; otherwise it is queued for the clone's next moment. */
-  private skill(id: string, slot: 0 | 1): void {
-    if (this.myTurn && id === this.sel) this.live(command(this.p, { kind: 'skill', slot }));
-    else queueSkill(this.p, id, slot);
+  private skill(id: string): void {
+    if (this.myTurn && id === this.sel) this.live(command(this.p, { kind: 'ultimate' }));
+    else queueUltimate(this.p, id);
   }
 
   private key(e: KeyboardEvent): void {
@@ -250,7 +250,7 @@ export class DelveDemo implements Screen {
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];
     if ((k === '1' || k === '2' || k === '3') && pick) this.select(pick);
-    if (k === 'q' || k === 'w') this.skill(this.sel, k === 'q' ? 0 : 1);
+    if (k === 'r') this.skill(this.sel);
     if (k === '>' || k === '.') this.down();
     if (k === 'r') this.restart();
   }

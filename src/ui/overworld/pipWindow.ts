@@ -1,8 +1,10 @@
+import { kitOf, promotionOptions } from '../../sim/party/classKit';
+import { ULT_NAMES } from '../../sim/party/ultimate';
 import { entOf, unitOf } from '../../sim/party/partyCore';
-import { CLASSES, PROMOTIONS, SKILLS, WEAPONS } from '../../sim/party/partyDefs';
+import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { BODY_COST, clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
-import { CLASS_TINT, SKILL_DESC, classIcon } from './classIcons';
-import { LEVEL_XP, MAX_LEVEL, PROMOTE_LEVEL, levelOf } from '../../sim/party/partyLevel';
+import { CLASS_TINT, classIcon } from './classIcons';
+import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/partyTraits';
 
 export type PipTab = 'stat' | 'bag';
@@ -48,15 +50,15 @@ export class PipWindow {
       + Array.from({ length: MAX_CLONES - list.length }, () => '<button type="button" class="empty" disabled>빈 포드</button>').join('');
     const u = unitOf(p, this.who), e = u && entOf(p, u.id);
     if (!u || !e) return `<nav class="pip-side">${side}</nav>`;
-    const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!], promo = PROMOTIONS[u.cls!];
-    const skills = cls.skills.length ? cls.skills.map((s) => `<li><b>${SKILLS[s].name}</b><span>${SKILL_DESC[s]}</span><em>대기 ${SKILLS[s].cd}초</em></li>`).join('') : '<li class="dim">없음</li>';
+    const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!], promo = promotionOptions(p,u);
+    const kit=kitOf(u), skills=kit.ultimate?`<li><b>${ULT_NAMES[kit.ultimate]}</b><em>대기 ${kit.ultCd}초</em></li>`:'<li class="dim">없음</li>';
     const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
     const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id].name} ${'●'.repeat(rank(u, id))}</b><span>${TRAITS[id].ranks[rank(u, id) - 1]}</span><em></em></li>`).join('') || '<li class="dim">없음</li>';
     return `<nav class="pip-side">${side}</nav><section class="pip-rec">
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/초</dd>
       <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${w.dmg[0]}–${w.dmg[1]} · ${(1 / w.atk).toFixed(1)}회/초 · 사거리 ${w.range}</dd>
-      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${promo ? `<dt>전직</dt><dd>${CLASSES[promo.to].name} · 레벨 ${PROMOTE_LEVEL} · ${promo.label} ${u.progress}/${promo.need}${u.promoteReady ? ' <b>가능</b>' : ''}</dd>` : ''}</dl>
+      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${promo.map(o=>`<dt>전직</dt><dd>${CLASSES[o.to].name} ${o.met?'가능':'미달'}</dd>`).join('')}</dl>
       <h4>기술</h4><ul class="pip-skills">${skills}</ul><h4>특성</h4><ul class="pip-skills">${traits}</ul></section>`;
   }
 

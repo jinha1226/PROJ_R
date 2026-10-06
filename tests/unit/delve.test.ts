@@ -3,6 +3,7 @@ import { dist } from '../../src/sim/grid/types';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { command } from '../../src/sim/party/partySim';
 import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../src/sim/delve/delveSim';
+import { emit } from '../../src/sim/party/triggers';
 import { clones } from '../../src/sim/roam/roam';
 
 const take = (p: DelveParty, k: number) => { entOf(p, 'hero')!.pos = { ...p.souls[k]!.pos }; clones(p)[0]!.nextAt = p.time + 0.1; delveTick(p, 0.1); };
@@ -66,7 +67,10 @@ it('a companion heals the hurt by itself', () => {
   entOf(p, f.id)!.hp = 999;
   f.asleep = false; entOf(p, f.id)!.pos = { x: p.s.map.start.x + 4, y: p.s.map.start.y }; f.nextAt = 999;
   entOf(p, 'hero')!.hp = 10;
-  let healed = false;
+  entOf(p, second.id)!.pos = { x: p.s.map.start.x, y: p.s.map.start.y+1 };
+  const healing: ReturnType<typeof delveTick> = [];
+  emit(p,'crisis',{t:p.time,src:clones(p)[0]!,ev:healing});
+  let healed = healing.some(e=>e.type==='heal');
   for (let i = 0; i < 40 && !healed; i++) healed = delveTick(p, 0.1).some((e) => e.type === 'heal' && e.src === second.id);
   expect(healed).toBe(true);
 });

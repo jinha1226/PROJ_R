@@ -22,7 +22,7 @@ describe('trigger bus', () => {
     const p = partyRoom(), u = p.units[0]!, e = entOf(p, u.id)!; let n = 0;
     u.triggers = [{ id: '위기', when: 'crisis', run: () => { n++; } }];
     damage(p, 0, 'trap', u, 60, []); damage(p, 0, 'trap', u, 1, []); expect(n).toBe(1);
-    p.combat = false; tick(p, 0); p.combat = true; e.hp = e.maxHp;
+    p.combat = false; tick(p, 0); p.combat = true; e.hp = e.maxHp; u.shield=0;
     damage(p, 1, 'trap', u, 60, []); expect(n).toBe(2);
   });
   it('stops a source killed inside a chain', () => {

@@ -1,3 +1,4 @@
+import { kitOf, proficient } from './classKit';
 import { alive, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import type { StatusId } from './status';
@@ -5,7 +6,7 @@ export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'cri
 export interface Ctx { t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; depth: number; ev: GEvent[] }
 export interface TriggerDef { id: string; when: Cond; cd?: number; chance?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void }
 export const CHAIN_CAP = 5;
-export function sourcesOf(_p: Party, u: Unit): TriggerDef[] { return u.triggers ?? []; }
+export function sourcesOf(_p: Party, u: Unit): TriggerDef[] { return [...(proficient(u) ? kitOf(u).innate : []), ...(u.triggers ?? [])]; }
 // A shared action budget covers siblings as well as recursive calls, including damage callbacks.
 const actions = new WeakMap<Party, { count: number; depth: number }>();
 export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?: number }): void {
