@@ -1,3 +1,4 @@
+import { tickStatuses } from './status';
 import { foeTurn } from './partyFoeAi';
 import { tickBurns } from './partyEngrave';
 import { spawnFoe } from '../grid/foes';
@@ -17,7 +18,7 @@ const BACK: Cell[] = [{ x: 13, y: 2 }, { x: 13, y: 7 }, { x: 13, y: 4 }, { x: 13
 
 /** how far round its spot a holding fighter steps out to meet foes */
 const GUARD = 3;
-const blank = (): Omit<Unit, 'id' | 'side'> => ({ nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
+const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** A room with the three picked heroes on the left and the first band on the right (heroes beyond the first stand in the foe list for the view, as allies). */
 export function partyRoom(picks: Pick[] = DEFAULT_PICKS, seed = 11): Party {
@@ -146,7 +147,7 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
     const cast = useSkill(p, u.id, u.queued);
     if (cast.length) { u.queued = undefined; ev.push(...cast); p.onMovement?.(ev.slice(start), ev); return; }
   }
-  u.nextAt = p.time + turn(p, u, p.time, ev);
+  u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);
 }
 
@@ -157,11 +158,14 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
 export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
   if (p.waiting || (p as { over?: boolean }).over) return ev;
+  if (p.combat === false) for (const u of p.units) u.crisisUsed = false;
+  let statusTime = p.time;
   const end = p.time + dt;
   for (let guard = 0; guard < 100; guard++) {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
+    tickStatuses(p, statusTime, p.time, ev); statusTime = p.time;
     tickBurns(p, p.time, ev);
     if (!alive(p, next)) continue;
     if (next.id === p.manual) {
@@ -172,6 +176,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     }
     moment(p, next, ev);
   }
+  tickStatuses(p, statusTime, end, ev);
   tickBurns(p, end, ev);
   p.time = end;
   p.s.time = end;
@@ -194,7 +199,7 @@ export function command(p: Party, c: Command): GEvent[] {
     ev.push({ t: p.time, type: 'wait', src: u.id });
   } else {
     u.order = c.kind === 'move' ? { kind: 'move', cell: c.cell } : { kind: 'attack', target: c.target };
-    u.nextAt = p.time + turn(p, u, p.time, ev);
+    u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
     // one blow per command: the player chooses again next turn
     if (c.kind === 'attack') u.order = null;
   }

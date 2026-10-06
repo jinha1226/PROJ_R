@@ -1,3 +1,4 @@
+import { emit } from '../party/triggers';
 import { HERO_SOULS, type HeroSoulId, type CarriedSoul } from '../delve/heroSouls';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import type { Item } from '../delve/items';
@@ -49,7 +50,7 @@ export const BODY_COST = 25;
 /** bio-matter a fallen foe leaves (elites twice as much) */
 const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8, ghoul: 3, shaman: 4, warlord: 30 };
 
-export const blank = (): Omit<Unit, 'id' | 'side'> => ({ nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
+export const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** The clones (living or not) in the order they were made. */
 export const clones = (p: Party): Unit[] => p.units.filter((u) => u.side === 'hero');
@@ -165,6 +166,8 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH && t >= (f.alertUntil ?? 0)) f.asleep = true;
   const was = p.combat;
   p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
+  if (!was && p.combat) for (const u of living(p)) emit(p, 'combatStart', { t, src: u, ev });
+  if (!p.combat) for (const u of living(p)) u.crisisUsed = false;
   souls(p, ev, true);
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
   // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band

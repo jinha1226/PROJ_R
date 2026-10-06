@@ -1,3 +1,5 @@
+import { emit, type TriggerDef } from './triggers';
+import { movedStatus, statusMult, type Status, type StatusId } from './status';
 import type { HeroSoulId } from '../delve/heroSouls';
 import { G, type Loadout } from '../delve/gear';
 import { basicHit, engravingMult, guardLink } from './partyEngrave';
@@ -10,6 +12,7 @@ import { PROMOTE_LEVEL, T, type TraitId } from './partyTraits';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
+  status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   foeScale?: number; mendReady?: number; slamReady?: number; slamPending?: boolean; called?: boolean;
   name?: string; hero?: HeroSoulId;
   gear?: Loadout;
@@ -114,6 +117,7 @@ export function stepToward(p: Party, u: Unit, to: Cell, t: number, ev: GEvent[])
   if (!next || occupied(p, next, u.id)) return false;
   ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...next } });
   e.pos = next;
+  u.moved = true; u.still = 0; movedStatus(p, u, t, ev); emit(p, 'moved', { t, src: u, ev });
   // a closed door swings open as someone walks through it
   const k = idx(p.s.map, next);
   if (p.s.map.tiles[k] === 'door') { p.s.map.tiles[k] = 'open'; ev.push({ t, type: 'door', src: u.id, to: { ...next } }); }
@@ -162,12 +166,14 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const killer = unitOf(p, src);
     if (killer?.side === 'hero' && dst.side === 'foe') {
       credit(p, killer, e.pos);
+      emit(p, 'kill', { t, src: killer, target: dst, amount, ev });
       // mana flow: a kill takes seconds off the killer's skills
       const f = T.flow(killer);
       if (f) killer.ready = [killer.ready[0] - f, killer.ready[1] - f];
     }
     return;
   }
+  if (dst.side === 'hero') { emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); if (e.hp < e.maxHp * 0.5) emit(p, 'crisis', { t, src: dst, target: attacker, ev }); }
   if (dst.side === 'hero' && e.hp < e.maxHp * 0.3) guardian(p, dst, t, ev);
 }
 
@@ -203,7 +209,10 @@ export function behindCover(p: Party, shooter: Cell, target: Cell): boolean {
 
 /** A basic attack (or a skill's blow at `mult`): engravings, then the weapon's own trait. */
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
+  if (!alive(p, u) || !alive(p, target)) return;
   const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t);
+  if (basic) { u.nth++; if (!u.moved) u.still++; else u.still = 0; emit(p, 'nth', { t, src: u, target, ev }); if (!u.moved) emit(p, 'still', { t, src: u, target, ev }); u.moved = false; }
+  if (!alive(p, u) || !alive(p, target)) return;
   const magic = u.cls ? CLASSES[u.cls].magic : false;
   if (st.range <= 1) ev.push({ t, type: 'bump', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos } });
   else ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos }, text: magic ? 'spell' : 'bow' });
@@ -211,8 +220,9 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
   const covered = st.range > 1 && behindCover(p, e.pos, te.pos);
   const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target));
   const blocked = st.range <= 1 && p.s.rng.chance(T.block(target));
-  if (blocked || !p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); return; }
-  let m = mult;
+  if (blocked || !p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
+  const crit = p.s.rng.chance(0.05 + T.crit(u));
+  let m = mult * (crit ? 1.5 : 1) * statusMult(p, u, target, u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
   if (u.side === 'hero') {
     const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
     m *= passiveMult(p, u, target, t, ev) * empowerment;
@@ -228,11 +238,13 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
       u.steadyAt = { ...e.pos };
       m *= 1 + 0.1 * u.steady;
     }
-    if (T.crit(u) && p.s.rng.chance(T.crit(u))) m *= 1.5;
+
   }
   if (target.side === 'hero' && covered) m *= T.coverTaken(target);
   const hp = te.hp;
   damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev);
+  emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, ev });
+  if (!alive(p, u)) return;
   if (basic) basicHit(p, u, target, t, hp - te.hp, ev);
   if (st.range <= 1 && G.wears(target, 'thorns')) damage(p, t, target.id, u, 3, ev, true);
   const w = u.weapon ? WEAPONS[u.weapon] : undefined;
