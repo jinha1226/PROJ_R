@@ -105,3 +105,16 @@ Per visited floor, including partial visits:
 - Targeted delve/party/surface/overworld suite: 106 tests passed after the documented numeric fixture update.
 - Whole `npx vitest run` on final numbers: 1391 passed, 3 skipped (1394), 84.29 seconds.
 - Final bot run: 60 passed, 275.29 seconds.
+
+## Rerun after the stall fix (Claude, 2026-10-06)
+
+Fix (production AI, outside Task 5's numeric scope): one engage distance `ENGAGE = 10` for both "in a fight" (`roamStep`) and roaming targets (`targetOf`), and a clone in a fight with nothing in reach now closes on the nearest awake foe or keeps up with the leader instead of standing still.
+
+| Composition | Runs | Mean floor | Reach 3 | Reach 5 | General killed | Wipes | Timeouts |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Warrior/archer/cleric | 20 | 4.75 | 100% | 85% | 40% | 10 | 2 |
+| Warrior/mage/rogue | 20 | 2.75 | 75% | 0% | 0% | 20 | 0 |
+| Archer/cleric/mage | 20 | 4.70 | 100% | 80% | 50% | 7 | 3 |
+| **Overall** | 60 | **4.07** | **92%** | **55%** | **30%** | 37 | **5** |
+
+Timeouts fell from 41 to 5. The party without a healer (warrior/mage/rogue) wipes every run — a balance item for the trigger-trait redesign (sustain without a cleric).

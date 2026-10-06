@@ -66,6 +66,9 @@ export interface Party {
   waiting?: boolean;
 }
 
+/** how far a fight reaches on the roaming maps: clones go for foes this close, and a foe this close to any clone means a fight */
+export const ENGAGE = 10;
+
 export const entOf = (p: Party, id: string): Ent | undefined => (id === 'hero' ? p.s.hero : p.s.foes.find((f) => f.id === id));
 export const unitOf = (p: Party, id: string): Unit | undefined => p.units.find((u) => u.id === id);
 export const alive = (p: Party, u: Unit): boolean => entOf(p, u.id)?.alive ?? false;
@@ -95,7 +98,7 @@ export function targetOf(p: Party, u: Unit, t: number): Unit | undefined {
   if (u.side === 'foe' && u.tauntBy && t < u.tauntUntil) { const by = p.units.find((x) => x.id === u.tauntBy && alive(p, x)); if (by) return by; }
   if (u.order?.kind === 'attack') { const id = u.order.target; const o = p.units.find((x) => x.id === id && alive(p, x)); if (o) return o; u.order = null; }
   const me = posOf(p, u);
-  return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil) && !(p.roam && (x.asleep || dist(posOf(p, x), me) > 10))).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+  return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil) && !(p.roam && (x.asleep || dist(posOf(p, x), me) > ENGAGE))).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
 }
 
 /** One step toward `to` along a free path (other bodies block, the goal itself does not). */

@@ -4,7 +4,7 @@ import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
 import { computeFov } from '../grid/fov';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
-import { alive, entOf, type Party, type Unit } from '../party/partyCore';
+import { alive, ENGAGE, entOf, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, type BaseClass } from '../party/partyDefs';
 import { awardXp, refitHp, LEVEL_XP } from '../party/partyLevel';
 import { T } from '../party/partyTraits';
@@ -164,7 +164,7 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   }
   for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH && t >= (f.alertUntil ?? 0)) f.asleep = true;
   const was = p.combat;
-  p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= 12);
+  p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
   souls(p, ev, true);
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
   // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band

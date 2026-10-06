@@ -108,7 +108,16 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     return 0.3;
   }
   const target = targetOf(p, u, t);
-  if (!target) return 0.5;
+  if (!target) {
+    // in a fight but nothing in reach (left behind, or the foes are out of range): close in on the nearest awake foe, else keep up with the leader
+    if (u.side === 'hero' && p.roam && p.combat) {
+      const foe = p.units.filter((x) => x.side === 'foe' && alive(p, x) && !x.asleep).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos))[0];
+      const lead = p.leader && p.leader !== u.id ? entOf(p, p.leader) : undefined;
+      const goal = foe ? posOf(p, foe) : lead?.alive ? lead.pos : undefined;
+      if (goal && stepToward(p, u, goal, t, ev)) return st.move;
+    }
+    return 0.5;
+  }
   const tp = posOf(p, target), d = dist(e.pos, tp);
   // a ranged clone steps back from a foe at its side now and then (not when told whom to hit, not under the player's hand); else it shoots point-blank
   if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && t >= (u.rollReady ?? 0)) {
