@@ -33,7 +33,6 @@ export class WorldDemo implements Screen {
   private rt: GridRuntime | null = null;
   private p!: WorldParty;
   private mini: WorldMinimap | null = null;
-  private seed = Number(new URLSearchParams(location.search).get('seed') ?? 1) || 1;
   private sel = 'hero';
   private paused = false;
   private speed = 1;
@@ -43,12 +42,16 @@ export class WorldDemo implements Screen {
   private raf = 0;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
 
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit) {}
+  private readonly seed: number;
+
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void } = {}) {
+    this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
+  }
 
   mount(root: HTMLElement): void {
     this.el.className = 'screen grid landscape party world';
     this.el.innerHTML = `<div class="grid-stage"></div><div class="pd-labels"></div><div class="pd-pause">일시정지</div>
-      <div class="pd-top"><button type="button" data-k="pause"></button><button type="button" data-k="speed"></button><button type="button" data-k="restart">다시</button><span class="pd-wave"></span><span class="pd-msg"></span></div>
+      <div class="pd-top"><button type="button" data-k="pause"></button><button type="button" data-k="speed"></button><button type="button" data-k="restart">다시</button>${this.opts.quit ? '<button type="button" data-k="quit">타이틀</button>' : ''}<span class="pd-wave"></span><span class="pd-msg"></span></div>
       <div class="wd-mini-box"></div>
       <div class="pd-cards"></div><p class="pd-help">영웅 클릭·1 2 3 선택 · 바닥 클릭 파티 이동 · 전투 중엔 그 영웅만 이동 후 고수 · 적 클릭 공격 · Q W 기술 · Space 일시정지 · 휠 확대</p>`;
     root.appendChild(this.el);
@@ -58,6 +61,7 @@ export class WorldDemo implements Screen {
       if (k === 'pause') this.paused = !this.paused;
       if (k === 'speed') { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); }
       if (k === 'restart') this.restart();
+      if (k === 'quit') { this.opts.quit?.(); return; }
       this.draw();
     });
     this.el.querySelector('.pd-cards')!.addEventListener('click', (e) => {

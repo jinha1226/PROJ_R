@@ -23,7 +23,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await page.goto('./?seed=21');
+  await page.goto('./?dungeon=1&seed=21');
   await page.click('[data-testid="to-grid"]');
   await launch(page);
   await expect(page.locator('[data-testid="grid-stats"]')).toContainText('충전');
@@ -71,7 +71,7 @@ test('a grid sortie: step, fight, fall, see the result and go again', async ({ p
 test('on a phone the grid sortie has a stick and big buttons', async ({ browser }) => {
   const ctx = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
-  await page.goto('./?seed=21');
+  await page.goto('./?dungeon=1&seed=21');
   await page.click('[data-testid="to-grid"]');
   await launch(page);
   await expect(page.locator('.screen.grid.portrait')).toBeVisible();
@@ -96,7 +96,7 @@ test('engravings: an elite kill offers three, pick a suit upgrade on level-up, a
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await page.goto('./?seed=21');
+  await page.goto('./?dungeon=1&seed=21');
   await page.click('[data-testid="to-grid"]');
   await launch(page);
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
@@ -159,7 +159,7 @@ test('roguelike basics: drink an unknown potion from the bag, read a map scroll,
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await page.goto('./?seed=21');
+  await page.goto('./?dungeon=1&seed=21');
   await page.click('[data-testid="to-grid"]');
   await launch(page);
   const st = () => page.evaluate(() => (window as unknown as { __PROJR_GRID__: G }).__PROJR_GRID__.state() as unknown as Any);
@@ -197,7 +197,7 @@ test('the ship deck: bump the armory, unlock fire rounds with energy, it is save
   await page.addInitScript(() => {
     try { if (!localStorage.getItem('projr.grid.meta.v1.seeded')) { localStorage.setItem('projr.grid.meta.v1', JSON.stringify({ energy: 200, repairs: ['workbench'], portals: [], facilities: { suitSlots: 2, chargePlus: 0 }, unlocked: ['gunRelay', 'spinShot'], records: ['dash', 'rapid', 'chain', 'momentum'], startCandidates: [], bossesKilled: [], best: 0, wins: 0 })); localStorage.setItem('projr.grid.meta.v1.seeded', '1'); } } catch { /* ignore */ }
   });
-  await page.goto('./?seed=21');
+  await page.goto('./?dungeon=1&seed=21');
   await page.click('[data-testid="to-grid"]');
   await expect(page.locator('[data-testid="ship-deck"]')).toBeVisible({ timeout: 60_000 });
   await waitGrid(page);

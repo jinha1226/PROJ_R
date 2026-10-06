@@ -13,6 +13,7 @@ import { Router } from './router';
 import { WeekFlow } from './weekFlow';
 import { ExtractFlow } from './extractFlow';
 import { GridFlow } from './gridFlow';
+import { WorldFlow } from './worldFlow';
 import '../ui/styles/pipTheme.css';
 import { UalLibrary } from '../view/grid/ualActor';
 import { DungeonKit } from '../view/grid/dungeonKit';
@@ -32,9 +33,22 @@ let choice: SandboxChoice = { ally: 'solo', enemy: 'tutorial', seed: urlSeed || 
 
 const gridSeed = (): number => urlSeed || Math.floor(Math.random() * 99999) + 1;
 
-/** The game's title: the ship's boot log (`?legacy=1` shows the old prototype menu). */
+/** The game's title: the colony ship's boot log, then the world map (`?dungeon=1`: the earlier dungeon game; `?legacy=1`: the old prototype menu). */
 function title(): void {
   if (params.get('legacy') === '1') return legacyTitle();
+  if (params.get('dungeon') === '1') return dungeonTitle();
+  router.go(new BootTitle({
+    assets: GRID_ASSETS,
+    lines: [['이주선 R-7 비상 전원', '가동'], ['복제 포드', '정상'], ['영혼 슬롯', '비어 있음']],
+    startLabel: '깨어나기',
+    hasRun: () => false,
+    start: () => void new WorldFlow(router, root, title).start(gridSeed()),
+    resume: () => undefined,
+  }));
+}
+
+/** The earlier grid dungeon game (kept reachable while the world map grows). */
+function dungeonTitle(): void {
   router.go(new BootTitle({
     assets: GRID_ASSETS,
     hasRun: () => loadGridRun() !== null,

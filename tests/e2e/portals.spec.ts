@@ -9,7 +9,7 @@ for (const legacy of [false, true]) test(`${legacy ? 'legacy navigation' : 'port
       ...(legacy ? {} : { portals: [5, 10] }),
     }));
   }, legacy);
-  await page.goto('./?seed=21'); await page.click('[data-testid="to-grid"]');
+  await page.goto('./?dungeon=1&seed=21'); await page.click('[data-testid="to-grid"]');
   await expect(page.locator('[data-testid="ship-deck"]')).toBeVisible({ timeout: 60_000 });
   await page.waitForFunction(() => !!(window as unknown as { __PROJR_GRID__?: unknown }).__PROJR_GRID__);
   const openStation = async (id: string) => page.evaluate((id) => {

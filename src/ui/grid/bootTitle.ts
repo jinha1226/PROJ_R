@@ -2,7 +2,7 @@ import type { Screen } from '../../app/router';
 import '../styles/bootTitle.css';
 
 export interface BootAsset { id: string; name: string; load: () => Promise<unknown> }
-export interface BootTitleApi { hasRun(): boolean; start(): void; resume(): void; assets: BootAsset[] }
+export interface BootTitleApi { hasRun(): boolean; start(): void; resume(): void; assets: BootAsset[]; lines?: [string, string][]; startLabel?: string }
 
 /** fixed boot lines before the asset checks (the ship waking a clone) */
 const LINES: [string, string][] = [['R-7 비상 전원', '가동'], ['복제 포드', '정상'], ['기억 이식', '손상 37%']];
@@ -38,7 +38,7 @@ export class BootTitle implements Screen {
     this.menu.className = 'boot-menu';
     this.menu.hidden = true;
     tube.append(this.log, this.bar, this.menu);
-    this.items = [...(this.api.hasRun() ? [{ id: 'resume' as const, label: '이어하기' }] : []), { id: 'start' as const, label: '출격' }];
+    this.items = [...(this.api.hasRun() ? [{ id: 'resume' as const, label: '이어하기' }] : []), { id: 'start' as const, label: this.api.startLabel ?? '출격' }];
     this.el.addEventListener('click', (e) => {
       const b = (e.target as Element).closest<HTMLElement>('[data-item]');
       if (b) this.choose(Number(b.dataset.item));
@@ -83,7 +83,7 @@ export class BootTitle implements Screen {
   }
 
   private async boot(loads: Promise<void>[]): Promise<void> {
-    for (const [k, v] of LINES) {
+    for (const [k, v] of this.api.lines ?? LINES) {
       const { row, end } = this.line();
       await this.type(row.querySelector<HTMLElement>('.k')!, k);
       row.querySelector<HTMLElement>('.d')!.textContent = dots(k);
