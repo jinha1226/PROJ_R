@@ -21,28 +21,28 @@ const arena = () => {
   entOf(p, 'hero')!.pos = { x: 7, y: 7 }; p.s.traps = [];
   return p;
 };
-it('tier three requires two free slots and guarantees a rare item, with view state synchronized', () => {
+it('tier three requires two free slots and guarantees catalog gear, with view state synchronized', () => {
   const p = quiet(), pos = { ...entOf(p, 'hero')!.pos };
   p.chests = [{ pos, tier: 3, opened: false }]; p.s.chests = [{ pos, opened: false }];
-  while (p.pack.length < PACK_SIZE - 1) p.pack.push({ id: String(p.pack.length), kind: 'trinket', base: 'swift' });
+  while (p.pack.length < PACK_SIZE - 1) p.pack.push({ id: String(p.pack.length), def:'windRing',power:0 });
   delveTick(p, 0.1); expect(p.chests[0]!.opened).toBe(false);
   p.pack.pop(); delveTick(p, 0.1);
-  expect(p.pack).toHaveLength(PACK_SIZE); expect(p.pack.some((i) => i.kind !== 'trinket' && i.rarity === 'rare')).toBe(true);
+  expect(p.pack).toHaveLength(PACK_SIZE); expect(p.pack.some((i) => 'def'in i)).toBe(true);
   expect(p.s.chests[0]!.opened).toBe(true);
 });
 it('floor gear drops once during combat, stays with full pack, and can be recovered during combat', () => {
   const p = quiet(), u = print(p, 'warrior', [])!; const e = entOf(p, u.id)!;
-  e.pos = { ...entOf(p, 'hero')!.pos }; u.gear!.trinkets = ['thorns', 'swift'];
-  while (p.pack.length < PACK_SIZE) p.pack.push({ id: String(p.pack.length), kind: 'trinket', base: 'swift' });
+  e.pos = { ...entOf(p, 'hero')!.pos }; u.gear!.accessory={id:'acc',def:'windRing',power:0};
+  while (p.pack.length < PACK_SIZE) p.pack.push({ id: String(p.pack.length), def:'windRing',power:0 });
   damage(p, p.time, 'trap', u, 9999, []); p.combat = true;
   const ev: GEvent[] = []; roomStep(p, new Map(), ev);
-  expect(p.floorItems).toHaveLength(4); expect(u.gear).toBeUndefined(); expect(u.weapon).toBe('fists');
+  expect(p.floorItems).toHaveLength(3); expect(u.gear).toBeUndefined(); expect(u.weapon).toBe('fists');
   roomStep(p, new Map(), ev); expect(ev.filter((e) => e.text === 'gear')).toHaveLength(1);
-  p.pack.pop(); roomStep(p, new Map(), []); expect(p.floorItems).toHaveLength(3); expect(p.pack).toHaveLength(PACK_SIZE);
+  p.pack.pop(); roomStep(p, new Map(), []); expect(p.floorItems).toHaveLength(2); expect(p.pack).toHaveLength(PACK_SIZE);
 });
 it('stairs and shaft carry resources and copied souls but leave floor items behind', () => {
   const p = quiet(); p.ore = 7; p.crystal = 3; p.carried = [{ cls: 'mage', hero: 'mira' }]; p.foundHeroes = ['mira'];
-  p.floorItems.push({ pos: { x: 1, y: 1 }, item: { id: 'lost', kind: 'trinket', base: 'swift' } });
+  p.floorItems.push({ pos: { x: 1, y: 1 }, item: { id: 'lost', def:'windRing',power:0 } });
   const c = takeParty(p), s = newSurface(2); placeParty(s, c);
   expect(s.ore).toBe(7); expect(s.crystal).toBe(3); expect(JSON.stringify(c)).not.toContain('lost');
   expect(s.carried[0]).not.toBe(c.carried[0]); expect(c.carried[0]).not.toBe(p.carried[0]);
@@ -100,7 +100,7 @@ it('general loot and victory happen once even after roam has reaped the body', (
   const p = newDelve(2, 5), boss = p.units.find((u) => u.foe === 'warlord')!;
   expect(entOf(p, boss.id)!.maxHp).toBe(416); damage(p, p.time, 'hero', boss, 99999, []);
   const ev = delveTick(p, 0.1); expect(boss.reaped).toBe(true); expect(ev.filter((e) => e.type === 'victory')).toHaveLength(1);
-  expect(p.floorItems.filter((i) => i.item.kind !== 'trinket' && i.item.rarity === 'rare')).toHaveLength(2); expect(p.crystal).toBe(3);
+  expect(p.floorItems.filter((i) => 'def'in i.item)).toHaveLength(2); expect(p.crystal).toBe(3);
   expect(delveTick(p, 0.1).some((e) => e.type === 'victory')).toBe(false); expect(p.crystal).toBe(3);
 });
 it('crypt heroes are placed in crypts and same-seed unclaimed souls match', () => {
@@ -129,7 +129,7 @@ it('elite loot is independent of bio reaping and emitted once', () => {
   p.s.rng.chance = () => true;
   roomStep(p, new Map(), []); expect(p.floorItems).toHaveLength(1);
   roomStep(p, new Map(), []); expect(p.floorItems).toHaveLength(1);
-  const it = p.floorItems[0]!.item; expect(it.kind !== 'trinket' && it.rarity !== 'common').toBe(true);
+  const it = p.floorItems[0]!.item; expect('def'in it).toBe(true);
 });
 it('foes entering spikes take damage and a lethal entry prevents subsequent movement in the same tick', () => {
   const p = arena(), foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;

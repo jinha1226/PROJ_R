@@ -4,8 +4,8 @@ import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
 import { movedStatus, statusMult, type Status, type StatusId } from './status';
 import type { HeroSoulId } from '../delve/heroSouls';
-import { G, type Loadout } from '../delve/gear';
-import { basicHit, engravingMult, guardLink } from './partyEngrave';
+import { G, weaponDef, weaponStats, type Loadout } from '../delve/gear';
+import { gearTaken } from '../delve/catalogEffects';
 import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
 import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
@@ -16,6 +16,7 @@ import { T } from './traitMods';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
+  fastNext?: boolean;
   ultReady: number; ultQueued?: boolean; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   nextCrit?: boolean; dodgeNext?: boolean; furyStacks?: number; furyUntil?: number; furyPower?: number; damageBuff?: number; damageBuffUntil?: number; blinkNext?: boolean; extraAttack?: boolean; attackMoved?: boolean; retreatShot?: boolean; immortalUsed?: boolean;
@@ -59,6 +60,7 @@ export interface Unit {
   manualSkills?: boolean;
 }
 export interface Party {
+  grounds?: {at:Cell;by:string;until:number;next:number}[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
   beforeStep?: (u: Unit, t: number, ev: GEvent[]) => void;
   avoidTraps?: boolean;
@@ -94,9 +96,9 @@ export function stats(u: Unit, t = 0): { dmg: [number, number]; range: number; a
     const f = FOES[u.foe!], scale = u.foeScale ?? 1;
     return { ...f, dmg: [Math.round(f.dmg[0] * scale), Math.round(f.dmg[1] * scale)] };
   }
-  const w = WEAPONS[u.weapon!];
+  const w = weaponStats(u);
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && u.lowHp ? 0.5 : 1) * G.atk(u) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls==='veteran'&&u.soul?u.soul:u.cls].move * T.move(u) * G.move(u) };
+  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && u.lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls==='veteran'&&u.soul?u.soul:u.cls].move * T.move(u) * G.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u).range): boolean {
@@ -137,18 +139,21 @@ export function passiveMult(p: Party, u: Unit, target: Unit, t: number, _ev: GEv
   void _ev; return kitMult(p, u, target, t);
 }
 
-export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[], secondary = false): void {
+export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[], secondary = false, statusScaled = false): void {
   const e = entOf(p, dst.id)!;
   if (!e.alive || t < (dst.immuneUntil ?? 0)) return;
   const attacker = unitOf(p, src);
   if(attacker && !alive(p,attacker) && !secondary) return;
-  if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') amount = Math.round(amount * G.dmg(attacker) * engravingMult(p, attacker, dst, t));
+  if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
+    const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?1.3:1);
+    amount=Math.round(amount*G.dmg(attacker)*vulnerable);
+  }
   if (dst.side === 'hero') {
-    amount=Math.round(amount*takenMult(p,dst,t));
-    const guard = WEAPONS[dst.weapon!].guard;
+    amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst));
+    const guard = (dst.gear ? weaponDef(dst)?.shield : WEAPONS[dst.weapon!].shield) ? .75 : undefined;
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));
-    const link = secondary ? undefined : guardLink(p, dst) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
+    const link = secondary ? undefined : p.units.find(x=>x!==dst&&x.gear?.accessory?.def==='guardOath'&&alive(p,x)&&dist(posOf(p,x),e.pos)<=1) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
     if (link) { const share = Math.round(amount * 0.3); amount -= share; if (share > 0) damage(p, t, src, link, share, ev, true); }
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
@@ -198,6 +203,7 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
 function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   if (!alive(p, u) || !alive(p, target)) return;
   const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t);
+  if(basic)u.fastNext=false;
   blink(p,u,target,t,ev); if(!alive(p,u))return;
   if (basic) { u.attackMoved=u.moved; u.nth++; if (!u.moved) u.still++; else u.still = 0; emit(p, 'nth', { t, src: u, target, ev }); if (!u.moved) emit(p, 'still', { t, src: u, target, ev }); u.moved = false; }
   if (!alive(p, u) || !alive(p, target)) return;
@@ -208,10 +214,10 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const covered = st.range > 1 && behindCover(p, e.pos, te.pos);
   const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target));
   const dodge = target.dodgeNext; target.dodgeNext=false;
-  const blocked = st.range <= 1 && p.s.rng.chance(T.block(target));
+  const blocked = st.range <= 1 && p.s.rng.chance(T.block(target)+G.block(target));
   if (dodge || blocked || !p.s.rng.chance(hit * (t<(u.blindUntil??0)?0.5:1))) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
-  const crit = !u.traits?.avatar && (u.nextCrit || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'archer' && te.hp === te.maxHp) || p.s.rng.chance(0.05 + T.crit(u))); u.nextCrit=false;
-  let m = mult * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, u.weapon === 'greataxe' || u.weapon === 'crossbow' || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'mage'), t, ev);
+  const crit = !u.traits?.avatar && (u.nextCrit || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'archer' && te.hp === te.maxHp) || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
+  let m = mult * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow' || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'mage'), t, ev);
   if (u.side === 'hero') {
     const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
     m *= passiveMult(p, u, target, t, ev) * empowerment;
@@ -226,14 +232,13 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if (target.side === 'hero' && covered) m *= T.coverTaken(target);
   if(!alive(p,u))return;
   const hp = te.hp;
-  damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev);
+  damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev, false, true);
   if (t < (u.leechUntil ?? 0)) heal(p,u,u,(hp-te.hp)*0.3,t,ev);
   emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, ev });
   if (!alive(p, u)) return;
-  if (basic) basicHit(p, u, target, t, hp - te.hp, ev);
-  if (st.range <= 1 && alive(p,target) && G.wears(target, 'thorns')) damage(p, t, target.id, u, 3, ev, true);
   if(!alive(p,u))return;
-  const w = u.weapon ? WEAPONS[u.weapon] : undefined;
+  const d=weaponDef(u);
+  const w = u.gear ? (d?.family==='staff'?{splash:true,cleave:false,stun:0}:undefined) : u.weapon ? WEAPONS[u.weapon] : undefined;
   if (w?.cleave || w?.splash) {
     const around = w.cleave ? e.pos : te.pos;
     for (const f of p.units) if (f.side !== u.side && f !== target && alive(p, f) && dist(posOf(p, f), around) === 1) damage(p, t, u.id, f, Math.round(roll(p, st.dmg) / 2), ev);

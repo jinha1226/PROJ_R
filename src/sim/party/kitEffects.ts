@@ -1,3 +1,4 @@
+import { emit } from './triggers';
 import { T } from './traitMods';
 import { rank } from './traitDefs';
 import { G } from '../delve/gear';
@@ -14,6 +15,7 @@ export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, 
   if (src.cls === 'healer') dst.shield += Math.max(0, amount - n);
   if(rank(src,'purify')) {const key=Object.keys(dst.status)[0] as keyof typeof dst.status|undefined;if(key)delete dst.status[key];}
   ev.push({ t, type: 'heal', src: src.id, dst: dst.id, amount: n });
+  emit(p,'healed',{t,src,target:dst,amount:n,ev});
 }
 export function fireball(p: Party, src: Unit, dst: Unit, t: number, ev: GEvent[]): void {
   for (const f of nearby(p, dst, 1)) {

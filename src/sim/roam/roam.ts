@@ -15,7 +15,7 @@ export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean; h
 
 /** A party that roams a map (the land above or a dungeon floor): souls to find, clones printed at its base. */
 export interface RoamParty extends Party {
-  pack: Item[]; potions: number; nextItem: number;
+  pack: Item[]; nextItem: number;
   souls: Soul[];
   /** souls picked up by clones that already had one, waiting for a body at the base */
   carried: CarriedSoul[];
@@ -72,7 +72,7 @@ export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]):
   const cls = hero ? HERO_SOULS[hero].cls : typeof soul === 'string' ? soul : soul.cls;
   const e = entOf(p, u.id)!;
   u.cls = cls; u.soul = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
-  u.gear = starterGear(cls, () => nextItemId(p)); u.weapon = u.gear.weapon.base;
+  u.gear = starterGear(cls, () => nextItemId(p));
   e.hp = e.maxHp = CLASSES[cls].hp;
   if (hero) {
     const h = HERO_SOULS[hero];

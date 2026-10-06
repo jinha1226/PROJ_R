@@ -1,7 +1,9 @@
 import { emit } from './triggers';
 import { tickStatuses } from './status';
 import { foeTurn } from './partyFoeAi';
-import { tickBurns } from './partyEngrave';
+import { tickGrounds } from '../delve/catalogEffects';
+import { aiItem, useItem } from '../delve/gear';
+import type { RoamParty } from '../roam/roam';
 import { spawnFoe } from '../grid/foes';
 import { makeWeapon } from '../grid/items';
 import { newState } from '../grid/state';
@@ -138,6 +140,7 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
 /** One unit's moment: a companion may reach for a skill, a queued skill goes off (it waits while it has no target in reach), else its usual action. */
 function moment(p: Party, u: Unit, ev: GEvent[]): void {
   const start = ev.length;
+  if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
   if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const at = aiUltimate(p,u); if(at !== null) { u.ultQueued=true; u.ultCell=at; } }
   if(u.ultQueued) { const cast=useUltimate(p,u.id,u.ultCell); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; } }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
@@ -160,8 +163,8 @@ export function tick(p: Party, dt: number): GEvent[] {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
+    tickGrounds(p,p.time,ev);
     tickStatuses(p, statusTime, p.time, ev); statusTime = p.time;
-    tickBurns(p, p.time, ev);
     if (!alive(p, next)) continue;
     if (next.id === p.manual) {
       // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
@@ -172,21 +175,22 @@ export function tick(p: Party, dt: number): GEvent[] {
     if ((next.status.freeze?.until ?? 0) > p.time || (next.status.stun?.until ?? 0) > p.time) { next.nextAt = Math.max(next.status.freeze?.until ?? 0,next.status.stun?.until ?? 0); continue; }
     moment(p, next, ev);
   }
+  tickGrounds(p,end,ev);
   tickStatuses(p, statusTime, end, ev);
-  tickBurns(p, end, ev);
   p.time = end;
   p.s.time = end;
   return ev;
 }
 
-export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'ultimate'; cell?: Cell } | { kind: 'wait' };
+export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'ultimate'; cell?: Cell } | { kind: 'wait' } | {kind:'use';itemId:string;cell?:Cell};
 
 /** The manual clone's turn: one action (a walk goes on by itself until something new happens). Time then runs again. */
 export function command(p: Party, c: Command): GEvent[] {
   const u = p.units.find((x) => x.id === p.manual);
   if (!p.waiting || !u || !alive(p, u)) return [];
   const ev: GEvent[] = [];
-  if (c.kind === 'ultimate') {
+  if(c.kind==='use'){if(!('pack'in p))return[];const used=useItem(p as RoamParty,u.id,c.itemId,c.cell);if(!used.length)return[];ev.push(...used);}
+  else if (c.kind === 'ultimate') {
     const cast = useUltimate(p, u.id, c.cell);
     if (!cast.length) return [];
     ev.push(...cast);

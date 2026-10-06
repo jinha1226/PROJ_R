@@ -1,4 +1,3 @@
-import { echoSkill } from './partyEngrave';
 import { G } from '../delve/gear';
 import { DIRS, dist, same, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
@@ -28,7 +27,7 @@ function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
   if(u.traits?.bloodPact){const e=entOf(p,id)!,cost=Math.round(e.maxHp*.3);if(e.hp<=cost)return [];e.hp-=cost;}
   switch(ult) {
     case 'warcry': case 'bastion':
-      for(const f of near(me,4)) {f.tauntBy=id; f.tauntUntil=t+5; if(G.wears(u,'link_bait')) f.exposedUntil=t+5;}
+      for(const f of near(me,4)) {f.tauntBy=id; f.tauntUntil=t+5; emit(p,'taunt',{t,src:u,target:f,ev});}
       for(const a of allies) a.shield += ult==='bastion'?30:15;
       break;
     case 'bloodFrenzy': u.leechUntil=t+5; break;
@@ -64,7 +63,6 @@ function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
   }
   ev.push({t,type:'buff',src:id,dst:id,text:ULT_NAMES[ult]});
   u.ultReady=u.traits?.bloodPact?t:t+kit.ultCd*T.cd(u)*G.cd(u);u.ultQueued=false;u.nextAt=Math.max(u.nextAt,t+0.6);
-  echoSkill(p,u);
   emit(p,'ultimate',{t,src:u,ev});return ev;
 }
 export function aiUltimate(p: Party,u: Unit): Cell | undefined | null {

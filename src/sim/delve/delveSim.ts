@@ -49,7 +49,7 @@ export function newDelve(seed = 1, floor = 1, carry?: Carry): DelveParty {
   const generated = generateFloor(seed, floor), map = generated.map;
   const s = newState(map, seed + floor * 31, 'pistol', floor);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(generated, seed, floor, floor === 1 && !carry?.clones.some((c) => c.unit.cls && c.unit.cls !== 'shell')), rooms: [], chests: [], oreNodes: [], floorItems: [], boss: false, roomTime: 0, lootReaped: new Set(), handledMoves: new WeakSet(), ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [], potions: 2, nextItem: 1, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
+  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(generated, seed, floor, floor === 1 && !carry?.clones.some((c) => c.unit.cls && c.unit.cls !== 'shell')), rooms: [], chests: [], oreNodes: [], floorItems: [], boss: false, roomTime: 0, lootReaped: new Set(), handledMoves: new WeakSet(), ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
   populate(p);
   if (carry) placeParty(p, carry);

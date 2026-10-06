@@ -1,6 +1,9 @@
 import { kitOf, promotionOptions } from '../../sim/party/classKit';
 import { ULT_NAMES } from '../../sim/party/ultimate';
-import { entOf, unitOf } from '../../sim/party/partyCore';
+import { itemName } from '../../sim/delve/items';
+import { equip,unequip,sacrifice,useItem,weaponStats,PACK_SIZE } from '../../sim/delve/gear';
+import { CATALOG } from '../../sim/delve/catalog';
+import { entOf, unitOf, targetOf, posOf } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { BODY_COST, clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, classIcon } from './classIcons';
@@ -25,6 +28,10 @@ export class PipWindow {
       const who = t.closest<HTMLElement>('[data-who]')?.dataset.who;
       if (tab) this.tab = tab;
       if (who) this.who = who;
+      const act=t.closest<HTMLElement>('[data-item]');
+      if(act){const p=this.p(),id=act.dataset.item!,u=unitOf(p,this.who)||clones(p).find(u=>entOf(p,u.id)?.alive);if(u){if(act.dataset.action==='equip')equip(p,u.id,id);if(act.dataset.action==='sacrifice')sacrifice(p,u.id,id);if(act.dataset.action==='use'){const target=targetOf(p,u,p.time),it=p.pack.find(it=>it.id===id);if(target||!it||!('consumable'in it)||!['fireBomb','iceBomb','poisonJar','boltWand'].includes(it.consumable))useItem(p,u.id,id,target?posOf(p,target):undefined);}}}
+      const slot=t.closest<HTMLElement>('[data-off]')?.dataset.off as 'weapon'|'armor'|'accessory'|undefined;
+      if(slot)unequip(this.p(),this.who,slot);
       if (t.closest('[data-close]') || t === this.el) { this.close(); return; }
       this.draw();
     });
@@ -50,7 +57,7 @@ export class PipWindow {
       + Array.from({ length: MAX_CLONES - list.length }, () => '<button type="button" class="empty" disabled>빈 포드</button>').join('');
     const u = unitOf(p, this.who), e = u && entOf(p, u.id);
     if (!u || !e) return `<nav class="pip-side">${side}</nav>`;
-    const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!], promo = promotionOptions(p,u);
+    const cls = CLASSES[u.cls!], w = {...WEAPONS[u.weapon!],...weaponStats(u),name:u.gear?.weapon?itemName(u.gear.weapon):WEAPONS[u.weapon!].name,note:u.gear?.weapon?CATALOG[u.gear.weapon.def]!.tags.join(' · '):WEAPONS[u.weapon!].note}, promo = promotionOptions(p,u);
     const kit=kitOf(u), skills=kit.ultimate?`<li><b>${ULT_NAMES[kit.ultimate]}</b><em>대기 ${kit.ultCd}초</em></li>`:'<li class="dim">없음</li>';
     const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
     const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id]!.name} ${'●'.repeat(rank(u, id))}</b><span>${TRAITS[id]!.tags.join(' · ')}</span><em></em></li>`).join('') || '<li class="dim">없음</li>';
@@ -64,7 +71,12 @@ export class PipWindow {
 
   private bag(p: RoamParty): string {
     const items = p.carried.map((soul) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span></div>`; });
+    const heroes=clones(p).filter(u=>entOf(p,u.id)?.alive);if(!heroes.some(u=>u.id===this.who))this.who=heroes[0]?.id??'';
+    const who=heroes.map(u=>`<button type="button" data-who="${u.id}">${CLASSES[u.cls!].name}${u.id===this.who?' ●':''}</button>`).join('');
+    const worn=unitOf(p,this.who)?.gear;
+    const gear=worn?Object.entries(worn).map(([slot,it])=>`<div class="pip-slot">${it?itemName(it):'빈 칸'}${it?`<button type="button" data-off="${slot}">해제</button>`:''}</div>`).join(''):'';
+    const pack=p.pack.map(it=>`<div class="pip-slot"><span>${itemName(it)}</span>${'def'in it?`<button type="button" data-item="${it.id}" data-action="equip">착용</button><button type="button" data-item="${it.id}" data-action="sacrifice" ${worn?.[CATALOG[it.def]!.slot]?'':'disabled'}>희생</button>`:`<button type="button" data-item="${it.id}" data-action="use">사용${it.charges===undefined?'':` ${it.charges}`}</button>`}</div>`).join('');
     const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
-    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div></section>`;
+    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div>${who}<h4>가방 <small>${p.pack.length}/${PACK_SIZE}</small></h4><div class="pip-grid">${gear}${pack}</div></section>`;
   }
 }

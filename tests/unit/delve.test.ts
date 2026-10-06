@@ -1,3 +1,4 @@
+import { implant } from '../../src/sim/roam/roam';
 import { expect, it } from 'vitest';
 import { dist } from '../../src/sim/grid/types';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
@@ -62,7 +63,7 @@ it('a companion heals the hurt by itself', () => {
   p.combat = false;
   for (let i = 0; i < 20; i++) delveTick(p, 0.1);
   const second = clones(p)[1]!;
-  second.cls = 'cleric'; second.weapon = 'mace'; second.ready = [0, 0];
+  implant(p,second,'cleric',[]); second.ready = [0, 0];
   const f = p.units.find((u) => u.side === 'foe' && entOf(p, u.id)!.alive)!;
   entOf(p, f.id)!.hp = 999;
   f.asleep = false; entOf(p, f.id)!.pos = { x: p.s.map.start.x + 4, y: p.s.map.start.y }; f.nextAt = 999;

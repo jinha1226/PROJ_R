@@ -11,7 +11,9 @@ import { refitHp } from './partyLevel';
 export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
-export function proficient(u: Unit): boolean { const f = u.weapon && FAMILY[u.weapon]; return !!u.cls && !!f && kitOf(u).proficient.includes(f); }
+export { proficient } from '../delve/gear';
+import { proficient, worn, weaponDef } from '../delve/gear';
+import { CATALOG } from '../delve/catalog';
 const warrior: TriggerDef[] = [
   { id: '포위 베기', when: 'hit', cd: 6, test: (p,c) => nearby(p,c.src,1+(rank(c.src,'whirlwind')===3?1:0),'foe').length >= 2, run: (p,c) => { for (const f of nearby(p,c.src,1+(rank(c.src,'whirlwind')===3?1:0),'foe')) {damage(p,c.t,c.src.id,f,p.s.rng.int(6,9),c.ev);if(rank(c.src,'bloodBlade'))applyStatus(p,c.src,f,'bleed',c.t,c.ev);} } },
   { id: '응수', when: 'block', test: (_p,c) => !!c.target && !c.target.cls && (c.target.foe !== 'archer' && c.target.foe !== 'shaman'), run: (p,c) => { if (c.target) strike(p,c.src,c.target,c.t,c.ev,T.counter(c.src),false); } },
@@ -68,14 +70,14 @@ export const PROMOTIONS: Record<BaseClass,PromotionRule[]> = {
 export function tagsOf(u: Unit): Partial<Record<Tag,number>> {
   const tags: Partial<Record<Tag,number>> = {};
   for(const [id,rank] of Object.entries(u.traits ?? {})) for(const tag of TRAITS[id]?.tags ?? []) tags[tag]=(tags[tag]??0)+(rank??0);
-  if(u.weapon === 'crossbow') tags.치명=(tags.치명??0)+1;
-  if(u.weapon && WEAPONS[u.weapon].shield) tags.방패=(tags.방패??0)+1;
+  if(u.gear) {for(const it of worn(u))for(const tag of CATALOG[it.def]!.tags)tags[tag]=(tags[tag]??0)+1;}
+  else {if(u.weapon==='crossbow')tags.치명=(tags.치명??0)+1;if(u.weapon&&WEAPONS[u.weapon].shield)tags.방패=(tags.방패??0)+1;}
   return tags;
 }
 export function promotionOptions(_p: Party,u: Unit): {to:ClassId;met:boolean;have:Partial<Record<Tag,number>>}[] {
   if(!BASE_CLASSES.includes(u.cls as BaseClass)) return [];
   const have=tagsOf(u), rules=PROMOTIONS[u.cls as BaseClass];
-  const options=rules.map(r=>({to:r.to,have,met:(u.level??1)>=8 && Object.entries(r.need).every(([tag,n])=>(have[tag as Tag]??0)>=n) && (!r.wear || (r.wear==='shield' ? !!WEAPONS[u.weapon??'fists'].shield : FAMILY[u.weapon??'fists']===r.wear))}));
+  const options=rules.map(r=>({to:r.to,have,met:(u.level??1)>=8 && Object.entries(r.need).every(([tag,n])=>(have[tag as Tag]??0)>=n) && (!r.wear || (r.wear==='shield' ? !!(u.gear?weaponDef(u)?.shield:WEAPONS[u.weapon??'fists'].shield) : (weaponDef(u)?.family??FAMILY[u.weapon??'fists'])===r.wear))}));
   return [...options,{to:'veteran',have,met:(u.level??1)>=10 && !options.some(o=>o.met)}];
 }
 export function promote(p: Party,id: string,to: ClassId): GEvent[] {

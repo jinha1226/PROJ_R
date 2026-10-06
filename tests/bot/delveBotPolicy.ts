@@ -4,20 +4,16 @@ import { DIRS, canStep, dist, idx, same, walkable, type Cell } from '../../src/s
 import { entOf } from '../../src/sim/party/partyCore';
 import { living, orderTo } from '../../src/sim/roam/roam';
 
-const rank = { common: 0, fine: 1, rare: 2 };
+import { CATALOG } from '../../src/sim/delve/catalog';
 export function supplies(p: DelveParty): void {
   for (const u of living(p)) {
     const e = entOf(p, u.id)!;
     if (e.hp < e.maxHp * 0.3) drink(p, u.id);
     for (const it of [...p.pack]) {
       if (!u.gear || !canEquip(u, it)) continue;
-      if (it.kind === 'trinket') {
-        const slot = u.gear.trinkets.indexOf(null);
-        if (slot >= 0) equip(p, u.id, it.id, slot as 0 | 1);
-      } else {
-        const worn = u.gear[it.kind];
-        if (!worn || rank[it.rarity] > rank[worn.rarity]) equip(p, u.id, it.id);
-      }
+      if(!('def'in it))continue;
+      const d=CATALOG[it.def]!,worn=u.gear[d.slot];
+      if(!worn||d.floors[0]>CATALOG[worn.def]!.floors[0])equip(p,u.id,it.id);
     }
   }
 }

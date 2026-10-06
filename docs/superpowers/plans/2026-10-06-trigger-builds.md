@@ -154,8 +154,8 @@ export function useItem(p: RoamParty, heroId: string, itemId: string, cell?: Cel
 ```
 Rules: spec §7–§8. Proficiency: off-family −30% damage, +20% attack time, innates off. Weight: total over 6 → move and attack time ×(1 + 0.05 per point over). Two-hand / shield bonuses per item. Loot (`delveRooms.ts`): chests and drops pick catalog items whose `floors` include the floor (rarer/stronger deeper) and consumables (chest tier 1: 50% a consumable). Starter gear by class (spec family + a light armour; the shell has nothing). Dropped gear and floor items keep working. The companion AI drinks a potion below 30% (as now) and throws a bomb at 3+ clustered foes.
 
-- [ ] **Tests** `tests/unit/catalog.test.ts`, `consumables.test.ts`: catalog sizes (18 / 8 / 10) and every family present; any clone can equip any weapon; off-family applies exactly the spec penalties (−30% dmg, +20% atk) and turns innates off; weight slows; sacrifice gives exactly +25% of the numbers and removes the item (and does nothing across slots); a fire bomb burns everyone in its 3×3; a smoke bomb hides clones in its 3×3; the bolt wand loses a charge per use and is gone at 0; gear with power survives `takeParty`/`placeParty`.
-- [ ] implement; replace `items.ts` data and `partyEngrave.ts` with catalog triggers; verification; commit `feat(build): Achra-style gear, sacrifice, consumables`.
+- [x] **Tests** `tests/unit/catalog.test.ts`, `consumables.test.ts`: catalog sizes (18 / 8 / 10) and every family present; any clone can equip any weapon; off-family applies exactly the spec penalties (−30% dmg, +20% atk) and turns innates off; weight slows; sacrifice gives exactly +25% of the numbers and removes the item (and does nothing across slots); a fire bomb burns everyone in its 3×3; a smoke bomb hides clones in its 3×3; the bolt wand loses a charge per use and is gone at 0; gear with power survives `takeParty`/`placeParty`.
+- [x] implement; replace `items.ts` data and `partyEngrave.ts` with catalog triggers; verification; commit `feat(build): Achra-style gear, sacrifice, consumables`.
 
 ### Task 5: Bot rerun and report
 

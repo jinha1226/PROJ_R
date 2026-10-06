@@ -28,7 +28,7 @@ it('a clone beside a closed chest out of combat opens it and the loot goes to th
 
 it('a full pack leaves a chest shut', () => {
   const p = archer(); calm(p);
-  while (p.pack.length < PACK_SIZE) p.pack.push({ id: `x${p.pack.length}`, kind: 'trinket', base: 'swift' });
+  while (p.pack.length < PACK_SIZE) p.pack.push({ id: `x${p.pack.length}`, def:'windRing',power:0 });
   const c = p.chests[0]!;
   entOf(p, 'hero')!.pos = beside(p, c.pos);
   delveTick(p, 0.1);
@@ -69,7 +69,7 @@ it('a fallen clone\'s gear lies where it fell; a living clone can pick it up; le
   entOf(p, 'hero')!.pos = at;
   delveTick(p, 0.1);
   expect(p.pack.length).toBeGreaterThanOrEqual(1);
-  p.floorItems.push({ pos: { x: 1, y: 1 }, item: { id: 'z', kind: 'trinket', base: 'thorns' } });
+  p.floorItems.push({ pos: { x: 1, y: 1 }, item: { id: 'z', def:'guardOath',power:0 } });
   expect(JSON.stringify(takeParty(p))).not.toContain('"z"');
 });
 

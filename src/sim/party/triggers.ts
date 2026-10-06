@@ -1,13 +1,15 @@
+import { CATALOG } from '../delve/catalog';
+import { worn } from '../delve/gear';
 import { TRAITS } from './traitDefs';
 import { kitOf, proficient } from './classKit';
 import { alive, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import type { StatusId } from './status';
-export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'crisis' | 'nth' | 'still' | 'moved' | 'allyHit' | 'allyCrisis' | 'combatStart' | 'statusApplied' | 'ultimate';
+export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'crisis' | 'nth' | 'still' | 'moved' | 'allyHit' | 'allyCrisis' | 'combatStart' | 'statusApplied' | 'ultimate' | 'healed' | 'taunt' | 'allyUltimate';
 export interface Ctx { t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; depth: number; ev: GEvent[] }
 export interface TriggerDef { id: string; when: Cond; cd?: number; chance?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void }
 export const CHAIN_CAP = 5;
-export function sourcesOf(_p: Party, u: Unit): TriggerDef[] { return [...(proficient(u) ? kitOf(u).innate.map(d=>({...d,cd:d.id==='포위 베기'?6-(u.traits?.whirlwind??0):d.id==='구원의 손'?8-2*(u.traits?.quickPrayer??0):d.cd,nth:d.id==='연쇄 주문'&&(u.traits?.quickChant??0)>=2?2:d.nth})) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]?.trigger?[TRAITS[id]!.trigger!(r)]:[]), ...(u.triggers ?? [])]; }
+export function sourcesOf(_p: Party, u: Unit): TriggerDef[] { return [...(proficient(u) ? kitOf(u).innate.map(d=>({...d,cd:d.id==='포위 베기'?6-(u.traits?.whirlwind??0):d.id==='구원의 손'?8-2*(u.traits?.quickPrayer??0):d.cd,nth:d.id==='연쇄 주문'&&(u.traits?.quickChant??0)>=2?2:d.nth})) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]?.trigger?[TRAITS[id]!.trigger!(r)]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...(u.triggers ?? [])]; }
 // A shared action budget covers siblings as well as recursive calls, including damage callbacks.
 const actions = new WeakMap<Party, { count: number; depth: number }>();
 export function action<T>(p:Party,run:()=>T):T {
@@ -30,9 +32,9 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
       c.ev.push({ t: c.t, type: 'buff', src: c.src.id, text: def.id });
       try { def.run(p, { ...c, depth: action.depth }); } finally { action.depth--; }
     }
-    if (cond === 'hit' || cond === 'crisis') for (const ally of p.units) {
-      if (!c.src.traits?.loneWolf && !ally.traits?.loneWolf && ally !== c.src && ally.side === 'hero' && c.src.side === 'hero' && alive(p, ally) && dist(posOf(p, ally), posOf(p, c.src)) <= 2) {
-        emit(p, cond === 'hit' ? 'allyHit' : 'allyCrisis', { ...c, src: ally, target: cond === 'hit' ? c.target : c.src });
+    if (cond === 'hit' || cond === 'crisis' || cond === 'ultimate') for (const ally of p.units) {
+      if (!c.src.traits?.loneWolf && !ally.traits?.loneWolf && ally !== c.src && ally.side === 'hero' && c.src.side === 'hero' && alive(p, ally) && dist(posOf(p, ally), posOf(p, c.src)) <= (cond==='ultimate'?3:2)) {
+        emit(p, cond === 'hit' ? 'allyHit' : cond === 'ultimate' ? 'allyUltimate' : 'allyCrisis', { ...c, src: ally, target: cond === 'hit' ? c.target : c.src });
       }
     }
   } finally { if (root) actions.delete(p); }

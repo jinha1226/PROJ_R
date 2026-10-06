@@ -3,7 +3,7 @@ import { damage, entOf, alive, unitOf, type Unit } from '../party/partyCore';
 import { living } from '../roam/roam';
 import { dist, idx, same, type Cell, type GEvent } from '../grid/types';
 import { PACK_SIZE, nextItemId } from './gear';
-import { itemName, rollItem, type Item, type Rarity } from './items';
+import { itemName, rollItem, rollConsumable, type Item } from './items';
 import { HERO_SOULS, type HeroSoulId } from './heroSouls';
 import type { DelveFloor } from './delveGen';
 import type { DelveParty } from './delveSim';
@@ -67,9 +67,7 @@ function pickup(p: DelveParty, u: Unit, at: Cell, ev: GEvent[]): void {
     ev.push({ t: p.time, type: 'pickup', src: u.id, to: { ...at }, text: itemName(drop.item) });
   }
 }
-function item(p: DelveParty, rarity: Rarity): Item {
-  return { ...rollItem(p.s.rng, p.floor, rarity === 'common' ? undefined : p.s.rng.pick(['weapon', 'armor']), rarity), id: nextItemId(p) };
-}
+function item(p:DelveParty,tier:number,gearOnly=false):Item {return {...rollItem(p.s.rng,p.floor,(tier>1||gearOnly)?p.s.rng.pick(['weapon','armor','accessory']):undefined,tier),id:nextItemId(p)};}
 function material(p: DelveParty, text: 'ore' | 'bio' | 'crystal', amount: number, ev: GEvent[]): void {
   p[text] += amount; ev.push({ t: p.time, type: 'loot', text, amount });
 }
@@ -80,15 +78,16 @@ function deaths(p: DelveParty, ev: GEvent[]): void {
     p.lootReaped.add(u.id);
     const drops: Item[] = [];
     if (u.side === 'hero' && u.gear) {
-      if (u.gear.weapon.base !== 'fists') drops.push(u.gear.weapon);
+      if (u.gear.weapon) drops.push(u.gear.weapon);
       if (u.gear.armor) drops.push(u.gear.armor);
-      for (const base of u.gear.trinkets) if (base) drops.push({ id: nextItemId(p), kind: 'trinket', base });
+      if(u.gear.accessory)drops.push(u.gear.accessory);
       u.gear = undefined; u.weapon = 'fists';
       if (drops.length) ev.push({ t: p.time, type: 'drop', src: u.id, text: 'gear', to: { ...e.pos } });
     } else if (u.foe === 'warlord') {
-      drops.push(item(p, 'rare'), item(p, 'rare')); material(p, 'crystal', 3, ev);
+      drops.push(item(p, 3), item(p, 3)); material(p, 'crystal', 3, ev);
       ev.push({ t: p.time, type: 'victory', to: { ...e.pos } });
-    } else if (u.side === 'foe' && e.elite && p.s.rng.chance(0.15)) drops.push(item(p, 'fine'));
+    } else if (u.side === 'foe' && e.elite && p.s.rng.chance(0.15)) drops.push(item(p, 2));
+    else if(u.side==='foe'&&p.s.rng.chance(.1))drops.push({...rollConsumable(p.s.rng),id:nextItemId(p)});
     for (const it of drops) p.floorItems.push({ pos: { ...e.pos }, item: it });
   }
 }
@@ -110,12 +109,12 @@ export function roomStep(p: DelveParty, before: Map<string, Cell>, ev: GEvent[])
     c.opened = true;
     const state = p.s.chests.find((s) => same(s.pos, c.pos)); if (state) state.opened = true;
     ev.push({ t: p.time, type: 'open', src: by.id, to: { ...c.pos } });
-    const give = (rarity: Rarity) => { const it = item(p, rarity); p.pack.push(it); ev.push({ t: p.time, type: 'loot', src: by.id, text: itemName(it) }); };
+    const give = (tier:number,gearOnly=false) => { const it = item(p, tier,gearOnly); p.pack.push(it); ev.push({ t: p.time, type: 'loot', src: by.id, text: itemName(it) }); };
     if (c.tier === 1) {
-      if (p.s.rng.chance(0.6)) { const ore = p.s.rng.chance(0.5); material(p, ore ? 'ore' : 'bio', ore ? p.s.rng.int(3, 6) : p.s.rng.int(4, 8), ev); }
-      else give('common');
-    } else if (c.tier === 2) { give('fine'); material(p, 'ore', p.s.rng.int(1, 2), ev); }
-    else { give('rare'); give('common'); material(p, 'crystal', p.s.rng.int(1, 2), ev); }
+      if(p.s.rng.chance(.5)){const it={...rollConsumable(p.s.rng),id:nextItemId(p)};p.pack.push(it);ev.push({t:p.time,type:'loot',src:by.id,text:itemName(it)});}
+      else give(1,true);
+    } else if (c.tier === 2) { give(2); material(p, 'ore', p.s.rng.int(1, 2), ev); }
+    else { give(3); give(1); material(p, 'crystal', p.s.rng.int(1, 2), ev); }
   }
   for (const node of p.oreNodes) {
     const miners = living(p).filter((u) => !u.order && dist(entOf(p, u.id)!.pos, node.pos) <= 1);

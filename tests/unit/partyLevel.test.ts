@@ -89,7 +89,7 @@ it('an archer shooting again and again from the same spot hits harder with stead
 it('the advanced class waits for level 8 on the roaming maps', () => {
   const p = withArcher();
   const u = clones(p)[0]!;
-  u.progress = 99; u.traits = { vital: 3 }; u.weapon = 'crossbow';
+  u.progress = 99; u.traits = { vital: 3 }; u.weapon = 'crossbow'; u.gear!.weapon={id:'bow',def:'crossbow',power:0};
   for (const f of p.units.filter((x) => x.side === 'foe').slice(0, 2)) {
     entOf(p, f.id)!.pos = { x: entOf(p, 'hero')!.pos.x + 6, y: entOf(p, 'hero')!.pos.y };
     damage(p, p.time, 'hero', f, 999, []);

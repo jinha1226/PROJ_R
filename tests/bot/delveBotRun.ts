@@ -1,6 +1,6 @@
 import { newDelve, delveTick, canDescend, descend, type DelveParty } from '../../src/sim/delve/delveSim';
+import { CATALOG } from '../../src/sim/delve/catalog';
 import type { Item } from '../../src/sim/delve/items';
-import { entOf } from '../../src/sim/party/partyCore';
 import type { BaseClass } from '../../src/sim/party/partyDefs';
 import { BODY_COST, implant, living, print } from '../../src/sim/roam/roam';
 import { navigate, supplies } from './delveBotPolicy';
@@ -9,7 +9,7 @@ export const compositions: BaseClass[][] = [['warrior', 'archer', 'cleric'], ['w
 interface FloorStats { floor: number; common: number; fine: number; rare: number; trinkets: number; ore: number; crystal: number; bio: number; seconds: number }
 export interface Run { seed: number; comp: string; floor: number; general: boolean; lost: number; end: 'wipe' | 'general' | 'floor5' | 'timeout'; seconds: number; lastPolicy: string; idleSeconds: number; floors: FloorStats[] }
 const floorStats = (floor: number): FloorStats => ({ floor, common: 0, fine: 0, rare: 0, trinkets: 0, ore: 0, crystal: 0, bio: 0, seconds: 0 });
-const inventory = (p: DelveParty): Item[] => [...p.pack, ...living(p).flatMap((u) => u.gear ? [u.gear.weapon, ...(u.gear.armor ? [u.gear.armor] : [])] : [])];
+const inventory = (p: DelveParty): Item[] => [...p.pack, ...living(p).flatMap((u) => u.gear ? Object.values(u.gear).filter((it):it is NonNullable<typeof it>=>!!it) : [])];
 export function runDelveBot(seed: number, comp: BaseClass[]): Run {
   const p = newDelve(seed);
   p.bio = BODY_COST * 3;
@@ -23,8 +23,6 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
     const f = result.floors[result.floors.length - 1]!;
     supplies(p);
     result.lastPolicy = navigate(p);
-    const worn = living(p).map((u) => ({ id: u.id, trinkets: [...(u.gear?.trinkets ?? [])] }));
-    const nextBefore = p.nextItem;
     const ev = delveTick(p, 0.5);
     f.seconds += 0.5;
     if (ev.some((e) => ['move', 'die', 'loot', 'pickup', 'open', 'hit'].includes(e.type))) lastActivity = p.time;
@@ -37,17 +35,9 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
     for (const e of ev.filter((e) => e.type === 'drop' && e.text === 'gear')) {
       for (const drop of p.floorItems) if (e.to && drop.pos.x === e.to.x && drop.pos.y === e.to.y) seen.add(drop.item.id);
     }
-    const matched = new Set<string>();
-    for (const u of worn) if (!entOf(p, u.id)?.alive) for (const base of u.trinkets) {
-      if (!base) continue;
-      const recreated = [...inventory(p), ...p.floorItems.map((d) => d.item)]
-        .filter((it) => it.kind === 'trinket' && it.base === base && Number(it.id.slice(5)) >= nextBefore && !matched.has(it.id))
-        .sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)))[0];
-      if (recreated) { seen.add(recreated.id); matched.add(recreated.id); }
-    }
     for (const it of inventory(p)) if (!seen.has(it.id)) {
       seen.add(it.id);
-      if (it.kind === 'trinket') f.trinkets++; else f[it.rarity]++;
+      if('def'in it){const d=CATALOG[it.def]!;if(d.slot==='accessory')f.trinkets++;else f[d.floors[0]>=4?'rare':d.floors[0]>=2?'fine':'common']++;}
     }
     if (!living(p).length) { result.end = 'wipe'; break; }
     if (result.general) { result.end = 'general'; break; }
