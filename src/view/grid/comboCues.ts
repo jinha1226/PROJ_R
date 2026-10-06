@@ -11,13 +11,14 @@ export interface CueKit { actors: GridActors; fx: GridFx; particles: GridParticl
 
 const TRAP_COLOR: Record<string, string> = { spike: '#d8d8d8', alarm: '#ffd23a', poison: '#7ad04a', fire: '#ff6a2a', teleport: '#b48aff', net: '#c8b090' };
 const TRAP_LABEL: Record<string, string> = { spike: '가시 함정!', alarm: '경보!', poison: '독가스!', fire: '화염 함정!', teleport: '순간이동!', net: '그물!' };
-const BUFF_LABEL: Record<string, string> = { haste: '신속!', invis: '투명', confuse: '혼란', fear: '공포' };
+const BUFF_LABEL: Record<string, string> = { haste: '신속!', invis: '투명', confuse: '혼란', fear: '공포', taunt: '도발!', ward: '보호막', stealth: '은신', frenzy: '광분!', promote: '전직!' };
 
 const REACT: Record<string, { color: string; label: string; size: number }> = {
   ignite: { color: '#ff7a2a', label: '점화!', size: 1.5 },
   shatter: { color: '#bfe8ff', label: '파쇄!', size: 0.9 },
   steam: { color: '#e8eef4', label: '증기', size: 1.4 },
   paralyse: { color: '#ffe85a', label: '마비!', size: 0.8 },
+  freeze: { color: '#9fd8ff', label: '빙결!', size: 0.9 },
 };
 
 /** Combo moves, engraving triggers, element reactions and shoves; true when the event is fully shown here. */

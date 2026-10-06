@@ -1,30 +1,32 @@
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
-import { same } from '../../sim/grid/types';
-import { CLASSES, SKILLS, entOf, partyRoom, queueSkill, tick, type Party } from '../../sim/party/partySim';
+import { same, type GEvent } from '../../sim/grid/types';
+import { entOf, unitOf, type Party } from '../../sim/party/partyCore';
+import { CLASSES, DEFAULT_PICKS, HERO_IDS, PROMOTIONS, SKILLS, WAVES, WEAPONS, type Pick } from '../../sim/party/partyDefs';
+import { nextWave, partyRoom, promote, tick } from '../../sim/party/partySim';
+import { queueSkill } from '../../sim/party/partySkills';
 import { findPath } from '../../sim/grid/path';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
+import { PartyPick, lookOf } from './partyPick';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
 import '../styles/partyDemo.css';
 
 /** game time per real second at normal speed */
 const RATE = 1.6;
-const HEROES = ['hero', 'ally-archer', 'ally-mage'];
-LOOK_BY_ID.set('hero', { body: '#2a3a5a', trim: '#c8b080', scale: 1, weapon: 'sword', shield: true, idle: 'Sword_Idle' });
-LOOK_BY_ID.set('ally-archer', { body: '#35502e', trim: '#8a6a3a', scale: 0.95, weapon: 'bow', idle: 'Idle_Loop' });
-LOOK_BY_ID.set('ally-mage', { body: '#4a2a6a', trim: '#c8a0e0', scale: 0.95, weapon: 'none', idle: 'Spell_Simple_Idle_Loop' });
 
-/** `?demo=party`: three heroes fight on their own in real time; select one and give it an order or a skill; pause any time. */
+/** `?demo=party`: pick three of five classes; they fight on their own in real time; select one and give it an order or a skill; pause any time. */
 export class PartyDemo implements Screen {
   private readonly el = document.createElement('div');
   private stage!: HTMLElement;
   private rt: GridRuntime | null = null;
   private p!: Party;
+  private picks: Pick[] = DEFAULT_PICKS;
+  private picker: PartyPick | null = null;
   private sel = 'hero';
   private paused = false;
   private speed = 1;
@@ -38,8 +40,8 @@ export class PartyDemo implements Screen {
   mount(root: HTMLElement): void {
     this.el.className = 'screen grid landscape party';
     this.el.innerHTML = `<div class="grid-stage"></div><div class="pd-labels"></div><div class="pd-pause">일시정지</div>
-      <div class="pd-top"><button type="button" data-k="pause"></button><button type="button" data-k="speed"></button><button type="button" data-k="restart">다시</button><span class="pd-msg"></span></div>
-      <div class="pd-cards"></div><p class="pd-help">영웅 클릭·1 2 3 선택 · 적 클릭 공격 · 바닥 클릭 이동 · Q W 기술 · Space 일시정지</p>`;
+      <div class="pd-top"><button type="button" data-k="pause"></button><button type="button" data-k="speed"></button><button type="button" data-k="restart">다시</button><button type="button" data-k="pick">편성</button><span class="pd-wave"></span><button type="button" data-k="next" hidden>다음 무리</button><span class="pd-msg"></span></div>
+      <div class="pd-cards"></div><p class="pd-help">영웅 클릭·1 2 3 선택 · 적 클릭 공격 · 바닥 클릭 이동 후 고수 · Q W 기술 · Space 일시정지</p>`;
     root.appendChild(this.el);
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.el.querySelector('.pd-top')!.addEventListener('click', (e) => {
@@ -47,28 +49,31 @@ export class PartyDemo implements Screen {
       if (k === 'pause') this.paused = !this.paused;
       if (k === 'speed') { this.speed = this.speed === 1 ? 2 : 1; this.pace(); }
       if (k === 'restart') this.restart();
+      if (k === 'pick') this.choose();
+      if (k === 'next') this.next();
       this.draw();
     });
     this.el.querySelector('.pd-cards')!.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
-      const skill = t.closest<HTMLElement>('[data-skill]');
       const card = t.closest<HTMLElement>('[data-hero]');
       if (card) this.sel = card.dataset.hero!;
-      if (skill) this.skill(Number(skill.dataset.skill) as 0 | 1);
+      const skill = t.closest<HTMLElement>('[data-skill]');
+      if (skill) queueSkill(this.p, this.sel, Number(skill.dataset.skill) as 0 | 1);
+      if (t.closest('[data-promote]')) this.live(promote(this.p, this.sel));
       this.draw();
     });
     this.stage.addEventListener('pointerup', (e) => this.click(e));
     this.stage.addEventListener('contextmenu', (e) => e.preventDefault());
     addEventListener('keydown', this.onKey);
     this.restart();
+    this.choose();
     let last = performance.now();
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (!this.paused && !this.over()) {
+      if (!this.paused && !this.picker && !this.over()) {
         const t0 = this.p.time;
-        const ev = tick(this.p, dt * RATE * this.speed);
-        if (ev.length) this.rt?.applyLive(ev, t0);
+        this.live(tick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
       }
       this.rt?.update(dt * this.speed);
@@ -82,8 +87,18 @@ export class PartyDemo implements Screen {
 
   unmount(): void { removeEventListener('keydown', this.onKey); cancelAnimationFrame(this.raf); this.rt?.dispose(); this.el.remove(); }
 
+  private live(ev: GEvent[], t0 = this.p.time): void { if (ev.length) this.rt?.applyLive(ev, t0); }
+
+  /** The chooser over the (still) room; going out starts a fresh fight with the new party. */
+  private choose(): void {
+    this.picker?.el.remove();
+    this.picker = new PartyPick(this.picks, (picks) => { this.picks = picks; this.picker?.el.remove(); this.picker = null; this.restart(); });
+    this.el.appendChild(this.picker.el);
+  }
+
   private restart(): void {
-    this.p = partyRoom();
+    this.picks.forEach((pk, i) => LOOK_BY_ID.set(HERO_IDS[i]!, lookOf(pk.cls, pk.weapon)));
+    this.p = partyRoom(this.picks);
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
@@ -95,55 +110,63 @@ export class PartyDemo implements Screen {
     this.pace();
     this.sel = 'hero';
     this.paused = false;
+    this.message('');
   }
 
-  private alive(id: string): boolean { return entOf(this.p, id)?.alive ?? false; }
-  private over(): boolean { return HEROES.every((h) => !this.alive(h)) || this.p.units.every((u) => u.side === 'hero' || !this.alive(u.id)); }
+  /** The next band walks in (the view picks up the new figures). */
+  private next(): void { if (nextWave(this.p)) { this.rt?.applyLive([], this.p.time); this.message(''); } }
 
-  /** A hero falling low, or falling, stops the clock so the player can react. */
+  private alive(id: string): boolean { return entOf(this.p, id)?.alive ?? false; }
+  private cleared(): boolean { return this.p.units.every((u) => u.side === 'hero' || !this.alive(u.id)); }
+  private over(): boolean { return HERO_IDS.every((h) => !this.alive(h)) || this.cleared(); }
+  private name(id: string): string { return CLASSES[unitOf(this.p, id)!.cls!].name; }
+
+  /** A hero falling low or falling, or able to advance, stops the clock so the player can react. */
   private autoPause(): void {
-    for (const id of HEROES) {
-      const e = entOf(this.p, id)!;
-      const key = !e.alive ? `${id}:dead` : e.hp < e.maxHp * 0.35 ? `${id}:low` : '';
-      if (key && !this.warned.has(key)) { this.warned.add(key); this.paused = true; this.message(`${CLASSES[this.p.units.find((u) => u.id === id)!.cls!].name} ${e.alive ? '위험' : '쓰러짐'}`); }
+    for (const id of HERO_IDS) {
+      const e = entOf(this.p, id)!, u = unitOf(this.p, id)!;
+      const key = !e.alive ? `${id}:dead` : e.hp < e.maxHp * 0.35 ? `${id}:low` : u.promoteReady ? `${id}:promo` : '';
+      if (!key || this.warned.has(key)) continue;
+      this.warned.add(key);
+      this.paused = true;
+      this.message(`${this.name(id)} ${!e.alive ? '쓰러짐' : u.promoteReady ? '전직 가능' : '위험'}`);
     }
   }
 
   private message(text: string): void { this.el.querySelector('.pd-msg')!.textContent = text; }
 
-  /** Skills are orders: queued now (paused or not), cast on the hero's next moment as time runs. */
-  private skill(slot: 0 | 1): void { queueSkill(this.p, this.sel, slot); }
-
   /** Figures walk at the pace units step (about one cell per 0.9 of game time). */
   private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85); }
 
   private key(e: KeyboardEvent): void {
+    if (this.picker) return;
     const k = e.key.toLowerCase();
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
-    if (k === '1' || k === '2' || k === '3') this.sel = HEROES[Number(k) - 1]!;
-    if (k === 'q') this.skill(0);
-    if (k === 'w') this.skill(1);
+    if (k === '1' || k === '2' || k === '3') this.sel = HERO_IDS[Number(k) - 1]!;
+    if (k === 'q') queueSkill(this.p, this.sel, 0);
+    if (k === 'w') queueSkill(this.p, this.sel, 1);
+    if (k === 'n') this.next();
     if (k === 'r') this.restart();
   }
 
-  /** On a hero: select it. With a hero selected: a foe is its target, a floor cell its place to go. */
+  /** On a hero: select it. With a hero selected: a foe is its target, a floor cell its place to go and hold. */
   private click(e: PointerEvent): void {
     const c = this.rt?.cellAt(e.clientX, e.clientY);
-    if (!c) return;
+    if (!c || this.picker) return;
     const at = this.p.units.find((u) => this.alive(u.id) && same(entOf(this.p, u.id)!.pos, c));
     if (at?.side === 'hero') { this.sel = at.id; return; }
-    const me = this.p.units.find((u) => u.id === this.sel);
+    const me = unitOf(this.p, this.sel);
     if (!me || !this.alive(me.id)) return;
     me.order = at ? { kind: 'attack', target: at.id } : { kind: 'move', cell: c };
   }
 
-  /** The selected hero's cell, and where its move order is taking it. */
+  /** The selected hero's cell, and where its move order is taking it (or the cell it holds). */
   private marks(): void {
     if (!this.rt) return;
-    const me = this.p.units.find((u) => u.id === this.sel);
+    const me = unitOf(this.p, this.sel);
     const e = me && entOf(this.p, me.id);
-    this.rt.showAim(e?.alive ? [e.pos] : null, true);
     const o = me?.order;
+    this.rt.showAim(e?.alive ? [e.pos, ...(o?.kind === 'move' || o?.kind === 'hold' ? [o.cell] : [])] : null, true);
     this.rt.showPath(o?.kind === 'move' && e?.alive ? findPath(this.p.s.map, e.pos, o.cell) : null);
   }
 
@@ -152,23 +175,26 @@ export class PartyDemo implements Screen {
     this.el.querySelector('.pd-labels')!.innerHTML = this.p.units.filter((u) => u.side === 'hero' && this.alive(u.id)).map((u) => {
       const e = entOf(this.p, u.id)!;
       const pt = this.rt!.project(new THREE.Vector3(e.pos.x, 2.3, e.pos.y));
-      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${HEROES.indexOf(u.id) + 1} ${CLASSES[u.cls!].name}</div>`;
+      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${HERO_IDS.indexOf(u.id) + 1} ${CLASSES[u.cls!].name}${u.order?.kind === 'hold' ? ' ▣' : ''}</div>`;
     }).join('');
   }
 
   private draw(): void {
     this.el.querySelector<HTMLElement>('[data-k="pause"]')!.textContent = this.paused ? '▶ 재개' : '❚❚ 정지';
     this.el.querySelector<HTMLElement>('[data-k="speed"]')!.textContent = `속도 ×${this.speed}`;
+    this.el.querySelector<HTMLElement>('.pd-wave')!.textContent = `무리 ${this.p.wave + 1}/${WAVES.length}`;
+    const more = this.cleared() && this.p.wave < WAVES.length - 1 && HERO_IDS.some((h) => this.alive(h));
+    this.el.querySelector<HTMLElement>('[data-k="next"]')!.hidden = !more;
     this.el.classList.toggle('paused', this.paused);
-    if (this.over()) this.message(HEROES.some((h) => this.alive(h)) ? '승리 · R 다시' : '전멸 · R 다시');
+    if (this.over() && !more) this.message(HERO_IDS.some((h) => this.alive(h)) ? '승리 · R 다시' : '전멸 · R 다시');
     const t = this.p.time;
-    const cards = HEROES.map((id, i) => {
-      const u = this.p.units.find((x) => x.id === id)!, e = entOf(this.p, id)!, cls = CLASSES[u.cls!];
+    const cards = HERO_IDS.map((id, i) => {
+      const u = unitOf(this.p, id)!, e = entOf(this.p, id)!, cls = CLASSES[u.cls!], promo = PROMOTIONS[u.cls!];
       const skills = cls.skills.map((s, k) => { const left = Math.max(0, u.ready[k]! - t); const q = u.queued === k; return `<button type="button" data-skill="${k}" class="${q ? 'queued' : ''}" ${left > 0 || !e.alive ? 'disabled' : ''}>${k ? 'W' : 'Q'} ${SKILLS[s].name}${q ? ' 예약' : left > 0 ? ` ${left.toFixed(0)}` : ''}</button>`; }).join('');
-      return `<div class="pd-card${id === this.sel ? ' on' : ''}${e.alive ? '' : ' dead'}" data-hero="${id}"><b>${i + 1} ${cls.name}</b><div class="pd-hp"><i style="width:${(e.hp / e.maxHp) * 100}%"></i><span>${e.hp}/${e.maxHp}</span></div><div class="pd-skills">${skills}</div></div>`;
+      const adv = promo && e.alive ? (u.promoteReady ? `<button type="button" class="pd-promote" data-promote>전직 → ${CLASSES[promo.to].name}</button>` : `<small class="pd-adv">${CLASSES[promo.to].name} ${u.progress}/${promo.need}</small>`) : '';
+      return `<div class="pd-card${id === this.sel ? ' on' : ''}${e.alive ? '' : ' dead'}" data-hero="${id}"><b>${i + 1} ${cls.name} <small>${WEAPONS[u.weapon!].name}</small></b><div class="pd-hp"><i style="width:${(e.hp / e.maxHp) * 100}%"></i><span>${e.hp}/${e.maxHp}${u.shield ? ` +${u.shield}` : ''}</span></div><div class="pd-skills">${skills}</div>${adv}</div>`;
     }).join('');
     // only when something shown changed (a rebuilt button mid-click would swallow the click)
     if (cards !== this.cardsHtml) { this.cardsHtml = cards; this.el.querySelector('.pd-cards')!.innerHTML = cards; }
   }
 }
-
