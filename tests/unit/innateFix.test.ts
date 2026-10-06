@@ -50,3 +50,23 @@ it('no-op effects consume neither popup nor budget and crit bleed still fires in
   const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,amount:8,ev});});
   expect(f.status.bleed).toBeDefined(); expect(ev.some(e=>e.text?.startsWith('noop'))).toBe(false);
 });
+it('damage innates deliver exact bonuses without duplicate passive multipliers', () => {
+  const hit=(cls:ClassId,active:boolean)=>{
+    const weapon=cls==='archer'?'crossbow':cls==='mage'?'staff':'daggers';const{p,u,f}=setup(cls,weapon);
+    if(cls==='archer')entOf(p,f.id)!.hp=active?1000:900;
+    if(cls==='mage'&&active)f.status.freeze={until:5};
+    if(cls==='rogue'||cls==='assassin')f.order={kind:'attack',target:cls==='rogue'&&active?p.units[1]!.id:u.id};
+    if(cls==='assassin')entOf(p,f.id)!.hp=active?300:900;
+    const hp=entOf(p,f.id)!.hp;strike(p,u,f,0,[]);return hp-entOf(p,f.id)!.hp;
+  };
+  expect([hit('archer',false),hit('archer',true)]).toEqual([13,20]);
+  expect([hit('mage',false),hit('mage',true)]).toEqual([5,10]);
+  expect([hit('rogue',false),hit('rogue',true)]).toEqual([4,6]);
+  expect([hit('assassin',false),hit('assassin',true)]).toEqual([4,8]);
+});
+it('iron plate reduces incoming damage by twenty percent after two stationary attacks', async () => {
+  const {gearTaken}=await import('../../src/sim/delve/catalogEffects');const{p,u}=setup('warrior','swordShield');
+  u.gear={weapon:null,armor:{id:'iron',def:'ironPlate',power:0},accessory:null};u.weapon='fists';
+  u.still=1;expect(gearTaken(u)).toBe(1);u.still=2;emit(p,'still',{t:0,src:u,ev:[]});expect(gearTaken(u)).toBe(.8);
+  u.still=0;expect(gearTaken(u)).toBe(1);
+});
