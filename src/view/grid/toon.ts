@@ -25,7 +25,7 @@ export function figureMat(color: string, rim?: string, rimStrength?: number, map
   return withRim(new THREE.MeshStandardMaterial({ color, map: map ?? null, roughness: 0.78, metalness: 0 }), rim, (rimStrength ?? 0.55) * 0.45);
 }
 
-/** figures drawn flat in their own colours, untouched by the lights (`?lit` brings the shading back) */
+/** figures untouched by the scene's lights (torches, lamps): shaded by a fixed key light of their own, so they keep their form (`?lit` lets the scene light them) */
 const flat = typeof location === 'undefined' || !new URLSearchParams(location.search).has('lit');
 
 /** A faint light on the edges turned away from the camera, so a lit figure still stands off the dark floor (or, flat, no light at all). */
@@ -41,7 +41,9 @@ export function withRim<M extends THREE.MeshStandardMaterial>(m: M, rim = '#ffcf
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         { float facing = clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0);
           totalEmissiveRadiance += uRim * pow(1.0 - facing, 3.0); }`);
-    if (flat) sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = diffuseColor.rgb * 0.72;\n#include <opaque_fragment>');
+    if (flat) sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', `{ vec3 kn = normalize(normal); float key = max(dot(kn, normalize(vec3(-0.35, 0.75, 0.55))), 0.0);
+        outgoingLight = diffuseColor.rgb * (0.3 + 0.48 * key) + totalEmissiveRadiance; }
+      #include <opaque_fragment>`);
   };
   m.customProgramCacheKey = () => `lit-rim-${rim}-${strength}-${dye}-${flat}`;
   return m;

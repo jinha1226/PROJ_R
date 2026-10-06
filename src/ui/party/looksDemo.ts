@@ -17,8 +17,8 @@ export function mountLooksDemo(root: HTMLElement, lib: UalLibrary, base: string)
   const q = new URLSearchParams(location.search);
   if (!q.has('row')) {
     root.innerHTML = `<div style="display:grid;grid-template-rows:auto 1fr auto 1fr;height:100vh;background:#05070a;font:13px 'GalmuriMono',monospace;color:#5dff8a">
-      <div style="padding:6px 10px">무조명</div><iframe src="?demo=looks&row=flat" style="border:0;width:100%;height:100%"></iframe>
-      <div style="padding:6px 10px">조명</div><iframe src="?demo=looks&row=lit&lit" style="border:0;width:100%;height:100%"></iframe></div>`;
+      <div style="padding:6px 10px">조명 없음 · 자체 음영</div><iframe src="?demo=looks&row=flat" style="border:0;width:100%;height:100%"></iframe>
+      <div style="padding:6px 10px">장면 조명</div><iframe src="?demo=looks&row=lit&lit" style="border:0;width:100%;height:100%"></iframe></div>`;
     return;
   }
   const renderer = new THREE.WebGLRenderer({ antialias: false });

@@ -152,3 +152,5 @@
 .wh-top .st-row { display: flex; gap: 12px; }
 .wh-top .st-res { font-size: 11px; color: #4f9f6a; }
 .place-prompts button.off { background: #3a3a2a; color: #a8a080; box-shadow: none; animation: none; cursor: default; }
+.pg-stat b.up, .pip-rec dd b.up { font-weight: normal; color: #5dff8a; }
+.pip-slot.item { color: #e6ffb0; padding: 2px; overflow: hidden; } .pip-slot.item.use { color: #ffd76a; border-color: #5a4a1e; }

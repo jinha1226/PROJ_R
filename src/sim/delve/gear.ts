@@ -24,6 +24,10 @@ export function numbers(it: GearItem): Numbers {
         n[k] = n[k] * (1 + it.power) + (it.bonus?.[k] ?? 0);
     return n;
 }
+/** An item's numbers before any power or sacrifice: what it is at heart, to show the gain beside. */
+export function gearBase(it: GearItem): Numbers {
+    return numbers({ ...it, power: 0, bonus: undefined });
+}
 export function weaponStats(u: Unit): {
     dmg: [
         number,

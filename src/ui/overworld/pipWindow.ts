@@ -2,7 +2,7 @@ import { promote } from '../../sim/party/classKit';
 import type { GEvent } from '../../sim/grid/types';
 import type { ClassId } from '../../sim/party/partyDefs';
 import { traitText } from '../../sim/party/traitText';
-import { gearHtml, packHtml } from './pipGear';
+import { dmgText, gearHtml, packHtml } from './pipGear';
 import { promotionHtml } from './pipClasses';
 import { rosterHtml } from './pipRoster';
 import { useConsumable } from './quickSlots';
@@ -10,6 +10,7 @@ import { skillsHtml } from './pipSkills';
 import { itemName } from '../../sim/delve/items';
 import { equip,unequip,sacrifice,weaponStats } from '../../sim/delve/gear';
 import { CATALOG } from '../../sim/delve/catalog';
+import { PACK_SIZE } from '../../sim/delve/gear';
 import { entOf, unitOf, type Unit } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { BODY_COST, clones, implantCarried, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
@@ -19,7 +20,7 @@ import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 
 export type PipTab = 'roster' | 'stat' | 'skill' | 'gear' | 'bag';
 const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', skill: '기술', gear: '장비', bag: '가방' };
-const BAG_SLOTS = 12;
+const BAG_SLOTS = 16;
 
 /** The Pip-Boy style window: the clones' records (status), their gear, the class tree, and what the party carries (bag). The game waits while it is open. */
 export class PipWindow {
@@ -89,7 +90,7 @@ export class PipWindow {
     return `<nav class="pip-side">${side}</nav><section class="pip-rec">
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
-      <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${w.dmg[0]}–${w.dmg[1]} · ${(1 / w.atk).toFixed(1)}회/턴 · 사거리 ${w.range}</dd>
+      <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${u.gear?.weapon ? dmgText(u.gear.weapon) : `${w.dmg[0]}-${w.dmg[1]}`} · ${(1 / w.atk).toFixed(1)}회/턴 · 사거리 ${w.range}</dd>
       <dt>각인</dt><dd>${cls.passiveName || '—'}</dd></dl>${promotionHtml(p, u)}
       <h4>특성</h4><ul class="pip-skills">${traits}</ul></section>`;
   }
@@ -97,7 +98,10 @@ export class PipWindow {
   private bag(p: RoamParty): string {
     const empty = this.shell(p);
     const items = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span>${empty ? `<button type="button" data-soul="${i}">주입</button>` : ''}</div>`; });
-    const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
-    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div><h4>광석 <small>${p.ore}</small> · 마정석 <small>${p.crystal}</small></h4></section><section class="pg pip-bag">${packHtml(p, unitOf(p, this.who) ?? clones(p).find((u) => entOf(p, u.id)?.alive))}</section>`;
+    // the pack's gear and consumables share the grid with the souls
+    const gear = p.pack.map((it) => `<div class="pip-slot item${'def' in it ? '' : ' use'}" title="${itemName(it)}"><span>${itemName(it)}</span></div>`);
+    const all = [...items, ...gear];
+    const slots = [...all, ...Array.from({ length: Math.max(0, BAG_SLOTS - all.length) }, () => '<div class="pip-slot"></div>')].join('');
+    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>영혼 ${items.length} · 장비·소모품 ${p.pack.length}/${PACK_SIZE}</small></h4><div class="pip-grid">${slots}</div><h4>광석 <small>${p.ore}</small> · 마정석 <small>${p.crystal}</small></h4></section><section class="pg pip-bag">${packHtml(p, unitOf(p, this.who) ?? clones(p).find((u) => entOf(p, u.id)?.alive))}</section>`;
   }
 }
