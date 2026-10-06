@@ -1,3 +1,5 @@
+import { G, starterGear, nextItemId } from '../delve/gear';
+import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
 import { computeFov } from '../grid/fov';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
@@ -11,6 +13,7 @@ export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
 
 /** A party that roams a map (the land above or a dungeon floor): souls to find, clones printed at its base. */
 export interface RoamParty extends Party {
+  pack: Item[]; potions: number; nextItem: number;
   souls: Soul[];
   /** souls picked up by clones that already had one, waiting for a body at the base */
   carried: BaseClass[];
@@ -63,6 +66,7 @@ export function look(p: RoamParty): void {
 export function implant(p: RoamParty, u: Unit, cls: BaseClass, ev: GEvent[]): void {
   const e = entOf(p, u.id)!;
   u.cls = cls; u.soul = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
+  u.gear = starterGear(cls, () => nextItemId(p)); u.weapon = u.gear.weapon.base;
   e.hp = e.maxHp = CLASSES[cls].hp;
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'soul' });
 }
@@ -78,7 +82,7 @@ export function print(p: RoamParty, cls: BaseClass | undefined, ev: GEvent[]): U
   if (!at) return undefined;
   const e = spawnFoe(p.s, 'minion', at, false);
   e.id = `c${p.nextClone++}`;
-  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', nextAt: p.time };
+  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)), nextAt: p.time };
   e.hp = e.maxHp = CLASSES.shell.hp;
   p.units.push(u);
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'print' });
@@ -155,7 +159,7 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     const r = T.regen(u), e = entOf(p, u.id)!;
     if (!r || e.hp >= e.maxHp) continue;
     const secs = Math.floor(p.time) - Math.floor(p.regenAt ?? p.time);
-    if (secs > 0) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * r * secs)));
+    if (secs > 0) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * r * secs * G.healTaken(u))));
   }
   p.regenAt = p.time;
   const hand = p.manual ? p.units.find((u) => u.id === p.manual) : undefined;

@@ -1,3 +1,4 @@
+import { tickBurns } from './partyEngrave';
 import { spawnFoe } from '../grid/foes';
 import { makeWeapon } from '../grid/items';
 import { newState } from '../grid/state';
@@ -147,6 +148,8 @@ export function tick(p: Party, dt: number): GEvent[] {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
+    tickBurns(p, p.time, ev);
+    if (!alive(p, next)) continue;
     if (next.id === p.manual) {
       // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
       const o = next.order, at = entOf(p, next.id)!.pos;
@@ -155,6 +158,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     }
     moment(p, next, ev);
   }
+  tickBurns(p, end, ev);
   p.time = end;
   p.s.time = end;
   return ev;

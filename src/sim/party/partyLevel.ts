@@ -1,3 +1,4 @@
+import { G } from '../delve/gear';
 import type { GEvent } from '../grid/types';
 import { alive, entOf, type Party, type Unit } from './partyCore';
 import { BASE_CLASSES, CLASSES, PROMOTIONS, type BaseClass } from './partyDefs';
@@ -19,7 +20,7 @@ const lineOf = (u: Unit): BaseClass | undefined => u.soul ?? (BASE_CLASSES.inclu
 export function refitHp(p: Party, u: Unit): void {
   const e = entOf(p, u.id);
   if (!e || !u.cls) return;
-  const max = Math.round((CLASSES[u.cls].hp + HP_PER_LEVEL * (levelOf(u) - 1)) * T.hp(u));
+  const max = Math.round((CLASSES[u.cls].hp + HP_PER_LEVEL * (levelOf(u) - 1)) * T.hp(u)) + G.hp(u);
   e.hp = Math.max(e.alive ? 1 : 0, e.hp + (max - e.maxHp));
   e.maxHp = max;
 }

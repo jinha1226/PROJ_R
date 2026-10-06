@@ -1,3 +1,4 @@
+import { G, starterGear, nextItemId } from '../delve/gear';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent } from '../grid/types';
 import { entOf } from '../party/partyCore';
@@ -28,8 +29,8 @@ function fromWorld(w: World, seed: number): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, carried: [], nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), drill: w.drill, pod: w.pod };
-  p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, carried: [], pack: [], potions: 2, nextItem: 1, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), drill: w.drill, pod: w.pod };
+  p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
     const kind = FOE_OF[e.kind] ?? 'goblin';
@@ -69,7 +70,7 @@ export function worldTick(p: WorldParty, dt: number): GEvent[] {
     const e = entOf(p, u.id)!;
     if (!p.claimed[idx(p.s.map, e.pos)]) continue;
     const ticks = Math.floor(t * 2) - Math.floor(t0 * 2);
-    if (ticks > 0 && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * 0.01 * ticks)));
+    if (ticks > 0 && e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * 0.01 * ticks * G.healTaken(u))));
   }
   return ev;
 }

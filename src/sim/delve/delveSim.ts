@@ -1,3 +1,4 @@
+import { starterGear, nextItemId } from '../delve/gear';
 import { createRng } from '../../core/rng';
 import { generateMap } from '../grid/mapgen';
 import { distanceMap } from '../grid/path';
@@ -51,8 +52,8 @@ export function newDelve(seed = 1, floor = 1, carry?: Carry): DelveParty {
   const map = floorMap(seed, floor);
   const s = newState(map, seed + floor * 31, 'pistol', floor);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
-  p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
+  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], pack: [], potions: 2, nextItem: 1, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
+  p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
   populate(p);
   if (carry) placeParty(p, carry);
   look(p);
