@@ -29,7 +29,7 @@ it('experience raises the level: more health and a pick among three traits of th
   gainXp(p, u, LEVEL_XP[2]!, ev);
   expect(u.level).toBe(3);
   expect(ev.filter((x) => x.type === 'levelUp')).toHaveLength(2);
-  expect(e.maxHp).toBe(40 + 8);
+  expect(e.maxHp).toBe(Math.round(40 * 1.16));
   expect(u.picks).toBe(2);
   expect(u.offer).toHaveLength(3);
   for (const t of u.offer!) expect(TRAITS[t]!.pool==='common'||TRAITS[t]!.pool==='archer').toBe(true);

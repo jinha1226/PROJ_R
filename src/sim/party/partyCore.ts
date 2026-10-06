@@ -223,6 +223,9 @@ export const hitChance = (p: Party, u: Unit, target: Unit, t: number): number =>
   return Math.max(0, Math.min(1, o.hit * (1 - Math.min(1, o.block))));
 };
 
+/** Each level adds 6% to a clone's blows. */
+export const levelDmg = (u: Unit): number => 1 + 0.06 * ((u.level ?? 1) - 1);
+
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   action(p,()=>strikeAction(p,u,target,t,ev,mult,basic));
 }
@@ -244,6 +247,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const crit = !u.traits?.avatar && (u.nextCrit || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
   let m = mult * (u.attackMult ?? 1) * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
   if (u.side === 'hero') {
+    m *= levelDmg(u);
     const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
     m *= passiveMult(p, u, target, t, ev) * empowerment;
     if (empowerment > 1) {
