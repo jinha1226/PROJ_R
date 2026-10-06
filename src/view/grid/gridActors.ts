@@ -6,6 +6,7 @@ import type { Ent, GridState } from '../../sim/grid/types';
 import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActor';
 import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
+import { markFigure } from './pixelPass';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
@@ -88,6 +89,8 @@ export class GridActors {
       const base = byId ?? (e.kind === 'hero' ? LOOK.hero : foeLook(LOOK[e.kind], e.kind, speciesOf(s.run.floor)));
       const look = { ...base, scale: base.scale * (e.elite ? 1.12 : 1) * FIGURE_SCALE };
       const actor = new UalActor(this.lib, look);
+      // before the ring and bar go on: only the body gets the dot look's side outline
+      markFigure(actor.root, e.kind === 'hero' || byId ? 'hero' : 'foe');
       actor.root.add(ring(e.kind === 'hero' || e.elite || byId ? '#e0a64a' : '#d0533f', look.scale));
       const bar = this.bars.create(2.35 * look.scale);
       actor.root.add(bar);

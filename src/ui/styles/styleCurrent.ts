@@ -1,3 +1,4 @@
+import { markFigure } from '../../view/grid/pixelPass';
 import * as THREE from 'three';
 import type { DungeonKit, DungeonPiece } from '../../view/grid/dungeonKit';
 import { UalActor, type UalLibrary, type UalLook } from '../../view/grid/ualActor';
@@ -74,6 +75,7 @@ export function buildCurrent(kit: DungeonKit, lib: UalLibrary, stone?: { floor: 
   for (const f of FIGS) {
     const look = f.foe ? FOE[f.cls]! : lookOf(f.cls as Exclude<Fig['cls'], 'skeleton' | 'skelMage' | 'skelBrute'>, HERO_WEAPON[f.cls as 'warrior']);
     const a = new UalActor(lib, look);
+    markFigure(a.root, f.foe ? 'foe' : 'hero');
     a.root.position.set(f.x, 0, f.z);
     a.root.rotation.y = facing(f);
     root.add(a.root);

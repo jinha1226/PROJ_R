@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
-import { PixelPass } from '../../view/grid/pixelPass';
+import { DOT_LOOK, PixelPass } from '../../view/grid/pixelPass';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { D, DOOR_X, TORCH_BACK, TORCH_SIDE, W, type Built } from './roomPlan';
 import { buildCurrent } from './styleCurrent';
@@ -53,8 +53,8 @@ export async function mountStyleDemo(root: HTMLElement, lib: UalLibrary, kit: Du
   const elev = (45 * Math.PI) / 180, centre = new THREE.Vector3(W / 2 + 0.5, 0, D / 2 + 0.8);
   cam.position.set(centre.x, Math.sin(elev) * 40, centre.z + Math.cos(elev) * 40);
   cam.lookAt(centre);
-  const pixel = new PixelPass(renderer, 2);
-  let dot = false;
+  const pixel = new PixelPass(renderer, 2, DOT_LOOK);
+  let dot = new URLSearchParams(location.search).has('dot');
   let style: Style = (new URLSearchParams(location.search).get('style') as Style | null) ?? 'current';
 
   const bar = document.createElement('div');

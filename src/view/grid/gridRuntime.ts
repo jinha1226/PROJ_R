@@ -31,7 +31,7 @@ import { GridParticles } from './gridParticles';
 import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
-import { PixelPass } from './pixelPass';
+import { DOT_LOOK, PixelPass } from './pixelPass';
 import { ShipIntro } from './shipIntro';
 import { Afterimages } from './afterimage';
 import { sensedFoes } from '../../sim/grid/perks';
@@ -94,7 +94,7 @@ export class GridRuntime {
     const sun = new THREE.DirectionalLight('#8090c0', 0.18);
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
-    this.pixel = new PixelPass(this.h.renderer, 2);
+    this.pixel = new PixelPass(this.h.renderer, 2, DOT_LOOK);
     if (!theme && !world) kit.tint(look.tint);
     this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world, nature) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
     // the occupied world is dark: dim moonlight, a lamp round the party, and the land's own fires
