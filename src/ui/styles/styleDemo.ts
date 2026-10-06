@@ -22,23 +22,24 @@ export async function mountStyleDemo(root: HTMLElement, lib: UalLibrary, kit: Du
   root.replaceChildren(renderer.domElement);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#050404');
-  // the game's light: a dim cold fill, warm torches on the walls, a blue spill through the door, a lamp over the party
-  scene.add(new THREE.HemisphereLight('#4a5a7a', '#1a1410', 0.35));
-  const lamp = (color: string, power: number, x: number, y: number, z: number, dist = 6): void => {
-    const l = new THREE.PointLight(color, power, dist, 1.6);
+  // the game's own light on floors 1-5: a dim cold fill, faint moonlight, warm torches, a warm lamp over the party
+  const hemi = new THREE.HemisphereLight('#5a6478', '#26221e', 0.34);
+  const sun = new THREE.DirectionalLight('#8090c0', 0.18);
+  sun.position.set(W / 2 - 3, 9, D + 4);
+  sun.target.position.set(W / 2, 0, D / 2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 });
+  scene.add(hemi, sun, sun.target);
+  const lamp = (color: string, power: number, x: number, y: number, z: number, dist: number, decay: number): void => {
+    const l = new THREE.PointLight(color, power, dist, decay);
     l.position.set(x, y, z);
     scene.add(l);
   };
-  for (const x of TORCH_BACK) lamp('#ffa050', 7, x, 1.5, 1.0);
-  for (const z of TORCH_SIDE) { lamp('#ffa050', 6, 1.0, 1.5, z); lamp('#ffa050', 6, W, 1.5, z); }
-  lamp('#5a8aff', 6, DOOR_X, 1.2, 0.8, 5);
-  const key = new THREE.DirectionalLight('#ffe0c0', 0.9);
-  key.position.set(W / 2 - 3, 9, D + 4);
-  key.target.position.set(W / 2, 0, D / 2);
-  key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
-  Object.assign(key.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9 });
-  scene.add(key, key.target);
+  for (const x of TORCH_BACK) lamp('#ffa860', 12, x, 1.4, 0.9, 7.5, 1.8);
+  for (const z of TORCH_SIDE) { lamp('#ffa860', 12, 0.9, 1.4, z, 7.5, 1.8); lamp('#ffa860', 12, W + 0.1, 1.4, z, 7.5, 1.8); }
+  lamp('#ffd8a8', 4, 5, 2.6, 5.5 - 1.2, 6, 1.6);
+  void DOOR_X;
 
   const built = new Map<Style, Built>();
   built.set('current', buildCurrent(kit, lib));

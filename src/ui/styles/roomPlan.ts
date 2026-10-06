@@ -11,8 +11,8 @@ export interface Fig { cls: 'warrior' | 'archer' | 'mage' | 'skeleton' | 'skelMa
 
 export const PILLARS: [number, number][] = [[3, 3], [8, 3], [3, 5], [8, 5]];
 /** torches on the back wall (x) and the side walls (z) */
-export const TORCH_BACK = [2, 6, 9];
-export const TORCH_SIDE = [3];
+export const TORCH_BACK = [2, 9];
+export const TORCH_SIDE: number[] = [];
 /** the doorway in the back wall (cell x) */
 export const DOOR_X = 4;
 export const BANNER_X = 7;

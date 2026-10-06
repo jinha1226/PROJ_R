@@ -29,11 +29,28 @@ export async function buildKaykit(base: string): Promise<Built> {
   const files = [...new Set(FIGS.map((f) => CHAR[f.cls].file))];
   const [kit, advAnims, skelAnims, ...chars] = await Promise.all([load('models/kaykit/dungeon.glb'), load('models/anims-adventurer.glb'), load('models/anims-skeleton.glb'), ...files.map((f) => load(`models/characters/${f}.glb`))]);
   const root = new THREE.Group();
+  // KayKit's toy colours, ground down: less saturation and a little darker, so the dungeon reads grim under the torches
+  const grim = new Map<THREE.Material, THREE.Material>();
+  const grade = (o: THREE.Object3D): void => o.traverse((c) => {
+    const m = c as THREE.Mesh;
+    if (!m.isMesh) return;
+    const src = m.material as THREE.MeshStandardMaterial;
+    let g = grim.get(src) as THREE.MeshStandardMaterial | undefined;
+    if (!g) {
+      g = src.clone();
+      g.color.multiplyScalar(0.6);
+      g.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.rgb = mix(vec3(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114))), diffuseColor.rgb, 0.5);'); };
+      g.customProgramCacheKey = () => 'kaykit-grim';
+      grim.set(src, g);
+    }
+    m.material = g;
+  });
   const piece = (name: string): THREE.Object3D => {
     const src = kit.scene.getObjectByName(name);
     const o = src ? src.clone(true) : new THREE.Group();
     o.position.set(0, 0, 0);
     o.traverse((c) => { const m = c as THREE.Mesh; if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+    grade(o);
     const g = new THREE.Group();
     g.add(o);
     g.scale.setScalar(K);
@@ -81,6 +98,7 @@ export async function buildKaykit(base: string): Promise<Built> {
       const m = o as THREE.Mesh;
       if (m.isMesh) m.castShadow = true;
     });
+    grade(fig);
     fig.scale.setScalar(FIG_K);
     fig.position.set(f.x, 0, f.z);
     fig.rotation.y = facing(f);
