@@ -20,7 +20,7 @@ export function proficient(u: Unit): boolean { const f = weaponDef(u)?.family ??
 export function numbers(it: GearItem): Numbers {
     const d = CATALOG[it.def]!;
     const n: Numbers = { min: d.dmg?.[0] ?? 0, max: d.dmg?.[1] ?? 0, range: d.range ?? 0, atk: d.atk ?? 0, armor: d.armor ?? 0, block: d.block ?? 0, weight: d.weight };
-    for (const k of Object.keys(n) as (keyof Numbers)[])
+    for (const k of ['min', 'max', 'armor', 'block'] as const)
         n[k] = n[k] * (1 + it.power) + (it.bonus?.[k] ?? 0);
     return n;
 }
@@ -93,7 +93,7 @@ export function sacrifice(p: RoamParty, heroId: string, itemId: string): GEvent[
         return [];
     const n = numbers(it), base = numbers({ ...to, power: 0, bonus: undefined }), gain = (1 + it.power) * .25;
     to.bonus ??= {};
-    for (const k of Object.keys(n) as (keyof Numbers)[])
+    for (const k of ['min', 'max', 'armor', 'block'] as const)
         to.bonus[k] = (to.bonus[k] ?? 0) + n[k] * .25 - base[k] * gain;
     to.power += gain;
     p.pack.splice(i, 1);

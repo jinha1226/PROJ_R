@@ -38,14 +38,14 @@ it('weight above six adds five percent per point to movement and attack time', (
     expect(G.move(u)).toBeCloseTo(1 + .05 * (weight - 6));
     expect(G.atk(u)).toBeCloseTo(G.move(u));
 });
-it('sacrifice removes the donor and adds exactly 25% of its numbers, including previous donations', () => {
+it('sacrifice removes the donor and adds exactly 25% of its numbers, power numbers including previous donations', () => {
     const { p, u } = setup();
     equip(p, u.id, give(p, 'swordShield'));
     const before = weaponStats(u), donor = CATALOG.bloodGreat!;
     expect(sacrifice(p, u.id, give(p, 'bloodGreat')).length).toBeGreaterThan(0);
     const after = weaponStats(u);
     expect(after.dmg[0] - before.dmg[0]).toBeCloseTo(donor.dmg![0] * .25);
-    expect(after.atk - before.atk).toBeCloseTo(donor.atk! * .25);
+    expect(after.atk).toBe(before.atk);
     expect(p.pack.some(i => 'def' in i && i.def === 'bloodGreat')).toBe(false);
     const wrong = give(p, 'windRing');
     expect(sacrifice(p, u.id, wrong)).toEqual([]);
@@ -92,7 +92,7 @@ it('loot is deterministic and restricted to the floor interval', () => {
             }
         }
 });
-it('donated power carries every numeric stat and itself can be donated without losing its gains', () => {
+it('donated power carries only beneficial numeric stats and itself can be donated without losing its gains', () => {
     const { p, u } = setup();
     const donor = give(p, 'crossbow');
     equip(p, u.id, donor);
@@ -105,8 +105,8 @@ it('donated power carries every numeric stat and itself can be donated without l
     const after = weaponStats(u);
     expect(after.dmg[0] - before.dmg[0]).toBeCloseTo(boosted.dmg[0] * .25);
     expect(after.dmg[1] - before.dmg[1]).toBeCloseTo(boosted.dmg[1] * .25);
-    expect(after.range - before.range).toBeCloseTo(boosted.range * .25);
-    expect(after.atk - before.atk).toBeCloseTo(boosted.atk * .25);
+    expect(after.range).toBe(before.range);
+    expect(after.atk).toBe(before.atk);
 });
 it('tier-one chest coin branches are exactly consumable or gear without a second consumable roll',async()=>{
  const {roomStep}=await import('../../src/sim/delve/delveRooms');const {entOf}=await import('../../src/sim/party/partyCore');
@@ -119,4 +119,12 @@ it('ordinary enemies can drop a shared-pack consumable',async()=>{
  const{p}=setup();const f=p.units.find(u=>u.side==='foe')!;const e=entOf(p,f.id)!;e.alive=false;e.elite=false;
  p.chests=[];p.floorItems=[];p.s.rng.chance=chance=>chance===.1;roomStep(p,new Map(),[]);
  expect(p.floorItems).toHaveLength(1);expect('consumable'in p.floorItems[0]!.item).toBe(true);
+});
+
+it('three longbow donations preserve sword reach, duration and weight', () => {
+    const { p, u } = setup(); const before = weaponStats(u), speed = G.atk(u), move = G.move(u);
+    for (let n = 0; n < 3; n++) sacrifice(p, u.id, give(p, 'longbow'));
+    expect(weaponStats(u).range).toBe(1); expect(weaponStats(u).atk).toBe(before.atk);
+    expect(G.atk(u)).toBe(speed); expect(G.move(u)).toBe(move);
+    expect(weaponStats(u).dmg[0]).toBeCloseTo(before.dmg[0] + 3 * CATALOG.longbow!.dmg![0] * .25);
 });
