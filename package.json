@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "lucide": "^1.49.0",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "three.quarks": "^0.17.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

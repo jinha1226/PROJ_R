@@ -1,3 +1,4 @@
+import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
@@ -96,9 +97,10 @@ export class DelveDemo implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
-    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, turnBased: this.mode === 'turn', keys: '클릭 이동·공격 · Q W 기술 · Space 대기(턴제)/정지 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
+    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, turnBased: this.mode === 'turn', dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동·공격 · Q W 기술 · Space 대기(턴제)/정지 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },
       mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
+      dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
       restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       close: () => { this.paused = this.pausedBeforePip; },
     });
@@ -210,7 +212,7 @@ export class DelveDemo implements Screen {
     this.stage.replaceChildren();
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer());
     this.rt.setZoom(this.zoom);
-    this.rt.pixelated = false;
+    this.rt.pixelated = loadDot();
     // a light touch of glow: torches and lamps bleed a little, nothing blows out
     this.rt.enableBloom({ strength: 0.32, radius: 0.35, threshold: 0.86 });
     this.props?.dispose();

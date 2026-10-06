@@ -27,6 +27,8 @@
   - `models/nature/nature.glb`: 27종(고사목 5·뒤틀린 나무 5·소나무 3·나무 2·바위 3·덤불·풀 3·고사리·버섯 2·자갈 2)을 Blender 4.0으로 모델마다 메시 하나로 합치고, 정점 2500개가 넘는 나무는 간소화, 텍스처는 256px로 줄여 GLB 하나로 묶음
 - **Modular Character Outfits – Fantasy [Standard]** — Quaternius, CC0 1.0 (https://quaternius.com/packs/modularcharacteroutfitsfantasy.html)
   - `models/outfits/outfits.glb`: 남성 농부·레인저 옷을 gltf-transform으로 하나로 묶음(정점 간소화, 양자화, 색 텍스처만 256px). UAL 마네킹과 같은 골격이라 실행 중에 마네킹 뼈에 다시 묶어 입힌다
+- **Particle Pack** — Kenney, CC0 1.0 (https://kenney.nl/assets/particle-pack)
+  - `fx-atlas.png`: 80장 중 16장(빛무리·고리·별·반짝이·궤적·불꽃·폭발·연기·연기 고리·폭발 중심·베기·소용돌이·마법 별·룬·번개·흙)을 128px로 줄여 4×4 아틀라스로 묶음, 밝기를 알파로 사용. 파티클 엔진은 three.quarks(MIT)
 - 라이선스 사본: `models/qpack/LICENSE.txt`
 
 ## 가공 내용

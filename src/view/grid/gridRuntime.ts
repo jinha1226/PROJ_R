@@ -261,7 +261,7 @@ export class GridRuntime {
         if (e.crit) a.flashOnly(e.dst);
         if (p) {
           this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : e.dst === 'hero' ? 'ally-hurt' : 'dmg', p);
-          this.particles.spray(p, e.dst === 'hero' ? '#ff4a30' : '#ffe6a8', e.crit ? 12 : 6);
+          this.particles.vfx.fire(e.crit ? 'crit' : 'hit', p, e.dst === 'hero' ? '#ff5a3a' : undefined);
           if (e.dst !== 'hero') this.gore(p, e.crit ? 8 : 4, at(e.src));
         }
         this.fx.hitStop(feel().hitStop);
@@ -272,7 +272,7 @@ export class GridRuntime {
       }
       case 'miss': {
         const p = at(e.dst);
-        if (p) { this.fx.number('빗나감', 'miss', p); this.fx.transient.burst(p.x, p.z, '#b8a890', 0.35, 0.3); }
+        if (p) { this.fx.number('빗나감', 'miss', p); this.particles.vfx.fire('dust', p); }
         break;
       }
       case 'reload': a.anim(e.src, 'reload'); break;
@@ -283,13 +283,13 @@ export class GridRuntime {
       case 'loot': if (e.to) this.fx.number(lootText(e), 'combo', cellVec(e.to)); break;
       case 'stun': a.knock(e.dst); break;
       case 'dodge': a.anim('hero', e.text === 'L' ? 'weaveL' : 'weaveR'); { const p = at('hero'); if (p) this.fx.number('회피', 'miss', p); } break;
-      case 'parry': a.anim('hero', 'parry'); { const p = at('hero'); if (p) { this.fx.number('패링!', 'combo', p); this.particles.spray(p, '#e8f0ff', 12); } } break;
-      case 'explode': if (e.to) { const p = cellVec(e.to); this.fx.transient.burst(p.x, p.z, '#ffb04a', 1.4, 0.5); this.fx.flash(p, '#ff8a2a', 40, 0.45, 9); this.particles.spray(p, '#ff8a2a', 30); this.fx.shake(0.25, 0.35); this.fx.hitStop(); } break;
-      case 'telegraph': { const p = at(e.src); if (p) this.fx.transient.burst(p.x, p.z, e.text === 'frost' ? '#5ab4ff' : '#ff5a3a', 0.6, 0.4); break; }
-      case 'levelUp': { const p = at('hero'); if (p) { this.fx.number(`레벨 ${e.amount}!`, 'combo', p); this.fx.transient.glow(p.x, p.z, '#ffd76a'); } break; }
+      case 'parry': a.anim('hero', 'parry'); { const p = at('hero'); if (p) { this.fx.number('패링!', 'combo', p); this.particles.vfx.fire('hit', p, '#e8f0ff'); } } break;
+      case 'explode': if (e.to) { const p = cellVec(e.to); this.particles.vfx.fire('blast', p); this.fx.flash(p, '#ff8a2a', 40, 0.45, 9); this.fx.shake(0.25, 0.35); this.fx.hitStop(); } break;
+      case 'telegraph': { const p = at(e.src); if (p) this.particles.vfx.fire('warn', p, e.text === 'frost' ? '#5ab4ff' : undefined); break; }
+      case 'levelUp': { const p = at('hero'); if (p) { this.fx.number(`레벨 ${e.amount}!`, 'combo', p); this.particles.vfx.fire('magic', p, '#ffd76a'); } break; }
       case 'heal': {
         if (e.text !== 'regen') a.anim(e.dst, 'drink');
-        const p = at(e.dst); if (p) this.fx.number(`+${e.amount}`, 'heal', p); break; }
+        const p = at(e.dst); if (p) { this.fx.number(`+${e.amount}`, 'heal', p); if (e.text !== 'regen') this.particles.vfx.fire('heal', p); } break; }
       case 'wake': { const p = at(e.src); if (p) this.fx.number('!', 'crit', p); break; }
       default: break;
     }
@@ -329,8 +329,9 @@ export class GridRuntime {
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));
-    if (this.bloom) this.bloom.render();
-    else if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
+    // the dot look wins over glow: the coarse target already blurs nothing
+    if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
+    else if (this.bloom) this.bloom.render();
     else this.h.renderer.render(this.h.scene, this.h.camera);
   }
   /** Pulls the camera target in so the view's edge stops at the map's edge (centred when the map is smaller than the view). */
