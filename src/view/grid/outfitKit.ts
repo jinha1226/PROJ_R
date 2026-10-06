@@ -79,7 +79,7 @@ export class OutfitKit {
       if (!mat) {
         // lit: the outfit's own colour, normal and roughness maps under the tint; toon: the colour map only
         if (isSkin(src)) mat = figureMat(skin, rim, rimStrength);
-        else if (figureLit()) { const c = withRim(src.clone(), rim, rimStrength * 0.45); c.color.set(look.tint); mat = c; }
+        else if (figureLit()) { const c = withRim(src.clone(), rim, rimStrength * 0.45, true); c.color.set(look.tint); mat = c; }
         else mat = figureMat(look.tint, rim, rimStrength, src.map ?? undefined);
         mats.set(src, mat);
       }

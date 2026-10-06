@@ -17,19 +17,19 @@ const BUILD: Partial<Record<ClassId, number>> = { shell: 0.8, warrior: 1.06, ber
 
 /** What each soul wears; the empty clone goes bare. */
 export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {
-  warrior: { set: 'Peasant', tint: '#9fb4e0', extra: ['pauldron'] },
-  berserker: { set: 'Peasant', tint: '#e08a70', extra: ['pauldron'] },
-  // the archer in a loud green (plain ranger brown vanished into the torchlit stone)
-  archer: { set: 'Ranger', tint: '#7af06a' },
-  sniper: { set: 'Ranger', tint: '#e0f070', extra: ['hood'] },
-  mage: { set: 'Peasant', tint: '#b090e0', extra: ['hood'] },
-  cleric: { set: 'Peasant', tint: '#fff0c8' },
-  rogue: { set: 'Ranger', tint: '#6a6a78', extra: ['hood'] },
-  guardian: { set: 'Peasant', tint: '#c8d0e0', extra: ['pauldron', 'hood'] },
-  necromancer: { set: 'Peasant', tint: '#7a7a6a', extra: ['hood'] },
-  inquisitor: { set: 'Peasant', tint: '#e0c080', extra: ['pauldron'] },
-  assassin: { set: 'Ranger', tint: '#4a4a52', extra: ['hood', 'pauldron'] },
-  veteran: { set: 'Ranger', tint: '#c0b0a0', extra: ['pauldron'] },
+  // strong, near-primary dyes (the cloth texture keeps only its shading): each class reads by colour against torchlit stone
+  warrior: { set: 'Peasant', tint: '#2f6bff', extra: ['pauldron'] },
+  berserker: { set: 'Peasant', tint: '#ff3a24', extra: ['pauldron'] },
+  archer: { set: 'Ranger', tint: '#2fd040' },
+  sniper: { set: 'Ranger', tint: '#e8d81a', extra: ['hood'] },
+  mage: { set: 'Peasant', tint: '#9a3cff', extra: ['hood'] },
+  cleric: { set: 'Peasant', tint: '#f4f4f0' },
+  rogue: { set: 'Ranger', tint: '#ff2f8a', extra: ['hood'] },
+  guardian: { set: 'Peasant', tint: '#36c8ff', extra: ['pauldron', 'hood'] },
+  necromancer: { set: 'Peasant', tint: '#22c8a0', extra: ['hood'] },
+  inquisitor: { set: 'Peasant', tint: '#ffa21a', extra: ['pauldron'] },
+  assassin: { set: 'Ranger', tint: '#c01848', extra: ['hood', 'pauldron'] },
+  veteran: { set: 'Ranger', tint: '#c8c8c8', extra: ['pauldron'] },
 };
 
 /** The outfit a class shows: its own, else its line's. */
