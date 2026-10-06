@@ -6,6 +6,7 @@ import { findPath } from '../../sim/grid/path';
 import { idx, same, walkable, tileAt, type Cell, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
+import { cardTarget, targetCardHtml } from '../overworld/targetCard';
 import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { BODY_COST, clones, orderTo } from '../../sim/roam/roam';
@@ -323,10 +324,10 @@ export class DelveDemo implements Screen {
 
   private labels(): void {
     if (!this.rt) return;
-    this.el.querySelector('.pd-labels')!.innerHTML = clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => {
+    // no names over heads: only a marker over the clone whose turn it is
+    this.el.querySelector('.pd-labels')!.innerHTML = clones(this.p).filter((u) => entOf(this.p, u.id)?.alive && this.p.waiting && this.p.manual === u.id).map((u) => {
       const e = entOf(this.p, u.id)!, pt = this.rt!.project(new THREE.Vector3(e.pos.x, 2.3, e.pos.y));
-      const turn = this.p.waiting && this.p.manual === u.id ? ' ◀' : '';
-      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${this.ids().indexOf(u.id) + 1} ${CLASSES[u.cls!].name}${turn}</div>`;
+      return `<div class="pd-label on" style="left:${pt.left}px;top:${pt.top}px">▼</div>`;
     }).join('');
   }
 
@@ -334,6 +335,7 @@ export class DelveDemo implements Screen {
     const p = this.p, turn = this.mode === 'turn';
     const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
     const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${p.bio}/${BODY_COST}</b></span>${p.ore ? `<span>광석 <b>${p.ore}</b></span>` : ''}${p.crystal ? `<span class="soul">마정석 <b>${p.crystal}</b></span>` : ''}${p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : ''}`;
-    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn });
+    const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
+    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target });
   }
 }

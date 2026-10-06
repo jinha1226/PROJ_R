@@ -204,6 +204,19 @@ export function behindCover(p: Party, shooter: Cell, target: Cell): boolean {
 }
 
 /** A basic attack (or a skill's blow at `mult`): engravings, then the weapon's own trait. */
+/** The odds of a blow before the dice: a shot at a body behind cover mostly hits the cover, eagle eyes aim truer, blindness halves it; a shield blocks some blades. */
+export function hitOdds(p: Party, u: Unit, target: Unit, t: number): { hit: number; block: number } {
+  const st = stats(u, t), covered = st.range > 1 && behindCover(p, posOf(p, u), posOf(p, target));
+  const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target)) * (t < (u.blindUntil ?? 0) ? 0.5 : 1);
+  return { hit, block: st.range <= 1 ? T.block(target) + G.block(target) : 0 };
+}
+
+/** The chance a blow lands (blocks counted as misses), for the target card. */
+export const hitChance = (p: Party, u: Unit, target: Unit, t: number): number => {
+  const o = hitOdds(p, u, target, t);
+  return Math.max(0, Math.min(1, o.hit * (1 - Math.min(1, o.block))));
+};
+
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   action(p,()=>strikeAction(p,u,target,t,ev,mult,basic));
 }
@@ -217,12 +230,10 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const magic = u.cls ? CLASSES[u.cls].magic : false;
   if (st.range <= 1) ev.push({ t, type: 'bump', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos } });
   else ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos }, text: magic ? 'spell' : 'bow' });
-  // a shot at a body behind cover mostly hits the cover; eagle eyes aim truer, a sprinter's dodge and a shield's block turn some aside
-  const covered = st.range > 1 && behindCover(p, e.pos, te.pos);
-  const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target));
+  const odds = hitOdds(p, u, target, t);
   const dodge = target.dodgeNext; target.dodgeNext=false;
-  const blocked = st.range <= 1 && p.s.rng.chance(T.block(target)+G.block(target));
-  if (dodge || blocked || !p.s.rng.chance(hit * (t<(u.blindUntil??0)?0.5:1))) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
+  const blocked = odds.block > 0 && p.s.rng.chance(odds.block);
+  if (dodge || blocked || !p.s.rng.chance(odds.hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
   u.attackMult = 1; emit(p,'beforeHit',{t,src:u,target,ev});
   const crit = !u.traits?.avatar && (u.nextCrit || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
   let m = mult * (u.attackMult ?? 1) * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
@@ -237,7 +248,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
     const near = p.units.filter((x) => x.side === 'hero' && !x.summoner && x !== u && alive(p, x) && dist(posOf(p, x), e.pos) <= 2).length;
     m *= 1 + T.bond(u) * near;
   }
-  if (target.side === 'hero' && covered) m *= T.coverTaken(target);
+  if (target.side === 'hero' && st.range > 1 && behindCover(p, e.pos, te.pos)) m *= T.coverTaken(target);
   if(!alive(p,u))return;
   const hp = te.hp;
   damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev, false, true);

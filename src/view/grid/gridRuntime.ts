@@ -68,7 +68,7 @@ export class GridRuntime {
   private playback = new Playback();
   private readonly hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
   /** a dim fill round the hero so it never vanishes between torch pools */
-  private readonly light = new THREE.PointLight('#e8ecff', 4, 6, 1.6);
+  private readonly light = new THREE.PointLight('#ffd8a8', 4, 6, 1.6);
   private readonly center = new THREE.Vector3();
   private readonly pending = new Map<string, { ready: boolean; queue: GEvent[] }>();
   private height = 18;

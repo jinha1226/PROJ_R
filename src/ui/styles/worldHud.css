@@ -176,6 +176,7 @@
 .trait-card:hover { border-color: #e6ffb0; box-shadow: 0 0 12px #5dff8a55; }
 .trait-card b { font-weight: normal; font-size: 15px; color: #e6ffb0; }
 .trait-card.own b { color: #8ff0ff; }
+.trait-card .trait-text { margin: 0; font-size: 12px; line-height: 1.5; color: #c8ffd8; }
 .trait-card em { font-style: normal; color: #9dffb8; }
 .trait-card small { color: #34a85c; font-size: 10px; }
 .trait-card .pips { display: flex; gap: 4px; }
@@ -211,6 +212,10 @@
 /* top centre: floor, turn, bio */
 .wh-top { position: absolute; z-index: 6; left: 50%; top: 10px; transform: translateX(-50%); display: flex; gap: 16px; padding: 5px 14px; font-size: 12px; color: #6fbf88; background: linear-gradient(180deg, #03140acc, #010a05e6); border: 1px solid #1f7a3e; white-space: nowrap; }
 .wh-top b { font-weight: normal; color: #e6ffb0; }
+.wh-target { position: absolute; z-index: 6; left: 50%; top: 42px; transform: translateX(-50%); display: flex; gap: 12px; padding: 4px 12px; font-size: 12px; color: #ffb0a0; background: linear-gradient(180deg, #140503cc, #0a0201e6); border: 1px solid #7a2a1e; white-space: nowrap; pointer-events: none; }
+.wh-target:empty { display: none; }
+.wh-target b { font-weight: normal; color: #ffe6c0; }
+.wh-target .tc-hp { color: #ff6a5a; letter-spacing: -1px; }
 .wh-top .bio b { color: #ff9a6a; }
 .wh-top .bio.ok b { color: #8ff0ff; }
 .wh-top .soul b { color: #c8a8ff; }
@@ -225,6 +230,7 @@
 .menu-keys { margin: 0; font-size: 10px; color: #2f7a4a; line-height: 1.6; }
 @media (orientation: portrait) and (max-width: 700px) {
   .wh-top { top: 8px; left: 128px; right: 58px; transform: none; flex-wrap: wrap; justify-content: center; gap: 2px 10px; font-size: 11px; padding: 4px 6px; white-space: normal; }
+  .wh-target { top: 58px; left: 128px; right: 58px; transform: none; flex-wrap: wrap; justify-content: center; gap: 2px 10px; font-size: 11px; padding: 3px 6px; white-space: normal; }
   .wh-mode { font-size: 10px; }
   .wh-tr { left: auto; right: 6px; top: 6px; width: auto; }
   .wh-mode { text-align: right; }

@@ -6,6 +6,7 @@ import { findPath } from '../../sim/grid/path';
 import { idx, same, walkable, tileAt, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
+import { cardTarget, targetCardHtml } from './targetCard';
 import { promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
@@ -131,7 +132,7 @@ export class WorldDemo implements Screen {
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open);
       const bio = `<span class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${this.p.bio}/${BODY_COST}</b></span>${this.p.carried.length ? `<span class="soul">영혼 <b>${this.p.carried.length}</b></span>` : ''}`;
-      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>${bio}`, mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', stairs: canDrill(this.p) });
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>${bio}`, mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };
@@ -261,10 +262,11 @@ export class WorldDemo implements Screen {
 
   private labels(): void {
     if (!this.rt) return;
-    this.el.querySelector('.pd-labels')!.innerHTML = this.p.units.filter((u) => u.side === 'hero' && entOf(this.p, u.id)?.alive).map((u) => {
+    // no names over heads: only a mark over a clone told to hold its ground
+    this.el.querySelector('.pd-labels')!.innerHTML = this.p.units.filter((u) => u.side === 'hero' && entOf(this.p, u.id)?.alive && u.order?.kind === 'hold').map((u) => {
       const e = entOf(this.p, u.id)!;
       const pt = this.rt!.project(new THREE.Vector3(e.pos.x, 2.3, e.pos.y));
-      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${this.ids().indexOf(u.id) + 1} ${CLASSES[u.cls!].name}${u.order?.kind === 'hold' ? ' ▣' : ''}</div>`;
+      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">▣</div>`;
     }).join('');
   }
 

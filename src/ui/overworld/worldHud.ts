@@ -22,7 +22,7 @@ export class WorldHud {
   private toastUntil = 0;
 
   constructor(private readonly el: HTMLElement, private readonly a: HudActions) {
-    el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-top"></div>
+    el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-top"></div><div class="wh-target"></div>
       <aside class="wh-tl"><div class="wh-mini"></div></aside>
       <aside class="wh-bl"><div class="wh-cap">기록</div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
@@ -71,10 +71,11 @@ export class WorldHud {
   }
 
   /** status: the top-centre line (floor, turn, bio); mode: the fight banner; and whether the stairs, the lift or a turn is waiting. */
-  draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean }): void {
+  draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean; target?: string }): void {
     if (performance.now() > this.toastUntil) this.el.querySelector('.wh-toast')!.classList.remove('on');
     this.put('.wh-top', view.status);
     this.put('.wh-mode', view.mode);
+    this.put('.wh-target', view.target ?? '');
     const show = (k: string, on?: boolean) => { const b = this.el.querySelector<HTMLElement>(`[data-k="${k}"]`); if (b) b.hidden = !on; };
     show('descend', view.stairs);
     show('ascend', view.lift);
