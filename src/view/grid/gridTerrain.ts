@@ -125,7 +125,10 @@ export class GridTerrain {
     const m = this.m;
     m.tiles.forEach((t, i) => {
       if (this.built[i] === t) return;
+      const was = this.built[i];
       this.built[i] = t;
+      // a mined-out vein (or any pillar gone to floor) leaves nothing standing
+      if (was === 'pillar' && t === 'floor') { for (const [c, o] of this.props) if (c === i) o.removeFromParent(); this.props = this.props.filter(([c]) => c !== i); return; }
       if (t !== 'door') return;
       for (const k of this.facesOf.get(i) ?? []) this.faceMesh?.setMatrixAt(k, new THREE.Matrix4().makeScale(0, 0, 0));
       if (this.faceMesh) this.faceMesh.instanceMatrix.needsUpdate = true;
@@ -156,7 +159,9 @@ export class GridTerrain {
     m.tiles.forEach((t, i) => {
       const p = toWorld(i % m.w, Math.floor(i / m.w));
       if (t === 'pillar') {
-        const col = this.kit.clone('Column2', { height: WALL_H * 1.1 });
+        // an ore vein is a rock studded with glowing crystal, not a column
+        const ore = m.ore?.some((c) => idx(m, c) === i);
+        const col = ore ? oreRock(i) : this.kit.clone('Column2', { height: WALL_H * 1.1 });
         col.position.copy(p);
         this.addProp(i, col);
       }
@@ -219,4 +224,22 @@ export class GridTerrain {
   dispose(): void {
     for (const it of this.instanced) it.mesh.dispose();
   }
+}
+
+/** A dark rock with cyan crystal shards (an ore vein to mine). */
+function oreRock(seed: number): THREE.Group {
+  const g = new THREE.Group();
+  const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42, 0), new THREE.MeshLambertMaterial({ color: '#3a3632' }));
+  rock.position.y = 0.38;
+  rock.scale.set(1, 0.9, 1);
+  g.add(rock);
+  for (let k = 0; k < 4; k++) {
+    const a = seed * 1.7 + k * 1.6;
+    const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), new THREE.MeshBasicMaterial({ color: '#5ae8ff' }));
+    shard.scale.set(0.7, 1.8, 0.7);
+    shard.position.set(Math.cos(a) * 0.3, 0.45 + (k % 2) * 0.2, Math.sin(a) * 0.3);
+    shard.rotation.set(Math.cos(a) * 0.5, a, Math.sin(a) * 0.5);
+    g.add(shard);
+  }
+  return g;
 }

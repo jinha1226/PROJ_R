@@ -15,8 +15,8 @@ function toonRamp(): THREE.DataTexture {
 }
 
 /** A banded material with a rim of light on the edges facing away from the camera, so the figure stands off a dark floor. */
-export function toonMat(color: string, rim = '#9fd8ff', rimStrength = 0.55): THREE.MeshToonMaterial {
-  const m = new THREE.MeshToonMaterial({ color, gradientMap: toonRamp() });
+export function toonMat(color: string, rim = '#9fd8ff', rimStrength = 0.55, map?: THREE.Texture): THREE.MeshToonMaterial {
+  const m = new THREE.MeshToonMaterial({ color, gradientMap: toonRamp(), map: map ?? null });
   const rimColor = new THREE.Color(rim).multiplyScalar(rimStrength);
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uRim = { value: rimColor };

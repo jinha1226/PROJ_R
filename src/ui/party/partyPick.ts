@@ -2,6 +2,7 @@ import { LINE } from '../../sim/party/classKit';
 import { KITS, PROMOTIONS } from '../../sim/party/classKit';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { BASE_CLASSES, CLASSES, WEAPONS, type BaseClass, type ClassId, type Pick, type WeaponId } from '../../sim/party/partyDefs';
+import type { OutfitLook } from '../../view/grid/outfitKit';
 import type { UalLook } from '../../view/grid/ualActor';
 
 const COLORS: Partial<Record<ClassId, [string, string]>> = {
@@ -10,11 +11,30 @@ const COLORS: Partial<Record<ClassId, [string, string]>> = {
   mage: ['#4a2a6a', '#c8a0e0'], cleric: ['#cfc6a8', '#c8a040'], rogue: ['#262626', '#7a3a3a'],
 };
 
-/** How a hero of this class with this weapon looks. */
+/** What each soul wears; the empty clone goes bare. */
+export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {
+  warrior: { set: 'Peasant', tint: '#9fb4e0', extra: ['pauldron'] },
+  berserker: { set: 'Peasant', tint: '#e08a70', extra: ['pauldron'] },
+  archer: { set: 'Ranger', tint: '#ffffff' },
+  sniper: { set: 'Ranger', tint: '#c8d0a0', extra: ['hood'] },
+  mage: { set: 'Peasant', tint: '#b090e0', extra: ['hood'] },
+  cleric: { set: 'Peasant', tint: '#fff0c8' },
+  rogue: { set: 'Ranger', tint: '#6a6a78', extra: ['hood'] },
+  guardian: { set: 'Peasant', tint: '#c8d0e0', extra: ['pauldron', 'hood'] },
+  necromancer: { set: 'Peasant', tint: '#7a7a6a', extra: ['hood'] },
+  inquisitor: { set: 'Peasant', tint: '#e0c080', extra: ['pauldron'] },
+  assassin: { set: 'Ranger', tint: '#4a4a52', extra: ['hood', 'pauldron'] },
+  veteran: { set: 'Ranger', tint: '#c0b0a0', extra: ['pauldron'] },
+};
+
+/** The outfit a class shows: its own, else its line's. */
+export const outfitOf = (cls: ClassId): OutfitLook | undefined => OUTFITS[cls] ?? (LINE[cls] ? OUTFITS[LINE[cls]!] : undefined);
+
+/** How a hero of this class with this weapon looks: a dressed soul shows the clone's grey under its clothes. */
 export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
-  const w = WEAPONS[weapon], [body, trim] = COLORS[cls] ?? COLORS[LINE[cls] ?? 'warrior']!;
+  const w = WEAPONS[weapon], outfit = outfitOf(cls), [body, trim] = outfit ? COLORS.shell! : COLORS[cls] ?? COLORS[LINE[cls] ?? 'warrior']!;
   const idle = cls === 'shell' ? 'Idle_Loop' : w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
-  return { body, trim, scale: cls === 'warrior' || cls === 'berserker' ? 1 : 0.95, weapon: w.look, shield: w.shield, idle, fullRun: true };
+  return { body, trim, scale: cls === 'warrior' || cls === 'berserker' ? 1 : 0.95, weapon: w.look, shield: w.shield, idle, fullRun: true, outfit };
 }
 
 /** The party chooser: five classes, three to take, each with a weapon. */

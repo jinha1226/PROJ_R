@@ -2,6 +2,7 @@ import { cellAtScreen, cellVec, shotGroup } from './runtimeHelpers';
 import { ShipTerrain } from './shipTerrain';
 import { WorldTerrain, type WorldLook } from '../overworld/worldTerrain';
 import { Bloom } from '../overworld/bloom';
+import type { NatureKit } from '../overworld/natureKit';
 import { heroLook } from './heroLook';
 import { speciesOf } from './species';
 import type { ShipKit } from './shipKit';
@@ -82,8 +83,8 @@ export class GridRuntime {
   private strikes!: StrikeCues;
   /** dims the screen edge while the game runs slow (an engraving moment) */
   private readonly slowmo = document.createElement('div');
-  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, themeIn?: { theme: 'ship'; kit: ShipKit; meta: MetaState } | { theme: 'world'; look: WorldLook }) {
-    const theme = themeIn?.theme === 'ship' ? themeIn : undefined, world = themeIn?.theme === 'world' ? themeIn.look : undefined;
+  constructor(private readonly el: HTMLElement, private readonly sim: GridSim, private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly mobile: boolean, private readonly onCue: (e: GEvent) => void = () => undefined, themeIn?: { theme: 'ship'; kit: ShipKit; meta: MetaState } | { theme: 'world'; look: WorldLook; nature?: NatureKit }) {
+    const theme = themeIn?.theme === 'ship' ? themeIn : undefined, world = themeIn?.theme === 'world' ? themeIn.look : undefined, nature = themeIn?.theme === 'world' ? themeIn.nature : undefined;
     this.h = createScene(el);
     if (mobile) { this.h.renderer.shadowMap.enabled = false; this.h.renderer.setPixelRatio(1); }
     const scene = this.h.scene;
@@ -95,7 +96,7 @@ export class GridRuntime {
     scene.add(this.hemi, sun, this.light);
     this.pixel = new PixelPass(this.h.renderer, 2);
     if (!theme && !world) kit.tint(look.tint);
-    this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
+    this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world, nature) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
     // the occupied world is dark: dim moonlight, a lamp round the party, and the land's own fires
     if (world) { this.hemi.color.set('#7884b4'); this.hemi.groundColor.set('#241c18'); this.hemi.intensity = 0.62; this.light.color.set('#e4eaff'); this.light.intensity = 4.5; this.light.distance = 9; sun.intensity = 0; this.bloom = new Bloom(this.h.renderer, scene, this.h.camera); }
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
@@ -353,6 +354,8 @@ export class GridRuntime {
     cam.position.set(c.x, Math.sin(ELEVATION) * CAM_DIST, c.z + Math.cos(ELEVATION) * CAM_DIST);
     cam.lookAt(c);
   }
+  /** Extra things a screen draws in the scene (a dungeon floor's souls, shrine, floor items). */
+  addOverlay(o: THREE.Object3D): void { this.h.scene.add(o); }
   /** The pod falls from the sky (the pod's ground only); false if there is no pod. */
   landPod(): boolean { if (!(this.terrain instanceof WorldTerrain) || !this.terrain.pod) return false; this.terrain.onThump = () => this.fx.shake(0.45, 0.55); this.terrain.pod.land(); return true; }
   get podLanding(): boolean { return this.terrain instanceof WorldTerrain && !!this.terrain.pod?.landing; }

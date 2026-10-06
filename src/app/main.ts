@@ -156,9 +156,9 @@ async function partyDemo(): Promise<void> {
 /** `?demo=world`: the party crosses the open land round the crashed ship (the world map prototype). */
 async function worldDemo(): Promise<void> {
   try {
-    const [{ WorldDemo }, lib, kit, weapons] = await Promise.all([import('../ui/overworld/worldDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    const [{ WorldDemo }, { NatureKit }, lib, kit, weapons] = await Promise.all([import('../ui/overworld/worldDemo'), import('../view/overworld/natureKit'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
     setWeaponKit(weapons);
-    router.go(new WorldDemo(lib, kit));
+    router.go(new WorldDemo(lib, kit, { nature: await NatureKit.load(import.meta.env.BASE_URL) }));
   } catch (e) {
     showFatal(root, e);
   }

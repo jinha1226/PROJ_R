@@ -12,12 +12,12 @@ const mat4 = (x: number, y: number, z: number, s: THREE.Vector3, e: THREE.Euler)
  * Waist-high things to crouch behind: boulders, fallen logs, low stone walls, camp barricades (crossed stakes), burnt wrecks,
  * demon totems and obelisks, and ghost-fire braziers in the ruins. Glowing bits (flames, eyes) are drawn bright; the light itself comes from the pool.
  */
-export function coverProps(ground: Ground[], w: number, fog: WorldFog): THREE.Group {
+export function coverProps(ground: Ground[], w: number, fog: WorldFog, skip: ReadonlySet<Ground> = new Set()): THREE.Group {
   const g = new THREE.Group();
   const at = (kind: Ground): Cell[] => { const out: Cell[] = []; ground.forEach((k, i) => { if (k === kind) out.push({ x: i % w, y: Math.floor(i / w) }); }); return out; };
   const kindAt = (c: Cell) => ground[c.y * w + c.x];
   const boulders: Item[] = [], logs: Item[] = [], walls: Item[] = [], stakes: Item[] = [], wrecks: Item[] = [], spires: Item[] = [], bowls: Item[] = [];
-  for (const c of at('boulder')) {
+  for (const c of skip.has('boulder') ? [] : at('boulder')) {
     const s = 0.75 + jitter(c.x, c.y, 40) * 0.35;
     boulders.push({ m: mat4(c.x, 0.3 * s, c.y, new THREE.Vector3(s, s * 0.75, s), new THREE.Euler(0.3, jitter(c.x, c.y, 41) * 6, 0.2)), c: new THREE.Color().setHSL(0.08, 0.05, 0.3 + jitter(c.x, c.y, 42) * 0.1) });
   }
