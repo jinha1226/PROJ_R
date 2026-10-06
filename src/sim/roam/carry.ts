@@ -23,10 +23,8 @@ export function placeParty(p: RoamParty, c: Carry): void {
     const e = k.unit.id === 'hero' ? s.hero : spawnFoe(s, 'minion', at, false);
     e.id = k.unit.id; e.pos = at; e.hp = k.hp; e.maxHp = k.maxHp; e.alive = true; e.awake = false;
     const unit = structuredClone(k.unit), shift = p.time-c.time;
-    unit.ultReady = p.time+Math.max(0,unit.ultReady-c.time);
-    for(const key of Object.keys(unit.trig)) unit.trig[key]! += shift;
-    for(const status of Object.values(unit.status)) if(status) { status.until += shift; if(status.next!==undefined) status.next += shift; }
-    return { ...unit, shield: 0, order: null, queued: undefined, nextAt: p.time, ready: [p.time, p.time] } as Unit;
+    shiftUnitTimes(unit, shift);
+    return { ...unit, shield: 0, order: null, queued: undefined } as Unit;
   });
   p.units = [...heroes, ...p.units];
   p.pack = structuredClone(c.pack); p.nextItem = c.nextItem;
@@ -38,3 +36,21 @@ export function placeParty(p: RoamParty, c: Carry): void {
 }
 
 export const anyAlive = (p: RoamParty): boolean => p.units.some((u) => u.side === 'hero' && alive(p, u));
+
+// Derive deadline keys from Unit; runtime enumeration automatically includes new numeric deadlines.
+type TimeKey = { [K in keyof Unit]-?: NonNullable<Unit[K]> extends number
+  ? K extends `${string}Until` | `${string}Ready` | `${string}At` ? K : never : never }[keyof Unit];
+export function shiftUnitTimes(unit: Unit, shift: number): void {
+  for (const key of Object.keys(unit) as (keyof Unit)[]) {
+    if (typeof unit[key] === 'number' && /(?:Until|Ready|At)$/.test(key)) {
+      const timeKey = key as TimeKey;
+      unit[timeKey] = (unit[timeKey] ?? 0) + shift;
+    }
+  }
+  unit.ready = unit.ready.map(t => t + shift) as Unit['ready'];
+  for (const key of Object.keys(unit.trig)) unit.trig[key]! += shift;
+  for (const status of Object.values(unit.status)) if (status) {
+    status.until += shift;
+    if (status.next !== undefined) status.next += shift;
+  }
+}
