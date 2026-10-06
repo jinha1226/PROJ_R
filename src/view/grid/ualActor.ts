@@ -65,6 +65,24 @@ export class UalLibrary {
   }
 }
 
+let bowTurn: THREE.Quaternion | null = null;
+/**
+ * The left-hand turn that stands a bow upright (limbs up and down, facing ahead) — measured once on a spare mannequin
+ * a third of the way into the bow shot, where the arm is raised and drawing.
+ */
+function bowGrip(lib: UalLibrary): THREE.Quaternion {
+  if (bowTurn) return bowTurn;
+  const model = lib.spawn(), clip = lib.clips.get(CLIP.shootBow), hand = bone(model, 'hand_l');
+  if (!clip || !hand) return (bowTurn = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)));
+  const mixer = new THREE.AnimationMixer(model);
+  mixer.clipAction(clip).play();
+  mixer.setTime(clip.duration * 0.35);
+  model.updateMatrixWorld(true);
+  bowTurn = hand.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion()));
+  mixer.stopAllAction();
+  return bowTurn;
+}
+
 const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined => {
   let hit: THREE.Object3D | undefined;
   root.traverse((o) => { if (!hit && o.name.replace(/\./g, '') === name.replace(/\./g, '')) hit = o; });
@@ -202,8 +220,8 @@ export class UalActor {
     this.held?.parent?.remove(this.held);
     this.held = weaponMesh(kind);
     this.heldKind = kind;
-    // a bow is held in the left hand (the right one draws the string)
-    if (kind === 'bow' && this.offHand) { this.held.rotation.set(0, 0, Math.PI / 2); this.offHand.add(this.held); }
+    // a bow is held in the left hand (the right one draws the string), standing upright in front when drawn
+    if (kind === 'bow' && this.offHand) { this.held.quaternion.copy(bowGrip(this.lib)); this.offHand.add(this.held); }
     else this.hand.add(this.held);
   }
 

@@ -32,6 +32,7 @@ import { GridTorches } from './gridTorches';
 import { CELL, GridTerrain } from './gridTerrain';
 import { Playback } from './playback';
 import { DOT_LOOK, PixelPass } from './pixelPass';
+import type { VfxKind } from '../fx/vfx';
 import { ShipIntro } from './shipIntro';
 import { Afterimages } from './afterimage';
 import { sensedFoes } from '../../sim/grid/perks';
@@ -121,6 +122,8 @@ export class GridRuntime {
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
     this.refresh();
   }
+  /** A particle effect at a floor point (for screens that show work the events do not carry, like mining). */
+  fireVfx(kind: VfxKind, at: THREE.Vector3, tint?: string): void { this.particles.vfx.fire(kind, at, tint); }
   project(p: THREE.Vector3): { left: number; top: number } {
     const v = p.clone().project(this.h.camera);
     return { left: ((v.x + 1) / 2) * this.el.clientWidth, top: ((1 - v.y) / 2) * this.el.clientHeight };
