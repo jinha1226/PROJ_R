@@ -7,8 +7,9 @@ interface Job { id: number; seed: number; comp: BaseClass[]; resolve: (r: Run) =
 export function botPool(size = 3) {
   const queue: Job[] = [];
   let next = 0;
+  let failure: Error | undefined;
   const slots = Array.from({ length: size }, () => {
-    const worker = new Worker(resolve('tests/bot/delveBotWorker.mjs'));
+    const worker = new Worker(resolve('tests/bot/delveBotWorker.mjs'), { execArgv: [] });
     const slot: { worker: Worker; job?: Job } = { worker };
     worker.on('message', (message: { id: number; result?: Run; error?: string }) => {
       const job = slot.job;
@@ -17,7 +18,7 @@ export function botPool(size = 3) {
       else job?.resolve(message.result);
       pump();
     });
-    worker.on('error', (error) => { slot.job?.reject(error); slot.job = undefined; });
+    worker.on('error', (error) => { failure = error; slot.job?.reject(error); slot.job = undefined; for(const job of queue.splice(0))job.reject(error); });
     return slot;
   });
   function pump() {
@@ -29,6 +30,7 @@ export function botPool(size = 3) {
   }
   return {
     run(seed: number, comp: BaseClass[]): Promise<Run> {
+      if(failure)return Promise.reject(failure);
       return new Promise((resolve, reject) => { queue.push({ id: next++, seed, comp, resolve, reject }); pump(); });
     },
     async close() { await Promise.all(slots.map((s) => s.worker.terminate())); },

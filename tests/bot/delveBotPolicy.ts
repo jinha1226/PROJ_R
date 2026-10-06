@@ -1,20 +1,32 @@
-import { canEquip, drink, equip, PACK_SIZE } from '../../src/sim/delve/gear';
+import { canEquip, equip, sacrifice, PACK_SIZE } from '../../src/sim/delve/gear';
 import type { DelveParty } from '../../src/sim/delve/delveSim';
 import { DIRS, canStep, dist, idx, same, walkable, type Cell } from '../../src/sim/grid/types';
+import { kitOf } from '../../src/sim/party/classKit';
+import { pickTrait } from '../../src/sim/party/partyLevel';
+import { aiUltimate } from '../../src/sim/party/ultimate';
 import { entOf } from '../../src/sim/party/partyCore';
 import { living, orderTo } from '../../src/sim/roam/roam';
 
 import { CATALOG } from '../../src/sim/delve/catalog';
 export function supplies(p: DelveParty): void {
   for (const u of living(p)) {
-    const e = entOf(p, u.id)!;
-    if (e.hp < e.maxHp * 0.3) drink(p, u.id);
-    for (const it of [...p.pack]) {
-      if (!u.gear || !canEquip(u, it)) continue;
-      if(!('def'in it))continue;
-      const d=CATALOG[it.def]!,worn=u.gear[d.slot];
+    while ((u.picks ?? 0) > 0 && u.offer?.[0]) {
+      if (!pickTrait(p,u.id,u.offer[0]).length) break;
+    }
+    const gear = p.pack.filter(it=>'def' in it)
+      .sort((a,b)=>CATALOG[b.def]!.floors[0]-CATALOG[a.def]!.floors[0]);
+    for (const it of gear) {
+      if (!u.gear || !canEquip(u,it)) continue;
+      const d=CATALOG[it.def]!;
+      if(d.family&&!kitOf(u).proficient.includes(d.family))continue;
+      const worn=u.gear[d.slot];
       if(!worn||d.floors[0]>CATALOG[worn.def]!.floors[0])equip(p,u.id,it.id);
     }
+    for (const it of [...p.pack]) {
+      if('def' in it && u.gear?.[CATALOG[it.def]!.slot]?.def===it.def) sacrifice(p,u.id,it.id);
+    }
+    const at=aiUltimate(p,u);
+    if(at!==null){u.ultQueued=true;u.ultCell=at;}
   }
 }
 

@@ -44,12 +44,12 @@ export const BASE_CLASSES: BaseClass[] = ['warrior', 'archer', 'mage', 'cleric',
 
 export type FoeId = 'goblin' | 'archer' | 'brute' | 'ghoul' | 'shaman' | 'warlord';
 export const FOES: Record<FoeId, { hp: number; dmg: [number, number]; range: number; atk: number; move: number }> = {
-  ghoul: { hp: 18, dmg: [2, 4], range: 1, atk: 0.7, move: 0.55 },
-  shaman: { hp: 20, dmg: [3, 5], range: 5, atk: 1.5, move: 1 },
-  warlord: { hp: 260, dmg: [10, 14], range: 1, atk: 1.5, move: 1 },
-  goblin: { hp: 22, dmg: [2, 4], range: 1, atk: 1.0, move: 0.8 },
-  archer: { hp: 16, dmg: [2, 4], range: 6, atk: 1.3, move: 1.0 },
-  brute: { hp: 48, dmg: [6, 9], range: 1, atk: 1.6, move: 1.0 },
+  ghoul: { hp: 27, dmg: [3, 6], range: 1, atk: 0.7, move: 0.55 },
+  shaman: { hp: 30, dmg: [5, 8], range: 5, atk: 1.5, move: 1 },
+  warlord: { hp: 520, dmg: [15, 21], range: 1, atk: 1.5, move: 1 },
+  goblin: { hp: 34, dmg: [3, 6], range: 1, atk: 1.0, move: 0.8 },
+  archer: { hp: 24, dmg: [3, 6], range: 6, atk: 1.3, move: 1.0 },
+  brute: { hp: 72, dmg: [9, 14], range: 1, atk: 1.6, move: 1.0 },
 };
 /** each wave's band, entering from the right */
 export const WAVES: FoeId[][] = [

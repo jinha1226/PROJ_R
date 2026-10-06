@@ -118,3 +118,42 @@ Fix (production AI, outside Task 5's numeric scope): one engage distance `ENGAGE
 | **Overall** | 60 | **4.07** | **92%** | **55%** | **30%** | 37 | **5** |
 
 Timeouts fell from 41 to 5. The party without a healer (warrior/mage/rogue) wipes every run — a balance item for the trigger-trait redesign (sustain without a cleric).
+
+
+## Trigger-build rerun: Tasks 4–5 (2026-10-06)
+
+The three-slot fixed catalog replaces random rarities; shared-pack consumables, trigger traits and ultimates are included. The bot equips strict upgrades by the item's minimum appearance floor, keeps weapons within proficiency, sacrifices exact-definition duplicates and picks the first offered trait. It queues `aiUltimate` decisions; potion/bomb use occurs through the production companion AI with the actual action cost. It does not promote automatically or prefer keystones. Bombs affect allies; the AI avoids clusters containing a living ally. Movement/exploration/gathering policy and the 3,600-game-second stop remain as above.
+
+Reproduce the complete measurement (use a fresh output filename; streaming appends):
+
+```sh
+DELVE_BOT_WORKERS=6 DELVE_BOT_OUTPUT=/tmp/trigger-builds-rerun.jsonl npx vitest run --config tests/bot/vitest.bot.config.ts --maxConcurrency=12 tests/bot/delveBot.bot.ts
+```
+
+Seeds 1–20 × three compositions: **60/60 passed**, 569.78 wall seconds. Raw records: [final JSONL](../reports/2026-10-06-trigger-builds-final.jsonl). All six seeds from the last diagnostic pilot reproduced exactly in the full run. [Task report](../reports/2026-10-06-trigger-builds.md) records the historical baseline, every numerical trial, exact old→new values and rulings. Task 5 production changes are only foe HP/damage numbers; no production AI, item or trait logic changed. Shared foe definitions also affect the party arena; the grid game is unchanged.
+
+Reach 3 means entering floor 3; **survives floor 3 means entering floor 4**, even if a later wipe occurs. All percentage denominators are all runs within their composition. Floor loot means use only runs that visited that floor, including partial visits.
+
+| Composition | Runs | Mean floor | Reach 3 | Survives floor 3 | Reach 5 | General killed | Mean clones lost | Wipes | Timeouts |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| All | 60 | 4.28 | 93.33% | 75.00% | 63.33% | 31.67% | 1.90 | 28 | 13 |
+| warrior/archer/cleric | 20 | 4.80 | 100.00% | 90.00% | 90.00% | 70.00% | 1.40 | 3 | 3 |
+| warrior/mage/rogue | 20 | 3.95 | 90.00% | 60.00% | 45.00% | 0.00% | 2.65 | 17 | 3 |
+| archer/cleric/mage | 20 | 4.10 | 90.00% | 75.00% | 55.00% | 25.00% | 1.65 | 8 | 7 |
+
+Per visited floor, including partial visits:
+
+| Floor | Visits | Common¹ | Fine¹ | Rare¹ | Accessories | Consumables | Total items | Ore | Crystal | Bio | Game seconds |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 60 | 2.27 | 0.00 | 0.00 | 1.10 | 4.00 | 7.37 | 14.03 | 1.47 | 99.65 | 629.11 |
+| 2 | 58 | 0.86 | 1.41 | 0.00 | 1.10 | 3.76 | 7.14 | 14.00 | 1.55 | 100.81 | 683.14 |
+| 3 | 56 | 0.27 | 1.45 | 0.00 | 0.91 | 3.91 | 6.54 | 13.34 | 1.05 | 124.88 | 696.65 |
+| 4 | 45 | 0.20 | 0.53 | 0.71 | 0.60 | 2.89 | 4.93 | 12.27 | 0.67 | 158.00 | 683.88 |
+| 5 | 38 | 0.05 | 0.26 | 0.29 | 0.32 | 1.21 | 2.13 | 7.24 | 1.71 | 152.37 | 520.36 |
+
+
+¹ Common/Fine/Rare are compatibility columns for fixed catalog gear with minimum appearance floor 1 / 2–3 / 4–5; they are no longer random rarities. Accessories and consumables have separate columns. Total items includes both. Starter items and recovered clone gear are excluded; immediate general termination still excludes uncollected boss drops.
+
+Targets met: **38/60 = 63.33% reach 5** (target 50–65%), **19/60 = 31.67% general** (25–40%), and the no-healer warrior/mage/rogue party **18/20 = 90% reach 3** (≥50%). That party survives floor 3 in **12/20 = 60%**. There are 28 wipes and 13 timeouts. No-healer parties still kill no generals; this simple first-card policy measures progression, not skilled play or optimized builds. The 60-game sample does not establish a universal success rate. The earlier 60-game baseline used enemy-only bombs and is not a controlled causal comparison.
+
+Validation: TypeScript and lint passed; 448/448 unit tests passed. Exact whole-suite `npx vitest run`: 1,439 passed, 3 skipped, one unrelated `roundHud` import timeout; both tests in that file passed alone. This is the plan's allowed timeout rerun, not a successful exit from the original whole-suite command.

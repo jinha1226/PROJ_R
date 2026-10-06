@@ -85,3 +85,66 @@ Test-first missing-module/missing-function failures observed. Task 4 verificatio
 Task 4 commit: recorded in the Task 5 section below (`feat(build): Achra-style gear, sacrifice, consumables`, with the required co-author trailer).
 
 Commit ruling: `/mnt/d/PROJ_R/.git` is writable, but `/mnt/d/PROJ_R/.git/worktrees/PROJ_R-build` is separately mounted read-only. Normal `git add` fails on `index.lock`; even with an isolated index, normal `git commit` fails on `COMMIT_EDITMSG`. Commits therefore use the copied index `/mnt/d/PROJ_R/.git/trigger-builds-codex.index`, `git write-tree` / `git commit-tree`, and a compare-and-swap update of the shared `refs/heads/trigger-builds`. This writes only permitted shared metadata and preserves the branch, parents, author and required messages; the protected worktree mount is untouched. Repository checks use `GIT_INDEX_FILE` set to the isolated index. The normal index remains at Task 3 and must be refreshed with `git reset --mixed HEAD` once that metadata directory is writable. No push.
+
+
+## Task 5
+
+Task 4 commit: `b11aea85611c5a17a2fb3dcae0e3d578a9b9a49e`.
+
+The bot now equips strictly deeper-floor proficient weapons (and deeper armour/accessories), sacrifices exact-definition duplicates, picks the first offered trait until pending choices are spent, and queues ultimates through `aiUltimate`. Consumables use the production companion moment, including their action cost and friendly-fire safety. It does not auto-promote or preferentially select keystones. Three new policy/summary tests failed first, then passed. Worker loading disables unnecessary HMR/watch/optimizer services; an isolated worker error rejects pending jobs. Optional JSONL streaming records every completed run because this Vitest reporter suppresses passing-test console output.
+
+The pre-loot-correction 11-run pilot is diagnostic only. A complete 60-game baseline used the corrected chest/drop probabilities but the earlier enemy-only bomb interpretation: reach-5 57/60 (95%), general 54/60 (90%). It is historical evidence of excessive success, not a controlled before/after comparison with the final friendly-fire rules. Raw files accompany this report.
+
+All numerical trials change only the six shared foe HP/damage definitions. Item/trait numbers and production AI logic are unchanged in Task 5. Shared `FOES` consumers include the party arena; the main grid files remain untouched.
+
+| Foe HP; damage | Task 4 | Trial 1 | Trial 2 | Trial 3 / 4 | Trial 5 / candidate 1 |
+|---|---|---|---|---|---|
+| ghoul | 18; 2–4 | 27; 3–6 | 32; 4–7 | 30; 3–7 | 27; 3–6 |
+| shaman | 20; 3–5 | 30; 5–8 | 35; 6–9 | 33; 5–9 | 30; 5–8 |
+| warlord | 260; 10–14 | 520; 15–21 | 520; 15–21 | 520; 15–21 | 520; 15–21 |
+| goblin | 22; 2–4 | 34; 3–6 | 40; 4–7 | 37; 3–7 | 34; 3–6 |
+| archer | 16; 2–4 | 24; 3–6 | 28; 4–7 | 26; 3–7 | 24; 3–6 |
+| brute | 48; 6–9 | 72; 9–14 | 84; 10–16 | 78; 9–15 | 72; 9–14 |
+
+Trials use seeds 1–2 in each composition, six games each. Trials 1–3 used the earlier enemy-only bombs; trials 4–5 use the corrected friendly-fire rules. Trial 4 repeats trial 3 numbers; trial 5 restores trial 1 numbers. These small diagnostic samples do not establish population balance or isolate causal effects.
+
+| Diagnostic | Games | Reach 5 | General | WMR reach 3 |
+|---|---:|---:|---:|---:|
+| Trial 1 | 6 | 5/6 | 3/6 | 2/2 |
+| Trial 2 | 6 | 2/6 | 1/6 | 2/2 |
+| Trial 3 | 6 | 2/6 | 1/6 | 2/2 |
+| Trial 4, friendly fire | 6 | 2/6 | 1/6 | 2/2 |
+| Trial 5, friendly fire | 6 | 4/6 | 2/6 | 1/2 |
+
+Numerical fixtures retain exact assertions: reinforcement HP `round(22 × 1.6)` → `round(34 × 1.6)`, damage `[3,6]` → `[5,10]`, boss gate HP `416` → `832`. The bleed test explicitly initializes 22 HP to preserve its independent exact 4/8 damage checks. No assertions were removed or weakened.
+
+Validation of candidate 1: TypeScript and lint passed; 448/448 unit tests across 77 files passed. Exact required `npx vitest run`: 1,439 passed, 3 skipped, one unrelated `roundHud` five-second dynamic-import timeout (200 files: 197 passed, two skipped, one failed), 66.24 seconds. `npx vitest run tests/unit/roundHud.test.ts`: both tests passed alone in 6.81 seconds. The whole-suite command exited 1; the isolated rerun is the exception expressly allowed by the plan. Source/test line limits and `git diff --check` passed; no changes under `src/sim/grid`.
+
+
+### Final 60-game measurement
+
+Candidate 1 (the trial-1 numerical values in the ledger above) is final. All 60 games passed in 569.78 seconds; seeds 1–20 for each composition. All six last-pilot records reproduce exactly in the complete run. Raw archive: [final JSONL](2026-10-06-trigger-builds-final.jsonl). Reproduction command and loot-column definitions are in the [appended loot-results section](../plans/2026-10-06-delve-loot-results.md#trigger-build-rerun-tasks-45-2026-10-06).
+
+| Composition | Runs | Mean floor | Reach 3 | Survives floor 3 | Reach 5 | General killed | Mean clones lost | Wipes | Timeouts |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| All | 60 | 4.28 | 93.33% | 75.00% | 63.33% | 31.67% | 1.90 | 28 | 13 |
+| warrior/archer/cleric | 20 | 4.80 | 100.00% | 90.00% | 90.00% | 70.00% | 1.40 | 3 | 3 |
+| warrior/mage/rogue | 20 | 3.95 | 90.00% | 60.00% | 45.00% | 0.00% | 2.65 | 17 | 3 |
+| archer/cleric/mage | 20 | 4.10 | 90.00% | 75.00% | 55.00% | 25.00% | 1.65 | 8 | 7 |
+
+Per visited floor, including partial visits:
+
+| Floor | Visits | Common¹ | Fine¹ | Rare¹ | Accessories | Consumables | Total items | Ore | Crystal | Bio | Game seconds |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 60 | 2.27 | 0.00 | 0.00 | 1.10 | 4.00 | 7.37 | 14.03 | 1.47 | 99.65 | 629.11 |
+| 2 | 58 | 0.86 | 1.41 | 0.00 | 1.10 | 3.76 | 7.14 | 14.00 | 1.55 | 100.81 | 683.14 |
+| 3 | 56 | 0.27 | 1.45 | 0.00 | 0.91 | 3.91 | 6.54 | 13.34 | 1.05 | 124.88 | 696.65 |
+| 4 | 45 | 0.20 | 0.53 | 0.71 | 0.60 | 2.89 | 4.93 | 12.27 | 0.67 | 158.00 | 683.88 |
+| 5 | 38 | 0.05 | 0.26 | 0.29 | 0.32 | 1.21 | 2.13 | 7.24 | 1.71 | 152.37 | 520.36 |
+
+
+Targets: reach-5 38/60 = 63.33% (50–65%); general 19/60 = 31.67% (25–40%); no-healer WMR reach-3 18/20 = 90% (≥50%). All met. WMR survives floor 3 in 12/20 = 60%, defined as reaching floor 4; entering floor 3 alone is not survival. WMR general kills remain 0/20. There are 28 wipes and 13 timeouts. This first-card policy does not optimize traits or promote; results describe this deterministic 60-seed sample, not a universal player success rate.
+
+The compatibility Common/Fine/Rare columns now mean minimum catalog appearance floor 1 / 2–3 / 4–5; accessories and consumables are counted separately. Total loot includes them. Floor denominators include partial visits; starter/recovered gear is excluded. The earlier baseline and pilots using enemy-only bombs cannot isolate the numerical tuning's effect. Every production numerical change is the Task 4 → candidate-1 column pair above.
+
+Tasks 4–5 are complete and committed on `trigger-builds`, each with the required co-author trailer. No push. Git checks use the isolated index explained above; refresh the normal worktree index once its metadata is writable.

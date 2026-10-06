@@ -161,7 +161,7 @@ Rules: spec §7–§8. Proficiency: off-family −30% damage, +20% attack time, 
 
 Reuse `tests/bot/delveBot.bot.ts` (adapt to ultimates/consumables/new gear: the bot equips the higher-`floors` item of its proficient family, sacrifices duplicates, uses ultimates through `aiUltimate`, picks the first offered trait). Run 60 games as before and append a section to `docs/superpowers/plans/2026-10-06-delve-loot-results.md`: the same table plus the share of runs where a no-healer party (warrior/mage/rogue) survives floor 3. Tune numbers only (trait/item/foe numbers) toward: overall reach-5 50–65%, general 25–40%, warrior/mage/rogue reach-3 ≥ 50%. Record every change (old → new).
 
-- [ ] run; tune; report; full suite; commit `feat(build): bot rerun and first build balance`.
+- [x] run; tune; report; full suite; commit `feat(build): bot rerun and first build balance`.
 
 ---
 

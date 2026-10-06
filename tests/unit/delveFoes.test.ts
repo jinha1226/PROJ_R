@@ -97,8 +97,8 @@ it('reinforcements occupy distinct free cells, inherit scaling, and call only on
     expect(u).toMatchObject({ foe: 'goblin', asleep: false, group: w.group });
     expect(dist(we.pos, e.pos)).toBeLessThanOrEqual(3);
     expect(walkable(tileAt(p.s.map, e.pos))).toBe(true);
-    expect(e.maxHp).toBe(Math.round(22 * 1.6));
-    expect(stats(u).dmg).toEqual([3, 6]);
+    expect(e.maxHp).toBe(Math.round(34 * 1.6));
+    expect(stats(u).dmg).toEqual([5, 10]);
   }
   foeTurn(p, w, 1.5, events); foeTurn(p, w, 3, events);
   expect(events.filter((e) => e.type === 'summon')).toHaveLength(3);

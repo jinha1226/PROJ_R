@@ -9,6 +9,7 @@ it('ticks burn and stacked poison on whole seconds', () => {
 });
 it('bleeds only on steps; shock doubles bleeding', () => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, e = entOf(p, f.id)!;
+  e.hp = e.maxHp = 22;
   applyStatus(p, u, f, 'bleed', 0, []); tickStatuses(p, 0, 1, []); expect(e.hp).toBe(22);
   stepToward(p, f, { x: 9, y: 3 }, 1, []); expect(e.hp).toBe(18);
   applyStatus(p, u, f, 'shock', 1, []); stepToward(p, f, { x: 8, y: 3 }, 2, []); expect(e.hp).toBe(10);
