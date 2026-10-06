@@ -59,8 +59,8 @@ export function ruinWalls(cells: Cell[], fog: WorldFog): THREE.InstancedMesh {
   return instanced(new THREE.BoxGeometry(1, 1, 1), fog, items);
 }
 
-/** The crashed colony ship: a long hull nose-down in the clearing, a fin, cold lights along its side and a beacon. */
-export function crashedShip(base: Cell, fog: WorldFog): { root: THREE.Group; beacon: THREE.PointLight } {
+/** The crashed colony ship: a long hull nose-down in the clearing, a fin, cold lights along its side (its glow comes from the light pool). */
+export function crashedShip(base: Cell, fog: WorldFog): THREE.Group {
   const root = new THREE.Group();
   const metal = fog.apply(new THREE.MeshLambertMaterial({ color: '#8a94a0' }));
   const dark = fog.apply(new THREE.MeshLambertMaterial({ color: '#3c4450' }));
@@ -82,18 +82,15 @@ export function crashedShip(base: Cell, fog: WorldFog): { root: THREE.Group; bea
     root.add(lamp);
   }
   for (const m of [hull, fin, wing]) { m.castShadow = true; m.receiveShadow = true; }
-  const beacon = new THREE.PointLight('#5ae0ff', 6, 9, 1.6);
-  beacon.position.set(-3.2, 2.4, 0);
-  root.add(beacon);
   // nose down, a little askew
   root.rotation.set(0, 0.12, -0.07);
   root.position.set(base.x - 0.5, 0, base.y);
-  return { root, beacon };
+  return root;
 }
 
-export interface CampView { camp: Camp; fire: THREE.PointLight; flame: THREE.Mesh; flag: THREE.Mesh }
+export interface CampView { camp: Camp; flame: THREE.Mesh; flag: THREE.Mesh; eye: THREE.Mesh }
 
-/** A goblin camp: hide tents round a fire, a ring of stakes with gaps, a red banner. */
+/** A goblin camp: hide tents round a fire, a ring of stakes with gaps, a red banner, the totem's eye. */
 export function campProps(camp: Camp, fog: WorldFog): { root: THREE.Group; view: CampView } {
   const root = new THREE.Group();
   const hide = fog.apply(new THREE.MeshLambertMaterial({ color: '#6a5032' }));
@@ -114,13 +111,14 @@ export function campProps(camp: Camp, fog: WorldFog): { root: THREE.Group; view:
   }
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 6), fog.apply(new THREE.MeshBasicMaterial({ color: '#ffa040' })));
   flame.position.y = 0.3;
-  const fire = new THREE.PointLight('#ff9040', 5, 7, 1.6);
-  fire.position.y = 0.8;
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 5), wood);
   pole.position.set(0.9, 1.3, -0.6);
   const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5), fog.apply(new THREE.MeshLambertMaterial({ color: '#b02820', side: THREE.DoubleSide })));
   flag.position.set(1.3, 2.3, -0.6);
-  root.add(flame, fire, pole, flag);
+  // the demon totem's eye glows while the camp stands
+  const eye = new THREE.Mesh(new THREE.OctahedronGeometry(0.12, 0), fog.apply(new THREE.MeshBasicMaterial({ color: '#ff3030' })));
+  eye.position.set(camp.totem.x - camp.pos.x, 1.55, camp.totem.y - camp.pos.y);
+  root.add(flame, pole, flag, eye);
   root.position.set(camp.pos.x, 0, camp.pos.y);
-  return { root, view: { camp, fire, flame, flag } };
+  return { root, view: { camp, flame, flag, eye } };
 }

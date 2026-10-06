@@ -5,7 +5,7 @@ import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/typ
 import { alive, entOf, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, FOES, type BaseClass, type FoeId } from '../party/partyDefs';
 import { tick } from '../party/partySim';
-import { generateWorld, type Camp, type Ground, type Soul } from './worldGen';
+import { COVER, generateWorld, type Camp, type Ground, type LandLight, type Soul } from './worldGen';
 
 export const SIGHT = 9;
 /** how far a sleeping camp notices the party */
@@ -22,6 +22,7 @@ const SHIP_REACH = 5;
 export interface WorldParty extends Party {
   ground: Ground[]; camps: Camp[]; base: Cell; claimed: Uint8Array;
   souls: Soul[];
+  lights: LandLight[];
   /** souls picked up by clones that already had one, waiting for a body at the ship */
   carried: BaseClass[];
   nextClone: number;
@@ -38,7 +39,7 @@ export function newWorld(seed = 1): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, carried: [], nextClone: 1 };
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, carried: [], nextClone: 1, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)) };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group)!;

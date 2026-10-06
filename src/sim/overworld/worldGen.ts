@@ -4,14 +4,21 @@ import { idx, type Cell, type FoeKind, type GridMap, type Tile } from '../grid/t
 import { BASE_CLASSES, type BaseClass } from '../party/partyDefs';
 
 /** what a cell looks like (the sim only cares about its tile) */
-export type Ground = 'grass' | 'forest' | 'tree' | 'rock' | 'water' | 'ford' | 'dirt' | 'ruin' | 'ruinWall' | 'ship' | 'camp';
-export interface Camp { id: number; pos: Cell; tier: 1 | 2 | 3; group: number; cleared: boolean }
+export type Ground = 'grass' | 'forest' | 'tree' | 'rock' | 'water' | 'ford' | 'dirt' | 'ruin' | 'ruinWall' | 'ship' | 'camp'
+  /** waist-high things: they stop a step but not a look, and a body tucked behind one is hard to shoot */
+  | 'boulder' | 'log' | 'lowWall' | 'barricade' | 'wreck' | 'totem' | 'obelisk' | 'brazier';
+/** what can be crouched behind */
+export const COVER: ReadonlySet<Ground> = new Set(['boulder', 'log', 'lowWall', 'barricade', 'wreck', 'totem', 'obelisk', 'brazier']);
+/** lights that stand on the land itself (camp fires, souls and the ship light themselves) */
+export interface LandLight { pos: Cell; kind: 'wreck' | 'brazier' | 'obelisk' }
+export interface Camp { id: number; pos: Cell; tier: 1 | 2 | 3; group: number; cleared: boolean; totem: Cell }
 /** a fallen native's soul stone lying on the land */
 export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
-export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[] }
+export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[] }
 
 export const WORLD_SIZE = 96;
-const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor' };
+const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor',
+  boulder: 'chasm', log: 'chasm', lowWall: 'chasm', barricade: 'chasm', wreck: 'chasm', totem: 'chasm', obelisk: 'chasm', brazier: 'chasm' };
 /** camps by ring: how many, how far from the base, how strong */
 const RINGS: { n: number; near: number; far: number; tier: 1 | 2 | 3 }[] = [{ n: 3, near: 17, far: 24, tier: 1 }, { n: 3, near: 28, far: 35, tier: 2 }, { n: 2, near: 38, far: 44, tier: 3 }];
 const PACKS: Record<1 | 2 | 3, FoeKind[]> = {
@@ -57,9 +64,11 @@ export function generateWorld(seed: number): World {
   }
   river(rng, base, set);
   const ruins: Cell[] = [];
-  for (let n = 0; n < 4; n++) ruins.push(ruin(rng, base, set));
+  // one ruin close by (the second soul is in reach before any camp), the rest farther out
+  for (let n = 0; n < 4; n++) ruins.push(ruin(rng, base, set, n === 0 ? 14 : 18, n === 0 ? 19 : 40));
   const camps = placeCamps(rng, base, set, get);
   for (const c of camps) if (c.tier === 1) road(rng, base, c.pos, set, get);
+  const lights = cover(rng, base, ruins, camps, set, get);
   ship(base, set);
   const map: GridMap = { w: N, h: N, tiles: ground.map((g) => TILE[g]), rooms: [], start: { x: base.x, y: base.y + 3 }, exits: [], chests: [], spawns: [], barrels: [] };
   connect(map, ground, camps.map((c) => c.pos));
@@ -67,14 +76,17 @@ export function generateWorld(seed: number): World {
     const cells = ring(camp.pos, 2).filter((c) => map.tiles[idx(map, c)] === 'floor');
     PACKS[camp.tier].forEach((kind, i) => map.spawns.push({ kind, pos: cells[i % cells.length]!, group: camp.group, elite: camp.tier === 3 && i === 5 }));
   }
-  return { map, ground, camps, base, souls: placeSouls(rng, map, base, ruins, camps) };
+  const souls = placeSouls(rng, map, base, ruins, camps);
+  // a soul walled in by rubble still has a way to it
+  connect(map, ground, souls.map((x) => x.pos));
+  return { map, ground, camps, base, souls, lights };
 }
 
 /** Soul stones: one in the open near the ship (the first, an archer), one inside each ruin, one at the heart of each camp; the classes go round so the nearest ones differ. */
 function placeSouls(rng: Rng, map: GridMap, base: Cell, ruins: Cell[], camps: Camp[]): Soul[] {
   const d = distanceMap(map, map.start);
   const open = (c: Cell) => map.tiles[idx(map, c)] === 'floor' && d[idx(map, c)]! > 0;
-  const spot = (c: Cell): Cell | undefined => [c, ...ring(c, 3)].find(open);
+  const spot = (c: Cell): Cell | undefined => [c, ...ring(c, 3)].find((x) => map.tiles[idx(map, x)] === 'floor');
   const first: Cell[] = [];
   for (let y = 1; y < map.h - 1; y++) for (let x = 1; x < map.w - 1; x++) { const r = near({ x, y }, base); if (r >= 11 && r <= 14 && open({ x, y })) first.push({ x, y }); }
   const where = [first.length ? rng.pick(first) : undefined, ...ruins.map(spot), ...camps.map((c) => spot(c.pos))].filter((c): c is Cell => !!c);
@@ -104,8 +116,8 @@ function river(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void): void {
 }
 
 /** A broken square of old walls with a way in; returns its middle. */
-function ruin(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void): Cell {
-  const a = rng.next() * Math.PI * 2, d = rng.int(14, 40), w = rng.int(5, 8), h = rng.int(5, 7);
+function ruin(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void, from: number, to: number): Cell {
+  const a = rng.next() * Math.PI * 2, d = rng.int(from, to), w = rng.int(5, 8), h = rng.int(5, 7);
   const x0 = Math.round(base.x + Math.cos(a) * d), y0 = Math.round(base.y + Math.sin(a) * d);
   for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
     const edge = x === x0 || y === y0 || x === x0 + w - 1 || y === y0 + h - 1;
@@ -130,7 +142,7 @@ function placeCamps(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void, get
       }
       if (!pos) continue;
       for (const c of [pos, ...ring(pos, 3)]) if (near(c, pos) <= 3.2 && get(c) !== 'water' && get(c) !== 'ford') set(c, 'camp');
-      camps.push({ id, pos, tier: r.tier, group: 100 + id, cleared: false });
+      camps.push({ id, pos, tier: r.tier, group: 100 + id, cleared: false, totem: { x: pos.x + 1, y: pos.y - 1 } });
       id++;
     }
   }
@@ -147,6 +159,60 @@ function road(rng: Rng, from: Cell, to: Cell, set: (c: Cell, g: Ground) => void,
     const r = rng.next();
     c = r < 0.15 ? { x: c.x + dx, y: c.y } : r < 0.3 ? { x: c.x, y: c.y + dy } : { x: c.x + dx, y: c.y + dy };
   }
+}
+
+/** Cover and the land's own lights: barricade rings round each camp (with ways in), its demon totem, boulders and low walls out in the open, logs at the wood's edge, rubble in the ruins with a ghost-fire brazier, burning wrecks, and demon obelisks far out. */
+function cover(rng: Rng, base: Cell, ruins: Cell[], camps: Camp[], set: (c: Cell, g: Ground) => void, get: (c: Cell) => Ground): LandLight[] {
+  const N = WORLD_SIZE, lights: LandLight[] = [];
+  const inside = (c: Cell) => c.x > 1 && c.y > 1 && c.x < N - 2 && c.y < N - 2;
+  const open = (c: Cell) => inside(c) && get(c) === 'grass' && near(c, base) > 11;
+  const somewhere = (from: number, to: number, ok: (c: Cell) => boolean): Cell | undefined => {
+    for (let t = 0; t < 60; t++) {
+      const a = rng.next() * Math.PI * 2, d = rng.int(from, to);
+      const c = { x: Math.round(base.x + Math.cos(a) * d), y: Math.round(base.y + Math.sin(a) * d) };
+      if (ok(c)) return c;
+    }
+    return undefined;
+  };
+  for (const camp of camps) {
+    // stakes and spikes on a ring, broken by three ways in (one toward the ship)
+    const toShip = Math.atan2(base.y - camp.pos.y, base.x - camp.pos.x), gaps = [toShip, toShip + 2.1, toShip - 2.1];
+    for (const c of ring(camp.pos, 5)) {
+      const r = near(c, camp.pos), a = Math.atan2(c.y - camp.pos.y, c.x - camp.pos.x);
+      const gap = gaps.some((g) => Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))) < 0.42);
+      if (r >= 3.6 && r <= 4.4 && !gap && ['grass', 'forest', 'camp', 'tree'].includes(get(c))) set(c, 'barricade');
+    }
+    set(camp.totem, 'totem');
+  }
+  for (let n = 0; n < 16; n++) {
+    const c = somewhere(12, 46, open);
+    if (!c) continue;
+    set(c, 'boulder');
+    for (const d of ring(c, 1)) if (open(d) && rng.chance(0.3)) set(d, 'boulder');
+  }
+  for (let n = 0; n < 12; n++) {
+    const c = somewhere(12, 46, open), along = rng.chance(0.5), len = rng.int(2, 4);
+    if (!c) continue;
+    for (let k = 0; k < len; k++) { const d = along ? { x: c.x + k, y: c.y } : { x: c.x, y: c.y + k }; if (open(d)) set(d, 'lowWall'); }
+  }
+  for (let n = 0; n < 12; n++) {
+    const c = somewhere(12, 46, (x) => open(x) && ring(x, 1).some((d) => get(d) === 'tree'));
+    if (c) set(c, 'log');
+  }
+  for (const r of ruins) {
+    for (const c of ring(r, 3)) if (get(c) === 'ruin' && rng.chance(0.14)) set(c, 'lowWall');
+    const b = ring(r, 2).find((c) => get(c) === 'ruin');
+    if (b) { set(b, 'brazier'); lights.push({ pos: b, kind: 'brazier' }); }
+  }
+  for (let n = 0; n < 6; n++) {
+    const c = somewhere(15, 44, open);
+    if (c) { set(c, 'wreck'); lights.push({ pos: c, kind: 'wreck' }); }
+  }
+  for (let n = 0; n < 4; n++) {
+    const c = somewhere(34, 46, open);
+    if (c) { set(c, 'obelisk'); lights.push({ pos: c, kind: 'obelisk' }); }
+  }
+  return lights;
 }
 
 /** The crashed ship lies across the middle of the clearing. */

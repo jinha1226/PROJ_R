@@ -1,6 +1,6 @@
 import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
-import { dist, same, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
+import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
 import { CLASSES, FOES, PROMOTIONS, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
@@ -33,6 +33,8 @@ export interface Party {
   leader?: string;
   /** world-map rules turn on (targets only awake foes nearby) */
   roam?: boolean;
+  /** cells of waist-high cover (boulders, low walls, barricades) beside walls and trees */
+  cover?: Uint8Array;
 }
 
 export const entOf = (p: Party, id: string): Ent | undefined => (id === 'hero' ? p.s.hero : p.s.foes.find((f) => f.id === id));
@@ -127,13 +129,26 @@ function credit(p: Party, u: Unit, at: Cell): void {
   if (counts && ++u.progress >= promo.need) u.promoteReady = true;
 }
 
+/** Is the target tucked beside cover on the shooter's side (a wall, a tree, a boulder…)? Point-blank ignores it. */
+export function behindCover(p: Party, shooter: Cell, target: Cell): boolean {
+  const dx = Math.sign(shooter.x - target.x), dy = Math.sign(shooter.y - target.y);
+  const sides: Cell[] = [];
+  if (dx) sides.push({ x: target.x + dx, y: target.y });
+  if (dy) sides.push({ x: target.x, y: target.y + dy });
+  if (dx && dy) sides.push({ x: target.x + dx, y: target.y + dy });
+  const m = p.s.map;
+  return dist(shooter, target) > 1 && sides.some((c) => opaque(tileAt(m, c)) || p.cover?.[idx(m, c)] === 1);
+}
+
 /** A basic attack (or a skill's blow at `mult`): engravings, then the weapon's own trait. */
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1): void {
   const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t);
   const magic = u.cls ? CLASSES[u.cls].magic : false;
   if (st.range <= 1) ev.push({ t, type: 'bump', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos } });
   else ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos }, text: magic ? 'spell' : 'bow' });
-  if (!p.s.rng.chance(st.range <= 1 ? 0.9 : 0.85)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos } }); return; }
+  // a shot at a body behind cover mostly hits the cover
+  const hit = st.range <= 1 ? 0.9 : behindCover(p, e.pos, te.pos) ? 0.5 : 0.85;
+  if (!p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos } }); return; }
   let m = mult;
   if (u.side === 'hero') {
     m *= passiveMult(p, u, target, t, ev) * u.empower;

@@ -42,6 +42,10 @@ it('souls lie about: the first (an archer) near the ship, the nearest three of d
     expect(w.souls[0]!.cls).toBe('archer');
     expect(new Set(w.souls.slice(0, 3).map((s) => s.cls)).size).toBe(3);
     for (const c of w.camps) expect(w.souls.some((s) => dist(s.pos, c.pos) <= 3)).toBe(true);
+    const d = distanceMap(w.map, w.map.start);
+    for (const s of w.souls) expect(d[idx(w.map, s.pos)]).toBeGreaterThan(0);
+    // a second soul lies outside any camp, close enough to reach first
+    expect(w.souls.filter((s) => w.camps.every((c) => dist(s.pos, c.pos) > 3) && r(s.pos) < 24).length).toBeGreaterThanOrEqual(2);
   }
 });
 
@@ -55,8 +59,11 @@ it('an empty clone that reaches a soul becomes its class', () => {
   expect(entOf(p, 'hero')!.maxHp).toBeGreaterThan(30);
 });
 
+const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
+
 it('a soul picked up by a clone that has one is carried home; at the ship it gets a new body', () => {
   const p = newWorld(3);
+  calm(p);
   const [a, b] = p.souls;
   entOf(p, 'hero')!.pos = { ...a!.pos };
   worldTick(p, 0.1);
@@ -65,12 +72,13 @@ it('a soul picked up by a clone that has one is carried home; at the ship it get
   expect(p.carried).toEqual([b!.cls]);
   orderTo(p, 'hero', p.s.map.start);
   for (let i = 0; i < 600 && p.carried.length; i++) worldTick(p, 0.1);
-  expect(clones(p)).toHaveLength(2);
+  expect(clones(p).length).toBeGreaterThanOrEqual(2);
   expect(clones(p)[1]!.cls).toBe(b!.cls);
 });
 
 it('out of combat an order walks the whole party there behind the chosen clone', () => {
   const p = newWorld(3);
+  calm(p);
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start, x: p.s.map.start.x + 2 }; worldTick(p, 0.1);

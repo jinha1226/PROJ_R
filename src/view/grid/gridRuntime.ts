@@ -93,8 +93,8 @@ export class GridRuntime {
     this.pixel = new PixelPass(this.h.renderer, 2);
     if (!theme && !world) kit.tint(look.tint);
     this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
-    // daylight on the open land
-    if (world) { this.hemi.color.set('#e4ecff'); this.hemi.groundColor.set('#4a4030'); this.hemi.intensity = 1.05; this.light.intensity = 0.6; sun.intensity = 0; }
+    // the occupied world is dark: dim moonlight, a lamp round the party, and the land's own fires
+    if (world) { this.hemi.color.set('#7884b4'); this.hemi.groundColor.set('#241c18'); this.hemi.intensity = 0.62; this.light.color.set('#e4eaff'); this.light.intensity = 4.5; this.light.distance = 9; sun.intensity = 0; }
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
     if (theme) { this.intro = new ShipIntro(this.stationAt.get('st-pod'), this.stationAt.get('st-hatch'), theme.meta.best === 0); scene.add(this.intro.root); }
     if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.62; this.light.color.set('#b7eaff'); this.light.intensity = 3; }

@@ -25,7 +25,7 @@ export class WorldFog {
     this.tex.needsUpdate = true;
   }
 
-  /** Teaches a material to darken itself by the cell it is drawn over (and, for the ground, to tint claimed land). */
+  /** Teaches a material to darken itself by the cell it is drawn over, and to go ashen on land the demon army still holds. */
   apply<T extends THREE.Material>(mat: T, tint = false): T {
     mat.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, this.uniforms);
@@ -42,7 +42,9 @@ export class WorldFog {
         .replace('#include <common>', '#include <common>\nvarying vec2 vFogUv;\nuniform sampler2D uFog;')
         .replace('#include <dithering_fragment>', `#include <dithering_fragment>
           vec4 fogC = texture2D(uFog, vFogUv);
-          ${tint ? 'gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * vec3(0.8, 1.05, 1.25) + vec3(0.0, 0.03, 0.06), fogC.g * 0.55);' : ''}
+          // land the demon army holds is ashen and cold; claimed land keeps its colour
+          vec3 ash = vec3(dot(gl_FragColor.rgb, vec3(0.3, 0.59, 0.11))) * vec3(0.86, 0.8, 0.88);
+          gl_FragColor.rgb = mix(mix(gl_FragColor.rgb, ash, 0.5), gl_FragColor.rgb${tint ? ' * 1.08' : ''}, fogC.g);
           gl_FragColor.rgb *= 1.0 - fogC.a;`);
     };
     mat.customProgramCacheKey = () => `worldFog${tint ? 'T' : ''}`;
