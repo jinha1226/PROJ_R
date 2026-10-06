@@ -1,6 +1,6 @@
-import { newDelve } from '../sim/delve/delveSim';
+import { departSurface, returnToSurface } from '../sim/base/trips';
 import { newSurface, type WorldParty } from '../sim/overworld/worldSim';
-import { placeParty, type Carry } from '../sim/roam/carry';
+import type { Carry } from '../sim/roam/carry';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
 import type { DungeonKit } from '../view/grid/dungeonKit';
 import type { UalLibrary } from '../view/grid/ualActor';
@@ -38,14 +38,15 @@ export class Expedition {
   /** On the surface by the pod (landing: the pod falls in first). */
   private async up(landing = false): Promise<void> {
     const { WorldDemo } = await import('../ui/overworld/worldDemo');
-    this.router.go(new WorldDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party: this.surface, landing, restart: this.restart, nature: this.assets.nature, onDrill: (c) => void this.down(c) }));
+    this.router.go(new WorldDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party: this.surface, landing, restart: this.restart, nature: this.assets.nature, onDrill: (c, floor) => void this.down(c, floor) }));
   }
 
-  /** Down the shaft: a fresh first floor each trip. */
-  private async down(c: Carry): Promise<void> {
+  /** Down the shaft: a fresh chosen start floor each trip. */
+  private async down(c: Carry, floor = 1): Promise<void> {
     const { DelveDemo } = await import('../ui/delve/delveDemo');
+    const party = departSurface(this.surface, this.seed * 131 + this.trips + 1, { ...c, foundHeroes: [] }, floor);
+    if (!party) return;
     this.trips++;
-    const party = newDelve(this.seed * 131 + this.trips, 1, { ...c, foundHeroes: [] });
-    this.router.go(new DelveDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart, onAscend: (back) => { placeParty(this.surface, back); void this.up(); } }));
+    this.router.go(new DelveDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart, onAscend: (back) => { returnToSurface(this.surface, back); void this.up(); } }));
   }
 }

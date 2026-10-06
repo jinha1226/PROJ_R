@@ -72,7 +72,7 @@ export class WorldDemo implements Screen {
    * opts.party: an expedition's surface (kept between trips); landing: the pod falls in first; onDrill: the party goes down the shaft;
    * restart: the expedition starts over (else the demo makes a new world).
    */
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry) => void; restart?: () => void; nature?: NatureKit } = {}) {
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry, floor?: number) => void; restart?: () => void; nature?: NatureKit } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -171,7 +171,7 @@ export class WorldDemo implements Screen {
       if (e.type === 'buff' && e.text === 'print') { this.message(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
       if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼 소멸');
-      if (e.type === 'dead') { this.message('전멸'); this.over.hidden = false; }
+      if (e.type === 'dead' && e.text !== 'raidLost') { this.message('전멸'); this.over.hidden = false; }
     }
   }
 

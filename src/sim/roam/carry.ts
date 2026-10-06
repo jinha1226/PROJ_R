@@ -5,10 +5,10 @@ import type { CarriedSoul, HeroSoulId } from '../delve/heroSouls';
 import { living, look, type RoamParty } from './roam';
 
 /** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the bio-matter, the next clone's number. */
-export interface Carry { time: number; pack: Item[]; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
+export interface Carry { deepest?: number; time: number; pack: Item[]; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
 
 export function takeParty(p: RoamParty): Carry {
-  return { time: p.time, pack: structuredClone(p.pack), nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: { ...structuredClone(u), shield: 0 }, hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), bio: p.bio, nextClone: p.nextClone };
+  return { deepest: p.deepest, time: p.time, pack: structuredClone(p.pack), nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: { ...structuredClone(u), shield: 0 }, hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), bio: p.bio, nextClone: p.nextClone };
 }
 
 /** Puts a party that came up or down the shaft beside the map's start (the first clone keeps the hero's place in the state; if it fell, that slot lies empty off the map). */

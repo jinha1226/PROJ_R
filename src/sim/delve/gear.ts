@@ -84,6 +84,10 @@ export function unequip(p: RoamParty, heroId: string, slot: ItemDef['slot']): bo
     refitGear(p, u);
     return true;
 }
+/** Surface forges improve sacrifice; underground gear keeps the ordinary rate. */
+export function sacrificeRate(p: RoamParty): number {
+    return 'buildings' in p && (p.buildings as { kind: string }[]).some(b => b.kind === 'forge') ? .35 : .25;
+}
 export function sacrifice(p: RoamParty, heroId: string, itemId: string): GEvent[] {
     const u = unitOf(p, heroId), i = p.pack.findIndex(it => it.id === itemId), it = p.pack[i];
     if (!u?.gear || !alive(p, u) || !it || !('def' in it))
@@ -91,10 +95,11 @@ export function sacrifice(p: RoamParty, heroId: string, itemId: string): GEvent[
     const slot = CATALOG[it.def]?.slot, to = slot && u.gear[slot];
     if (!to)
         return [];
-    const n = numbers(it), base = numbers({ ...to, power: 0, bonus: undefined }), gain = (1 + it.power) * .25;
+    const rate = sacrificeRate(p);
+    const n = numbers(it), base = numbers({ ...to, power: 0, bonus: undefined }), gain = (1 + it.power) * rate;
     to.bonus ??= {};
     for (const k of ['min', 'max', 'armor', 'block'] as const)
-        to.bonus[k] = (to.bonus[k] ?? 0) + n[k] * .25 - base[k] * gain;
+        to.bonus[k] = (to.bonus[k] ?? 0) + n[k] * rate - base[k] * gain;
     to.power += gain;
     p.pack.splice(i, 1);
     refitGear(p, u);

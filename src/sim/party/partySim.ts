@@ -76,7 +76,7 @@ export function promote(p: Party, id: string): GEvent[] {
 
 /** A unit's own moment: follow a move order (then hold there), else fight — close in, or keep range and shoot. */
 function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
-  const special = foeTurn(p, u, t, ev);
+  const special = p.foeAction?.(u, t, ev) ?? foeTurn(p, u, t, ev);
   if (special !== undefined) return special;
   const e = entOf(p, u.id)!, st = stats(u, t);
   if (u.order?.kind === 'move') {

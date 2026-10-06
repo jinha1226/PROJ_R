@@ -15,6 +15,8 @@ export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean; h
 
 /** A party that roams a map (the land above or a dungeon floor): souls to find, clones printed at its base. */
 export interface RoamParty extends Party {
+  /** Deepest floor visited, carried across shaft trips. */
+  deepest?: number;
   pack: Item[]; nextItem: number;
   souls: Soul[];
   /** souls picked up by clones that already had one, waiting for a body at the base */

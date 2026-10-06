@@ -60,6 +60,7 @@ export interface Unit {
   manualSkills?: boolean;
 }
 export interface Party {
+  foeAction?: (u: Unit, t: number, ev: GEvent[]) => number | undefined;
   grounds?: {at:Cell;by:string;until:number;next:number}[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
   beforeStep?: (u: Unit, t: number, ev: GEvent[]) => void;
