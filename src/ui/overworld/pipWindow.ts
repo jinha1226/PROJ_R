@@ -15,7 +15,7 @@ export class PipWindow {
   private who = '';
 
   constructor(private readonly p: () => RoamParty, private readonly onClose: () => void) {
-    this.el.className = 'pip-win';
+    this.el.className = 'pip-win pip-main';
     this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
