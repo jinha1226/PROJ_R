@@ -12,6 +12,8 @@ export function setupRooms(p: DelveParty, f: DelveFloor): void {
   const rng = createRng((p.seed ^ 0x73ae) + p.floor * 977);
   p.rooms = f.rooms; p.chests = f.chests.map((c) => ({ ...c, opened: false }));
   p.oreNodes = f.ore.map((pos) => ({ pos, left: rng.int(2, 2), progress: 0 }));
+  // the view draws these pillars as ore rock
+  p.s.map.ore = f.ore.map((c) => ({ ...c }));
   p.shrine = f.shrine ? { pos: f.shrine, used: false } : undefined;
   p.floorItems = []; p.boss = f.boss; p.roomTime = p.time; p.lootReaped = new Set(); p.handledMoves = new WeakSet();
   for (const u of living(p)) if (u.hero && !p.foundHeroes.includes(u.hero)) p.foundHeroes.push(u.hero);

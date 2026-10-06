@@ -35,6 +35,8 @@ export interface GridMap {
   stairs?: Cell;
   /** hidden traps */
   traps?: Trap[];
+  /** ore veins (dungeon party floors): pillar cells drawn as ore rock and mined away */
+  ore?: Cell[];
 }
 export type TrapKind = 'spike' | 'alarm' | 'poison' | 'fire' | 'teleport' | 'net';
 export interface Trap { pos: Cell; kind: TrapKind; found: boolean }

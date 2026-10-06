@@ -24,6 +24,7 @@ import { WorldHud } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
 import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
 import { DelveMinimap } from './delveMinimap';
+import { DelveProps } from '../../view/delve/delveProps';
 import { TouchPad } from '../overworld/touchPad';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
@@ -53,6 +54,7 @@ export class DelveDemo implements Screen {
   private picker!: TraitPicker;
   private menu!: OptionsMenu;
   private pad!: TouchPad;
+  private props: DelveProps | null = null;
   private mini!: DelveMinimap;
   private log = new WorldLog();
   private sel = 'hero';
@@ -128,6 +130,7 @@ export class DelveDemo implements Screen {
         this.live(delveTick(this.p, dt * RATE * this.speed * slow), t0);
       }
       this.pad.update(dt);
+      this.props?.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
@@ -162,6 +165,8 @@ export class DelveDemo implements Screen {
     for (const e of ev) {
       if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, this.mode === 'realtime');
       if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', this.mode === 'realtime');
+      if (e.type === 'telegraph' && e.to) { this.props?.slam(e.to, e.amount ?? 2); this.hud.toast('내려찍기!'); }
+      if (e.type === 'victory') this.hud.toast('마왕군 장군 처치');
       if (e.type === 'levelUp') this.hud.toast(`${this.name(e.src!)} 레벨 ${e.amount}`);
       if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
@@ -208,6 +213,9 @@ export class DelveDemo implements Screen {
     this.rt.pixelated = false;
     // a light touch of glow: torches and lamps bleed a little, nothing blows out
     this.rt.enableBloom({ strength: 0.32, radius: 0.35, threshold: 0.86 });
+    this.props?.dispose();
+    this.props = new DelveProps(() => this.p);
+    this.rt.addOverlay(this.props.root);
     this.rt.focusId = this.sel;
     this.pace();
   }
@@ -323,7 +331,7 @@ export class DelveDemo implements Screen {
   private drawHud(): void {
     const p = this.p, turn = this.mode === 'turn';
     const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
-    const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${p.bio}/${BODY_COST}</b></span>${p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : ''}`;
+    const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${p.bio}/${BODY_COST}</b></span>${p.ore ? `<span>광석 <b>${p.ore}</b></span>` : ''}${p.crystal ? `<span class="soul">마정석 <b>${p.crystal}</b></span>` : ''}${p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : ''}`;
     this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn });
   }
 }
