@@ -12,7 +12,7 @@ const DEADZONE = 14;
  */
 export class TouchPad {
   readonly el = document.createElement('div');
-  private readonly zone: HTMLElement;
+  readonly zone: HTMLElement;
   private readonly knob: HTMLElement;
   private readonly base: HTMLElement;
   private dirNow: { x: number; y: number } | null = null;
@@ -47,6 +47,8 @@ export class TouchPad {
       this.zone.classList.remove('on');
     };
     this.zone.addEventListener('pointerdown', (e) => {
+      // a second finger: a pinch, not a push
+      if (this.origin) { this.cancel(); return; }
       this.zone.setPointerCapture(e.pointerId);
       const r = this.zone.getBoundingClientRect();
       this.origin = { x: e.clientX, y: e.clientY };
@@ -67,6 +69,12 @@ export class TouchPad {
       if (k === 'stat') a.stat();
       if (k === 'explore') a.explore?.();
     });
+  }
+
+  /** lets go of the stick without a step or a tap (a pinch began) */
+  cancel(): void {
+    this.origin = null; this.dirNow = null; this.knob.style.transform = '';
+    this.zone.classList.remove('on');
   }
 
   /** a held stick keeps stepping */

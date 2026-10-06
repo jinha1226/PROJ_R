@@ -20,24 +20,29 @@ export class Pinch {
   private pinched = false;
   private moved = false;
 
-  constructor(stage: HTMLElement, private readonly zoom: () => number, private readonly setZoom: (z: number) => void) {
-    stage.addEventListener('pointerdown', (e) => {
+  /** also: other surfaces over the field that take touches (the stick's zone), so a pinch with a finger on them still counts; `onPinch` when two fingers land */
+  constructor(stage: HTMLElement, private readonly zoom: () => number, private readonly setZoom: (z: number) => void, also: HTMLElement[] = [], onPinch?: () => void) {
+    const down = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return;
       if (!this.pts.size) { this.pinched = false; this.moved = false; }
       this.pts.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
-      if (this.pts.size === 2) { this.startDist = this.spread(); this.startZoom = this.zoom(); this.pinched = true; }
-    });
-    stage.addEventListener('pointermove', (e) => {
+      if (this.pts.size === 2) { this.startDist = this.spread(); this.startZoom = this.zoom(); this.pinched = true; onPinch?.(); }
+    };
+    const move = (e: PointerEvent) => {
       const p = this.pts.get(e.pointerId);
       if (!p) return;
       p.x = e.clientX; p.y = e.clientY;
       // a thumb drifts as it taps: only a real drag (beyond ~a fingertip) stops a tap counting
       if (Math.hypot(p.x - p.x0, p.y - p.y0) > 28) this.moved = true;
       if (this.pts.size === 2 && this.startDist > 0) this.setZoom(this.startZoom * (this.startDist / Math.max(20, this.spread())));
-    });
+    };
     const up = (e: PointerEvent) => { this.pts.delete(e.pointerId); if (this.pts.size < 2) this.startDist = 0; };
-    stage.addEventListener('pointerup', up);
-    stage.addEventListener('pointercancel', up);
+    for (const el of [stage, ...also]) {
+      el.addEventListener('pointerdown', down);
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+    }
     stage.style.touchAction = 'none';
   }
 

@@ -1,7 +1,7 @@
 import { BuildMode } from './buildMode';
 import { RaidBar, overPanel, raidNote, tryOutState } from './raidBar';
 import { QuickSlots } from './quickSlots';
-import { AutoExplore } from '../delve/explore';
+import { AutoExplore, exploreWants } from '../delve/explore';
 import { PlacePrompts, soulPrompt, type Prompt } from './placePrompt';
 
 /** how near the pod a clone must stand for its build button to show */
@@ -131,7 +131,7 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.quick.el);
     this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
-    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
+    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
     // a pointer-up that ends a pinch or a drag is not a click
     this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
@@ -161,7 +161,7 @@ export class WorldScreen implements Screen {
       this.build.update();
       this.raidBar.update();
       this.quick.update();
-      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.message(t)); }
+      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.message(t), exploreWants(this.p)); }
       this.prompts.update(this.rt, this.placePrompts());
       this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));

@@ -1,12 +1,10 @@
-import { implantCarried } from '../../src/sim/roam/roam';
-import { implant } from '../../src/sim/roam/roam';
 import { expect, it } from 'vitest';
 import { dist } from '../../src/sim/grid/types';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { command } from '../../src/sim/party/partySim';
 import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../src/sim/delve/delveSim';
 import { emit } from '../../src/sim/party/triggers';
-import { clones } from '../../src/sim/roam/roam';
+import { clones, implant, implantCarried, print } from '../../src/sim/roam/roam';
 
 const take = (p: DelveParty, k: number) => { entOf(p, 'hero')!.pos = { ...p.souls[k]!.pos }; clones(p)[0]!.nextAt = p.time + 0.1; delveTick(p, 0.1); implantCarried(p, 'hero', 0); };
 const calm = (p: DelveParty) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
@@ -203,4 +201,23 @@ it('a clone under the hand that walks up to a foe stops at the end of its walk a
   expect(p.waiting).toBe(true);
   expect(ev.some((e) => e.src === 'hero' && (e.type === 'shoot' || e.type === 'bump'))).toBe(false);
   expect(clones(p)[0]!.order).toBeNull();
+});
+
+it('an archer does not roll away from a foe a fighter already holds; it keeps shooting', () => {
+  const p = newDelve(2);
+  take(p, 0);
+  const w = print(p, 'warrior', [])!, we = entOf(p, w.id)!;
+  const f = p.units.find((u) => u.side === 'foe')!, fe = entOf(p, f.id)!;
+  const h = entOf(p, 'hero')!;
+  const room = p.s.map.rooms[0]!;
+  const y = room.y + Math.floor(room.h / 2), x = room.x + 2;
+  h.pos = { x, y }; fe.pos = { x: x + 1, y }; we.pos = { x: x + 2, y };
+  fe.hp = 999; f.asleep = false; f.nextAt = 999; w.nextAt = 999;
+  let rolls = 0, shots = 0;
+  for (let i = 0; i < 60; i++) {
+    const ev = delveTick(p, 0.1);
+    rolls += ev.filter((e) => e.src === 'hero' && e.text === 'roll').length;
+    shots += ev.filter((e) => e.src === 'hero' && e.type === 'shoot').length;
+  }
+  expect(rolls).toBe(0); expect(shots).toBeGreaterThan(1);
 });

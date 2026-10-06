@@ -119,8 +119,10 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     return 0.5;
   }
   const tp = posOf(p, target), d = dist(e.pos, tp);
-  // a ranged clone steps back from a foe at its side now and then (not when told whom to hit, not under the player's hand); else it shoots point-blank
-  if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && t >= (u.rollReady ?? 0)) {
+  // a ranged clone steps back from a foe at its side now and then (not when told whom to hit, not under the player's hand,
+  // not while another clone already stands at that foe holding it); else it shoots point-blank
+  const held = p.units.some((x) => x.side === u.side && x !== u && alive(p, x) && dist(posOf(p, x), tp) <= 1);
+  if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && !held && t >= (u.rollReady ?? 0)) {
     u.rollReady = t + 3;
     const away = DIRS.map((dir) => ({ x: e.pos.x + dir.x, y: e.pos.y + dir.y })).filter((c) => walkable(tileAt(p.s.map, c)) && !occupied(p, c, u.id) && dist(c, tp) > 1 && canStep(p.s.map, e.pos, { x: c.x - e.pos.x, y: c.y - e.pos.y }));
     if (away[0]) { ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...away[0] }, text: 'roll' }); e.pos = away[0]; u.moved=true;u.still=0;u.retreatShot=true;emit(p,'moved',{t,src:u,ev});return st.move; }

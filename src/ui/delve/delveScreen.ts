@@ -9,7 +9,7 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from '../overworld/targetCard';
 import { tapCell } from './tapCell';
 import { MiningCue } from './miningCue';
-import { AutoExplore } from './explore';
+import { AutoExplore, exploreWants } from './explore';
 import { QuickSlots } from '../overworld/quickSlots';
 import { PlacePrompts, soulPrompt, type Prompt } from '../overworld/placePrompt';
 import { command, promote } from '../../sim/party/partySim';
@@ -119,7 +119,7 @@ export class DelveScreen implements Screen {
     this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
-    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
+    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
     // a pointer-up that ends a pinch or a drag is not a click
     this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
@@ -148,7 +148,7 @@ export class DelveScreen implements Screen {
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.miningCue.update(this.p, this.rt);
       this.quick.update();
-      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.hud.toast(t)); }
+      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.hud.toast(t), exploreWants(this.p)); }
       this.placePrompts();
       this.marks();
       this.labels();

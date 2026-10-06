@@ -173,6 +173,8 @@ export class Vfx {
       const l = fx.layers[k]!;
       if (l.tinted) this.colorize(ps, tint ? [tint, '#' + new THREE.Color(tint).multiplyScalar(0.6).getHexString()] : l.colors);
       ps.emitter.position.set(at.x, l.y ?? 0, at.z);
+      // the burst is born from the emitter's world matrix on the next update, before the frame refreshes it: refresh it now
+      ps.emitter.updateMatrixWorld(true);
       ps.restart();
     });
   }
