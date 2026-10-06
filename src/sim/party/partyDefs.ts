@@ -48,8 +48,9 @@ export const SKILLS: Record<SkillId, { name: string; cd: number }> = {
   frenzy: { name: '광분', cd: 10 }, aimed: { name: '조준 사격', cd: 7 },
 };
 
-export type FoeId = 'goblin' | 'archer' | 'brute';
+export type FoeId = 'goblin' | 'archer' | 'brute' | 'warlord';
 export const FOES: Record<FoeId, { hp: number; dmg: [number, number]; range: number; atk: number; move: number }> = {
+  warlord: { hp: 260, dmg: [10, 14], range: 1, atk: 1.5, move: 1 },
   goblin: { hp: 22, dmg: [3, 5], range: 1, atk: 1.0, move: 0.8 },
   archer: { hp: 16, dmg: [3, 5], range: 6, atk: 1.3, move: 1.0 },
   brute: { hp: 48, dmg: [7, 10], range: 1, atk: 1.6, move: 1.0 },

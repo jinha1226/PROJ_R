@@ -43,7 +43,7 @@ function spawnWave(p: Party): void {
   const front = free(FRONT), back = free(BACK);
   WAVES[p.wave]!.forEach((kind: FoeId, i) => {
     const pos = (kind === 'archer' ? back.shift() ?? front.shift() : front.shift() ?? back.shift()) ?? { x: 12, y: 1 + (i % 8) };
-    const e = spawnFoe(p.s, kind === 'goblin' ? 'minion' : kind, pos, true);
+    const e = spawnFoe(p.s, kind === 'goblin' ? 'minion' : kind === 'warlord' ? 'champion' : kind, pos, true);
     e.hp = e.maxHp = FOES[kind].hp;
     p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, nextAt: p.time + 0.2 * i });
   });
@@ -128,12 +128,14 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
 
 /** One unit's moment: a companion may reach for a skill, a queued skill goes off (it waits while it has no target in reach), else its usual action. */
 function moment(p: Party, u: Unit, ev: GEvent[]): void {
+  const start = ev.length;
   if (p.roam && u.side === 'hero' && u.id !== p.manual && !u.manualSkills) autoSkill(p, u);
   if (u.queued !== undefined && p.time >= u.ready[u.queued]) {
     const cast = useSkill(p, u.id, u.queued);
-    if (cast.length) { u.queued = undefined; ev.push(...cast); return; }
+    if (cast.length) { u.queued = undefined; ev.push(...cast); p.onMovement?.(ev.slice(start), ev); return; }
   }
   u.nextAt = p.time + turn(p, u, p.time, ev);
+  p.onMovement?.(ev.slice(start), ev);
 }
 
 /**
@@ -185,5 +187,6 @@ export function command(p: Party, c: Command): GEvent[] {
     if (c.kind === 'attack') u.order = null;
   }
   p.waiting = false;
+  p.onMovement?.([...ev], ev);
   return ev;
 }

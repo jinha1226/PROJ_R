@@ -84,7 +84,11 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
       const tp = posOf(p, tg);
       const spot = dist(me.pos, tp) === 1 ? me.pos : DIRS.map((d) => ({ x: tp.x + d.x, y: tp.y + d.y })).filter((c) => walkable(tileAt(p.s.map, c)) && !occupied(p, c, id)).sort((a, b) => dist(b, me.pos) - dist(a, me.pos))[0];
       if (!spot) return [];
-      if (!same(spot, me.pos)) { ev.push({ t, type: 'teleport', src: id, from: { ...me.pos }, to: { ...spot } }); me.pos = { ...spot }; }
+      if (!same(spot, me.pos)) {
+        const move: GEvent = { t, type: 'teleport', src: id, from: { ...me.pos }, to: { ...spot } };
+        ev.push(move); me.pos = { ...spot }; p.onMovement?.([move], ev);
+        if (!alive(p, u)) return ev;
+      }
       strike(p, u, tg, t + 0.05, ev, 2, false);
       break;
     }

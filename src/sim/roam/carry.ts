@@ -1,14 +1,14 @@
 import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
 import { alive, entOf, type Unit } from '../party/partyCore';
-import type { BaseClass } from '../party/partyDefs';
+import type { CarriedSoul, HeroSoulId } from '../delve/heroSouls';
 import { living, look, type RoamParty } from './roam';
 
 /** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the bio-matter, the next clone's number. */
-export interface Carry { pack: Item[]; potions: number; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: BaseClass[]; bio: number; nextClone: number }
+export interface Carry { pack: Item[]; potions: number; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
 
 export function takeParty(p: RoamParty): Carry {
-  return { pack: structuredClone(p.pack), potions: p.potions, nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: structuredClone(u), hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), carried: [...p.carried], bio: p.bio, nextClone: p.nextClone };
+  return { pack: structuredClone(p.pack), potions: p.potions, nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: structuredClone(u), hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), bio: p.bio, nextClone: p.nextClone };
 }
 
 /** Puts a party that came up or down the shaft beside the map's start (the first clone keeps the hero's place in the state; if it fell, that slot lies empty off the map). */
@@ -26,7 +26,8 @@ export function placeParty(p: RoamParty, c: Carry): void {
   });
   p.units = [...heroes, ...p.units];
   p.pack = structuredClone(c.pack); p.potions = c.potions; p.nextItem = c.nextItem;
-  p.carried = [...c.carried]; p.bio = c.bio; p.nextClone = c.nextClone;
+  p.ore = c.ore; p.crystal = c.crystal; p.foundHeroes = [...c.foundHeroes];
+  p.carried = structuredClone(c.carried); p.bio = c.bio; p.nextClone = c.nextClone;
   p.combat = false; p.waiting = false; p.manual = undefined; p.over = false; p.rewakeAt = undefined;
   p.leader = c.clones[0]?.unit.id ?? 'hero';
   look(p);

@@ -27,7 +27,7 @@ it('only an arrival without a classed clone gets the first-floor tutorial archer
   const armed = newDelve(9, 1, takeParty(source));
   for (const p of [bare, armed, newDelve(9, 2)]) {
     const f = generateFloor(p.seed, p.floor);
-    for (let i = p === bare ? 1 : 0; i < p.souls.length; i++) expect(f.rooms.some((r, j) => r.kind === 'normal' && inside(p, i, j))).toBe(true);
+    for (let i = p === bare ? 1 : 0; i < p.souls.length; i++) if (!p.souls[i]!.hero) expect(f.rooms.some((r, j) => r.kind === 'normal' && inside(p, i, j))).toBe(true);
   }
   const a = newDelve(9, 4), b = newDelve(9, 4);
   expect(a.s.map).toEqual(b.s.map); expect(a.souls).toEqual(b.souls);

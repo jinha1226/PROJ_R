@@ -1,3 +1,4 @@
+import type { HeroSoulId } from '../delve/heroSouls';
 import { G, type Loadout } from '../delve/gear';
 import { basicHit, engravingMult, guardLink } from './partyEngrave';
 import { shotClear } from '../grid/combat';
@@ -9,6 +10,7 @@ import { PROMOTE_LEVEL, T, type TraitId } from './partyTraits';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
+  name?: string; hero?: HeroSoulId;
   gear?: Loadout;
   echoPending?: boolean;
   exposedUntil?: number; markUntil?: number; markBy?: string;
@@ -26,7 +28,7 @@ export interface Unit {
   /** kills that count toward this hero's advanced class */
   progress: number; promoteReady?: boolean;
   /** a camp foe that has not noticed the party yet (takes no turns) */
-  asleep?: boolean;
+  asleep?: boolean; alertUntil?: number;
   /** the camp a foe belongs to (they wake together) */
   group?: number;
   /** the soul a hero carries (what drops where it falls) */
@@ -45,6 +47,9 @@ export interface Unit {
   manualSkills?: boolean;
 }
 export interface Party {
+  onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
+  beforeStep?: (u: Unit, t: number, ev: GEvent[]) => void;
+  avoidTraps?: boolean;
   s: GridState; units: Unit[]; time: number; wave: number;
   /** on the world map: false while no awake foe is near (orders then move the whole party; arrival does not hold) */
   combat?: boolean;
@@ -92,7 +97,13 @@ export function targetOf(p: Party, u: Unit, t: number): Unit | undefined {
 /** One step toward `to` along a free path (other bodies block, the goal itself does not). */
 export function stepToward(p: Party, u: Unit, to: Cell, t: number, ev: GEvent[]): boolean {
   const e = entOf(p, u.id)!;
-  const next = findPath(p.s.map, e.pos, to, (c) => occupied(p, c, u.id))?.[0];
+  p.beforeStep?.(u, t, ev);
+  let safeMap = p.s.map;
+  if (p.avoidTraps && u.side === 'hero' && p.s.traps.some((trap) => trap.found)) {
+    safeMap = { ...p.s.map, tiles: [...p.s.map.tiles] };
+    for (const trap of p.s.traps) if (trap.found && !same(trap.pos, e.pos)) safeMap.tiles[idx(safeMap, trap.pos)] = 'wall';
+  }
+  const next = (findPath(safeMap, e.pos, to, (c) => occupied(p, c, u.id)) ?? findPath(p.s.map, e.pos, to, (c) => occupied(p, c, u.id)))?.[0];
   if (!next || occupied(p, next, u.id)) return false;
   ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...next } });
   e.pos = next;
