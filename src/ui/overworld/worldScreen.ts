@@ -276,7 +276,7 @@ export class WorldScreen implements Screen {
     const list: Prompt[] = [];
     if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.drill, label: '▼ 시추공', act: () => this.descend() });
     const nearPod = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, this.p.base) <= POD_REACH; });
-    if (this.p.pod && nearPod && !this.p.raid && !this.build.open) list.push({ at: { x: this.p.base.x + 0.5, y: this.p.base.y + 0.5 }, label: '⚒ 건설', act: () => this.build.toggle() });
+    if (this.p.pod && nearPod && !this.landing && !this.p.raid && !this.build.open) list.push({ at: { x: this.p.base.x + 0.5, y: this.p.base.y + 0.5 }, label: '⚒ 건설', act: () => this.build.toggle() });
     return list;
   }
 
