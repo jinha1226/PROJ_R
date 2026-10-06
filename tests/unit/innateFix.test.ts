@@ -82,3 +82,10 @@ it('guardian redirects thirty percent only when its effect executes', () => {
   };
   expect(run(false)).toEqual([28,9]);expect(run(true)).toEqual([40,0]);
 });
+it('full-health leech is a no-op even before lowHp bookkeeping is initialized', () => {
+  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1,openWound:1};delete u.lowHp;
+  u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
+  u.triggers=[0,1].map(i=>({id:`actual${i}`,when:'hit' as const,run:()=>{u.progress++;}}));
+  const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,ev});});
+  expect(f.status.bleed).toBeDefined();expect(ev.some(e=>e.text==='흡혈')).toBe(false);
+});
