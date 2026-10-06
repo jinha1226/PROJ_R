@@ -8,6 +8,7 @@ import { buildSuitArmor, lightSuit } from './suitArmor';
 import { addOutlines, toonMat, type FigureMat } from './toon';
 import { shapeBones, type BodyShape, type Species } from './species';
 import { buildSpeciesParts } from './speciesParts';
+import { OutfitKit, type OutfitLook } from './outfitKit';
 
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
@@ -16,7 +17,7 @@ export type UalAnim = 'idle' | 'run' | 'roll' | 'swing' | 'jab' | 'bash' | 'scra
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
 export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string;
   /** run with the whole jog (arms swinging) instead of legs under a held stance */
-  fullRun?: boolean; block?: BlockLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
+  fullRun?: boolean; block?: BlockLook; outfit?: OutfitLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
@@ -30,10 +31,11 @@ const SWINGS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_
 
 /** The Quaternius mannequin and its animation clips, loaded once. */
 export class UalLibrary {
-  private constructor(private readonly scene: THREE.Group, readonly clips: Map<string, THREE.AnimationClip>, readonly scale: number) {}
+  private constructor(private readonly scene: THREE.Group, readonly clips: Map<string, THREE.AnimationClip>, readonly scale: number, readonly outfits?: OutfitKit) {}
 
   static async load(baseUrl: string): Promise<UalLibrary> {
-    const g = await new GLTFLoader().loadAsync(`${baseUrl}assets/models/ual/ual.glb`);
+    // clothes are optional: without them figures stay bare mannequins
+    const [g, outfits] = await Promise.all([new GLTFLoader().loadAsync(`${baseUrl}assets/models/ual/ual.glb`), OutfitKit.load(baseUrl).catch(() => undefined)]);
     const size = new THREE.Box3().setFromObject(g.scene).getSize(new THREE.Vector3());
     // some clips carry root motion (a swing lunges 0.8 m forward): figures stay on their cell, so the root never travels
     for (const a of g.animations) for (const t of a.tracks) {
@@ -51,7 +53,7 @@ export class UalLibrary {
       const c = clips.get(idle);
       if (c) clips.set(`${idle}__upper`, new THREE.AnimationClip(`${idle}__upper`, c.duration, c.tracks.filter((t) => !isLeg(t))));
     }
-    return new UalLibrary(g.scene, clips, HEIGHT / Math.max(0.01, size.y));
+    return new UalLibrary(g.scene, clips, HEIGHT / Math.max(0.01, size.y), outfits);
   }
 
   spawn(): THREE.Object3D {
@@ -118,6 +120,7 @@ export class UalActor {
     // the agent's armour plates (`armor: false` leaves the bare suit)
     if (look.suit && look.armor !== false) { const parts = buildSuitArmor(model); this.mats.push(...parts.mats); this.lamps = parts.lights; }
     if (look.species) this.mats.push(...buildSpeciesParts(model, look.species, look.body));
+    if (look.outfit && lib.outfits) this.mats.push(...lib.outfits.dress(model, look.outfit, look.body, '#ffcf9a', 0.4));
     if (look.shape) {
       const { bones, spine } = shapeBones(model, look.shape);
       this.shaped = bones;
