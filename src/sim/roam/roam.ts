@@ -39,6 +39,8 @@ export interface RoamParty extends Party {
 
 /** how far a sleeping band notices the party */
 export const NOTICE = 6;
+/** how long a band that has just spotted the party takes before its first move */
+export const REACT = 1;
 /** an awake foe farther than this from every clone gives up */
 const LEASH = 12;
 /** living clones at once */
@@ -161,7 +163,9 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   }
   for (const g of woke) {
     const band = p.units.filter((f) => f.side === 'foe' && f.group === g && alive(p, f));
-    band.forEach((f, i) => { f.asleep = false; f.nextAt = t + 0.2 * i; });
+    // spotting the party, a band takes a beat to react; the clones that walked in may act at once (no free first blow from behind a door)
+    band.forEach((f, i) => { f.asleep = false; f.nextAt = Math.max(f.nextAt, t + REACT + 0.2 * i); });
+    for (const u of living(p)) u.nextAt = Math.min(u.nextAt, t);
     ev.push({ t, type: 'wake', src: band[0]!.id, text: String(g) });
   }
   for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH && t >= (f.alertUntil ?? 0)) f.asleep = true;

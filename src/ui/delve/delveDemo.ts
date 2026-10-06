@@ -271,6 +271,7 @@ export class DelveDemo implements Screen {
   private nudge(dx: number, dy: number): void {
     const e = entOf(this.p, this.sel);
     if (!e?.alive || this.pip.open || this.picker.open) return;
+    this.paused = false;
     const c = { x: e.pos.x + dx, y: e.pos.y + dy };
     if (!walkable(tileAt(this.p.s.map, c)) || this.unitAt(c)) return;
     if (this.myTurn) this.live(command(this.p, { kind: 'move', cell: c }));
@@ -304,6 +305,8 @@ export class DelveDemo implements Screen {
     const at = this.unitAt(c);
     if (at?.side === 'hero') { this.select(at.id); return; }
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
+    // an order given while stopped sets the game going again (a phone has no Space key)
+    this.paused = false;
     // a tap on an ore vein, a chest or a wall goes to stand beside it (that is what works a vein or opens a chest)
     const from = entOf(this.p, this.sel)?.pos, to = from && !at ? tapCell(this.p.s.map, from, c, (n) => !this.unitAt(n)) : null;
     if (this.myTurn) {

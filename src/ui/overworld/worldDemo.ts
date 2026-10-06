@@ -205,7 +205,8 @@ export class WorldDemo implements Screen {
   private autoPause(): void {
     for (const id of this.ids()) {
       const e = entOf(this.p, id)!;
-      if (e.hp < e.maxHp * 0.35) this.alert(`${id}:low${this.p.combat ? Math.floor(this.p.time / 60) : ''}`, `${this.name(id)} 위험`);
+      // danger stops the game only in a fight: walking about hurt (say, just up from below) is no emergency
+      if (this.p.combat && e.hp < e.maxHp * 0.35) this.alert(`${id}:low${this.p.combat ? Math.floor(this.p.time / 60) : ''}`, `${this.name(id)} 위험`);
       else if (unitOf(this.p, id)!.promoteReady) this.alert(`${id}:promo`, `${this.name(id)} 전직 가능`);
     }
   }
@@ -213,7 +214,8 @@ export class WorldDemo implements Screen {
   private alert(key: string, text: string): void {
     if (this.warned.has(key)) return;
     this.warned.add(key);
-    this.paused = true;
+    // a notice only stops the game in a fight; out of one (say, a promotion ready) it is just said
+    if (this.p.combat) this.paused = true;
     this.message(text);
   }
 
@@ -255,6 +257,8 @@ export class WorldDemo implements Screen {
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
     const me = unitOf(this.p, this.sel);
     if (!me || !entOf(this.p, me.id)?.alive) return;
+    // an order given while stopped sets the game going again (a phone has no Space key)
+    this.paused = false;
     if (at) me.order = { kind: 'attack', target: at.id };
     else this.walk(c);
   }
@@ -296,6 +300,7 @@ export class WorldDemo implements Screen {
   private nudge(dx: number, dy: number): void {
     const e = entOf(this.p, this.sel);
     if (!e?.alive || this.pip.open || this.picker.open) return;
+    this.paused = false;
     const c = { x: e.pos.x + dx, y: e.pos.y + dy };
     if (walkable(tileAt(this.p.s.map, c)) && !this.unitAt(c)) orderTo(this.p, this.sel, c);
   }

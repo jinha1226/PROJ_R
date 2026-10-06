@@ -109,3 +109,17 @@ it('a clone sent to stand beside an ore vein (holding there) mines it', () => {
   for (let i = 0; i < 40; i++) delveTick(p, 0.1);
   expect(p.ore).toBeGreaterThan(before);
 });
+
+it('a band that spots the party reacts a beat late: the clones get the first move', () => {
+  const p = newDelve(2, 1);
+  const foe = p.units.find((u) => u.side === 'foe' && u.asleep)!;
+  const fe = entOf(p, foe.id)!;
+  entOf(p, 'hero')!.pos = beside(p, fe.pos);
+  unitOf(p, 'hero')!.nextAt = p.time + 0.8;
+  const t = p.time;
+  delveTick(p, 0.05);
+  const band = p.units.filter((u) => u.side === 'foe' && u.group === foe.group);
+  expect(band.every((u) => !u.asleep)).toBe(true);
+  for (const u of band) expect(u.nextAt).toBeGreaterThanOrEqual(t + 0.9);
+  expect(unitOf(p, 'hero')!.nextAt).toBeLessThanOrEqual(p.time + 0.05);
+});

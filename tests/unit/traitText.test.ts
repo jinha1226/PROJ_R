@@ -21,7 +21,7 @@ describe('traitText', () => {
     expect(traitText('finish', 2)).toBe('처치 → 다음 공격 피해 +75%');
     expect(traitText('sprint', 2)).toBe('이동 +20%');
     expect(traitText('sprint', 3)).toBe('이동 +30% · 3단계: 이동 후 첫 피격 회피');
-    expect(traitText('grit', 3)).toBe('죽을 피해를 체력 1로 버팀 (20초)');
-    expect(traitText('immortal', 1)).toBe('죽을 피해 → 3초 무적 (전투당 1회) · 대가: 체력 -25%');
+    expect(traitText('grit', 3)).toBe('죽을 피해를 체력 1로 버팀 (20턴)');
+    expect(traitText('immortal', 1)).toBe('죽을 피해 → 3턴 무적 (전투당 1회) · 대가: 체력 -25%');
   });
 });
