@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../src/sim/delve/delveSim';
 import { takeParty } from '../../src/sim/roam/carry';
-import { clones } from '../../src/sim/roam/roam';
+import { clones, print } from '../../src/sim/roam/roam';
 import { PACK_SIZE } from '../../src/sim/delve/gear';
 
 const calm = (p: DelveParty) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; delveTick(p, 0.1); };
@@ -61,6 +61,7 @@ it('a fallen clone\'s gear lies where it fell; a living clone can pick it up; le
   p.bio = 100; p.printHere = true;
   entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; delveTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start }; for (let i = 0; i < 10; i++) delveTick(p, 0.1);
+  print(p, p.carried.shift(), []);
   const two = clones(p)[1]!;
   const at = { ...entOf(p, two.id)!.pos };
   damage(p, p.time, 'x', two, 999, []);

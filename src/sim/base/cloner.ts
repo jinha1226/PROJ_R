@@ -1,0 +1,22 @@
+import { dist, type GEvent } from '../grid/types';
+import { entOf } from '../party/partyCore';
+import { BASE_REACH, BODY_COST, living, MAX_CLONES, print } from '../roam/roam';
+import type { WorldParty } from '../overworld/worldSim';
+
+/** how near the printer a clone must stand to ask it for a body */
+export const CLONER_REACH = 2;
+
+/** Whether the printer can make an empty body now: a clone stands by it, there is bio-matter for one and room in the party, no fight on, nobody away. */
+export function canPrintClone(p: WorldParty): boolean {
+  const at = p.cloner ?? p.base, reach = p.cloner ? CLONER_REACH : BASE_REACH;
+  return p.printHere && !p.away && !p.raid && !p.combat && p.bio >= BODY_COST && living(p).length < MAX_CLONES
+    && living(p).some((u) => dist(entOf(p, u.id)!.pos, at) <= reach);
+}
+
+/** The player asks the printer for a body: an empty clone wakes beside it (a soul goes in by hand). No events when it cannot. */
+export function printClone(p: WorldParty): GEvent[] {
+  const ev: GEvent[] = [];
+  if (!canPrintClone(p)) return ev;
+  if (print(p, undefined, ev, p.cloner ?? p.s.map.start)) p.bio -= BODY_COST;
+  return ev;
+}

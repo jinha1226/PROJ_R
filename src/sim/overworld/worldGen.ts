@@ -8,7 +8,9 @@ export type Ground = 'grass' | 'forest' | 'tree' | 'rock' | 'water' | 'ford' | '
   /** waist-high things: they stop a step but not a look, and a body tucked behind one is hard to shoot */
   | 'boulder' | 'log' | 'lowWall' | 'barricade' | 'wreck' | 'totem' | 'obelisk' | 'brazier'
   /** the drill rig over the shaft down */
-  | 'drill';
+  | 'drill'
+  /** the clone printer beside the pod */
+  | 'cloner';
 /** what can be crouched behind */
 export const COVER: ReadonlySet<Ground> = new Set(['boulder', 'log', 'lowWall', 'barricade', 'wreck', 'totem', 'obelisk', 'brazier']);
 /** lights that stand on the land itself (camp fires, souls and the ship light themselves) */
@@ -19,14 +21,16 @@ export type { Soul };
 /** a small band away from any camp (no land to take, just a fight) */
 export interface Stray { group: number; pos: Cell }
 export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[]; strays: Stray[];
-  /** the drill rig over the shaft down (the pod's landing ground only) */
+  /** the shaft down: the pod itself (the pod's landing ground only) */
   drill?: Cell;
+  /** the clone printer (the pod's landing ground only) */
+  cloner?: Cell;
   /** a landing pod stands at the base instead of the crashed ship */
   pod?: boolean }
 
 export const WORLD_SIZE = 96;
 export const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor',
-  boulder: 'chasm', log: 'chasm', lowWall: 'chasm', barricade: 'chasm', wreck: 'chasm', totem: 'chasm', obelisk: 'chasm', brazier: 'chasm', drill: 'chasm' };
+  boulder: 'chasm', log: 'chasm', lowWall: 'chasm', barricade: 'chasm', wreck: 'chasm', totem: 'chasm', obelisk: 'chasm', brazier: 'chasm', drill: 'chasm', cloner: 'chasm' };
 /** camps by ring: how many, how far from the base, how strong */
 const RINGS: { n: number; near: number; far: number; tier: 1 | 2 | 3 }[] = [{ n: 3, near: 22, far: 28, tier: 1 }, { n: 3, near: 30, far: 37, tier: 2 }, { n: 2, near: 39, far: 45, tier: 3 }];
 /** lone goblins and pairs wandering near the ship: the first fights, for an empty body or a single soul */
@@ -80,11 +84,13 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
   const camps = opts.pod ? [] : placeCamps(rng, base, set, get);
   for (const c of camps) if (c.tier === 1) road(rng, base, c.pos, set, get);
   const lights = cover(rng, base, ruins, camps, set, get);
-  // a landing pod (2×2) with the drill rig beside it, or the crashed ship lying across the clearing
+  // a landing pod (2×2), or the crashed ship lying across the clearing
   if (opts.pod) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) set({ x: base.x + dx!, y: base.y + dy! }, 'ship');
   else ship(base, set);
-  const drill = opts.pod ? { x: base.x - 3, y: base.y } : undefined;
-  if (drill) set(drill, 'drill');
+  // the pod drills down where it landed (it is the shaft); its lab unfolds beside it, the clone printer first
+  const drill = opts.pod ? { ...base } : undefined;
+  const cloner = opts.pod ? { x: base.x - 3, y: base.y } : undefined;
+  if (cloner) set(cloner, 'cloner');
   const map: GridMap = { w: N, h: N, tiles: ground.map((g) => TILE[g]), rooms: [], start: { x: base.x, y: base.y + 3 }, exits: [], chests: [], spawns: [], barrels: [] };
   // the pod is a small capsule: in the way, but nothing to hide behind (the crashed ship stays a wall)
   if (opts.pod) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) map.tiles[idx(map, { x: base.x + dx!, y: base.y + dy! })] = 'chasm';
@@ -97,7 +103,7 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
   // a soul walled in by rubble still has a way to it
   connect(map, ground, souls.map((x) => x.pos));
   const strays = opts.pod ? [] : placeStrays(rng, map, base, souls);
-  return { map, ground, camps, base, souls, lights, strays, drill, pod: opts.pod };
+  return { map, ground, camps, base, souls, lights, strays, drill, cloner, pod: opts.pod };
 }
 
 /** Lone goblins and pairs in the open near the ship, kept clear of the first souls. */

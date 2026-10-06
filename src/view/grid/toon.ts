@@ -41,7 +41,7 @@ export function withRim<M extends THREE.MeshStandardMaterial>(m: M, rim = '#ffcf
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         { float facing = clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0);
           totalEmissiveRadiance += uRim * pow(1.0 - facing, 3.0); }`);
-    if (flat) sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = diffuseColor.rgb;\n#include <opaque_fragment>');
+    if (flat) sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = diffuseColor.rgb * 0.72;\n#include <opaque_fragment>');
   };
   m.customProgramCacheKey = () => `lit-rim-${rim}-${strength}-${dye}-${flat}`;
   return m;

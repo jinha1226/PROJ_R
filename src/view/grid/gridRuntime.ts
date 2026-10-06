@@ -361,7 +361,7 @@ export class GridRuntime {
   /** Extra things a screen draws in the scene (a dungeon floor's souls, shrine, floor items). */
   addOverlay(o: THREE.Object3D): void { this.h.scene.add(o); }
   /** The pod falls from the sky (the pod's ground only); false if there is no pod. */
-  landPod(): boolean { if (!(this.terrain instanceof WorldTerrain) || !this.terrain.pod) return false; this.terrain.onThump = () => this.fx.shake(0.45, 0.55); this.terrain.pod.land(); return true; }
+  landPod(): boolean { if (!(this.terrain instanceof WorldTerrain) || !this.terrain.pod) return false; this.terrain.onThump = () => this.fx.shake(0.45, 0.55); this.terrain.landPod(); return true; }
   get podLanding(): boolean { return this.terrain instanceof WorldTerrain && !!this.terrain.pod?.landing; }
   /** The glow pass (fires and lamps bleed light), as on the world map. */
   enableBloom(glow?: { strength: number; radius: number; threshold: number }): void { this.bloom ??= new Bloom(this.h.renderer, this.h.scene, this.h.camera, glow); }

@@ -6,7 +6,7 @@ import { clones, type WorldParty } from '../../sim/overworld/worldSim';
 const SHADE: Record<Ground, [number, number, number]> = {
   grass: [70, 110, 50], forest: [45, 75, 38], tree: [30, 60, 30], rock: [100, 96, 90], water: [40, 80, 130], ford: [80, 120, 140],
   dirt: [120, 96, 66], ruin: [110, 100, 88], ruinWall: [90, 84, 76], ship: [150, 200, 230], camp: [120, 90, 56],
-  boulder: [120, 116, 108], log: [100, 76, 50], lowWall: [130, 122, 110], barricade: [110, 80, 50], wreck: [200, 110, 50], totem: [200, 40, 40], obelisk: [220, 40, 60], brazier: [90, 220, 140], drill: [255, 200, 90],
+  boulder: [120, 116, 108], log: [100, 76, 50], lowWall: [130, 122, 110], barricade: [110, 80, 50], wreck: [200, 110, 50], totem: [200, 40, 40], obelisk: [220, 40, 60], brazier: [90, 220, 140], drill: [255, 200, 90], cloner: [90, 220, 255],
 };
 
 /** The explored land at a glance: ground, claimed land, camps (red awake, cyan taken), the party; a click asks for a walk there. */

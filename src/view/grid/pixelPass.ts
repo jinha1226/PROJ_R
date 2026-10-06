@@ -79,7 +79,7 @@ export class PixelPass {
             // figures are drawn clean and bright (no dither, shadows lifted more); the ground sits a touch darker behind them
             vec3 fig = ringAt(vec2(0.0));
             bool isFig = fig.r + fig.g + fig.b >= 0.02;
-            vec3 base = pow(clamp(gl_FragColor.rgb, 0.0, 1.0), vec3(isFig ? lift * 0.62 : lift)) * (isFig ? 1.22 : 0.88);
+            vec3 base = pow(clamp(gl_FragColor.rgb, 0.0, 1.0), vec3(isFig ? lift * 0.8 : lift)) * (isFig ? 1.0 : 0.88);
             vec3 c = base + (bayer(floor(vUv / texel)) - 0.5) * (isFig ? 0.0 : spread * smoothstep(0.03, 0.1, lum));
             vec3 best = pal[0]; float bd = 1e9;
             for (int k = 0; k < PAL_N; k++) {

@@ -47,8 +47,8 @@ export const REACT = 1;
 const LEASH = 12;
 /** living clones at once */
 export const MAX_CLONES = 3;
-/** how near the base a clone must stand for another body to be printed */
-const BASE_REACH = 5;
+/** how near the base a clone must stand for another body to be printed (where there is no printer) */
+export const BASE_REACH = 5;
 /** bio-matter one new body takes */
 export const BODY_COST = 25;
 /** bio-matter a fallen foe leaves (elites twice as much) */
@@ -96,12 +96,12 @@ export function implantCarried(p: RoamParty, id: string, at: number): GEvent[] {
   return ev;
 }
 
-/** A new body at the base: empty, or with a soul. */
-export function print(p: RoamParty, cls: CarriedSoul | undefined, ev: GEvent[]): Unit | undefined {
+/** A new body at the base (or by `near`, the printer): empty, or with a soul. */
+export function print(p: RoamParty, cls: CarriedSoul | undefined, ev: GEvent[], near: Cell = p.s.map.start): Unit | undefined {
   const m = p.s.map, taken = (c: Cell) => p.units.some((u) => alive(p, u) && entOf(p, u.id)!.pos.x === c.x && entOf(p, u.id)!.pos.y === c.y);
   let at: Cell | undefined;
   for (let r = 0; r < 4 && !at; r++) for (let dx = -r; dx <= r && !at; dx++) for (let dy = -r; dy <= r && !at; dy++) {
-    const c = { x: m.start.x + dx, y: m.start.y + dy };
+    const c = { x: near.x + dx, y: near.y + dy };
     if (walkable(tileAt(m, c)) && !taken(c)) at = c;
   }
   if (!at) return undefined;
@@ -130,12 +130,6 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
     const carried: CarriedSoul = soul.hero ? { cls: soul.cls, hero: soul.hero } : soul.cls;
     if (soul.hero && !p.foundHeroes.includes(soul.hero)) p.foundHeroes.push(soul.hero);
     p.carried.push(carried);
-  }
-  // each soul waiting for a body gets an empty one at the base, if there is bio-matter enough; the player puts the soul in
-  const shells = living(p).filter((u) => u.cls === 'shell').length;
-  if (!named && p.printHere && !p.combat && p.carried.length > shells && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
-    p.bio -= BODY_COST;
-    print(p, undefined, ev);
   }
   // the last clone fell: one more empty body if the stuff is there, else it is over
   if (!named && !living(p).length && !p.over) {

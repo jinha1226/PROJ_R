@@ -61,6 +61,7 @@ it('a companion heals the hurt by itself', () => {
   for (const u of p.units) if (u.side === 'foe') u.asleep = true;
   p.combat = false;
   for (let i = 0; i < 20; i++) delveTick(p, 0.1);
+  print(p, p.carried.shift(), []);
   const second = clones(p)[1]!;
   implant(p,second,'cleric',[]); second.ready = [0, 0];
   const f = p.units.find((u) => u.side === 'foe' && entOf(p, u.id)!.alive)!;
@@ -83,6 +84,7 @@ it('down the stairs: a new floor, the living clones come along, the fallen stay 
   for (const u of p.units) if (u.side === 'foe') u.asleep = true;
   p.combat = false;
   for (let i = 0; i < 20; i++) delveTick(p, 0.1);
+  print(p, p.carried.shift(), []);
   calm(p); delveTick(p, 0.1);
   const two = clones(p)[1]!.id;
   expect(canDescend(p)).toBe(false);
@@ -116,7 +118,7 @@ it('when a band notices the party every walk stops where it is', () => {
   expect(hero.order).toBeNull();
 });
 
-it('a carried soul gets no body without bio-matter; foes leave bio-matter when they fall', () => {
+it('a carried soul gets no body by itself, bio-matter or not; foes leave bio-matter when they fall', () => {
   const p = newDelve(2);
   p.printHere = true;
   take(p, 0); take(p, 1);
@@ -131,9 +133,9 @@ it('a carried soul gets no body without bio-matter; foes leave bio-matter when t
   const ev = delveTick(p, 0.1);
   const got = ev.filter((e) => e.type === 'loot' && e.text === 'bio').reduce((n, e) => n + e.amount!, 0);
   expect(got).toBeGreaterThanOrEqual(25);
-  // standing by the lift with enough gathered, the carried soul gets its body at once
-  expect(clones(p)).toHaveLength(2);
-  expect(p.bio).toBe(got - 25);
+  // enough gathered, still nothing is printed until the player asks at the lab
+  expect(clones(p)).toHaveLength(1);
+  expect(p.bio).toBe(got);
 });
 
 it('below ground nobody wakes when the party falls; at the pod one empty body wakes if there is bio-matter, else it is over', () => {

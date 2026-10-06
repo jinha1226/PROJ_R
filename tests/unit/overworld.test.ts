@@ -5,6 +5,7 @@ import { damage, entOf } from '../../src/sim/party/partyCore';
 import { generateWorld, WORLD_SIZE } from '../../src/sim/overworld/worldGen';
 import { clones, newWorld, orderTo, worldTick } from '../../src/sim/overworld/worldSim';
 import { implantCarried } from '../../src/sim/roam/roam';
+import { printClone } from '../../src/sim/base/cloner';
 
 it('near the ship only small strays wait; the nearest camps are small and farther out', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
@@ -82,7 +83,7 @@ it('an empty clone that reaches a soul carries it; the soul goes in when the pla
 
 const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
 
-it('at the ship a waiting soul gets one empty body (bio-matter enough); the player puts the soul in', () => {
+it('at the ship nothing is printed by itself; asked, it prints an empty body and the player puts the soul in', () => {
   const p = newWorld(3);
   calm(p);
   p.bio = 100;
@@ -93,8 +94,9 @@ it('at the ship a waiting soul gets one empty body (bio-matter enough); the play
   worldTick(p, 0.1);
   expect(p.carried).toEqual([b!.cls]);
   orderTo(p, 'hero', p.s.map.start);
-  for (let i = 0; i < 600 && clones(p).length < 2; i++) worldTick(p, 0.1);
-  for (let i = 0; i < 20; i++) worldTick(p, 0.1);
+  for (let i = 0; i < 600; i++) worldTick(p, 0.1);
+  expect(clones(p)).toHaveLength(1);
+  expect(printClone(p).some((e) => e.text === 'print')).toBe(true);
   expect(clones(p)).toHaveLength(2);
   const two = clones(p)[1]!;
   expect(two.cls).toBe('shell'); expect(p.carried).toEqual([b!.cls]);
@@ -108,7 +110,7 @@ it('out of combat an order walks the whole party there behind the chosen clone',
   p.bio = 100;
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; worldTick(p, 0.1);
-  entOf(p, 'hero')!.pos = { ...p.s.map.start, x: p.s.map.start.x + 2 }; worldTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.s.map.start, x: p.s.map.start.x + 2 }; worldTick(p, 0.1); printClone(p);
   const two = clones(p)[1]!.id;
   const goal = { x: p.s.map.start.x + 5, y: p.s.map.start.y + 3 };
   orderTo(p, two, goal);
