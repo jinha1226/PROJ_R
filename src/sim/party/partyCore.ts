@@ -16,7 +16,7 @@ import { T } from './traitMods';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
-  fastNext?: boolean; attackMult?: number; ironGuard?: boolean;
+  fastNext?: boolean; attackMult?: number; ironGuard?: boolean; guardIntercepted?: boolean;
   ultReady: number; ultQueued?: boolean; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   nextCrit?: boolean; dodgeNext?: boolean; furyStacks?: number; furyUntil?: number; furyPower?: number; damageBuff?: number; damageBuffUntil?: number; blinkNext?: boolean; extraAttack?: boolean; attackMoved?: boolean; retreatShot?: boolean; immortalUsed?: boolean;
@@ -154,7 +154,14 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));
     const link = secondary ? undefined : p.units.find(x=>x!==dst&&x.gear?.accessory?.def==='guardOath'&&alive(p,x)&&dist(posOf(p,x),e.pos)<=1) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
-    if (link) { const share = Math.round(amount * 0.3); amount -= share; if (share > 0) { if(link.cls==='guardian') emit(p,'guard',{t,src:link,target:attacker,amount:share,ev}); else damage(p,t,src,link,share,ev,true); } }
+    if (link) {
+      const share = Math.round(amount * 0.3);
+      if (share > 0 && link.cls === 'guardian') {
+        link.guardIntercepted = false;
+        emit(p,'guard',{t,src:link,target:attacker,amount:share,ev});
+        if (link.guardIntercepted) amount -= share;
+      } else if (share > 0) { amount -= share; damage(p,t,src,link,share,ev,true); }
+    }
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
     if(soak>0 && dst.shield===0)shieldBroken(p,dst,t,ev);

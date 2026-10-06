@@ -70,3 +70,15 @@ it('iron plate reduces incoming damage by twenty percent after two stationary at
   u.still=1;expect(gearTaken(u)).toBe(1);u.still=2;emit(p,'still',{t:0,src:u,ev:[]});expect(gearTaken(u)).toBe(.8);
   u.still=0;expect(gearTaken(u)).toBe(1);
 });
+it('guardian redirects thirty percent only when its effect executes', () => {
+  const run=(full:boolean)=>{
+    const p=partyRoom(),guard=p.units[0]!,ally=p.units[1]!,actor=p.units[2]!;
+    guard.cls='guardian';guard.weapon='swordShield';guard.shield=0;ally.shield=0;actor.weapon='fists';
+    entOf(p,ally.id)!.pos={x:3,y:3};entOf(p,actor.id)!.pos={x:1,y:1};
+    actor.triggers=Array.from({length:5},(_,i)=>({id:`budget${i}`,when:'hit' as const,run:()=>{actor.progress++;}}));
+    const hp=entOf(p,ally.id)!.hp,guardHp=entOf(p,guard.id)!.hp;
+    action(p,()=>{if(full)emit(p,'hit',{t:0,src:actor,ev:[]});damage(p,0,'trap',ally,40,[]);});
+    return [hp-entOf(p,ally.id)!.hp,guardHp-entOf(p,guard.id)!.hp];
+  };
+  expect(run(false)).toEqual([28,9]);expect(run(true)).toEqual([40,0]);
+});
