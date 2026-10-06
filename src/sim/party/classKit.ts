@@ -45,7 +45,7 @@ export const KITS: Record<ClassId, Kit> = {
   sniper: kit(extra(archer,{ id: '저격', when: 'hit', run: () => {} }),'pierceShot',35,['bow','crossbow']),
   hunter: kit(extra(archer,{ id: '속박', when: 'hit', chance: 0.25, run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'freeze',c.t,c.ev); } }),'bleedRain',35,['bow','crossbow','dagger']),
   elementalist: kit(extra(mage,{ id: '원소 연쇄', when: 'nth', nth: 3, run: () => {} }),'elementStorm',45,['staff']),
-  necromancer: kit(extra(mage,{ id: '해골', when: 'kill', run: (p,c) => { if(c.target) summon(p,c.src,posOf(p,c.target),c.t,c.ev); } }),'deadHost',45,['staff']),
+  necromancer: kit(extra(mage,{ id: '해골', when: 'kill', run: (p,c) => { if(c.target && !c.target.raised && summon(p,c.src,posOf(p,c.target),c.t,c.ev)) c.target.raised = true; } }),'deadHost',45,['staff']),
   inquisitor: kit(extra(cleric,{ id: '심판', when: 'hit', run: (p,c) => { const a = p.units.filter(x=>x.side==='hero' && alive(p,x)).sort((a,b)=>entOf(p,a.id)!.hp/entOf(p,a.id)!.maxHp-entOf(p,b.id)!.hp/entOf(p,b.id)!.maxHp)[0]; if(a) heal(p,c.src,a,2,c.t,c.ev); } }),'judgement',45,['mace','relic']),
   healer: kit(extra(cleric,{ id: '넘치는 빛', when: 'allyCrisis', run: () => {} }),'longSanctum',45,['mace','relic']),
   assassin: kit(extra(rogue,{ id: '처형술', when: 'hit', run: () => {} }),'deathDance',35,['dagger']),

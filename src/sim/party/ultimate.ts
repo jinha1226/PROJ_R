@@ -51,7 +51,10 @@ function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
         for(const f of foes) if(same(posOf(p,f),c)) damage(p,t,id,f,p.s.rng.int(18,24),ev);
       } break;
     }
-    case 'deadHost': for(const f of p.units.filter(x=>x.side==='foe'&&!alive(p,x))) summon(p,u,posOf(p,f),t,ev,Infinity); break;
+    case 'deadHost':
+      for (const f of p.units.filter(x => x.side === 'foe' && !alive(p,x) && !x.raised && dist(posOf(p,x),me) <= 6))
+        if (summon(p,u,posOf(p,f),t,ev,3)) f.raised = true;
+      break;
     case 'shadowDance': case 'deathDance':
       for(const f of near(me,4).slice(0,ult==='deathDance'?6:4)) {
         if(!alive(p,u)) break;
@@ -72,7 +75,7 @@ export function aiUltimate(p: Party,u: Unit): Cell | undefined | null {
   if(!foes.length) return null;
   if(['sanctum','longSanctum','warcry','bastion'].includes(ult)) return p.units.some(x=>x.side==='hero'&&alive(p,x)&&entOf(p,x.id)!.hp<entOf(p,x.id)!.maxHp/2)||foes.length>=3 ? undefined:null;
   if(['bloodFrenzy','shadowDance','deathDance'].includes(ult)) return foes.some(x=>dist(posOf(p,x),me)<=4)?undefined:null;
-  if(ult==='deadHost') return p.units.some(x=>x.side==='foe'&&!alive(p,x))?undefined:null;
+  if(ult==='deadHost') return p.units.some(x=>x.side==='foe'&&!alive(p,x)&&!x.raised&&dist(posOf(p,x),me)<=6)?undefined:null;
   const best=foes.sort((a,b)=>foes.filter(x=>dist(posOf(p,x),posOf(p,b))<=2).length-foes.filter(x=>dist(posOf(p,x),posOf(p,a))<=2).length)[0]!;
   return foes.filter(x=>dist(posOf(p,x),posOf(p,best))<=2).length>=3||best.foe==='warlord'?posOf(p,best):null;
 }

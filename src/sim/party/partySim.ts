@@ -1,3 +1,4 @@
+import { expireSummons } from './kitEffects';
 import { emit } from './triggers';
 import { tickStatuses } from './status';
 import { foeTurn } from './partyFoeAi';
@@ -154,7 +155,7 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
 export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
   if (p.waiting || (p as { over?: boolean }).over) return ev;
-  for (const u of p.units) if(u.summonedUntil !== undefined && u.summonedUntil <= p.time) entOf(p,u.id)!.alive=false;
+  expireSummons(p, p.time);
   for (const u of p.units) u.promoteReady=promotionOptions(p,u).some(o=>o.met);
   if (p.combat === false) for (const u of p.units) {u.crisisUsed = false;u.immortalUsed=false;}
   let statusTime = p.time;
@@ -163,9 +164,10 @@ export function tick(p: Party, dt: number): GEvent[] {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
+    expireSummons(p, p.time);
     tickGrounds(p,p.time,ev);
     tickStatuses(p, statusTime, p.time, ev); statusTime = p.time;
-    if (!alive(p, next)) continue;
+    if (!p.units.includes(next) || !alive(p, next)) continue;
     if (next.id === p.manual) {
       // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
       const o = next.order, at = entOf(p, next.id)!.pos;
@@ -175,6 +177,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     if ((next.status.freeze?.until ?? 0) > p.time || (next.status.stun?.until ?? 0) > p.time) { next.nextAt = Math.max(next.status.freeze?.until ?? 0,next.status.stun?.until ?? 0); continue; }
     moment(p, next, ev);
   }
+  expireSummons(p, end);
   tickGrounds(p,end,ev);
   tickStatuses(p, statusTime, end, ev);
   p.time = end;

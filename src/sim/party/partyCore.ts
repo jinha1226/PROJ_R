@@ -47,7 +47,7 @@ export interface Unit {
   /** the soul a hero carries (what drops where it falls) */
   soul?: BaseClass;
   /** a fallen foe whose bio-matter has been gathered */
-  reaped?: boolean;
+  reaped?: boolean; raised?: boolean;
   /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */
   level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
   /** when grit can hold a killing blow again */
