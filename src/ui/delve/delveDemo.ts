@@ -111,7 +111,7 @@ export class DelveDemo implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);

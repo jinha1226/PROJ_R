@@ -66,10 +66,10 @@ export class GridTorches {
     }
   }
 
-  /** Shows torches the hero has seen; hands the lights to the nearest seen ones. */
+  /** Torches the hero has seen stand where they are; only those in sight now burn and cast light (no glow through walls from another room). */
   shade(s: GridState, hero: THREE.Vector3): void {
-    for (const t of this.torches) t.model.visible = t.flame.visible = s.seen[t.cell] === 1;
-    const near = this.torches.filter((t) => s.seen[t.cell] === 1).sort((a, b) => a.at.distanceToSquared(hero) - b.at.distanceToSquared(hero));
+    for (const t of this.torches) { t.model.visible = s.seen[t.cell] === 1; t.flame.visible = s.visible.has(t.cell); }
+    const near = this.torches.filter((t) => s.visible.has(t.cell)).sort((a, b) => a.at.distanceToSquared(hero) - b.at.distanceToSquared(hero));
     this.lights.forEach((l, i) => {
       const t = near[i];
       l.userData.torch = t;

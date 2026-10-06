@@ -111,7 +111,7 @@ export class WorldDemo implements Screen {
       if (k === 'quit') this.opts.quit?.();
     });
     this.el.appendChild(this.over);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
     this.zoom = startZoom(this.zoom);

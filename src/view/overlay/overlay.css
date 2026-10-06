@@ -15,11 +15,14 @@
 .icon-badge svg { display: block; }
 .uo.boss .uo-bar { width: 110px; height: 8px; }
 .dmg-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.dmg { position: absolute; transform: translate(-50%, -50%); font-weight: 800; font-size: 15px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; animation: dmg-rise 0.8s ease-out forwards; white-space: nowrap; }
-.dmg.crit { font-size: 21px; color: #ffd04a; }
+.dmg { position: absolute; transform: translate(-50%, -50%); font: 700 21px 'GalmuriMono', monospace; color: #fff; letter-spacing: 1px;
+  /* a hard black edge all round: the number stays readable over a dithered, busy floor */
+  text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000, -2px -2px #000, 2px -2px #000, -2px 2px #000, 2px 2px #000;
+  animation: dmg-rise 1.1s ease-out forwards; white-space: nowrap; }
+.dmg.crit { font-size: 30px; color: #ffd04a; }
 .dmg.heal { color: #7cff8a; }
-.dmg.miss { color: #c8c8c8; font-size: 13px; }
-.dmg.combo { color: #ffe23a; font-size: 18px; }
+.dmg.miss { color: #c8c8c8; font-size: 16px; }
+.dmg.combo { color: #ffe23a; font-size: 20px; }
 .dmg.ally-hurt { color: #ff8a7a; }
 @keyframes dmg-rise { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -42px; } }
 .uo-intent { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #f4ecd8; background: #14121acc; border-radius: 9px; padding: 1px 6px 1px 2px; white-space: nowrap; min-height: 0; }
