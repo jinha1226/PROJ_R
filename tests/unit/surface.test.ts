@@ -52,3 +52,33 @@ it('a soul carried up from below gets a body at the pod (bio-matter allowing)', 
   expect(clones(s).map((u) => u.cls)).toEqual(['archer', 'cleric']);
   expect(s.bio).toBe(5);
 });
+
+it('the land round the pod holds no camps and no goblins (raids will come from the edge)', () => {
+  for (const seed of [1, 2, 3]) {
+    const w = generateWorld(seed, { pod: true });
+    expect(w.camps).toEqual([]);
+    expect(w.map.spawns).toEqual([]);
+    const s = newSurface(seed);
+    expect(s.units.filter((u) => u.side === 'foe')).toEqual([]);
+    expect(s.s.foes).toEqual([]);
+  }
+});
+
+it('a party wiped out below comes up empty: a body is printed if bio-matter allows, else the run ends with a wipe event', () => {
+  const s = newSurface(4);
+  const down = newDelve(4, 1, takeParty(s));
+  for (const u of down.units) if (u.side === 'hero') entOf(down, u.id)!.alive = false;
+  placeParty(s, takeParty(down));
+  const ev = worldTick(s, 0.1);
+  expect(s.over).toBe(true);
+  expect(ev.some((e) => e.type === 'dead' && e.text === 'wiped')).toBe(true);
+
+  const t = newSurface(5);
+  const below = newDelve(5, 1, takeParty(t));
+  for (const u of below.units) if (u.side === 'hero') entOf(below, u.id)!.alive = false;
+  below.bio = 30;
+  placeParty(t, takeParty(below));
+  for (let i = 0; i < 40; i++) worldTick(t, 0.1);
+  expect(t.over).toBeFalsy();
+  expect(clones(t).map((u) => u.cls)).toEqual(['shell']);
+});

@@ -49,6 +49,7 @@ export class WorldDemo implements Screen {
   private mini: WorldMinimap | null = null;
   private sel = 'hero';
   private paused = false;
+  private readonly over = document.createElement('div');
   private speed = 1;
   private zoom = 14;
   private warned = new Set<string>();
@@ -100,6 +101,16 @@ export class WorldDemo implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
+    // the run is over (no clone left, no bio-matter for a body): say so and offer the way on, instead of a frozen field
+    this.over.className = 'pip-win menu-win';
+    this.over.hidden = true;
+    this.over.innerHTML = '<div class="pip-frame menu-frame"><header><span class="pip-title">전멸</span></header><div class="menu-body"><div class="menu-row"><button type="button" data-over="restart">다시 시작</button><button type="button" data-over="quit">타이틀</button></div></div></div>';
+    this.over.addEventListener('click', (e) => {
+      const k = (e.target as HTMLElement).closest<HTMLElement>('[data-over]')?.dataset.over;
+      if (k === 'restart') { this.over.hidden = true; if (this.opts.restart) this.opts.restart(); else this.restart(); }
+      if (k === 'quit') this.opts.quit?.();
+    });
+    this.el.appendChild(this.over);
     this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
@@ -160,7 +171,7 @@ export class WorldDemo implements Screen {
       if (e.type === 'buff' && e.text === 'print') { this.message(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
       if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼 소멸');
-      if (e.type === 'dead') this.message('전멸');
+      if (e.type === 'dead') { this.message('전멸'); this.over.hidden = false; }
     }
   }
 

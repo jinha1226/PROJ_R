@@ -76,7 +76,8 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
   const ruins: Cell[] = [];
   // one ruin close by (the second soul is in reach before any camp), the rest farther out
   for (let n = 0; n < 4; n++) ruins.push(ruin(rng, base, set, n === 0 ? 14 : 18, n === 0 ? 19 : 40));
-  const camps = placeCamps(rng, base, set, get);
+  // the pod's land is ours from the start: no camps and no strays (raids come from the map's edge instead)
+  const camps = opts.pod ? [] : placeCamps(rng, base, set, get);
   for (const c of camps) if (c.tier === 1) road(rng, base, c.pos, set, get);
   const lights = cover(rng, base, ruins, camps, set, get);
   // a landing pod (2×2) with the drill rig beside it, or the crashed ship lying across the clearing
@@ -93,7 +94,7 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
   const souls = placeSouls(rng, map, base, ruins, camps);
   // a soul walled in by rubble still has a way to it
   connect(map, ground, souls.map((x) => x.pos));
-  const strays = placeStrays(rng, map, base, souls);
+  const strays = opts.pod ? [] : placeStrays(rng, map, base, souls);
   return { map, ground, camps, base, souls, lights, strays, drill, pod: opts.pod };
 }
 

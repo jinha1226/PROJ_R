@@ -99,3 +99,13 @@ it('on a boss floor the stairs stay shut until the general falls', () => {
   expect(descend(p)).toBe(true);
   expect(unitOf(p, 'hero')).toBeDefined();
 });
+
+it('a clone sent to stand beside an ore vein (holding there) mines it', () => {
+  const p = archer(); calm(p);
+  const node = p.oreNodes[0]!, at = beside(p, node.pos);
+  entOf(p, 'hero')!.pos = at;
+  unitOf(p, 'hero')!.order = { kind: 'hold', cell: at };
+  const before = p.ore;
+  for (let i = 0; i < 40; i++) delveTick(p, 0.1);
+  expect(p.ore).toBeGreaterThan(before);
+});

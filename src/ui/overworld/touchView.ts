@@ -31,7 +31,8 @@ export class Pinch {
       const p = this.pts.get(e.pointerId);
       if (!p) return;
       p.x = e.clientX; p.y = e.clientY;
-      if (Math.hypot(p.x - p.x0, p.y - p.y0) > 12) this.moved = true;
+      // a thumb drifts as it taps: only a real drag (beyond ~a fingertip) stops a tap counting
+      if (Math.hypot(p.x - p.x0, p.y - p.y0) > 28) this.moved = true;
       if (this.pts.size === 2 && this.startDist > 0) this.setZoom(this.startZoom * (this.startDist / Math.max(20, this.spread())));
     });
     const up = (e: PointerEvent) => { this.pts.delete(e.pointerId); if (this.pts.size < 2) this.startDist = 0; };

@@ -7,6 +7,7 @@ import { idx, same, walkable, tileAt, type Cell, type GEvent } from '../../sim/g
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from '../overworld/targetCard';
+import { tapCell } from './tapCell';
 import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { BODY_COST, clones, orderTo } from '../../sim/roam/roam';
@@ -303,15 +304,17 @@ export class DelveDemo implements Screen {
     const at = this.unitAt(c);
     if (at?.side === 'hero') { this.select(at.id); return; }
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
+    // a tap on an ore vein, a chest or a wall goes to stand beside it (that is what works a vein or opens a chest)
+    const from = entOf(this.p, this.sel)?.pos, to = from && !at ? tapCell(this.p.s.map, from, c, (n) => !this.unitAt(n)) : null;
     if (this.myTurn) {
       if (at) this.live(command(this.p, { kind: 'attack', target: at.id }));
-      else if (walkable(tileAt(this.p.s.map, c))) this.live(command(this.p, { kind: 'move', cell: c }));
+      else if (to) this.live(command(this.p, { kind: 'move', cell: to }));
       return;
     }
     const me = unitOf(this.p, this.sel);
     if (!me) return;
     if (at) me.order = { kind: 'attack', target: at.id };
-    else if (walkable(tileAt(this.p.s.map, c))) orderTo(this.p, this.sel, c);
+    else if (to) orderTo(this.p, this.sel, to);
   }
 
   private marks(): void {

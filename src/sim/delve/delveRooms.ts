@@ -119,7 +119,8 @@ export function roomStep(p: DelveParty, before: Map<string, Cell>, ev: GEvent[])
     else { give(3); give(1); material(p, 'crystal', p.s.rng.int(1, 2), ev); }
   }
   for (const node of p.oreNodes) {
-    const miners = living(p).filter((u) => !u.order && dist(entOf(p, u.id)!.pos, node.pos) <= 1);
+    // a clone with nothing to do, or one told to stand here, works the vein beside it
+    const miners = living(p).filter((u) => (!u.order || u.order.kind === 'hold') && dist(entOf(p, u.id)!.pos, node.pos) <= 1);
     if (!node.left) continue;
     node.progress += elapsed * miners.length;
     while (node.progress + 1e-9 >= 2 && node.left > 0) { node.progress -= 2; node.left--; material(p, 'ore', 1, ev); }
