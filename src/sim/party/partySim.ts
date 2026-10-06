@@ -5,6 +5,7 @@ import { DIRS, canStep, dist, same, tileAt, walkable, type Cell, type Ent, type 
 import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, PROMOTIONS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useSkill } from './partySkills';
+import { autoSkill } from './partyAuto';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -120,22 +121,56 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   return 0.5;
 }
 
-/** Time runs on: every unit whose moment has come acts, in time order. Returns what happened. */
+/** One unit's moment: a companion may reach for a skill, a queued skill goes off (it waits while it has no target in reach), else its usual action. */
+function moment(p: Party, u: Unit, ev: GEvent[]): void {
+  if (p.roam && u.side === 'hero' && u.id !== p.manual && !u.manualSkills) autoSkill(p, u);
+  if (u.queued !== undefined && p.time >= u.ready[u.queued]) {
+    const cast = useSkill(p, u.id, u.queued);
+    if (cast.length) { u.queued = undefined; ev.push(...cast); return; }
+  }
+  u.nextAt = p.time + turn(p, u, p.time, ev);
+}
+
+/**
+ * Time runs on: every unit whose moment has come acts, in time order. In turn-based fighting time stops on the manual clone's
+ * moment (unless it is walking somewhere) until `command` gives it something to do. Returns what happened.
+ */
 export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
+  if (p.waiting) return ev;
   const end = p.time + dt;
   for (let guard = 0; guard < 100; guard++) {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
-    // a queued skill goes off on the hero's own moment in place of its usual action; it waits (the hero closes in) while it has no target in reach
-    if (next.queued !== undefined && p.time >= next.ready[next.queued]) {
-      const cast = useSkill(p, next.id, next.queued);
-      if (cast.length) { next.queued = undefined; ev.push(...cast); continue; }
-    }
-    next.nextAt = p.time + turn(p, next, p.time, ev);
+    if (next.id === p.manual && next.order?.kind !== 'move') { p.waiting = true; p.s.time = p.time; return ev; }
+    moment(p, next, ev);
   }
   p.time = end;
   p.s.time = end;
+  return ev;
+}
+
+export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'skill'; slot: 0 | 1 } | { kind: 'wait' };
+
+/** The manual clone's turn: one action (a walk goes on by itself until something new happens). Time then runs again. */
+export function command(p: Party, c: Command): GEvent[] {
+  const u = p.units.find((x) => x.id === p.manual);
+  if (!p.waiting || !u || !alive(p, u)) return [];
+  const ev: GEvent[] = [];
+  if (c.kind === 'skill') {
+    const cast = useSkill(p, u.id, c.slot);
+    if (!cast.length) return [];
+    ev.push(...cast);
+  } else if (c.kind === 'wait') {
+    u.nextAt = p.time + 0.5;
+    ev.push({ t: p.time, type: 'wait', src: u.id });
+  } else {
+    u.order = c.kind === 'move' ? { kind: 'move', cell: c.cell } : { kind: 'attack', target: c.target };
+    u.nextAt = p.time + turn(p, u, p.time, ev);
+    // one blow per command: the player chooses again next turn
+    if (c.kind === 'attack') u.order = null;
+  }
+  p.waiting = false;
   return ev;
 }

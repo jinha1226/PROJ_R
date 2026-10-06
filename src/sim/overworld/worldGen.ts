@@ -12,8 +12,8 @@ export const COVER: ReadonlySet<Ground> = new Set(['boulder', 'log', 'lowWall', 
 /** lights that stand on the land itself (camp fires, souls and the ship light themselves) */
 export interface LandLight { pos: Cell; kind: 'wreck' | 'brazier' | 'obelisk' }
 export interface Camp { id: number; pos: Cell; tier: 1 | 2 | 3; group: number; cleared: boolean; totem: Cell }
-/** a fallen native's soul stone lying on the land */
-export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
+import type { Soul } from '../roam/roam';
+export type { Soul };
 /** a small band away from any camp (no land to take, just a fight) */
 export interface Stray { group: number; pos: Cell }
 export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[]; strays: Stray[] }

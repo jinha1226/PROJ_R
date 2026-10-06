@@ -352,6 +352,8 @@ export class GridRuntime {
     cam.position.set(c.x, Math.sin(ELEVATION) * CAM_DIST, c.z + Math.cos(ELEVATION) * CAM_DIST);
     cam.lookAt(c);
   }
+  /** The glow pass (fires and lamps bleed light), as on the world map. */
+  enableBloom(): void { this.bloom ??= new Bloom(this.h.renderer, this.h.scene, this.h.camera); }
   setZoom(h: number): void {
     this.height = h;
   }

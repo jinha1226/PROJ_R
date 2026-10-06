@@ -96,3 +96,7 @@
 .pip-slot.soul { color: var(--tint); border-color: var(--tint); box-shadow: inset 0 0 12px color-mix(in srgb, var(--tint) 30%, transparent); }
 .pip-slot .cls-icon { width: 40%; height: 40%; }
 .dim { color: #2f5a3e; }
+/* the dungeon: minimap canvas and whose turn it is */
+.wh-mini canvas.delve-mini { image-rendering: pixelated; }
+.wh-mode small.turn { display: block; font-size: 12px; letter-spacing: 0.15em; color: #e6ffb0; animation: wh-blink 0.9s steps(2) infinite; }
+.wh-btns [data-k="descend"] { color: #5dd3ff; border-color: #5dd3ff; }

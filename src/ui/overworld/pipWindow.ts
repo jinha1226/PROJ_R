@@ -1,6 +1,6 @@
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES, PROMOTIONS, SKILLS, WEAPONS } from '../../sim/party/partyDefs';
-import { clones, MAX_CLONES, type WorldParty } from '../../sim/overworld/worldSim';
+import { clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, SKILL_DESC, classIcon } from './classIcons';
 
 export type PipTab = 'stat' | 'bag';
@@ -12,7 +12,7 @@ export class PipWindow {
   tab: PipTab = 'stat';
   private who = '';
 
-  constructor(private readonly p: () => WorldParty, private readonly onClose: () => void) {
+  constructor(private readonly p: () => RoamParty, private readonly onClose: () => void) {
     this.el.className = 'pip-win';
     this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
@@ -39,7 +39,7 @@ export class PipWindow {
       <div class="pip-body">${this.tab === 'stat' ? this.stat(p) : this.bag(p)}</div><footer>C 상태 · I 가방 · Esc 닫기</footer></div>`;
   }
 
-  private stat(p: WorldParty): string {
+  private stat(p: RoamParty): string {
     const list = clones(p).filter((u) => entOf(p, u.id)?.alive);
     if (!list.some((u) => u.id === this.who)) this.who = list[0]?.id ?? '';
     const side = list.map((u) => `<button type="button" data-who="${u.id}" class="${u.id === this.who ? 'on' : ''}" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)}${CLASSES[u.cls!].name}</button>`).join('')
@@ -56,7 +56,7 @@ export class PipWindow {
       <h4>기술</h4><ul class="pip-skills">${skills}</ul></section>`;
   }
 
-  private bag(p: WorldParty): string {
+  private bag(p: RoamParty): string {
     const items = p.carried.map((c) => `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span></div>`);
     const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
     return `<section class="pip-bag"><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div></section>`;

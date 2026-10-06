@@ -24,6 +24,8 @@ export interface Unit {
   group?: number;
   /** the soul a hero carries (what drops where it falls) */
   soul?: BaseClass;
+  /** a companion uses its skills by itself (on unless the player turns it off) */
+  manualSkills?: boolean;
 }
 export interface Party {
   s: GridState; units: Unit[]; time: number; wave: number;
@@ -35,6 +37,10 @@ export interface Party {
   roam?: boolean;
   /** cells of waist-high cover (boulders, low walls, barricades) beside walls and trees */
   cover?: Uint8Array;
+  /** turn-based fighting: the clone under the player's hand; time stops on its moment until it is given something to do */
+  manual?: string;
+  /** time is stopped, waiting for the manual clone's command */
+  waiting?: boolean;
 }
 
 export const entOf = (p: Party, id: string): Ent | undefined => (id === 'hero' ? p.s.hero : p.s.foes.find((f) => f.id === id));

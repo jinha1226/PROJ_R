@@ -1,0 +1,263 @@
+import * as THREE from 'three';
+import type { Screen } from '../../app/router';
+import { GridSim } from '../../sim/grid/gridSim';
+import { findPath } from '../../sim/grid/path';
+import { idx, same, walkable, tileAt, type Cell, type GEvent } from '../../sim/grid/types';
+import { entOf, unitOf } from '../../sim/party/partyCore';
+import { CLASSES } from '../../sim/party/partyDefs';
+import { command, promote } from '../../sim/party/partySim';
+import { queueSkill } from '../../sim/party/partySkills';
+import { clones, orderTo } from '../../sim/roam/roam';
+import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
+import { GridRuntime } from '../../view/grid/gridRuntime';
+import { LOOK_BY_ID } from '../../view/grid/gridActors';
+import type { DungeonKit } from '../../view/grid/dungeonKit';
+import type { UalLibrary } from '../../view/grid/ualActor';
+import { lookOf } from '../party/partyPick';
+import { PipWindow } from '../overworld/pipWindow';
+import { WorldHud } from '../overworld/worldHud';
+import { WorldLog } from '../overworld/worldLog';
+import { DelveMinimap } from './delveMinimap';
+import '../styles/grid.css';
+import '../styles/gridSf.css';
+import '../styles/partyDemo.css';
+import '../styles/worldHud.css';
+
+/** game time per real second at normal speed */
+const RATE = 2.4;
+const SHOW_MAX = 2;
+const SPEEDS = [1, 2, 4];
+type Mode = 'turn' | 'realtime';
+const MODE_KEY = 'projr.combatMode';
+const savedMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'realtime' ? 'realtime' : 'turn'; } catch { return 'turn'; } };
+
+/**
+ * `?demo=delve`: the dungeon below the ship. Exploring runs in real time; when a band notices the party the fight turns
+ * turn-based as in Jupiter Hell — time stops on the chosen clone's moment, the companions act by themselves (1 2 3 switches
+ * which clone is under the hand). The fight can be set to real time with pause instead.
+ */
+export class DelveDemo implements Screen {
+  private readonly el = document.createElement('div');
+  private stage!: HTMLElement;
+  private rt: GridRuntime | null = null;
+  private p!: DelveParty;
+  private hud!: WorldHud;
+  private pip!: PipWindow;
+  private mini!: DelveMinimap;
+  private log = new WorldLog();
+  private sel = 'hero';
+  private paused = false;
+  private pausedBeforePip = false;
+  private speed = 1;
+  private zoom = 11;
+  private mode: Mode = savedMode();
+  private hover: Cell | null = null;
+  private warned = new Set<string>();
+  private slowUntil = 0;
+  private kills = 0;
+  private raf = 0;
+  private readonly seed: number;
+  private readonly onKey = (e: KeyboardEvent) => this.key(e);
+
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void } = {}) {
+    this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
+  }
+
+  mount(root: HTMLElement): void {
+    this.el.className = 'screen grid landscape party world delve';
+    this.el.innerHTML = '<div class="grid-stage"></div><div class="pd-labels"></div><div class="pd-pause">일시정지</div>';
+    root.appendChild(this.el);
+    this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
+    this.hud = new WorldHud(this.el, {
+      pause: () => { this.paused = !this.paused; },
+      speed: () => { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); },
+      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
+      restart: () => this.restart(), quit: this.opts.quit,
+      select: (id) => this.select(id),
+      skill: (id, slot) => this.skill(id || this.sel, slot),
+      promote: () => this.live(promote(this.p, this.sel)),
+      mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
+      descend: () => this.down(),
+    });
+    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
+    this.el.appendChild(this.pip.el);
+    this.mini = new DelveMinimap(() => this.p);
+    this.hud.minimapSlot.replaceChildren(this.mini.el);
+    this.stage.addEventListener('pointerup', (e) => this.click(e));
+    this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
+    this.stage.addEventListener('pointerleave', () => { this.hover = null; });
+    this.stage.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.stage.addEventListener('wheel', (e) => { e.preventDefault(); this.zoom = Math.min(20, Math.max(7, this.zoom * (e.deltaY > 0 ? 1.1 : 0.9))); this.rt?.setZoom(this.zoom); }, { passive: false });
+    addEventListener('keydown', this.onKey);
+    // tests and screenshots reach in through this handle
+    if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __delve: DelveDemo }).__delve = this;
+    this.restart();
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      this.handOver();
+      if (!this.paused && !this.pip.open && !this.p.waiting) {
+        const t0 = this.p.time, slow = this.mode === 'realtime' && now < this.slowUntil ? 0.35 : 1;
+        this.live(delveTick(this.p, dt * RATE * this.speed * slow), t0);
+      }
+      this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
+      this.marks();
+      this.labels();
+      this.el.classList.toggle('paused', this.paused && !this.pip.open);
+      this.drawHud();
+      this.mini.draw();
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  unmount(): void { removeEventListener('keydown', this.onKey); cancelAnimationFrame(this.raf); this.rt?.dispose(); this.el.remove(); }
+
+  /** In a turn-based fight the chosen clone is under the hand; out of a fight (or in real time) nobody is. */
+  private handOver(): void {
+    const hand = this.mode === 'turn' && this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
+    if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
+  }
+
+  private get myTurn(): boolean { return !!this.p.waiting && this.p.manual === this.sel; }
+
+  private live(ev: GEvent[], t0 = this.p.time): void {
+    if (!ev.length) return;
+    for (const e of ev) {
+      if (e.type !== 'buff' || (e.text !== 'soul' && e.text !== 'print')) continue;
+      const u = unitOf(this.p, e.dst!)!;
+      LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
+      if (e.text === 'soul') this.rt?.actors.rebuild(u.id);
+    }
+    this.rt?.applyLive(ev, t0);
+    this.log.read(this.p, ev);
+    for (const e of ev) {
+      if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'foe') this.kills++;
+      if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, this.mode === 'realtime');
+      if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', this.mode === 'realtime');
+      if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
+      if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
+      if (e.type === 'drop') this.hud.toast('영혼석 떨어짐');
+      // in real time a clone falling low slows the world for a moment instead of stopping it
+      if (e.type === 'hit' && this.mode === 'realtime' && unitOf(this.p, e.dst!)?.side === 'hero') {
+        const h = entOf(this.p, e.dst!)!;
+        if (h.alive && h.hp < h.maxHp * 0.35) this.slowUntil = performance.now() + 2500;
+      }
+    }
+  }
+
+  private alert(key: string, text: string, stop: boolean): void {
+    if (this.warned.has(key)) return;
+    this.warned.add(key);
+    if (stop) this.paused = true;
+    this.hud.toast(text);
+  }
+
+  private restart(): void {
+    this.p = newDelve(this.seed);
+    this.warned.clear();
+    this.kills = 0;
+    this.log = new WorldLog();
+    this.log.add(0, '승강기 하강 · 지하 1층', 'warn');
+    LOOK_BY_ID.clear();
+    this.view();
+    this.select('hero');
+    this.paused = false;
+  }
+
+  /** The floor's view (built again on each floor). */
+  private view(): void {
+    for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
+    this.rt?.dispose();
+    this.stage.replaceChildren();
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, false);
+    this.rt.setZoom(this.zoom);
+    this.rt.pixelated = false;
+    this.rt.enableBloom();
+    this.rt.focusId = this.sel;
+    this.pace();
+  }
+
+  private down(): void {
+    if (!descend(this.p)) return;
+    this.log.add(this.p.time, `지하 ${this.p.floor}층`, 'warn');
+    this.view();
+    this.select(clones(this.p)[0]!.id);
+    this.hud.toast(`지하 ${this.p.floor}층`);
+  }
+
+  private select(id: string): void { this.sel = id; if (this.rt) this.rt.focusId = id; }
+  private ids(): string[] { return clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => u.id); }
+  private name(id: string): string { return CLASSES[unitOf(this.p, id)!.cls!].name; }
+  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
+
+  private togglePip(tab: 'stat' | 'bag'): void {
+    if (!this.pip.open) this.pausedBeforePip = this.paused;
+    this.pip.toggle(tab, this.sel);
+  }
+
+  /** On the chosen clone's own turn a skill is its action now; otherwise it is queued for the clone's next moment. */
+  private skill(id: string, slot: 0 | 1): void {
+    if (this.myTurn && id === this.sel) this.live(command(this.p, { kind: 'skill', slot }));
+    else queueSkill(this.p, id, slot);
+  }
+
+  private key(e: KeyboardEvent): void {
+    const k = e.key.toLowerCase();
+    if (k === 'escape') { this.pip.close(); return; }
+    if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
+    if (this.pip.open) return;
+    if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
+    const pick = this.ids()[Number(k) - 1];
+    if ((k === '1' || k === '2' || k === '3') && pick) this.select(pick);
+    if (k === 'q' || k === 'w') this.skill(this.sel, k === 'q' ? 0 : 1);
+    if (k === '>' || k === '.') this.down();
+    if (k === 'r') this.restart();
+  }
+
+  private unitAt(c: Cell) { return this.p.units.find((u) => entOf(this.p, u.id)?.alive && same(entOf(this.p, u.id)!.pos, c) && this.p.s.visible.has(idx(this.p.s.map, c))); }
+
+  /** On a clone: choose it. On its turn a click is its action (a step toward, or a blow); otherwise an order. */
+  private click(e: PointerEvent): void {
+    const c = this.rt?.cellAt(e.clientX, e.clientY);
+    if (!c) return;
+    const at = this.unitAt(c);
+    if (at?.side === 'hero') { this.select(at.id); return; }
+    if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
+    if (this.myTurn) {
+      if (at) this.live(command(this.p, { kind: 'attack', target: at.id }));
+      else if (walkable(tileAt(this.p.s.map, c))) this.live(command(this.p, { kind: 'move', cell: c }));
+      return;
+    }
+    const me = unitOf(this.p, this.sel);
+    if (!me) return;
+    if (at) me.order = { kind: 'attack', target: at.id };
+    else if (walkable(tileAt(this.p.s.map, c))) orderTo(this.p, this.sel, c);
+  }
+
+  private marks(): void {
+    if (!this.rt) return;
+    const me = unitOf(this.p, this.sel), e = me && entOf(this.p, me.id), o = me?.order, m = this.p.s.map, h = this.hover;
+    this.rt.showAim(e?.alive ? [e.pos, ...(o?.kind === 'move' || o?.kind === 'hold' ? [o.cell] : [])] : null, true);
+    const hoverWalk = h && e?.alive && this.p.s.seen[idx(m, h)] && walkable(tileAt(m, h)) && !same(h, e.pos) && !this.unitAt(h) ? findPath(m, e.pos, h) : null;
+    this.rt.showPath(hoverWalk ?? (o?.kind === 'move' && e?.alive ? findPath(m, e.pos, o.cell) : null));
+  }
+
+  private labels(): void {
+    if (!this.rt) return;
+    this.el.querySelector('.pd-labels')!.innerHTML = clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => {
+      const e = entOf(this.p, u.id)!, pt = this.rt!.project(new THREE.Vector3(e.pos.x, 2.3, e.pos.y));
+      const turn = this.p.waiting && this.p.manual === u.id ? ' ◀' : '';
+      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${this.ids().indexOf(u.id) + 1} ${CLASSES[u.cls!].name}${turn}</div>`;
+    }).join('');
+  }
+
+  private drawHud(): void {
+    const p = this.p, turn = this.mode === 'turn';
+    const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
+    const keys = p.combat && turn ? '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종' : '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대';
+    this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p),
+      area: `<div><span>지하</span><b>${p.floor}층</b></div><div><span>처치</span><b>${this.kills}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div>${p.carried.length ? `<div class="soul"><span>영혼</span><b>${p.carried.length}</b></div>` : ''}` });
+  }
+}

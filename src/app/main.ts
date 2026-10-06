@@ -164,8 +164,20 @@ async function worldDemo(): Promise<void> {
   }
 }
 
+/** `?demo=delve`: the dungeon below the ship (explore in real time, fight turn-based). */
+async function delveDemo(): Promise<void> {
+  try {
+    const [{ DelveDemo }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    router.go(new DelveDemo(lib, kit));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 if (params.get('demo') === 'kata') void kataDemo();
 else if (params.get('demo') === 'world') void worldDemo();
+else if (params.get('demo') === 'delve') void delveDemo();
 else if (params.get('demo') === 'party') void partyDemo();
 else if (params.get('demo') === 'souls') void soulsDemo();
 else if (params.get('demo') === 'chain') void chainDemo();

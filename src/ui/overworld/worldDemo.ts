@@ -91,7 +91,10 @@ export class WorldDemo implements Screen {
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open);
-      this.hud.draw(this.p, this.ids(), this.sel, this.paused, this.speed, this.log);
+      const taken = this.p.camps.filter((c) => c.cleared).length;
+      this.hud.draw(this.p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log,
+        area: `<div><span>영역</span><b>${Math.round(claimedShare(this.p) * 100)}%</b></div><div><span>진지</span><b>${taken}/${this.p.camps.length}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div>${this.p.carried.length ? `<div class="soul"><span>영혼</span><b>${this.p.carried.length}</b></div>` : ''}`,
+        mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대' });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };

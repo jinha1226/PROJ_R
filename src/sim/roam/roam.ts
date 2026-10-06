@@ -1,0 +1,139 @@
+import { spawnFoe } from '../grid/foes';
+import { computeFov } from '../grid/fov';
+import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
+import { alive, entOf, type Party, type Unit } from '../party/partyCore';
+import { CLASSES, type BaseClass } from '../party/partyDefs';
+
+/** a fallen native's soul stone lying about */
+export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
+
+/** A party that roams a map (the land above or a dungeon floor): souls to find, clones printed at its base. */
+export interface RoamParty extends Party {
+  souls: Soul[];
+  /** souls picked up by clones that already had one, waiting for a body at the base */
+  carried: BaseClass[];
+  nextClone: number;
+  /** where new bodies come out (the ship, or the lift down) */
+  base: Cell;
+  /** when the base wakes a new empty body after the last clone fell */
+  rewakeAt?: number;
+  /** how far the clones see */
+  sight: number;
+}
+
+/** how far a sleeping band notices the party */
+export const NOTICE = 6;
+/** an awake foe farther than this from every clone gives up */
+const LEASH = 12;
+/** living clones at once */
+export const MAX_CLONES = 3;
+/** how near the base a clone must stand for another body to be printed */
+const BASE_REACH = 5;
+
+export const blank = (): Omit<Unit, 'id' | 'side'> => ({ nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
+
+/** The clones (living or not) in the order they were made. */
+export const clones = (p: Party): Unit[] => p.units.filter((u) => u.side === 'hero');
+export const living = (p: Party): Unit[] => clones(p).filter((u) => alive(p, u));
+export const nearest = (p: Party, c: Cell): number => Math.min(...living(p).map((u) => dist(entOf(p, u.id)!.pos, c)));
+
+/** What the living clones see together. */
+export function look(p: RoamParty): void {
+  const s = p.s;
+  s.visible = new Set();
+  for (const u of living(p)) for (const k of computeFov(s.map, entOf(p, u.id)!.pos, p.sight)) s.visible.add(k);
+  for (const k of s.visible) s.seen[k] = 1;
+}
+
+/** A soul goes into a body: the clone becomes that class, armed with its first weapon, whole again. */
+export function implant(p: RoamParty, u: Unit, cls: BaseClass, ev: GEvent[]): void {
+  const e = entOf(p, u.id)!;
+  u.cls = cls; u.soul = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
+  e.hp = e.maxHp = CLASSES[cls].hp;
+  ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'soul' });
+}
+
+/** A new body at the base: empty, or with a soul. */
+export function print(p: RoamParty, cls: BaseClass | undefined, ev: GEvent[]): Unit | undefined {
+  const m = p.s.map, taken = (c: Cell) => p.units.some((u) => alive(p, u) && entOf(p, u.id)!.pos.x === c.x && entOf(p, u.id)!.pos.y === c.y);
+  let at: Cell | undefined;
+  for (let r = 0; r < 4 && !at; r++) for (let dx = -r; dx <= r && !at; dx++) for (let dy = -r; dy <= r && !at; dy++) {
+    const c = { x: m.start.x + dx, y: m.start.y + dy };
+    if (walkable(tileAt(m, c)) && !taken(c)) at = c;
+  }
+  if (!at) return undefined;
+  const e = spawnFoe(p.s, 'minion', at, false);
+  e.id = `c${p.nextClone++}`;
+  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', nextAt: p.time };
+  e.hp = e.maxHp = CLASSES.shell.hp;
+  p.units.push(u);
+  ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'print' });
+  if (cls) implant(p, u, cls, ev);
+  return u;
+}
+
+/** Souls: picked up where they lie, fallen clones drop theirs, the base prints bodies for the ones carried home. */
+function souls(p: RoamParty, ev: GEvent[]): void {
+  const t = p.time;
+  for (const u of clones(p)) {
+    if (!alive(p, u) && u.soul) {
+      const at = { ...entOf(p, u.id)!.pos };
+      p.souls.push({ id: p.souls.length, pos: at, cls: u.soul, taken: false });
+      ev.push({ t, type: 'drop', src: u.id, to: at, text: 'soul' });
+      u.soul = undefined;
+    }
+  }
+  for (const soul of p.souls) {
+    if (soul.taken) continue;
+    const by = living(p).find((u) => dist(entOf(p, u.id)!.pos, soul.pos) <= 1);
+    if (!by) continue;
+    soul.taken = true;
+    ev.push({ t, type: 'pickup', src: by.id, to: soul.pos, text: 'soul' });
+    if (by.cls === 'shell') implant(p, by, soul.cls, ev); else p.carried.push(soul.cls);
+  }
+  for (const u of living(p)) if (u.cls === 'shell' && p.carried.length) implant(p, u, p.carried.shift()!, ev);
+  if (!p.combat && p.carried.length && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) print(p, p.carried.shift(), ev);
+  if (!living(p).length) {
+    p.rewakeAt ??= t + 3;
+    if (t >= p.rewakeAt) { p.rewakeAt = undefined; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
+  }
+}
+
+/**
+ * After the party's moment-by-moment actions: souls, who leads, sight, waking bands, giving up chases, whether there is a fight.
+ * A clone under the player's hand stops walking when something new happens (a band wakes, it is hurt), as in Jupiter Hell.
+ */
+export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent[]): void {
+  souls(p, ev);
+  if (!living(p).length) return;
+  if (!entOf(p, p.leader ?? '')?.alive) p.leader = living(p)[0]!.id;
+  look(p);
+  const t = p.time;
+  const woke = new Set<number>();
+  for (const f of p.units) {
+    if (f.side !== 'foe' || !f.asleep || !alive(p, f)) continue;
+    const at = entOf(p, f.id)!.pos;
+    if (p.s.visible.has(idx(p.s.map, at)) && nearest(p, at) <= NOTICE) woke.add(f.group!);
+  }
+  for (const g of woke) {
+    const band = p.units.filter((f) => f.side === 'foe' && f.group === g && alive(p, f));
+    band.forEach((f, i) => { f.asleep = false; f.nextAt = t + 0.2 * i; });
+    ev.push({ t, type: 'wake', src: band[0]!.id, text: String(g) });
+  }
+  for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH) f.asleep = true;
+  const was = p.combat;
+  p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= 12);
+  if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
+  const hand = p.manual ? p.units.find((u) => u.id === p.manual) : undefined;
+  if (hand?.order?.kind === 'move' && (woke.size || (entOf(p, hand.id)?.hp ?? 0) < (hpBefore.get(hand.id) ?? 0))) hand.order = null;
+}
+
+export const hpNow = (p: Party): Map<string, number> => new Map(clones(p).map((u) => [u.id, entOf(p, u.id)!.hp]));
+
+/** Out of combat an order moves the whole party (the chosen clone leads); in combat it is that clone's own. */
+export function orderTo(p: RoamParty, id: string, cell: Cell): void {
+  const u = p.units.find((x) => x.id === id && x.side === 'hero');
+  if (!u || !alive(p, u)) return;
+  if (!p.combat) { p.leader = id; for (const h of living(p)) if (h.order) h.order = null; }
+  u.order = { kind: 'move', cell };
+}
