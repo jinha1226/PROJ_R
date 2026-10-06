@@ -23,6 +23,8 @@
   - `models/scifi/ship.glb`: 우주선 내부 소품 13종(사물함·책상·선반·위성 안테나·의료 튜브·상자·의자·통 등)을 같은 방식으로 합치고 기본 색 텍스처만 512px로 줄여 묶음 / `textures/ship/trim_*.jpg`: 트림 텍스처 3장(512px, 벽·바닥용) / 라이선스 `models/scifi/LICENSE.txt`
 - **Modular Sci-Fi MegaKit** — Quaternius, CC0 1.0 (OpenGameArt `modular-sci-fi-megakit`)
   - `models/scifi/deck.glb`: 우주선 갑판 모듈(바닥 판·벽·문틀·배관 기둥·컴퓨터·상자·통·바닥 조명 등)을 Blender 4.0으로 모듈마다 메시 하나로 합치고 기본 색·발광 텍스처만 512px JPEG로 줄여 묶음
+- **Stylized Nature MegaKit** — Quaternius, CC0 1.0 (https://quaternius.com/packs/stylizednaturemegakit.html, poly.pizza 묶음)
+  - `models/nature/nature.glb`: 27종(고사목 5·뒤틀린 나무 5·소나무 3·나무 2·바위 3·덤불·풀 3·고사리·버섯 2·자갈 2)을 Blender 4.0으로 모델마다 메시 하나로 합치고, 정점 2500개가 넘는 나무는 간소화, 텍스처는 256px로 줄여 GLB 하나로 묶음
 - 라이선스 사본: `models/qpack/LICENSE.txt`
 
 ## 가공 내용

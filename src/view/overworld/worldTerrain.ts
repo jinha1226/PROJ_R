@@ -5,6 +5,8 @@ import { WorldFog } from './worldFog';
 import { campProps, crashedShip, instanced, jitter, rocks, ruinWalls, trees, type CampView } from './worldProps';
 import { coverProps } from './worldCover';
 import { WorldLights } from './worldLights';
+import type { NatureKit } from './natureKit';
+import { natureRocks, natureTrees, natureTufts } from './worldNature';
 import { LandingPod, drillRig } from './podProps';
 import { EmberCracks } from './emberCracks';
 
@@ -41,17 +43,20 @@ export class WorldTerrain {
   /** called when the falling pod hits the ground (the view shakes) */
   onThump?: () => void;
 
-  constructor(private readonly w: number, private readonly h: number, private readonly look: WorldLook) {
+  constructor(private readonly w: number, private readonly h: number, private readonly look: WorldLook, nature?: NatureKit) {
     this.fog = new WorldFog(w, h);
     this.root.add(this.groundMesh(), this.water());
     const by = (g: Ground[]) => { const out: Cell[] = []; look.ground.forEach((k, i) => { if (g.includes(k)) out.push({ x: i % w, y: Math.floor(i / w) }); }); return out; };
-    this.root.add(trees(by(['tree']), this.fog), rocks(by(['rock']), this.fog), ruinWalls(by(['ruinWall']), this.fog), this.tufts(by(['grass', 'forest'])));
+    // Quaternius nature models when loaded, else the simple shapes
+    if (nature) this.root.add(natureTrees(by(['tree']), nature, this.fog), natureRocks(by(['rock']), nature, this.fog, 1.15), natureRocks(by(['boulder']), nature, this.fog, 0.7), natureTufts(by(['grass', 'forest']), nature, this.fog));
+    else this.root.add(trees(by(['tree']), this.fog), rocks(by(['rock']), this.fog), this.tufts(by(['grass', 'forest'])));
+    this.root.add(ruinWalls(by(['ruinWall']), this.fog));
     this.cracks = new EmberCracks(look, w, this.fog);
     // a landing pod (and the drill rig beside it) on the pod's ground, else the crashed ship
     if (look.pod) { this.pod = new LandingPod(look.base, this.fog, () => this.onThump?.()); this.root.add(this.pod.root); }
     else this.root.add(crashedShip(look.base, this.fog));
     if (look.drill) this.root.add(drillRig(look.drill, this.fog));
-    this.root.add(coverProps(look.ground, w, this.fog), this.lights.root, this.cracks.mesh);
+    this.root.add(coverProps(look.ground, w, this.fog, nature ? new Set(['boulder']) : undefined), this.lights.root, this.cracks.mesh);
     for (const c of look.camps) { const cp = campProps(c, this.fog); this.camps.push(cp.view); this.root.add(cp.root); }
     this.spots();
     this.sun.position.set(-18, 30, 12);

@@ -11,6 +11,7 @@ import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type Worl
 import { takeParty, type Carry } from '../../sim/roam/carry';
 import { BODY_COST } from '../../sim/roam/roam';
 import { GridRuntime } from '../../view/grid/gridRuntime';
+import type { NatureKit } from '../../view/overworld/natureKit';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
@@ -68,7 +69,7 @@ export class WorldDemo implements Screen {
    * opts.party: an expedition's surface (kept between trips); landing: the pod falls in first; onDrill: the party goes down the shaft;
    * restart: the expedition starts over (else the demo makes a new world).
    */
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry) => void; restart?: () => void } = {}) {
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry) => void; restart?: () => void; nature?: NatureKit } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -167,7 +168,7 @@ export class WorldDemo implements Screen {
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p });
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p, nature: this.opts.nature });
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = false;
     this.pace();
