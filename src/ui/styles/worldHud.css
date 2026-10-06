@@ -368,3 +368,13 @@
 .place-prompts { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
 .place-prompts button { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; font: 13px 'GalmuriMono', monospace; color: #021006; background: #ffd76a; border: 2px solid #021006; box-shadow: 0 0 0 1px #ffd76a, 0 0 14px #ffb04a99; padding: 6px 10px; cursor: pointer; white-space: nowrap; animation: pp-bob 1.2s ease-in-out infinite; }
 @keyframes pp-bob { 50% { margin-top: -4px; } }
+
+/* ---- skills tab: name · trigger · effect ---- */
+.ps .pip-skills { gap: 0; }
+.ps-row { display: grid !important; grid-template-columns: 110px 130px 1fr auto !important; gap: 8px !important; padding: 4px 0; border-bottom: 1px solid #0f3a1e; align-items: baseline; }
+.ps-row b { font-weight: normal; color: #e6ffb0; }
+.ps-when { color: #ffd76a; font-size: 11px; }
+.ps-what { color: #c8ffd8; }
+.ps-row em { font-style: normal; color: #34a85c; font-size: 10px; }
+.ps-head b, .ps-head span { color: #34a85c !important; font-size: 10px; letter-spacing: 0.1em; }
+@media (orientation: portrait) and (max-width: 700px) { .ps-row { grid-template-columns: 1fr 1fr !important; } .ps-what { grid-column: 1 / -1; } }

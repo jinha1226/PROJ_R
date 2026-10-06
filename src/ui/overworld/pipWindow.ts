@@ -5,6 +5,7 @@ import { traitText } from '../../sim/party/traitText';
 import { gearHtml, packHtml, WHEN } from './pipGear';
 import { promotionHtml } from './pipClasses';
 import { rosterHtml } from './pipRoster';
+import { skillsHtml } from './pipSkills';
 import { ULT_TEXT } from './ultText';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { itemName } from '../../sim/delve/items';
@@ -17,8 +18,8 @@ import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 
-export type PipTab = 'roster' | 'stat' | 'gear' | 'bag';
-const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', gear: '장비', bag: '가방' };
+export type PipTab = 'roster' | 'stat' | 'skill' | 'gear' | 'bag';
+const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', skill: '기술', gear: '장비', bag: '가방' };
 const BAG_SLOTS = 12;
 
 /** The Pip-Boy style window: the clones' records (status), their gear, the class tree, and what the party carries (bag). The game waits while it is open. */
@@ -56,11 +57,11 @@ export class PipWindow {
 
   private draw(): void {
     const p = this.p();
-    const tabs = (['roster', 'stat', 'gear', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
+    const tabs = (['roster', 'stat', 'skill', 'gear', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
     const body = this.tab === 'roster' ? rosterHtml(p) : this.tab === 'stat' ? this.stat(p) : this.tab === 'bag' ? this.bag(p)
-      : `<nav class="pip-side">${this.side(p)}</nav>${gearHtml(p, unitOf(p, this.who))}`;
+      : `<nav class="pip-side">${this.side(p)}</nav>${this.tab === 'skill' ? skillsHtml(p, unitOf(p, this.who)) : gearHtml(p, unitOf(p, this.who))}`;
     this.el.innerHTML = `<div class="pip-frame"><header>${tabs}<span class="pip-title">R-7 기록 장치</span><button type="button" data-close>✕</button></header>
-      <div class="pip-body">${body}</div><footer>L 명단 · C 상태 · E 장비 · I 가방 · Esc 닫기</footer></div>`;
+      <div class="pip-body">${body}</div><footer>L 명단 · C 상태 · K 기술 · E 장비 · I 가방 · Esc 닫기</footer></div>`;
   }
 
   /** the living clones to choose from (the empty pods after them) */

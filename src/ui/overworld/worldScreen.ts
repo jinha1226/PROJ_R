@@ -1,17 +1,20 @@
 import { BuildMode } from './buildMode';
-import { RaidBar, raidNote } from './raidBar';
-import { PlacePrompts } from './placePrompt';
+import { RaidBar, raidNote, tryOutState } from './raidBar';
+import { PlacePrompts, type Prompt } from './placePrompt';
+
+/** how near the pod a clone must stand for its build button to show */
+const POD_REACH = 3;
 import { startFloors } from '../../sim/base/drill';
 import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
-import { idx, same, walkable, tileAt, type GEvent } from '../../sim/grid/types';
+import { dist, idx, same, walkable, tileAt, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from './targetCard';
-import { promote } from '../../sim/party/partySim';
+import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
@@ -52,6 +55,10 @@ export class WorldScreen implements Screen {
   private mini: WorldMinimap | null = null;
   private sel = 'hero';
   private paused = false;
+  /** whether the last tick moved anyone (followers still catching up keep time going) */
+  private movedLast = true;
+  /** a wait runs time on to here */
+  private waitUntil = 0;
   private build!: BuildMode;
   private raidBar!: RaidBar;
   private readonly prompts = new PlacePrompts();
@@ -145,14 +152,17 @@ export class WorldScreen implements Screen {
       last = now;
       // while the pod falls in the world waits; then the clone steps out
       if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing) {
+      this.handOver();
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing && !this.p.waiting && !this.still()) {
         const t0 = this.p.time;
-        this.live(worldTick(this.p, dt * RATE * this.speed), t0);
+        const ev = worldTick(this.p, dt * RATE * this.speed);
+        this.movedLast = ev.some((e) => e.type === 'move');
+        this.live(ev, t0);
         this.autoPause();
       }
       this.build.update();
       this.raidBar.update();
-      this.prompts.update(this.rt, this.opts.onDrill && this.p.drill && canDrill(this.p) ? [{ at: this.p.drill, label: '▼ 시추공', act: () => this.descend() }] : []);
+      this.prompts.update(this.rt, this.placePrompts());
       this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
@@ -195,10 +205,7 @@ export class WorldScreen implements Screen {
   private restart(): void {
     LOOK_BY_ID.clear();
     this.p = this.opts.party ?? newWorld(this.seed);
-    // `?rich`: a stocked base for trying the build panel
-    if (new URLSearchParams(location.search).has('rich') && this.p.ore < 200) { this.p.ore = 300; this.p.crystal = 40; this.p.bio = 60; }
-    // `?raid`: a raid night waiting at the pod, for trying the raid screen
-    if (new URLSearchParams(location.search).has('raid') && !this.p.raid && !this.p.raidReady) this.p.raidReady = { size: 40, sides: [0, 2] };
+    tryOutState(this.p);
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.warned.clear();
     this.rt?.dispose();
@@ -224,6 +231,24 @@ export class WorldScreen implements Screen {
   private ids(): string[] { return clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => u.id); }
 
   /** A hero falling low or falling, or a camp waking, stops the clock so the player can react. */
+  /** Turn-based: in a fight the chosen clone's moments wait for the player. */
+  private handOver(): void {
+    const hand = this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
+    if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
+  }
+
+  private get myTurn(): boolean { return !!this.p.waiting && this.p.manual === this.sel; }
+
+  /**
+   * Out of a fight time moves only while something is being done (a walk, an order under way, a wait); a raid on its way in,
+   * or a party with nobody left (a body being printed), keeps it moving.
+   */
+  private still(): boolean {
+    if (this.p.combat || this.p.raid || this.movedLast || this.p.time < this.waitUntil) return false;
+    const living = clones(this.p).filter((u) => entOf(this.p, u.id)?.alive);
+    return living.length > 0 && !living.some((u) => u.order?.kind === 'move' || u.order?.kind === 'attack');
+  }
+
   private autoPause(): void {
     for (const id of this.ids()) {
       const e = entOf(this.p, id)!;
@@ -246,6 +271,15 @@ export class WorldScreen implements Screen {
   /** Walk speed in cells per second of shown time: units step about every 0.85 of game time, and the show runs at min(speed, SHOW_MAX). */
   private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
 
+  /** Buttons over the places the party stands by: the shaft when it can go down, the pod (to build) when a clone is near it. */
+  private placePrompts(): Prompt[] {
+    const list: Prompt[] = [];
+    if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.drill, label: '▼ 시추공', act: () => this.descend() });
+    const nearPod = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, this.p.base) <= POD_REACH; });
+    if (this.p.pod && nearPod && !this.p.raid && !this.build.open) list.push({ at: { x: this.p.base.x + 0.5, y: this.p.base.y + 0.5 }, label: '⚒ 건설', act: () => this.build.toggle() });
+    return list;
+  }
+
   /** Down the shaft: with deeper starts open, first ask which floor. */
   private descend(): void {
     if (!canDrill(this.p) || !this.opts.onDrill) return;
@@ -260,7 +294,7 @@ export class WorldScreen implements Screen {
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e' || k === 'l') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : 'gear'); return; }
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];
@@ -292,6 +326,8 @@ export class WorldScreen implements Screen {
     if (!me || !entOf(this.p, me.id)?.alive) return;
     // an order given while stopped sets the game going again (a phone has no Space key)
     this.paused = false;
+    // on the clone's turn a click is its action: a blow, or a step toward the cell
+    if (this.myTurn) { if (at) this.live(command(this.p, { kind: 'attack', target: at.id })); else this.live(command(this.p, { kind: 'move', cell: c })); return; }
     if (at) me.order = { kind: 'attack', target: at.id };
     else this.walk(c);
   }
@@ -349,6 +385,9 @@ export class WorldScreen implements Screen {
 
   /** Stop where it stands (holding the spot in a fight). */
   private stop(): void {
+    if (this.myTurn) { this.live(command(this.p, { kind: 'wait' })); return; }
+    // out of a fight, waiting passes one turn
+    if (!this.p.combat) { this.waitUntil = this.p.time + 1; return; }
     const u = unitOf(this.p, this.sel), e = entOf(this.p, this.sel);
     if (u && e?.alive) u.order = this.p.combat ? { kind: 'hold', cell: { ...e.pos } } : null;
   }

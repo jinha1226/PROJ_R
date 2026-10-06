@@ -40,9 +40,6 @@ import '../styles/worldHud.css';
 const RATE = 3.6;
 const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
-type Mode = 'turn' | 'realtime';
-const MODE_KEY = 'projr.combatMode';
-const savedMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 'realtime' ? 'realtime' : 'turn'; } catch { return 'turn'; } };
 
 /**
  * `?demo=delve`: the dungeon below the ship. Exploring runs in real time; when a band notices the party the fight turns
@@ -67,7 +64,6 @@ export class DelveScreen implements Screen {
   private pausedBeforePip = false;
   private speed = 1;
   private zoom = 11;
-  private mode: Mode = savedMode();
   private hover: Cell | null = null;
   private readonly miningCue = new MiningCue();
   private readonly prompts = new PlacePrompts();
@@ -76,7 +72,6 @@ export class DelveScreen implements Screen {
   /** turn-based: a wait runs time on to here */
   private waitUntil = 0;
   private warned = new Set<string>();
-  private slowUntil = 0;
   private raf = 0;
   private readonly seed: number;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
@@ -106,9 +101,8 @@ export class DelveScreen implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
-    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, turnBased: this.mode === 'turn', dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동·공격 · Q W 기술 · Space 대기(턴제)/정지 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
+    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },
-      mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
       dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
       pip: (tab) => this.togglePip(tab),
       restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
@@ -138,8 +132,8 @@ export class DelveScreen implements Screen {
       last = now;
       this.handOver();
       if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still()) {
-        const t0 = this.p.time, slow = this.mode === 'realtime' && now < this.slowUntil ? 0.35 : 1;
-        const ev = delveTick(this.p, dt * RATE * this.speed * slow);
+        const t0 = this.p.time;
+        const ev = delveTick(this.p, dt * RATE * this.speed);
         this.movedLast = ev.some((e) => e.type === 'move');
         this.live(ev, t0);
       }
@@ -162,7 +156,8 @@ export class DelveScreen implements Screen {
 
   /** In a turn-based fight the chosen clone is under the hand; out of a fight (or in real time) nobody is. */
   private handOver(): void {
-    const hand = this.mode === 'turn' && this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
+    // the game is turn-based: in a fight the chosen clone's moments wait for the player
+    const hand = this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
   }
 
@@ -179,8 +174,8 @@ export class DelveScreen implements Screen {
     this.rt?.applyLive(ev, t0);
     this.log.read(this.p, ev);
     for (const e of ev) {
-      if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, this.mode === 'realtime');
-      if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', this.mode === 'realtime');
+      if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, false);
+      if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', false);
       if (e.type === 'telegraph' && e.to) { this.props?.slam(e.to, e.amount ?? 2); this.hud.toast('내려찍기!'); }
       if (e.type === 'victory') this.hud.toast('마왕군 장군 처치');
       if (e.type === 'levelUp') this.hud.toast(`${this.name(e.src!)} 레벨 ${e.amount}`);
@@ -192,11 +187,6 @@ export class DelveScreen implements Screen {
         this.log.add(e.t, e.text === 'lost' ? '전멸 · 영혼은 지하에 남음' : '전멸 · 재료 부족', 'warn');
         // below ground nobody comes back on their own: the pod takes it from here
         if (e.text === 'lost' && this.opts.onAscend) setTimeout(() => this.opts.onAscend!(takeParty(this.p)), 2200);
-      }
-      // in real time a clone falling low slows the world for a moment instead of stopping it
-      if (e.type === 'hit' && this.mode === 'realtime' && unitOf(this.p, e.dst!)?.side === 'hero') {
-        const h = entOf(this.p, e.dst!)!;
-        if (h.alive && h.hp < h.maxHp * 0.35) this.slowUntil = performance.now() + 2500;
       }
     }
   }
@@ -270,7 +260,7 @@ export class DelveScreen implements Screen {
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e' || k === 'l') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : 'gear'); return; }
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];
@@ -306,7 +296,7 @@ export class DelveScreen implements Screen {
   private waitOrStop(): void {
     if (this.myTurn) { this.live(command(this.p, { kind: 'wait' })); return; }
     // turn-based and nothing doing: wait passes one turn
-    if (this.mode === 'turn' && !this.p.combat) { this.waitUntil = this.p.time + 1; return; }
+    if (!this.p.combat) { this.waitUntil = this.p.time + 1; return; }
     const u = unitOf(this.p, this.sel), e = entOf(this.p, this.sel);
     if (u && e?.alive) u.order = this.p.combat ? { kind: 'hold', cell: { ...e.pos } } : null;
   }
@@ -316,7 +306,7 @@ export class DelveScreen implements Screen {
    * sent somewhere, a vein being worked, a wait under way. Standing about, the turn count holds.
    */
   private still(): boolean {
-    if (this.mode !== 'turn' || this.p.combat || this.movedLast || this.p.time < this.waitUntil) return false;
+    if (this.p.combat || this.movedLast || this.p.time < this.waitUntil) return false;
     return !clones(this.p).some((u) => {
       const e = entOf(this.p, u.id);
       if (!e?.alive) return false;

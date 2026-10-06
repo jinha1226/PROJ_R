@@ -53,3 +53,10 @@ export function raidNote(e: GEvent, p: WorldParty): string | undefined {
   if (e.type === 'dead' && e.text === 'raidLost') return '포드 함락 · 자원과 건물 일부 잃음';
   return undefined;
 }
+
+/** Address-bar switches for trying the base out: `?rich` stocks it, `?raid` sets a raid night waiting at the pod. */
+export function tryOutState(p: WorldParty): void {
+  const q = new URLSearchParams(location.search);
+  if (q.has('rich') && p.ore < 200) { p.ore = 300; p.crystal = 40; p.bio = 60; }
+  if (q.has('raid') && !p.raid && !p.raidReady) p.raidReady = { size: 40, sides: [0, 2] };
+}

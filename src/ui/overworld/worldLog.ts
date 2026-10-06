@@ -2,6 +2,7 @@ import type { GEvent } from '../../sim/grid/types';
 import { unitOf, type Party } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { FOE_NAME } from './classIcons';
+import { effectLine } from './pipSkills';
 
 export interface LogLine { at: number; text: string; tone: 'info' | 'warn' | 'good' }
 
@@ -10,6 +11,8 @@ const clock = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${S
 /** What happened, in short lines (the newest last); the log keeps the latest few. */
 export class WorldLog {
   lines: LogLine[] = [];
+  /** effects already explained once per clone (the skills tab has them all after) */
+  private readonly told = new Set<string>();
 
   add(at: number, text: string, tone: LogLine['tone'] = 'info'): void {
     this.lines.push({ at, text, tone });
@@ -34,6 +37,11 @@ export class WorldLog {
       else if (e.type === 'trap') this.add(e.t, e.text === 'alarm' ? '경보 함정' : '가시 함정', 'warn');
       else if (e.type === 'trapFound') this.add(e.t, '함정 발견');
       else if (e.type === 'buff' && e.text === 'shrine') this.add(e.t, '성소의 축복', 'good');
+      else if (e.type === 'buff' && e.text && /[가-힣]/.test(e.text) && e.src && unitOf(p, e.src)?.side === 'hero' && !this.told.has(`${e.src}:${e.text}`)) {
+        // a trigger, an ultimate or a trait firing: said with what it does, the first time this clone sets it off
+        this.told.add(`${e.src}:${e.text}`);
+        this.add(e.t, `${name(e.src)} · ${effectLine(e.text, unitOf(p, e.src)!)}`, 'good');
+      }
       else if (e.type === 'victory') this.add(e.t, '마왕군 장군 처치', 'good');
       else if (e.type === 'buff' && e.text === 'soul') this.add(e.t, `${name(e.dst)} 영혼이 깃듦`, 'good');
       else if (e.type === 'buff' && e.text === 'print') this.add(e.t, '복제 포드가 새 몸을 출력', 'good');
