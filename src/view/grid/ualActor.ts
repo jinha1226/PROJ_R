@@ -92,7 +92,9 @@ function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: nu
  * y → body x, x → body forward (z), z → up. Measured at rest and a third into the shot, so it follows the hand either way.
  */
 const BOW_FLAT = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)));
-const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35, BOW_FLAT) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3, BOW_FLAT));
+/** Carried (not drawn): level along the way the body faces, the string on top and the arc below — seen from the side, a flat bow with its string up. */
+const BOW_CARRY = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(-1, 0, 0)));
+const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35, BOW_FLAT) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3, BOW_CARRY));
 const CASTER = new Set<WeaponLook>(['staff', 'wand', 'symbol']);
 
 const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined => {

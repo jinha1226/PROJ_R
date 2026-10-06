@@ -5,13 +5,14 @@ import { traitText } from '../../sim/party/traitText';
 import { gearHtml, packHtml, WHEN } from './pipGear';
 import { promotionHtml } from './pipClasses';
 import { rosterHtml } from './pipRoster';
+import { useConsumable } from './quickSlots';
 import { skillsHtml } from './pipSkills';
 import { ULT_TEXT } from './ultText';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { itemName } from '../../sim/delve/items';
-import { equip,unequip,sacrifice,useItem,weaponStats } from '../../sim/delve/gear';
+import { equip,unequip,sacrifice,weaponStats } from '../../sim/delve/gear';
 import { CATALOG } from '../../sim/delve/catalog';
-import { entOf, unitOf, targetOf, posOf } from '../../sim/party/partyCore';
+import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { BODY_COST, clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, classIcon } from './classIcons';
@@ -39,7 +40,7 @@ export class PipWindow {
       if (tab) this.tab = tab;
       if (who) this.who = who;
       const act=t.closest<HTMLElement>('[data-item]');
-      if(act){const p=this.p(),id=act.dataset.item!,u=unitOf(p,this.who)||clones(p).find(u=>entOf(p,u.id)?.alive);if(u){if(act.dataset.action==='equip')equip(p,u.id,id);if(act.dataset.action==='sacrifice')sacrifice(p,u.id,id);if(act.dataset.action==='use'){const target=targetOf(p,u,p.time),it=p.pack.find(it=>it.id===id);if(target||!it||!('consumable'in it)||!['fireBomb','iceBomb','poisonJar','boltWand'].includes(it.consumable))useItem(p,u.id,id,target?posOf(p,target):undefined);}}}
+      if(act){const p=this.p(),id=act.dataset.item!,u=unitOf(p,this.who)||clones(p).find(u=>entOf(p,u.id)?.alive);if(u){if(act.dataset.action==='equip')equip(p,u.id,id);if(act.dataset.action==='sacrifice')sacrifice(p,u.id,id);if(act.dataset.action==='use')this.onEvents?.(useConsumable(p,u.id,id));}}
       const to = t.closest<HTMLElement>('[data-promote-to]')?.dataset.promoteTo as ClassId | undefined;
       if (to) this.onEvents?.(promote(this.p(), this.who, to));
       const slot=t.closest<HTMLElement>('[data-off]')?.dataset.off as 'weapon'|'armor'|'accessory'|undefined;

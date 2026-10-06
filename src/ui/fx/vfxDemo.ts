@@ -26,8 +26,11 @@ export function mountVfxDemo(root: HTMLElement, lib: UalLibrary, vfx: Vfx): void
   const rows = Math.ceil(KINDS.length / COLS);
   const spots = KINDS.map((k, i) => new THREE.Vector3((i % COLS - (COLS - 1) / 2) * GAP, 0, (Math.floor(i / COLS) - (rows - 1) / 2) * GAP * 1.2));
   const actors = spots.map((p, i) => {
-    const a = new UalActor(lib, lookOf((['warrior', 'archer', 'mage', 'cleric', 'rogue'] as const)[i % 5]!, 'fists'));
+    // each class with its own weapon, turned side-on to the camera so held weapons read in profile
+    const [cls, weapon] = ([['warrior', 'swordShield'], ['archer', 'longbow'], ['mage', 'staff'], ['cleric', 'mace'], ['rogue', 'daggers']] as const)[i % 5]!;
+    const a = new UalActor(lib, lookOf(cls, weapon));
     a.root.position.set(p.x - 0.7, 0, p.z);
+    a.root.rotation.y = Math.PI / 2;
     scene.add(a.root);
     return a;
   });

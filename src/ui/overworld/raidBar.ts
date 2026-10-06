@@ -54,6 +54,20 @@ export function raidNote(e: GEvent, p: WorldParty): string | undefined {
   return undefined;
 }
 
+/** The run-over panel (no clone left, no bio-matter for a body): restart or back to the title, instead of a frozen field. */
+export function overPanel(restart: () => void, quit?: () => void): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'pip-win menu-win';
+  el.hidden = true;
+  el.innerHTML = '<div class="pip-frame menu-frame"><header><span class="pip-title">전멸</span></header><div class="menu-body"><div class="menu-row"><button type="button" data-over="restart">다시 시작</button><button type="button" data-over="quit">타이틀</button></div></div></div>';
+  el.addEventListener('click', (e) => {
+    const k = (e.target as HTMLElement).closest<HTMLElement>('[data-over]')?.dataset.over;
+    if (k === 'restart') { el.hidden = true; restart(); }
+    if (k === 'quit') quit?.();
+  });
+  return el;
+}
+
 /** Address-bar switches for trying the base out: `?rich` stocks it, `?raid` sets a raid night waiting at the pod. */
 export function tryOutState(p: WorldParty): void {
   const q = new URLSearchParams(location.search);

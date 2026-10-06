@@ -3,6 +3,7 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank } from '../../sim/party/traitDefs';
 import { traitText } from '../../sim/party/traitText';
+import { achraLine } from './richText';
 import { CLASS_TINT, classIcon } from './classIcons';
 
 /** The level-up choice, in the Pip-Boy frame: three traits as cards (name, the rank it would reach, what that rank does). The game waits while it is open. */
@@ -31,7 +32,7 @@ export class TraitPicker {
     const cards = u.offer.map((id) => {
       const d = TRAITS[id]!, r = rank(u, id);
       const pips = Array.from({ length: d.ranks }, (_, i) => `<i class="${i < r ? 'on' : i === r ? 'next' : ''}"></i>`).join('');
-      return `<button type="button" class="trait-card${(d.pool !== 'common' && d.pool !== 'keystone' ? d.pool : undefined) ? ' own' : ''}" data-trait="${id}"><b>${d.name}</b><span class="pips">${pips}</span><p class="trait-text">${traitText(id, Math.min(d.ranks, r + 1))}</p><em>${d.tags.join(' · ')}</em>${(d.pool !== 'common' && d.pool !== 'keystone' ? d.pool : undefined) ? `<small>${(d.pool !== 'common' && d.pool !== 'keystone' ? CLASSES[d.pool].name : '')} 전용</small>` : ''}</button>`;
+      return `<button type="button" class="trait-card${(d.pool !== 'common' && d.pool !== 'keystone' ? d.pool : undefined) ? ' own' : ''}" data-trait="${id}"><b>${d.name}</b><span class="pips">${pips}</span><p class="trait-text">${achraLine(traitText(id, Math.min(d.ranks, r + 1)))}</p><em>${d.tags.join(' · ')}</em>${(d.pool !== 'common' && d.pool !== 'keystone' ? d.pool : undefined) ? `<small>${(d.pool !== 'common' && d.pool !== 'keystone' ? CLASSES[d.pool].name : '')} 전용</small>` : ''}</button>`;
     }).join('');
     this.el.innerHTML = `<div class="pip-frame trait-frame"><header><span class="trait-who" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${CLASSES[u.cls!].name} · 레벨 ${levelOf(u)}</span><span class="pip-title">특성 선택${(u.picks ?? 0) > 1 ? ` · 남은 선택 ${u.picks}` : ''}</span><button type="button" data-close>✕</button></header>
       <div class="trait-cards">${cards}</div><footer>Esc 닫기</footer></div>`;

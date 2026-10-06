@@ -1,0 +1,143 @@
+/* Panels of the expedition screens: Pip tabs, build panel, raid line, quick slots, chips, phone layout. */
+
+/* ---- Pip window: gear and class tabs ---- */
+.pg, .pc { display: grid; gap: 6px; align-content: start; font-size: 12px; }
+.pg-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pg-slot h5, .pc-line h5 { margin: 0 0 4px; font: 11px 'GalmuriMono', monospace; color: #34a85c; letter-spacing: 0.15em; display: flex; gap: 6px; align-items: center; }
+.pg-pack { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.pg-card { border: 1px solid #1f5a2e; background: #010a05; padding: 6px 8px; display: grid; gap: 3px; }
+.pg-card.empty { color: #2f5a3e; border-style: dashed; place-items: center; min-height: 60px; }
+.pg-card.off { border-color: #7a4a1e; }
+.pg-head { display: flex; gap: 6px; align-items: baseline; }
+.pg-head b { font-weight: normal; color: #e6ffb0; }
+.pg-head small { color: #8ff0ff; }
+.pg-head .up { color: #5dff8a; margin-left: auto; font-weight: normal; }
+.pg-head .down { color: #ff7a6a; margin-left: auto; font-weight: normal; }
+.pg-stat { color: #9dffb8; }
+.pg-tags { color: #34a85c; }
+.pg-trig { color: #ffd76a; font-size: 11px; }
+.pg-warn { color: #ff9a5a; font-size: 11px; }
+.pg-btns { display: flex; gap: 4px; }
+.pg-btns button, .pc-row button { font: 11px 'GalmuriMono', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 3px 8px; cursor: pointer; }
+.pg-btns button:disabled { opacity: 0.35; cursor: default; }
+.pg-none { color: #2f5a3e; margin: 4px 0; }
+.pc-line { border-left: 2px solid var(--tint); padding-left: 8px; margin-bottom: 6px; color: var(--tint); }
+.pc-line .cls-icon, .pc-row .cls-icon { width: 18px; height: 18px; }
+.pc-row { display: grid; grid-template-columns: 18px 72px 1fr auto; gap: 4px 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid #0f3a1e; color: var(--tint, #9dffb8); }
+.pc-row b { font-weight: normal; color: #e6ffb0; }
+.pc-row.met b { color: #ffd76a; }
+.pc-need { color: #34a85c; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.pc-need .ok { color: #5dff8a; }
+.pc-ult { grid-column: 2 / -1; color: #8ff0ff; font-size: 11px; }
+.pc-ult b { color: #8ff0ff; margin-right: 4px; }
+.pc-row.small { font-size: 11px; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .pg-slots { grid-template-columns: 1fr; }
+  .pg-pack { grid-template-columns: 1fr; }
+}
+
+/* ---- build panel (surface): a column on the right, the field stays clickable ---- */
+.build-panel { position: absolute; z-index: 9; right: 12px; top: 96px; width: 260px; max-height: calc(100% - 200px); overflow: auto; display: grid; gap: 8px; padding: 10px; font: 12px 'GalmuriMono', monospace; color: #9dffb8; background: linear-gradient(180deg, #03140af2, #010a05f2); border: 1px solid #1f7a3e; box-shadow: 0 0 18px #0a3a1a; }
+.build-panel[hidden] { display: none; }
+.build-panel header { display: flex; gap: 8px; align-items: baseline; }
+.build-panel header span { color: #e6ffb0; font-size: 14px; letter-spacing: 0.2em; }
+.build-panel header small { color: #34a85c; font-size: 10px; }
+.build-panel header button { margin-left: auto; }
+.build-panel button { font: 12px 'GalmuriMono', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 5px 8px; cursor: pointer; text-align: left; }
+.build-panel button:disabled { opacity: 0.4; cursor: default; }
+.build-panel button.on { background: #5dff8a; color: #021006; }
+.build-panel button.on em, .build-panel button.on small { color: #021006; }
+.bp-drill { display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid #1f7a3e; }
+.bp-drill b { font-weight: normal; color: #e6ffb0; }
+.bp-drill small, .build-panel small { color: #34a85c; }
+.bp-list { display: grid; gap: 4px; }
+.bp-list button { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.bp-list b { font-weight: normal; color: #e6ffb0; }
+.bp-list em { grid-column: 1 / -1; font-style: normal; color: #9dffb8; font-size: 11px; }
+.bp-rec { text-align: center !important; color: #ffd76a !important; border-color: #ffd76a !important; }
+.bp-hint { margin: 0; color: #34a85c; font-size: 11px; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .build-panel { left: 6px; right: 6px; top: auto; bottom: 96px; width: auto; max-height: 42%; }
+}
+
+/* ---- raid line (surface) and the night it brings ---- */
+.raid-bar { position: absolute; z-index: 7; left: 50%; top: 76px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 12px; font: 12px 'GalmuriMono', monospace; color: #ffb0a0; background: linear-gradient(180deg, #160604f0, #0a0201f0); border: 1px solid #a03a2a; box-shadow: 0 0 16px #ff3a2a44; white-space: nowrap; }
+.raid-bar[hidden] { display: none; }
+.raid-bar b { font-weight: normal; color: #ffe6c0; }
+.raid-bar b.ok { color: #5dff8a; }
+.raid-bar b.low { color: #ff5a4a; }
+.raid-bar .rb-night, .raid-bar .rb-fight { color: #ff5a4a; letter-spacing: 0.2em; animation: wh-blink 1.2s steps(2) infinite; }
+.raid-bar button { font: 12px 'GalmuriMono', monospace; color: #ffe6c0; background: #2a0804; border: 1px solid #ff6a4a; padding: 5px 10px; cursor: pointer; }
+.raid-bar button[data-r="auto"] { color: #5dff8a; border-color: #1f7a3e; background: #021006; }
+/* night: a dark red-blue wash over the land (the HUD stays bright) */
+.screen.world.night .grid-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0a0a2a33, #04020ecc); mix-blend-mode: multiply; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .raid-bar { top: 60px; left: 6px; right: 6px; transform: none; flex-wrap: wrap; white-space: normal; justify-content: center; gap: 4px 10px; }
+}
+
+/* ---- Pip window: roster tab ---- */
+.pr { grid-column: 1 / -1; display: grid; gap: 4px; align-content: start; }
+.pr-row { display: grid; grid-template-columns: 150px 120px 1fr auto auto; gap: 10px; align-items: center; text-align: left; font: 12px 'GalmuriMono', monospace; color: var(--tint); background: #010a05; border: 1px solid #1f5a2e; padding: 6px 8px; cursor: pointer; }
+.pr-row:hover { border-color: #e6ffb0; }
+.pr-cls { display: flex; gap: 6px; align-items: center; }
+.pr-cls .cls-icon { width: 20px; height: 20px; }
+.pr-cls b { font-weight: normal; }
+.pr-cls small { color: #34a85c; }
+.pr-hp { position: relative; height: 14px; border: 1px solid #1f5a2e; background: #020804; }
+.pr-hp i { position: absolute; inset: 0 auto 0 0; background: #c89a30; }
+.pr-hp em { position: relative; font-style: normal; font-size: 10px; color: #021006; padding-left: 4px; }
+.pr-gear { color: #9dffb8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-promo { color: #ffd76a; font-size: 11px; animation: wh-blink 1s steps(2) infinite; }
+@media (orientation: portrait) and (max-width: 700px) { .pr-row { grid-template-columns: 1fr 90px; } .pr-gear { grid-column: 1 / -1; } }
+
+/* ---- what is on a unit: trigger buffs (green), statuses (red), turns left ---- */
+.u-chips { display: flex; flex-wrap: wrap; gap: 2px 3px; margin: 2px 0; }
+.u-chips i { font: 9px 'GalmuriMono', monospace; font-style: normal; padding: 0 3px; border: 1px solid; line-height: 13px; }
+.u-chips i.good { color: #8ff0ff; border-color: #2a7a8a; background: #021014; }
+.u-chips i.bad { color: #ff8a7a; border-color: #8a2a1e; background: #140402; }
+.wh-target .u-chips { margin: 0; }
+
+/* the top right keeps only the menu (and the shaft or lift when there); no mode banner */
+.wh-mode { display: none; }
+
+/* ---- usable places in the field: a button over the shaft, lift or stairs ---- */
+.place-prompts { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.place-prompts button { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; font: 13px 'GalmuriMono', monospace; color: #021006; background: #ffd76a; border: 2px solid #021006; box-shadow: 0 0 0 1px #ffd76a, 0 0 14px #ffb04a99; padding: 6px 10px; cursor: pointer; white-space: nowrap; animation: pp-bob 1.2s ease-in-out infinite; }
+@keyframes pp-bob { 50% { margin-top: -4px; } }
+
+/* ---- skills tab, Achra style: the name and where it comes from, then "condition: effect" with coloured keywords ---- */
+.ps .pip-skills { gap: 0; }
+.ps-row { display: block !important; padding: 5px 0; border-bottom: 1px solid #0f3a1e; }
+.ps-top { display: flex; gap: 8px; align-items: baseline; }
+.ps-top b { font-weight: normal; color: #e6ffb0; font-size: 13px; }
+.ps-top em { font-style: normal; color: #34a85c; font-size: 10px; margin-left: auto; }
+.ps-line { color: #c8ffd8; font-size: 12px; margin-top: 2px; line-height: 1.5; }
+.k-when { font-style: normal; color: #ffd76a; margin-right: 4px; }
+.k-num { font-weight: normal; color: #ffffff; }
+.k-fire { font-style: normal; color: #ff8a3a; } .k-ice { font-style: normal; color: #7ac8ff; } .k-shock { font-style: normal; color: #ffe85a; }
+.k-poison { font-style: normal; color: #8ad05a; } .k-blood { font-style: normal; color: #ff5a6a; } .k-stun { font-style: normal; color: #d0a0ff; }
+.k-guard { font-style: normal; color: #8ff0ff; } .k-heal { font-style: normal; color: #5dff8a; } .k-crit { font-style: normal; color: #ffd04a; } .k-shade { font-style: normal; color: #b0b8d0; }
+
+/* ---- quick slots: the pack's consumables, one tap each ---- */
+.quick-slots { position: absolute; z-index: 6; left: 50%; bottom: 104px; transform: translateX(-50%); display: flex; gap: 4px; }
+.quick-slots[hidden] { display: none; }
+.quick-slots button { font: 11px 'GalmuriMono', monospace; color: #e6ffb0; background: #021006e6; border: 1px solid #1f7a3e; padding: 5px 8px; cursor: pointer; display: flex; gap: 4px; align-items: baseline; }
+.quick-slots button small { color: #ffd76a; }
+/* the log tells more: ten lines on a desk screen, six on a phone */
+.wh-log .wl-line:nth-last-child(n + 11) { display: none; }
+@media (max-height: 520px) and (orientation: landscape) { .wl-line:nth-last-child(n + 4) { display: block; } .wh-log .wl-line:nth-last-child(n + 7) { display: none; } }
+
+/* ---- upright phones: a small map; from the bottom up: the five buttons in a row, the portraits, the quick slots, the log ---- */
+@media (orientation: portrait) and (max-width: 700px) {
+  .wh-tl { width: 78px; }
+  .wh-mini canvas { width: 68px; height: 68px; }
+  .wh-area { display: none; }
+  .tp-btns { left: 6px; right: 6px; bottom: 6px; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .tp-btns button { height: 44px; font-size: 12px; }
+  .wh-party { left: 6px; right: 6px; top: auto; bottom: 56px; width: auto; transform: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .quick-slots { left: 6px; right: 6px; bottom: 140px; transform: none; flex-wrap: wrap; }
+  .wh-bl { display: block; left: 6px; right: 6px; bottom: 176px; width: auto; min-height: 0; padding: 4px 6px; }
+  .wh-bl .wl-line { display: block; font-size: 10px; line-height: 1.45; }
+  .wh-bl .wl-line:nth-last-child(n + 7) { display: none; }
+  .tp-zone { bottom: 280px; height: 30%; width: 64%; }
+}

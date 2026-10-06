@@ -1,5 +1,7 @@
 import { BuildMode } from './buildMode';
-import { RaidBar, raidNote, tryOutState } from './raidBar';
+import { RaidBar, overPanel, raidNote, tryOutState } from './raidBar';
+import { QuickSlots } from './quickSlots';
+import { AutoExplore } from '../delve/explore';
 import { PlacePrompts, type Prompt } from './placePrompt';
 
 /** how near the pod a clone must stand for its build button to show */
@@ -39,6 +41,7 @@ import '../styles/gridSf.css';
 import '../styles/partyScreen.css';
 import '../styles/worldScreen.css';
 import '../styles/worldHud.css';
+import '../styles/worldPanels.css';
 
 /** game time per real second at normal speed */
 const RATE = 3.6;
@@ -62,7 +65,9 @@ export class WorldScreen implements Screen {
   private build!: BuildMode;
   private raidBar!: RaidBar;
   private readonly prompts = new PlacePrompts();
-  private readonly over = document.createElement('div');
+  private over!: HTMLElement;
+  private readonly quick = new QuickSlots(() => this.p, () => this.sel, (ev) => this.live(ev));
+  private readonly explorer = new AutoExplore();
   private speed = 1;
   private zoom = 14;
   private warned = new Set<string>();
@@ -121,17 +126,10 @@ export class WorldScreen implements Screen {
     this.raidBar = new RaidBar(() => this.p, (ev) => this.live(ev), this.el);
     this.el.appendChild(this.raidBar.el);
     this.el.appendChild(this.prompts.el);
-    // the run is over (no clone left, no bio-matter for a body): say so and offer the way on, instead of a frozen field
-    this.over.className = 'pip-win menu-win';
-    this.over.hidden = true;
-    this.over.innerHTML = '<div class="pip-frame menu-frame"><header><span class="pip-title">전멸</span></header><div class="menu-body"><div class="menu-row"><button type="button" data-over="restart">다시 시작</button><button type="button" data-over="quit">타이틀</button></div></div></div>';
-    this.over.addEventListener('click', (e) => {
-      const k = (e.target as HTMLElement).closest<HTMLElement>('[data-over]')?.dataset.over;
-      if (k === 'restart') { this.over.hidden = true; if (this.opts.restart) this.opts.restart(); else this.restart(); }
-      if (k === 'quit') this.opts.quit?.();
-    });
+    this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.el.appendChild(this.quick.el);
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
     this.zoom = startZoom(this.zoom);
@@ -162,6 +160,8 @@ export class WorldScreen implements Screen {
       }
       this.build.update();
       this.raidBar.update();
+      this.quick.update();
+      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.message(t)); }
       this.prompts.update(this.rt, this.placePrompts());
       this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
@@ -324,8 +324,9 @@ export class WorldScreen implements Screen {
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
     const me = unitOf(this.p, this.sel);
     if (!me || !entOf(this.p, me.id)?.alive) return;
-    // an order given while stopped sets the game going again (a phone has no Space key)
+    // an order given while stopped sets the game going again (a phone has no Space key); it also ends auto-explore
     this.paused = false;
+    this.explorer.stop();
     // on the clone's turn a click is its action: a blow, or a step toward the cell
     if (this.myTurn) { if (at) this.live(command(this.p, { kind: 'attack', target: at.id })); else this.live(command(this.p, { kind: 'move', cell: c })); return; }
     if (at) me.order = { kind: 'attack', target: at.id };
@@ -370,6 +371,7 @@ export class WorldScreen implements Screen {
     const e = entOf(this.p, this.sel);
     if (!e?.alive || this.pip.open || this.picker.open) return;
     this.paused = false;
+    this.explorer.stop();
     const c = { x: e.pos.x + dx, y: e.pos.y + dy };
     if (walkable(tileAt(this.p.s.map, c)) && !this.unitAt(c)) orderTo(this.p, this.sel, c);
   }

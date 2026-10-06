@@ -24,7 +24,12 @@ export class WorldLog {
     const name = (id?: string) => { const u = id ? unitOf(p, id) : undefined; return u?.cls ? CLASSES[u.cls].name : u?.foe ? FOE_NAME[u.foe] : '?'; };
     for (const e of ev) {
       const u = e.dst ? unitOf(p, e.dst) : undefined;
-      if (e.type === 'die' && u?.side === 'foe') this.add(e.t, `${name(e.dst)} 처치`);
+      const src = e.src ? unitOf(p, e.src) : undefined;
+      // the blow-by-blow, as a roguelike tells it: who hit whom for how much, misses and blocks, heals
+      if (e.type === 'hit' && src && u) this.add(e.t, `${name(e.src)} → ${name(e.dst)} ${e.amount}${e.crit ? ' 치명!' : ''}`, u.side === 'hero' ? 'warn' : 'info');
+      else if (e.type === 'miss' && src && u) this.add(e.t, e.text === 'block' ? `${name(e.dst)}이(가) 막음` : `${name(e.src)}의 공격 빗나감`);
+      else if (e.type === 'heal' && u?.side === 'hero' && e.text !== 'regen' && (e.amount ?? 0) > 0) this.add(e.t, `${name(e.dst)} 체력 +${e.amount}`, 'good');
+      else if (e.type === 'die' && u?.side === 'foe') this.add(e.t, `${name(e.dst)} 처치`);
       else if (e.type === 'die' && u?.side === 'hero') this.add(e.t, `${name(e.dst)} 쓰러짐`, 'warn');
       else if (e.type === 'wake') this.add(e.t, Number(e.text) >= 200 ? '떠돌이 고블린이 알아챔' : Number(e.text) >= 100 ? '진지가 깨어남' : '적이 알아챔', 'warn');
       else if (e.type === 'drop') this.add(e.t, e.text === 'gear' ? '장비가 떨어짐' : '영혼 소멸', 'warn');

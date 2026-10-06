@@ -9,6 +9,8 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from '../overworld/targetCard';
 import { tapCell } from './tapCell';
 import { MiningCue } from './miningCue';
+import { AutoExplore } from './explore';
+import { QuickSlots } from '../overworld/quickSlots';
 import { PlacePrompts, type Prompt } from '../overworld/placePrompt';
 import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
@@ -35,6 +37,7 @@ import '../styles/grid.css';
 import '../styles/gridSf.css';
 import '../styles/partyScreen.css';
 import '../styles/worldHud.css';
+import '../styles/worldPanels.css';
 
 /** game time per real second at normal speed */
 const RATE = 3.6;
@@ -66,6 +69,8 @@ export class DelveScreen implements Screen {
   private zoom = 11;
   private hover: Cell | null = null;
   private readonly miningCue = new MiningCue();
+  private readonly quick = new QuickSlots(() => this.p, () => this.sel, (ev) => this.live(ev));
+  private readonly explorer = new AutoExplore();
   private readonly prompts = new PlacePrompts();
   /** whether the last tick moved anyone (followers still catching up keep time going) */
   private movedLast = true;
@@ -98,6 +103,7 @@ export class DelveScreen implements Screen {
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.prompts.el);
+    this.el.appendChild(this.quick.el);
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
@@ -109,7 +115,7 @@ export class DelveScreen implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
@@ -141,6 +147,8 @@ export class DelveScreen implements Screen {
       this.props?.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.miningCue.update(this.p, this.rt);
+      this.quick.update();
+      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.hud.toast(t)); }
       this.placePrompts();
       this.marks();
       this.labels();
@@ -275,6 +283,7 @@ export class DelveScreen implements Screen {
     const e = entOf(this.p, this.sel);
     if (!e?.alive || this.pip.open || this.picker.open) return;
     this.paused = false;
+    this.explorer.stop();
     const c = { x: e.pos.x + dx, y: e.pos.y + dy };
     if (!walkable(tileAt(this.p.s.map, c)) || this.unitAt(c)) return;
     if (this.myTurn) this.live(command(this.p, { kind: 'move', cell: c }));
@@ -324,7 +333,8 @@ export class DelveScreen implements Screen {
     const at = this.unitAt(c);
     if (at?.side === 'hero') { this.select(at.id); return; }
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
-    // an order given while stopped sets the game going again (a phone has no Space key)
+    // an order given while stopped sets the game going again (a phone has no Space key); it also ends auto-explore
+    this.explorer.stop();
     this.paused = false;
     // a tap on an ore vein, a chest or a wall goes to stand beside it (that is what works a vein or opens a chest)
     const from = entOf(this.p, this.sel)?.pos, to = from && !at ? tapCell(this.p.s.map, from, c, (n) => !this.unitAt(n)) : null;

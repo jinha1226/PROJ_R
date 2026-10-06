@@ -1,4 +1,4 @@
-export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; stat(): void; tap?(x: number, y: number): void }
+export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; stat(): void; explore?(): void; tap?(x: number, y: number): void }
 
 /** how often a held stick asks for another step (real seconds) */
 const REPEAT = 0.2;
@@ -23,7 +23,7 @@ export class TouchPad {
   constructor(private readonly a: PadActions) {
     this.el.className = 'tp';
     this.el.innerHTML = `<div class="tp-zone"><div class="tp-base"><div class="tp-knob"></div></div></div>
-      <div class="tp-btns"><button type="button" data-a="attack">공격</button><button type="button" data-a="wait">대기</button><button type="button" data-a="bag">가방</button><button type="button" data-a="stat">상태</button></div>`;
+      <div class="tp-btns"><button type="button" data-a="attack">공격</button><button type="button" data-a="wait">대기</button><button type="button" data-a="explore">탐험</button><button type="button" data-a="stat">상태</button><button type="button" data-a="bag">가방</button></div>`;
     this.zone = this.el.querySelector('.tp-zone')!;
     this.base = this.el.querySelector('.tp-base')!;
     this.knob = this.el.querySelector('.tp-knob')!;
@@ -65,6 +65,7 @@ export class TouchPad {
       if (k === 'wait') a.wait();
       if (k === 'bag') a.bag();
       if (k === 'stat') a.stat();
+      if (k === 'explore') a.explore?.();
     });
   }
 
