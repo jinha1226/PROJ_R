@@ -185,7 +185,19 @@ async function vfxDemo(): Promise<void> {
   }
 }
 
+/** `?demo=styles`: one room in each candidate art style. */
+async function styleDemo(): Promise<void> {
+  try {
+    const [{ mountStyleDemo }, lib, kit, weapons] = await Promise.all([import('../ui/styles/styleDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    await mountStyleDemo(root, lib, kit, import.meta.env.BASE_URL);
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 if (params.get('demo') === 'vfx') void vfxDemo();
+else if (params.get('demo') === 'styles') void styleDemo();
 else if (params.get('demo') === 'kata') void kataDemo();
 else if (params.get('demo') === 'world') void worldDemo();
 else if (params.get('demo') === 'delve') void delveDemo();
