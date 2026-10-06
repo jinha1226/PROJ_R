@@ -47,7 +47,7 @@ export function foeTurn(p: Party, u: Unit, t: number, ev: GEvent[]): number | un
   if (u.slamPending) {
     u.slamPending = false;
     for (const h of near) {
-      damage(p, t, u.id, h, Math.round(p.s.rng.int(18, 24) * (u.foeScale ?? 1)), ev);
+      damage(p, t, u.id, h, Math.round(p.s.rng.int(12, 16) * (u.foeScale ?? 1)), ev);
       ev.push({ t, type: 'react', src: u.id, dst: h.id, to: { ...posOf(p, h) }, text: 'shatter' });
     }
     return FOES.warlord.atk;

@@ -70,8 +70,8 @@ it('slam waits for impact, repeats only after nine seconds, and dies with its ca
   expect(hero.hp).toBe(10000);
   const hit = delveTick(p, 0.02).find((e) => e.type === 'hit' && e.src === w.id)!;
   expect(hit.t).toBeCloseTo(1.5);
-  expect(hit.amount).toBeGreaterThanOrEqual(Math.round(18 * 1.6));
-  expect(hit.amount).toBeLessThanOrEqual(Math.round(24 * 1.6));
+  expect(hit.amount).toBeGreaterThanOrEqual(Math.round(12 * 1.6));
+  expect(hit.amount).toBeLessThanOrEqual(Math.round(16 * 1.6));
   const later: GEvent[] = [];
   for (let i = 0; i < 100; i++) later.push(...delveTick(p, 0.1));
   const telegraphs = [...start, ...later].filter((e) => e.type === 'telegraph' && e.src === w.id);
@@ -97,8 +97,8 @@ it('reinforcements occupy distinct free cells, inherit scaling, and call only on
     expect(u).toMatchObject({ foe: 'goblin', asleep: false, group: w.group });
     expect(dist(we.pos, e.pos)).toBeLessThanOrEqual(3);
     expect(walkable(tileAt(p.s.map, e.pos))).toBe(true);
-    expect(e.maxHp).toBe(Math.round(34 * 1.6));
-    expect(stats(u).dmg).toEqual([5, 10]);
+    expect(e.maxHp).toBe(Math.round(29 * 1.6));
+    expect(stats(u).dmg).toEqual([3, 8]);
   }
   foeTurn(p, w, 1.5, events); foeTurn(p, w, 3, events);
   expect(events.filter((e) => e.type === 'summon')).toHaveLength(3);

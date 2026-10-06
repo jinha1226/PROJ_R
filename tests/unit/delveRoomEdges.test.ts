@@ -98,7 +98,7 @@ it('mining uses simulation elapsed time and shrine is one shot', () => {
 });
 it('general loot and victory happen once even after roam has reaped the body', () => {
   const p = newDelve(2, 5), boss = p.units.find((u) => u.foe === 'warlord')!;
-  expect(entOf(p, boss.id)!.maxHp).toBe(832); damage(p, p.time, 'hero', boss, 99999, []);
+  expect(entOf(p, boss.id)!.maxHp).toBe(320); damage(p, p.time, 'hero', boss, 99999, []);
   const ev = delveTick(p, 0.1); expect(boss.reaped).toBe(true); expect(ev.filter((e) => e.type === 'victory')).toHaveLength(1);
   expect(p.floorItems.filter((i) => 'def'in i.item)).toHaveLength(2); expect(p.crystal).toBe(3);
   expect(delveTick(p, 0.1).some((e) => e.type === 'victory')).toBe(false); expect(p.crystal).toBe(3);

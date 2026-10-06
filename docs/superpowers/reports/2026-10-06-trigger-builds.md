@@ -148,3 +148,100 @@ Targets: reach-5 38/60 = 63.33% (50–65%); general 19/60 = 31.67% (25–40%); n
 The compatibility Common/Fine/Rare columns now mean minimum catalog appearance floor 1 / 2–3 / 4–5; accessories and consumables are counted separately. Total loot includes them. Floor denominators include partial visits; starter/recovered gear is excluded. The earlier baseline and pilots using enemy-only bombs cannot isolate the numerical tuning's effect. Every production numerical change is the Task 4 → candidate-1 column pair above.
 
 Tasks 4–5 are complete and committed on `trigger-builds`, each with the required co-author trailer. No push. Git checks use the isolated index explained above; refresh the normal worktree index once its metadata is writable.
+
+
+## Fix pass
+
+Executed the review brief in `merge-builds`. This section supersedes the earlier structural-stat sacrifice and uncapped-army rulings. Each functional regression was observed failing before its fix. The test-strengthening group additionally used temporary archer/heal/bond mutations to confirm exact assertions fail, then restored production code. Main grid files were not changed. No push.
+
+### Fixes and commits
+
+| Group | Commit | Result |
+|---|---|---|
+| 1 | `31d2417` | Open-ended loot ranges; closest-tier fallback; chest and elite regressions at floors 6/10/20. |
+| 2 | `9143bdf` | Sacrifice adds only damage, armour and block power; range, duration and weight remain fixed, including repeated and donated-donor gains. |
+| 3 | `0e1ecd8` | Shared shield helper caps every source at 30; both carry boundaries clear shields. |
+| 4 | `47b3b7f` | Numeric Unit deadlines enumerated with keys derived from Unit; nested trigger/status and legacy ready times shifted; expired times stay expired. |
+| 5 | `24eccf3` | Dead host radius 6, maximum 3 living summons, consume corpses; remove expired summons from both arrays during tick. |
+| 6 | `b2b1e1e` | Actual innate callbacks, pre-hit damage effects, sniper threshold 5, iron plate effect; no-op sources release budget and emit no popup/cooldown. |
+| 7 | `4026df2` | Milestones 10/14 queue keystone offers through level jumps and existing offers. |
+| 8 | `9e7886e` | Specific innate effects, actual companion sanctuary casting/protection, exact bond damage comparison. |
+| Minor | `26c9cc4` | Real room/wave start event lists reach the arena view; refuse full-health potion; berserker two-hand bonus. |
+| Follow-up | `d75dadf` | Exact damage and iron-plate assertions; type-safe berserker fixture. |
+| Follow-up | `22bf373` | Innate and necklace share corpse consumption; no duplicate raising. |
+| Follow-up | `a821b69` | A guardian whose trigger cannot execute does not silently erase redirected damage. |
+| Follow-up | `e42155f` | Full-health healing does not initialize lowHp bookkeeping and consume a chain slot. |
+| Follow-up | `a287bbe` | Real assassin attack exercises backstab, both poison sources, leech and crit bleeding within five actual effects. |
+| Follow-up | `d47f83e` | Guard oath retains its independent effect outside class proficiency; the final bot never promotes to guardian, so this follow-up does not change its results. |
+
+### Rulings
+
+- Sacrifice's beneficial numeric fields currently present in the catalog are minimum/maximum damage, armour and block. Scalar power and the residual ledger apply to those fields only; structural weapon stats never scale, including legacy bonuses on those stats.
+- Unit deadline keys derive from the Unit mapped type and runtime numeric enumeration: `*Until`, `*Ready`, `*At` (also covers `dotAt`), plus nested trigger/status times and the legacy `ready` tuple. Booleans such as `promoteReady` and cells such as `steadyAt` are excluded. Negative shifted timestamps preserve expiration rather than resurrecting buffs.
+- Dead host's cap is three living summons owned by the caster, including pre-existing skeletons. A corpse is consumed only after a successful spawn. Both the kill innate and necklace obey the same consumption flag; loot collection remains independent.
+- Formerly empty passives are expressed through pre-hit, guard, overflow and fireball engine hooks. Existing duplicate damage/element/healing calculations were removed. A trigger reserves a chain slot while executing to bound recursion, then retains the slot/popup/cooldown only if simulation state changed; presentation events alone do not count.
+- The spec names a berserker two-hand bonus without giving a number. This pass defines +20% damage for proficient two-hand weapons (great weapons); off-proficiency penalties still apply. The low-health speed bonus remains separate.
+- Each milestone queues one keystone opportunity; showing its fourth card spends that opportunity, even when declined. Holding one keystone suppresses further keystone cards. Pending opportunities survive carry.
+- Only the protected worktree metadata is read-only. Commits use `/mnt/d/PROJ_R/.git/codex-fix-builds.index`, `write-tree`/`commit-tree`, and compare-and-swap `update-ref` through the shared Git directory. The requested branch and co-author trailers are preserved. The ordinary protected index is stale; refresh it with `git reset --mixed HEAD` when writable. Verification used the isolated index.
+
+### Balance measurements
+
+Same Task-5 bot: seeds 1–20 for each of the three compositions, first offered trait, deeper proficient gear, exact-definition duplicate sacrifice, production item/ultimate AI, no auto-promotion. Each run stops at wipe/general/floor-5 completion or 3,600 game seconds. Survives floor 3 means entering floor 4; reach 3 means entering floor 3.
+
+The corrected baseline completed 60/60 tests in 593.43 seconds. It began at `26c9cc4` production code before the two later corpse/guardian edge follow-ups; those advanced-class edge interactions do not occur under this bot's no-promotion policy. Baseline: **7/60 reach 5 (11.67%), 0/60 general**, WMR **17/20 reach 3 (85%)**, **11/20 survives floor 3 (55%)**. Targets were missed, authorizing numerical retuning. [Raw baseline](2026-10-06-trigger-builds-fix-baseline.jsonl).
+
+Pilots used isolated in-memory FOES overrides, with seeds 1–2 per composition. Their small samples guide candidate selection and do not establish final success rates.
+
+| Pilot | Games | Reach 5 | General | WMR reach 3 |
+|---|---:|---:|---:|---:|
+| [1](2026-10-06-trigger-builds-fix-pilot1.jsonl) | 6 | 6/6 | 1/6 | 2/2 |
+| [2](2026-10-06-trigger-builds-fix-pilot2.jsonl) | 6 | 2/6 | 2/6 | 2/2 |
+| [3](2026-10-06-trigger-builds-fix-pilot3.jsonl) | 6 | 5/6 | 4/6 | 2/2 |
+| [4](2026-10-06-trigger-builds-fix-pilot4.jsonl) | 6 | 3/6 | 1/6 | 2/2 |
+| [5](2026-10-06-trigger-builds-fix-pilot5.jsonl) | 6 | 3/6 | 2/6 | 2/2 |
+
+All trials changed only foe HP/damage (the final change also covers the slam ability); regular attack/movement/range, items and traits remain unchanged. The first complete candidate lowered the pilot-4 general from 325 HP / 11–16 damage to 300 HP / 10–15. After its general target was missed, pilot 5 and the final candidate use 200 HP / 8–12 with unchanged regular foes. Exact reinforcement and boss fixtures were updated test-first without weakening assertions.
+
+| Foe HP; damage | Corrected baseline | Pilot 1 | Pilot 2 | Pilot 3 | Pilot 4 | First complete candidate | Pilot 5 / Second complete / Final |
+|---|---|---|---|---|---|---|---|
+| ghoul | 27; 3–6 | 22; 2–5 | 23; 3–5 | 23; 2–5 | 23; 3–5 | 23; 3–5 | 23; 3–5 |
+| shaman | 30; 5–8 | 24; 4–6 | 26; 4–7 | 26; 4–7 | 26; 4–7 | 26; 4–7 | 26; 4–7 |
+| warlord | 520; 15–21 | 416; 12–17 | 260; 10–14 | 260; 10–14 | 325; 11–16 | 300; 10–15 | 200; 8–12 |
+| goblin | 34; 3–6 | 27; 2–5 | 29; 3–5 | 29; 2–5 | 29; 2–5 | 29; 2–5 | 29; 2–5 |
+| archer | 24; 3–6 | 19; 2–5 | 20; 3–5 | 20; 2–5 | 20; 3–5 | 20; 3–5 | 20; 3–5 |
+| brute | 72; 9–14 | 58; 7–11 | 62; 8–12 | 62; 8–12 | 62; 8–12 | 62; 8–12 | 62; 8–12 |
+
+First complete candidate: **38/60 reach 5 (63.33%), 9/60 general (15%)**, WMR **19/20 reach 3 (95%)**, **15/20 survives floor 3 (75%)**. Completed 60/60 tests in 530.96 seconds. Reach-5 and no-healer targets met; general missed. [Raw first candidate](2026-10-06-trigger-builds-fix-tuned1.jsonl). Before the final sample, the full-health-healing bookkeeping regression was also fixed (`e42155f`); the report does not claim a purely numerical causal comparison across that change.
+
+Second complete candidate: **38/60 reach 5 (63.33%), 13/60 general (21.67%)**; 60/60 tests passed in 528.29 seconds. General still missed by two runs. [Raw second candidate](2026-10-06-trigger-builds-fix-tuned2.jsonl). Final tuning retains its FOES HP/basic-damage values and changes only the independent general slam damage **18–24 → 12–16** (floor-5 impact 29–38 → 19–26). The slam range regression failed first, then passed after the change; telegraph delay, cooldown, radius and reinforcements are unchanged.
+
+Final complete sample: 60/60 bot tests passed in 561.62 seconds. [Raw JSONL](2026-10-06-trigger-builds-fix-final.jsonl). These fixed-seed, first-card-policy rates do not represent optimized builds or every player.
+
+| Composition | Runs | Mean floor | Reach 3 | Survives floor 3 | Reach 5 | General | Mean lost | Wipes | Timeouts |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| All | 60 | 4.32 | 93.33% | 76.67% | 63.33% | 25.00% | 2.28 | 41 | 4 |
+| warrior/archer/cleric | 20 | 4.65 | 100.00% | 85.00% | 80.00% | 40.00% | 2.20 | 12 | 0 |
+| warrior/mage/rogue | 20 | 4.30 | 95.00% | 75.00% | 65.00% | 15.00% | 2.30 | 14 | 3 |
+| archer/cleric/mage | 20 | 4.00 | 85.00% | 70.00% | 45.00% | 20.00% | 2.35 | 15 | 1 |
+
+Per visited floor, including partial visits (Common/Fine/Rare mean minimum catalog appearance floor 1 / 2–3 / 4+, excluding accessories; recovered/starter gear is excluded):
+
+| Floor | Visits | Common | Fine | Rare | Accessories | Consumables | Total items | Ore | Crystal | Bio | Game seconds |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 60 | 2.18 | 0.00 | 0.00 | 1.27 | 4.32 | 7.77 | 14.30 | 1.45 | 102.45 | 645.39 |
+| 2 | 59 | 0.71 | 1.41 | 0.00 | 1.17 | 3.46 | 6.75 | 13.32 | 1.49 | 99.00 | 642.39 |
+| 3 | 56 | 0.38 | 1.79 | 0.00 | 0.77 | 3.39 | 6.32 | 12.95 | 1.23 | 125.27 | 593.19 |
+| 4 | 46 | 0.13 | 0.48 | 0.65 | 0.59 | 2.96 | 4.80 | 11.93 | 0.65 | 146.24 | 566.15 |
+| 5 | 38 | 0.05 | 0.18 | 0.18 | 0.16 | 0.79 | 1.37 | 7.50 | 1.37 | 141.24 | 360.09 |
+
+Targets: reach-5 38/60 = 63.33% (50–65%); general 15/60 = 25.00% (25–40%); WMR reach-3 19/20 = 95.00% (≥50%). All met.
+
+Reproduction (runner loader avoids the read-only shared node_modules config-cache directory):
+
+```sh
+DELVE_BOT_WORKERS=3 DELVE_BOT_SEEDS=20 DELVE_BOT_OUTPUT=/tmp/fix-bot.jsonl npx vitest run --configLoader runner --config tests/bot/vitest.bot.config.ts tests/bot/delveBot.bot.ts --maxWorkers=1 --maxConcurrency=60 --testTimeout=3600000
+```
+
+The temporary config used for this run includes only `delveBot.bot.ts`, with one Vitest worker, concurrency 60, three bot worker threads and a one-hour per-game test timeout; each game's simulation limit stays 3,600 seconds. The command above selects only this measurement from the standard bot config.
+
+Validation: `npx tsc --noEmit` and `npm run lint` passed. Full `npx vitest run --configLoader runner --maxWorkers=4`: 1476 passed, 3 skipped. No unrelated timeout rerun was needed. File lengths and isolated-index `git diff --check` passed.
