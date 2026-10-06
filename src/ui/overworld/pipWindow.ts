@@ -1,4 +1,10 @@
-import { kitOf, promotionOptions } from '../../sim/party/classKit';
+import { kitOf, promotionOptions, promote } from '../../sim/party/classKit';
+import type { GEvent } from '../../sim/grid/types';
+import type { ClassId } from '../../sim/party/partyDefs';
+import { traitText } from '../../sim/party/traitText';
+import { gearHtml, WHEN } from './pipGear';
+import { classesHtml } from './pipClasses';
+import { ULT_TEXT } from './ultText';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { itemName } from '../../sim/delve/items';
 import { equip,unequip,sacrifice,useItem,weaponStats,PACK_SIZE } from '../../sim/delve/gear';
@@ -10,16 +16,18 @@ import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 
-export type PipTab = 'stat' | 'bag';
+export type PipTab = 'stat' | 'gear' | 'class' | 'bag';
+const TAB_NAME: Record<PipTab, string> = { stat: '상태', gear: '장비', class: '직업', bag: '가방' };
 const BAG_SLOTS = 12;
 
-/** The Pip-Boy style window: the clones' records (status) and what the party carries (bag). The game waits while it is open. */
+/** The Pip-Boy style window: the clones' records (status), their gear, the class tree, and what the party carries (bag). The game waits while it is open. */
 export class PipWindow {
   readonly el = document.createElement('div');
   tab: PipTab = 'stat';
   private who = '';
 
-  constructor(private readonly p: () => RoamParty, private readonly onClose: () => void) {
+  /** onEvents: what a promotion set off, for the screen to show */
+  constructor(private readonly p: () => RoamParty, private readonly onClose: () => void, private readonly onEvents?: (ev: GEvent[]) => void) {
     this.el.className = 'pip-win pip-main';
     this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
@@ -30,6 +38,8 @@ export class PipWindow {
       if (who) this.who = who;
       const act=t.closest<HTMLElement>('[data-item]');
       if(act){const p=this.p(),id=act.dataset.item!,u=unitOf(p,this.who)||clones(p).find(u=>entOf(p,u.id)?.alive);if(u){if(act.dataset.action==='equip')equip(p,u.id,id);if(act.dataset.action==='sacrifice')sacrifice(p,u.id,id);if(act.dataset.action==='use'){const target=targetOf(p,u,p.time),it=p.pack.find(it=>it.id===id);if(target||!it||!('consumable'in it)||!['fireBomb','iceBomb','poisonJar','boltWand'].includes(it.consumable))useItem(p,u.id,id,target?posOf(p,target):undefined);}}}
+      const to = t.closest<HTMLElement>('[data-promote-to]')?.dataset.promoteTo as ClassId | undefined;
+      if (to) this.onEvents?.(promote(this.p(), this.who, to));
       const slot=t.closest<HTMLElement>('[data-off]')?.dataset.off as 'weapon'|'armor'|'accessory'|undefined;
       if(slot)unequip(this.p(),this.who,slot);
       if (t.closest('[data-close]') || t === this.el) { this.close(); return; }
@@ -45,22 +55,30 @@ export class PipWindow {
 
   private draw(): void {
     const p = this.p();
-    const tabs = (['stat', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${k === 'stat' ? '상태' : '가방'}</button>`).join('');
+    const tabs = (['stat', 'gear', 'class', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
+    const body = this.tab === 'stat' ? this.stat(p) : this.tab === 'bag' ? this.bag(p)
+      : `<nav class="pip-side">${this.side(p)}</nav>${this.tab === 'gear' ? gearHtml(p, unitOf(p, this.who)) : classesHtml(p, unitOf(p, this.who))}`;
     this.el.innerHTML = `<div class="pip-frame"><header>${tabs}<span class="pip-title">R-7 기록 장치</span><button type="button" data-close>✕</button></header>
-      <div class="pip-body">${this.tab === 'stat' ? this.stat(p) : this.bag(p)}</div><footer>C 상태 · I 가방 · Esc 닫기</footer></div>`;
+      <div class="pip-body">${body}</div><footer>C 상태 · E 장비 · I 가방 · Esc 닫기</footer></div>`;
+  }
+
+  /** the living clones to choose from (the empty pods after them) */
+  private side(p: RoamParty): string {
+    const list = clones(p).filter((u) => entOf(p, u.id)?.alive);
+    if (!list.some((u) => u.id === this.who)) this.who = list[0]?.id ?? '';
+    return list.map((u) => `<button type="button" data-who="${u.id}" class="${u.id === this.who ? 'on' : ''}" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)}${CLASSES[u.cls!].name}</button>`).join('')
+      + Array.from({ length: MAX_CLONES - list.length }, () => '<button type="button" class="empty" disabled>빈 포드</button>').join('');
   }
 
   private stat(p: RoamParty): string {
-    const list = clones(p).filter((u) => entOf(p, u.id)?.alive);
-    if (!list.some((u) => u.id === this.who)) this.who = list[0]?.id ?? '';
-    const side = list.map((u) => `<button type="button" data-who="${u.id}" class="${u.id === this.who ? 'on' : ''}" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)}${CLASSES[u.cls!].name}</button>`).join('')
-      + Array.from({ length: MAX_CLONES - list.length }, () => '<button type="button" class="empty" disabled>빈 포드</button>').join('');
+    const side = this.side(p);
     const u = unitOf(p, this.who), e = u && entOf(p, u.id);
     if (!u || !e) return `<nav class="pip-side">${side}</nav>`;
     const cls = CLASSES[u.cls!], w = {...WEAPONS[u.weapon!],...weaponStats(u),name:u.gear?.weapon?itemName(u.gear.weapon):WEAPONS[u.weapon!].name,note:u.gear?.weapon?CATALOG[u.gear.weapon.def]!.tags.join(' · '):WEAPONS[u.weapon!].note}, promo = promotionOptions(p,u);
-    const kit=kitOf(u), skills=kit.ultimate?`<li><b>${ULT_NAMES[kit.ultimate]}</b><em>대기 ${kit.ultCd}턴</em></li>`:'<li class="dim">없음</li>';
+    const kit=kitOf(u), innate=kit.innate.map((t)=>`<li><b>${t.id}</b><span>${WHEN[t.when] ?? t.when}${t.nth ? ` ${t.nth}` : ''} 때 발동</span><em>고유</em></li>`).join('');
+    const skills=innate+(kit.ultimate?`<li><b>${ULT_NAMES[kit.ultimate]}</b><span>${ULT_TEXT[kit.ultimate]}</span><em>대기 ${kit.ultCd}턴</em></li>`:'')||'<li class="dim">없음</li>';
     const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
-    const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id]!.name} ${'●'.repeat(rank(u, id))}</b><span>${TRAITS[id]!.tags.join(' · ')}</span><em></em></li>`).join('') || '<li class="dim">없음</li>';
+    const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id]!.name} ${'●'.repeat(rank(u, id))}</b><span>${traitText(id, rank(u, id))}</span><em>${TRAITS[id]!.tags.map((g) => `#${g}`).join(' ')}</em></li>`).join('') || '<li class="dim">없음</li>';
     return `<nav class="pip-side">${side}</nav><section class="pip-rec">
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
@@ -71,12 +89,7 @@ export class PipWindow {
 
   private bag(p: RoamParty): string {
     const items = p.carried.map((soul) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span></div>`; });
-    const heroes=clones(p).filter(u=>entOf(p,u.id)?.alive);if(!heroes.some(u=>u.id===this.who))this.who=heroes[0]?.id??'';
-    const who=heroes.map(u=>`<button type="button" data-who="${u.id}">${CLASSES[u.cls!].name}${u.id===this.who?' ●':''}</button>`).join('');
-    const worn=unitOf(p,this.who)?.gear;
-    const gear=worn?Object.entries(worn).map(([slot,it])=>`<div class="pip-slot">${it?itemName(it):'빈 칸'}${it?`<button type="button" data-off="${slot}">해제</button>`:''}</div>`).join(''):'';
-    const pack=p.pack.map(it=>`<div class="pip-slot"><span>${itemName(it)}</span>${'def'in it?`<button type="button" data-item="${it.id}" data-action="equip">착용</button><button type="button" data-item="${it.id}" data-action="sacrifice" ${worn?.[CATALOG[it.def]!.slot]?'':'disabled'}>희생</button>`:`<button type="button" data-item="${it.id}" data-action="use">사용${it.charges===undefined?'':` ${it.charges}`}</button>`}</div>`).join('');
     const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
-    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div>${who}<h4>가방 <small>${p.pack.length}/${PACK_SIZE}</small></h4><div class="pip-grid">${gear}${pack}</div></section>`;
+    return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div><h4>광석 <small>${p.ore}</small> · 마정석 <small>${p.crystal}</small></h4><h4>장비·소모품 <small>${p.pack.length}/${PACK_SIZE} · 장비 탭에서</small></h4></section>`;
   }
 }

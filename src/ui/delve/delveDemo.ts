@@ -18,7 +18,7 @@ import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { lookOf } from '../party/partyPick';
-import { PipWindow } from '../overworld/pipWindow';
+import { PipWindow, type PipTab } from '../overworld/pipWindow';
 import { TraitPicker } from '../overworld/traitPicker';
 import { OptionsMenu } from '../overworld/optionsMenu';
 import { pickTrait } from '../../sim/party/partyLevel';
@@ -90,7 +90,7 @@ export class DelveDemo implements Screen {
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
-      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
+      stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
       ...(this.opts.onAscend ? { ascend: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } } : {}),
       select: (id) => this.select(id),
       skill: (id) => this.skill(id || this.sel),
@@ -99,7 +99,7 @@ export class DelveDemo implements Screen {
       descend: () => this.down(),
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
-    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
+    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
@@ -111,7 +111,7 @@ export class DelveDemo implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
@@ -247,7 +247,7 @@ export class DelveDemo implements Screen {
     this.menu.toggle();
   }
 
-  private togglePip(tab: 'stat' | 'bag'): void {
+  private togglePip(tab: PipTab): void {
     if (!this.pip.open && !this.picker.open && !this.menu.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
   }
@@ -262,7 +262,8 @@ export class DelveDemo implements Screen {
     const k = e.key.toLowerCase();
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
-    if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
+    // I (bag) and E (equipment) both open the gear the clones carry; C the record
+    if (k === 'c' || k === 'i' || k === 'e') { this.togglePip(k === 'c' ? 'stat' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];

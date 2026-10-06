@@ -17,7 +17,7 @@ import type { NatureKit } from '../../view/overworld/natureKit';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
-import { PipWindow } from './pipWindow';
+import { PipWindow, type PipTab } from './pipWindow';
 import { TraitPicker } from './traitPicker';
 import { OptionsMenu } from './optionsMenu';
 import { TouchPad } from './touchPad';
@@ -83,14 +83,14 @@ export class WorldDemo implements Screen {
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
-      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
+      stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
       ...(this.opts.onDrill ? { descend: () => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p)); }, descendLabel: '▼ 시추공' } : {}),
       select: (id) => this.select(id),
       skill: (id) => queueUltimate(this.p, id || this.sel),
       promote: () => this.live(promote(this.p, this.sel)),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
     });
-    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
+    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
@@ -111,7 +111,7 @@ export class WorldDemo implements Screen {
       if (k === 'quit') this.opts.quit?.();
     });
     this.el.appendChild(this.over);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('gear'), stat: () => this.togglePip('stat'), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
     this.zoom = startZoom(this.zoom);
@@ -228,7 +228,8 @@ export class WorldDemo implements Screen {
     const k = e.key.toLowerCase();
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
-    if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
+    // I (bag) and E (equipment) both open the gear the clones carry; C the record
+    if (k === 'c' || k === 'i' || k === 'e') { this.togglePip(k === 'c' ? 'stat' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];
@@ -291,7 +292,7 @@ export class WorldDemo implements Screen {
     this.menu.toggle();
   }
 
-  private togglePip(tab: 'stat' | 'bag'): void {
+  private togglePip(tab: PipTab): void {
     if (!this.pip.open && !this.picker.open && !this.menu.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
   }
