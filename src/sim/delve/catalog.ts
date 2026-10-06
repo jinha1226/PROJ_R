@@ -1,3 +1,4 @@
+import { addShield } from '../party/shield';
 import type { Tag, WeaponFamily } from '../party/buildTypes';
 import type { TriggerDef } from '../party/triggers';
 import { status, cleave, stun, ward, hide, bloodFinish, emberGround, pilgrimage, bait, echo, guard, shatter, haste, wind, thunder, bones } from './catalogEffects';
@@ -75,7 +76,7 @@ const defs: ItemDef[] = [
     weapon('symbol', '성표', 'relic', [4, 6], 4, 1.2, 1, ['원거리', '치유'], [{ id: '작은 빛', when: 'hit', run: pilgrimage.healSelf }]),
     weapon('pilgrimRelic', '순례자의 성물', 'relic', [7, 10], 4, 1.2, 1, ['치유', '협공'], [pilgrimage.trigger], 3),
     armor('cloth', '천옷', 0, 1, ['생존'], [hide('숨 고르기', .25)]),
-    armor('leather', '가죽 갑옷', .1, 2, ['생존'], [{ id: '가죽 보호', when: 'combatStart', run: (_p, c) => { c.src.shield += 3; } }]),
+    armor('leather', '가죽 갑옷', .1, 2, ['생존'], [{ id: '가죽 보호', when: 'combatStart', run: (_p, c) => { addShield(c.src, 3); } }]),
     armor('ironPlate', '철갑 흉갑', .25, 5, ['방패'], [{ id: '철갑', when: 'still', test: (_p, c) => c.src.still >= 2, run: () => { } }], 2),
     armor('hunterCloak', '사냥꾼의 망토', .05, 1, ['은신'], [hide('사냥 잠행', 1)], 2),
     armor('frostRobe', '서리 로브', .08, 1, ['냉기'], [status('서리 장막', 'chill', 'struck')], 2),

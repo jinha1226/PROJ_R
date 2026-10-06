@@ -1,3 +1,4 @@
+import { addShield } from './shield';
 import { TRAITS, rank } from './traitDefs';
 import { T } from './traitMods';
 import { dist, type GEvent } from '../grid/types';
@@ -28,7 +29,7 @@ const mage: TriggerDef[] = [
 ];
 const cleric: TriggerDef[] = [
   { id: '구원의 손', when: 'allyCrisis', cd: 8, run: (p,c) => { if (c.target) heal(p,c.src,c.target,22,c.t,c.ev); } },
-  { id: '축복', when: 'combatStart', run: (p,c) => { for (const u of p.units) if (u.side === 'hero' && alive(p,u)) u.shield += 10+T.ward(c.src); } },
+  { id: '축복', when: 'combatStart', run: (p,c) => { for (const u of p.units) if (u.side === 'hero' && alive(p,u)) addShield(u, 10+T.ward(c.src)); } },
 ];
 const rogue: TriggerDef[] = [
   { id: '배후 급소', when: 'hit', test: (p,c) => !!c.target && targetOf(p,c.target,c.t)?.id !== c.src.id, run: () => {} },

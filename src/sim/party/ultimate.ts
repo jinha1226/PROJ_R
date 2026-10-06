@@ -1,3 +1,4 @@
+import { addShield } from './shield';
 import { G } from '../delve/gear';
 import { DIRS, dist, same, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
@@ -28,7 +29,7 @@ function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
   switch(ult) {
     case 'warcry': case 'bastion':
       for(const f of near(me,4)) {f.tauntBy=id; f.tauntUntil=t+5; emit(p,'taunt',{t,src:u,target:f,ev});}
-      for(const a of allies) a.shield += ult==='bastion'?30:15;
+      for(const a of allies) addShield(a, ult==='bastion'?30:15);
       break;
     case 'bloodFrenzy': u.leechUntil=t+5; break;
     case 'sanctum': case 'longSanctum': for(const a of allies) if(dist(posOf(p,a),me)<=3) a.immuneUntil=t+(ult==='longSanctum'?5:3); break;

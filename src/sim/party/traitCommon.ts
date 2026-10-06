@@ -1,3 +1,4 @@
+import { addShield } from './shield';
 import { alive, damage, entOf, strike } from './partyCore';
 import { heal, nearby } from './kitEffects';
 import { applyStatus } from './status';
@@ -17,7 +18,7 @@ export const COMMON: TraitDef[] = [
   trigger('reflex','반사 신경',['생존'],()=>({id:'반사 신경',when:'dodge',run:(_p,c)=>{c.src.nextCrit=true;}})),
   trigger('anger','분노',['근접'],r=>({id:'분노',when:'struck',run:(_p,c)=>{c.src.furyStacks=Math.min(3,(c.t<(c.src.furyUntil??0)?c.src.furyStacks??0:0)+1);c.src.furyUntil=c.t+3;c.src.furyPower=.1*r;}})),
   trigger('combo','연타',['근접'],r=>({id:'연타',when:'nth',nth:3,run:(p,c)=>{if(c.target)strike(p,c.src,c.target,c.t,c.ev,1+.25*(r-1),false);}})),
-  trigger('unyielding','불굴',['생존'],r=>({id:'불굴',when:'crisis',run:(_p,c)=>{c.src.shield+=20+10*(r-1);}})),
+  trigger('unyielding','불굴',['생존'],r=>({id:'불굴',when:'crisis',run:(_p,c)=>{addShield(c.src, 20+10*(r-1));}})),
   trigger('morale','사기',['협공'],r=>({id:'사기',when:'kill',run:(p,c)=>{for(const a of nearby(p,c.src,2))if(!c.src.traits?.loneWolf)heal(p,c.src,a,4*r,c.t,c.ev);}})),
   trigger('initiative','선제',['치명'],r=>({id:'선제',when:'combatStart',run:(_p,c)=>{c.src.nextAt=c.t;c.src.empower=Math.max(c.src.empower,1+.2*r);}})),
   trigger('absorb','흡수',['치유'],r=>({id:'흡수',when:'hit',run:(p,c)=>heal(p,c.src,c.src,(c.amount??0)*.05*r,c.t,c.ev)})),

@@ -1,3 +1,4 @@
+import { addShield } from '../party/shield';
 import { alive, damage, posOf, type Party, type Unit } from '../party/partyCore';
 import { heal, nearby, summon } from '../party/kitEffects';
 import { applyStatus, type StatusId } from '../party/status';
@@ -9,7 +10,7 @@ export const cleave: TriggerDef = { id: '양손 휩쓸기', when: 'hit', run: (p
             damage(p, c.t, c.src.id, f, (c.amount ?? 0) / 2, c.ev); } };
 export const stun: TriggerDef = { ...status('둔격', 'stun'), chance: .2 };
 export const ward: TriggerDef = { id: '방벽', when: 'block', run: (p, c) => { for (const a of nearby(p, c.src, 2, 'hero'))
-        a.shield += 5; } };
+        addShield(a, 5); } };
 export const hide = (id: string, seconds: number): TriggerDef => ({ id, when: 'combatStart', run: (_p, c) => { c.src.hiddenUntil = c.t + seconds; } });
 export const bloodFinish: TriggerDef = { id: '피의 마무리', when: 'kill', test: (_p, c) => (c.target?.status.bleed?.until ?? 0) > c.t, run: (_p, c) => { c.src.empower = Math.max(c.src.empower, 2); } };
 export const emberGround: TriggerDef = { id: '잿불 지대', when: 'nth', nth: 3, run: (p, c) => { if (c.target)
@@ -43,7 +44,7 @@ export const bait: TriggerDef = { id: '미끼', when: 'taunt', run: (p, c) => { 
 export const echo: TriggerDef = { id: '메아리', when: 'allyUltimate', run: (_p, c) => { c.src.empower = Math.max(c.src.empower, 2); } };
 export const guard = {
     trigger: { id: '수호 서약', when: 'allyCrisis', run: (_p, c) => { if (c.target)
-            c.target.shield += 5; } } as TriggerDef,
+            addShield(c.target, 5); } } as TriggerDef,
     thorns: (p: Party, c: Ctx) => { if (c.target && alive(p, c.target))
         damage(p, c.t, c.src.id, c.target, 3, c.ev, true); },
 };

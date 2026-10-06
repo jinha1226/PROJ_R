@@ -1,3 +1,4 @@
+import { addShield } from './shield';
 import { emit } from './triggers';
 import { T } from './traitMods';
 import { rank } from './traitDefs';
@@ -12,7 +13,7 @@ export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, 
   amount *= T.heal(src)*G.healTaken(dst);
   const e = entOf(p, dst.id)!, n = Math.min(e.maxHp - e.hp, Math.round(amount));
   e.hp += n; dst.lowHp=e.hp<e.maxHp/2;
-  if (src.cls === 'healer') dst.shield += Math.max(0, amount - n);
+  if (src.cls === 'healer') addShield(dst, Math.max(0, amount - n));
   if(rank(src,'purify')) {const key=Object.keys(dst.status)[0] as keyof typeof dst.status|undefined;if(key)delete dst.status[key];}
   ev.push({ t, type: 'heal', src: src.id, dst: dst.id, amount: n });
   emit(p,'healed',{t,src,target:dst,amount:n,ev});
