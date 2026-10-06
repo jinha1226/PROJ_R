@@ -159,7 +159,7 @@ export class WorldDemo implements Screen {
       if (e.type !== 'buff' || (e.text !== 'soul' && e.text !== 'print')) continue;
       const u = unitOf(this.p, e.dst!)!;
       LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
-      if (e.text === 'soul') this.rt?.actors.rebuild(u.id);
+      if (e.text === 'soul') this.rt?.actors.absorb(u.id);
     }
     this.rt?.applyLive(ev, t0);
     this.log.read(this.p, ev);

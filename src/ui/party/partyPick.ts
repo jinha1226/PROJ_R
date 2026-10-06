@@ -13,7 +13,7 @@ const COLORS: Partial<Record<ClassId, [string, string]>> = {
 };
 
 /** Build by class: a broad berserker, a stocky warrior, a slight rogue (heights the dot look can tell apart). */
-const BUILD: Partial<Record<ClassId, number>> = { shell: 0.95, warrior: 1.06, berserker: 1.12, archer: 0.95, mage: 0.93, cleric: 0.98, rogue: 0.88 };
+const BUILD: Partial<Record<ClassId, number>> = { shell: 0.8, warrior: 1.06, berserker: 1.12, archer: 0.95, mage: 0.93, cleric: 0.98, rogue: 0.88 };
 
 /** What each soul wears; the empty clone goes bare. */
 export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {

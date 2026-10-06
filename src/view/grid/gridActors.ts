@@ -41,6 +41,11 @@ function ring(color: string, scale: number): THREE.Mesh {
 const LUNGE_SEC = 0.12;
 const SHOVE = 0.15;
 
+/** a clone taking a soul glows and casts this long before it stands up in its new look, which then grows in over POP_SEC */
+const ABSORB_SEC = 0.9;
+const POP_SEC = 0.4;
+const SOUL_GOLD = 0xffd76a;
+
 interface View {
   actor: UalActor;
   bar: THREE.Group;
@@ -72,6 +77,9 @@ export class GridActors {
   readonly root = new THREE.Group();
   private readonly views = new Map<string, View>();
   private readonly kinds = new Map<string, Ent['kind']>();
+  private lastState: GridState | null = null;
+  private readonly absorbing = new Map<string, number>();
+  private readonly popIn = new Map<string, number>();
 
   /** walking pace in cells per second (a live game slows it to match how often its units step) */
   walkSpeed?: number;
@@ -80,6 +88,7 @@ export class GridActors {
 
   /** Creates models for entities that do not have one yet (reinforcements appear mid-run). */
   sync(s: GridState): void {
+    this.lastState = s;
     for (const e of [s.hero, ...s.foes]) {
       const existing = this.views.get(e.id);
       const hideBar = e.kind === 'hero' && !LOOK_BY_ID.has(e.id);
@@ -100,6 +109,8 @@ export class GridActors {
       actor.root.position.set(x, 0, z);
       this.root.add(actor.root);
       this.views.set(e.id, { actor, bar, x, z, tx: x, tz: z, facing: Math.PI / 2, yaw: Math.PI / 2, runHold: 0, ox: 0, oz: 0, offT: 0, air: 0, dead: !e.alive });
+      // just reborn with a soul: the gold fades out of it as it grows to full size
+      if (this.popIn.has(e.id)) { actor.flash(SOUL_GOLD, 800); actor.root.scale.setScalar(0.7); }
       if (!e.alive) actor.setDead();
     }
   }
@@ -299,6 +310,18 @@ export class GridActors {
 
   /** frozen: hit-stop — models hold their pose for a moment. */
   update(dt: number, frozen: boolean): void {
+    for (const [id, left] of this.absorbing) {
+      if (left - dt > 0) { this.absorbing.set(id, left - dt); continue; }
+      this.absorbing.delete(id);
+      this.rebuild(id);
+      this.popIn.set(id, POP_SEC);
+      if (this.lastState) this.sync(this.lastState);
+    }
+    for (const [id, left] of this.popIn) {
+      const v = this.views.get(id), t = Math.max(0, left - dt);
+      if (v) v.actor.root.scale.setScalar(1 - 0.3 * (t / POP_SEC) ** 2);
+      if (t <= 0) this.popIn.delete(id); else this.popIn.set(id, t);
+    }
     for (const v of this.views.values()) {
       const step = frozen ? 0 : dt;
       const px = v.x;
@@ -325,7 +348,17 @@ export class GridActors {
     }
   }
 
-  /** Drops a figure so the next sync builds it again from its (new) look — a clone taking a soul. */
+  /** A clone taking a soul: it lights up gold and casts for a moment, then stands up in its new look (see `update`). */
+  absorb(id: string): void {
+    const v = this.views.get(id);
+    if (!v) { this.rebuild(id); return; }
+    v.actor.setTint('#ffd76a');
+    v.actor.flash(SOUL_GOLD, ABSORB_SEC * 1000);
+    v.actor.play('cast', 0.8);
+    this.absorbing.set(id, ABSORB_SEC);
+  }
+
+  /** Drops a figure so the next sync builds it again from its (new) look. */
   rebuild(id: string): void {
     const v = this.views.get(id);
     if (!v) return;

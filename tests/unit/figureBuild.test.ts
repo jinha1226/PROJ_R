@@ -19,3 +19,7 @@ it('builds and weapons tell the party apart: twin daggers in both hands, casters
   expect(lookOf('mage', 'staff').weapon).toBe('staff');
   expect(lookOf('berserker', 'greataxe').scale).toBeGreaterThan(lookOf('rogue', 'daggers').scale);
 });
+
+it('the empty clone is plainly smaller than any soul-bearer', () => {
+  expect(lookOf('shell', 'fists').scale).toBeLessThan(lookOf('rogue', 'daggers').scale);
+});

@@ -37,7 +37,7 @@ export interface Layer {
   tinted?: boolean;
 }
 
-export type VfxKind = 'hit' | 'crit' | 'blast' | 'frost' | 'shock' | 'heal' | 'shield' | 'magic' | 'smoke' | 'warn' | 'dust';
+export type VfxKind = 'hit' | 'crit' | 'blast' | 'frost' | 'shock' | 'heal' | 'shield' | 'magic' | 'smoke' | 'warn' | 'dust' | 'soul';
 
 const L = (l: Layer): Layer => l;
 /** Effects as layers: short, chunky and readable from above, like the low-poly figures they land on. */
@@ -83,6 +83,12 @@ export const PRESETS: Record<VfxKind, Layer[]> = {
   ],
   warn: [
     L({ tile: 'ring', count: [1, 1], life: [0.45, 0.45], speed: [0, 0], size: [1.0, 1.0], colors: ['#ff6a4a', '#ff2a10'], spread: 'none', mode: 'flat', y: 0.05, grow: true, tinted: true }),
+  ],
+  // a soul settling into a body: a gold rune underfoot, sparks spiralling up round it, a warm glow at the heart
+  soul: [
+    L({ tile: 'rune', count: [1, 1], life: [1.2, 1.2], speed: [0, 0], size: [1.4, 1.4], colors: ['#ffe8a0', '#c08030'], spread: 'none', mode: 'flat', y: 0.06, spin: 2.5, grow: true }),
+    L({ tile: 'sparkle', count: [16, 20], life: [0.8, 1.2], speed: [0.8, 1.6], size: [0.22, 0.36], colors: ['#fff0b0', '#b48aff'], spread: 'up', radius: 0.55, y: 0.1, gravity: -1.4, spin: 3 }),
+    L({ tile: 'glow', count: [1, 1], life: [0.9, 0.9], speed: [0, 0], size: [1.5, 1.7], colors: ['#c8a040', '#402a10'], spread: 'none', y: 0.9 }),
   ],
   dust: [
     L({ tile: 'puff', count: [3, 4], life: [0.4, 0.6], speed: [0.4, 0.9], size: [0.35, 0.55], colors: ['#b8a890', '#8a7a68'], spread: 'up', radius: 0.2, y: 0.1, solid: true, grow: true, spin: 1, tinted: true }),

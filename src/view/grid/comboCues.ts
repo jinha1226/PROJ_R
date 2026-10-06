@@ -22,7 +22,7 @@ const REACT: Record<string, { color: string; label: string; vfx: VfxKind }> = {
   freeze: { color: '#9fd8ff', label: '빙결!', vfx: 'frost' },
 };
 const TRAP_VFX: Record<string, VfxKind> = { fire: 'blast', poison: 'smoke', teleport: 'magic', alarm: 'shock' };
-const BUFF_VFX: Record<string, [VfxKind, string?]> = { ward: ['shield'], promote: ['magic', '#ffd76a'], soul: ['magic', '#ffd76a'], print: ['magic', '#9fe8ff'], taunt: ['warn'] };
+const BUFF_VFX: Record<string, [VfxKind, string?]> = { ward: ['shield'], promote: ['magic', '#ffd76a'], soul: ['soul'], print: ['magic', '#9fe8ff'], taunt: ['warn'] };
 
 /** Combo moves, engraving triggers, element reactions and shoves; true when the event is fully shown here. */
 export function comboCue(k: CueKit, e: GEvent): boolean {
@@ -96,7 +96,7 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'suit': { const p = k.at('hero'); if (p) { k.fx.transient.glow(p.x, p.z, '#5ae0ff'); k.fx.flash(p, '#5ae0ff', 26, 0.4); k.fx.number('슈트 회수!', 'combo', p); } return true; }
     case 'drink': a.anim(e.src, 'drink'); return true;
     case 'read': { a.anim(e.src, 'interact'); const p = k.at(e.src); if (p) k.particles.spray(p, '#f3e6b0', 14); return true; }
-    case 'buff': { const p = k.at(e.dst); const label = BUFF_LABEL[e.text ?? ''], fx = BUFF_VFX[e.text ?? '']; if (p && label) k.fx.number(label, 'combo', p); if (p && fx) k.particles.vfx.fire(fx[0], p, fx[1]); return true; }
+    case 'buff': { const p = k.at(e.dst); const label = BUFF_LABEL[e.text ?? ''], fx = BUFF_VFX[e.text ?? '']; if (p && label) k.fx.number(label, 'combo', p); if (p && fx) k.particles.vfx.fire(fx[0], p, fx[1]); if (p && e.text === 'soul') k.fx.flash(p, '#ffd76a', 30, 1.0, 6); return true; }
     default:
       return false;
   }
