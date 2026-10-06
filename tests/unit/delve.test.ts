@@ -5,7 +5,7 @@ import { command } from '../../src/sim/party/partySim';
 import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../src/sim/delve/delveSim';
 import { clones } from '../../src/sim/roam/roam';
 
-const take = (p: DelveParty, k: number) => { entOf(p, 'hero')!.pos = { ...p.souls[k]!.pos }; delveTick(p, 0.1); };
+const take = (p: DelveParty, k: number) => { entOf(p, 'hero')!.pos = { ...p.souls[k]!.pos }; clones(p)[0]!.nextAt = p.time + 0.1; delveTick(p, 0.1); };
 const calm = (p: DelveParty) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
 
 it('one empty clone steps out of the lift; the first soul (an archer) lies in the same room; the bands sleep', () => {
@@ -56,10 +56,14 @@ it('a companion heals the hurt by itself', () => {
   const p = newDelve(2);
   p.bio = 100; p.printHere = true;
   take(p, 0); take(p, 1);
-  entOf(p, 'hero')!.pos = { ...p.s.map.start }; for (let i = 0; i < 20; i++) delveTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.s.map.start };
+  for (const u of p.units) if (u.side === 'foe') u.asleep = true;
+  p.combat = false;
+  for (let i = 0; i < 20; i++) delveTick(p, 0.1);
   const second = clones(p)[1]!;
-  second.cls = 'cleric'; second.weapon = 'mace';
-  const f = p.units.find((u) => u.side === 'foe')!;
+  second.cls = 'cleric'; second.weapon = 'mace'; second.ready = [0, 0];
+  const f = p.units.find((u) => u.side === 'foe' && entOf(p, u.id)!.alive)!;
+  entOf(p, f.id)!.hp = 999;
   f.asleep = false; entOf(p, f.id)!.pos = { x: p.s.map.start.x + 4, y: p.s.map.start.y }; f.nextAt = 999;
   entOf(p, 'hero')!.hp = 10;
   let healed = false;
@@ -71,7 +75,10 @@ it('down the stairs: a new floor, the living clones come along, the fallen stay 
   const p = newDelve(3);
   p.bio = 100; p.printHere = true;
   take(p, 0); take(p, 1);
-  entOf(p, 'hero')!.pos = { ...p.s.map.start }; for (let i = 0; i < 20; i++) delveTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.s.map.start };
+  for (const u of p.units) if (u.side === 'foe') u.asleep = true;
+  p.combat = false;
+  for (let i = 0; i < 20; i++) delveTick(p, 0.1);
   calm(p); delveTick(p, 0.1);
   const two = clones(p)[1]!.id;
   expect(canDescend(p)).toBe(false);
@@ -110,11 +117,13 @@ it('a carried soul gets no body without bio-matter; foes leave bio-matter when t
   p.printHere = true;
   take(p, 0); take(p, 1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start };
+  for (const u of p.units) if (u.side === 'foe') u.asleep = true;
+  p.combat = false;
   for (let i = 0; i < 20; i++) delveTick(p, 0.1);
   expect(clones(p)).toHaveLength(1);
   expect(p.carried).toHaveLength(1);
   const foes = p.units.filter((u) => u.side === 'foe');
-  for (const f of foes.slice(0, 9)) damage(p, p.time, 'hero', f, 999, []);
+  for (const f of foes.slice(0, 13)) damage(p, p.time, 'hero', f, 999, []);
   const ev = delveTick(p, 0.1);
   const got = ev.filter((e) => e.type === 'loot' && e.text === 'bio').reduce((n, e) => n + e.amount!, 0);
   expect(got).toBeGreaterThanOrEqual(25);
@@ -161,6 +170,7 @@ it('an archer with a foe at its side shoots it point-blank instead of only rolli
   take(p, 0);
   const f = p.units.find((u) => u.side === 'foe')!, fe = entOf(p, f.id)!;
   const h = entOf(p, 'hero')!;
+  h.pos = { x: p.s.map.rooms[0]!.x, y: p.s.map.start.y };
   fe.pos = { x: h.pos.x + 1, y: h.pos.y }; fe.hp = 999; f.asleep = false; f.nextAt = 999;
   let shots = 0;
   for (let i = 0; i < 60; i++) {
@@ -176,6 +186,7 @@ it('a clone under the hand that walks up to a foe stops at the end of its walk a
   const p = newDelve(2);
   take(p, 0);
   const h = entOf(p, 'hero')!;
+  h.pos = { x: p.s.map.rooms[0]!.x, y: p.s.map.start.y };
   const f = p.units.find((u) => u.side === 'foe')!, fe = entOf(p, f.id)!;
   fe.pos = { x: h.pos.x + 3, y: h.pos.y }; fe.hp = 999; f.asleep = false; f.nextAt = 999;
   p.combat = true; p.manual = 'hero';

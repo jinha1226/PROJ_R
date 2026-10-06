@@ -1,3 +1,5 @@
+import { foeTurn } from './partyFoeAi';
+import { tickBurns } from './partyEngrave';
 import { spawnFoe } from '../grid/foes';
 import { makeWeapon } from '../grid/items';
 import { newState } from '../grid/state';
@@ -42,7 +44,7 @@ function spawnWave(p: Party): void {
   const front = free(FRONT), back = free(BACK);
   WAVES[p.wave]!.forEach((kind: FoeId, i) => {
     const pos = (kind === 'archer' ? back.shift() ?? front.shift() : front.shift() ?? back.shift()) ?? { x: 12, y: 1 + (i % 8) };
-    const e = spawnFoe(p.s, kind === 'goblin' ? 'minion' : kind, pos, true);
+    const e = spawnFoe(p.s, kind === 'goblin' ? 'minion' : kind === 'warlord' ? 'champion' : kind === 'shaman' ? 'mage' : kind, pos, true);
     e.hp = e.maxHp = FOES[kind].hp;
     p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, nextAt: p.time + 0.2 * i });
   });
@@ -74,6 +76,8 @@ export function promote(p: Party, id: string): GEvent[] {
 
 /** A unit's own moment: follow a move order (then hold there), else fight — close in, or keep range and shoot. */
 function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
+  const special = foeTurn(p, u, t, ev);
+  if (special !== undefined) return special;
   const e = entOf(p, u.id)!, st = stats(u, t);
   if (u.order?.kind === 'move') {
     const cell = u.order.cell;
@@ -104,7 +108,16 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     return 0.3;
   }
   const target = targetOf(p, u, t);
-  if (!target) return 0.5;
+  if (!target) {
+    // in a fight but nothing in reach (left behind, or the foes are out of range): close in on the nearest awake foe, else keep up with the leader
+    if (u.side === 'hero' && p.roam && p.combat) {
+      const foe = p.units.filter((x) => x.side === 'foe' && alive(p, x) && !x.asleep).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos))[0];
+      const lead = p.leader && p.leader !== u.id ? entOf(p, p.leader) : undefined;
+      const goal = foe ? posOf(p, foe) : lead?.alive ? lead.pos : undefined;
+      if (goal && stepToward(p, u, goal, t, ev)) return st.move;
+    }
+    return 0.5;
+  }
   const tp = posOf(p, target), d = dist(e.pos, tp);
   // a ranged clone steps back from a foe at its side now and then (not when told whom to hit, not under the player's hand); else it shoots point-blank
   if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && t >= (u.rollReady ?? 0)) {
@@ -127,12 +140,14 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
 
 /** One unit's moment: a companion may reach for a skill, a queued skill goes off (it waits while it has no target in reach), else its usual action. */
 function moment(p: Party, u: Unit, ev: GEvent[]): void {
+  const start = ev.length;
   if (p.roam && u.side === 'hero' && u.id !== p.manual && !u.manualSkills) autoSkill(p, u);
   if (u.queued !== undefined && p.time >= u.ready[u.queued]) {
     const cast = useSkill(p, u.id, u.queued);
-    if (cast.length) { u.queued = undefined; ev.push(...cast); return; }
+    if (cast.length) { u.queued = undefined; ev.push(...cast); p.onMovement?.(ev.slice(start), ev); return; }
   }
   u.nextAt = p.time + turn(p, u, p.time, ev);
+  p.onMovement?.(ev.slice(start), ev);
 }
 
 /**
@@ -147,6 +162,8 @@ export function tick(p: Party, dt: number): GEvent[] {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
+    tickBurns(p, p.time, ev);
+    if (!alive(p, next)) continue;
     if (next.id === p.manual) {
       // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
       const o = next.order, at = entOf(p, next.id)!.pos;
@@ -155,6 +172,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     }
     moment(p, next, ev);
   }
+  tickBurns(p, end, ev);
   p.time = end;
   p.s.time = end;
   return ev;
@@ -181,5 +199,6 @@ export function command(p: Party, c: Command): GEvent[] {
     if (c.kind === 'attack') u.order = null;
   }
   p.waiting = false;
+  p.onMovement?.([...ev], ev);
   return ev;
 }

@@ -23,11 +23,11 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
 export interface ClassDef { name: string; hp: number; move: number; skills: SkillId[]; weapons: WeaponId[]; passive: Passive; passiveName: string; magic?: boolean }
 export const CLASSES: Record<ClassId, ClassDef> = {
   shell: { name: '빈 몸', hp: 30, move: 0.9, skills: [], weapons: ['fists'], passive: 'none', passiveName: '' },
-  warrior: { name: '전사', hp: 70, move: 0.9, skills: ['taunt', 'whirl'], weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
+  warrior: { name: '전사', hp: 80, move: 0.9, skills: ['taunt', 'whirl'], weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
   archer: { name: '궁수', hp: 40, move: 0.9, skills: ['pierce', 'volley'], weapons: ['longbow', 'crossbow'], passive: 'firstShot', passiveName: '상처 없는 적에게 2배' },
-  mage: { name: '마법사', hp: 34, move: 1.0, skills: ['fireball', 'frost'], weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
+  mage: { name: '마법사', hp: 45, move: 1.0, skills: ['fireball', 'frost'], weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
   cleric: { name: '성직자', hp: 50, move: 0.95, skills: ['heal', 'ward'], weapons: ['mace', 'symbol'], passive: 'guardian', passiveName: '아군 위기 시 보호막', magic: true },
-  rogue: { name: '도적', hp: 42, move: 0.75, skills: ['stealth', 'backstab'], weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
+  rogue: { name: '도적', hp: 55, move: 0.75, skills: ['stealth', 'backstab'], weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
   berserker: { name: '광전사', hp: 85, move: 0.85, skills: ['frenzy', 'whirl'], weapons: ['swordShield', 'greataxe'], passive: 'rage', passiveName: '체력 절반 이하 피해 1.5배' },
   sniper: { name: '저격수', hp: 45, move: 0.9, skills: ['aimed', 'pierce'], weapons: ['longbow', 'crossbow'], passive: 'farShot', passiveName: '사거리 +2 · 5칸 밖 2배' },
 };
@@ -48,11 +48,14 @@ export const SKILLS: Record<SkillId, { name: string; cd: number }> = {
   frenzy: { name: '광분', cd: 10 }, aimed: { name: '조준 사격', cd: 7 },
 };
 
-export type FoeId = 'goblin' | 'archer' | 'brute';
+export type FoeId = 'goblin' | 'archer' | 'brute' | 'ghoul' | 'shaman' | 'warlord';
 export const FOES: Record<FoeId, { hp: number; dmg: [number, number]; range: number; atk: number; move: number }> = {
-  goblin: { hp: 22, dmg: [3, 5], range: 1, atk: 1.0, move: 0.8 },
-  archer: { hp: 16, dmg: [3, 5], range: 6, atk: 1.3, move: 1.0 },
-  brute: { hp: 48, dmg: [7, 10], range: 1, atk: 1.6, move: 1.0 },
+  ghoul: { hp: 18, dmg: [2, 4], range: 1, atk: 0.7, move: 0.55 },
+  shaman: { hp: 20, dmg: [3, 5], range: 5, atk: 1.5, move: 1 },
+  warlord: { hp: 260, dmg: [10, 14], range: 1, atk: 1.5, move: 1 },
+  goblin: { hp: 22, dmg: [2, 4], range: 1, atk: 1.0, move: 0.8 },
+  archer: { hp: 16, dmg: [2, 4], range: 6, atk: 1.3, move: 1.0 },
+  brute: { hp: 48, dmg: [6, 9], range: 1, atk: 1.6, move: 1.0 },
 };
 /** each wave's band, entering from the right */
 export const WAVES: FoeId[][] = [

@@ -1,3 +1,5 @@
+import { G } from '../delve/gear';
+import { echoSkill } from './partyEngrave';
 import { DIRS, dist, same, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, canHit, damage, entOf, occupied, passiveMult, posOf, roll, stats, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
 import { CLASSES, SKILLS } from './partyDefs';
@@ -22,7 +24,7 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
   const aimed = (range = stats(u).range) => (target && canHit(p, u, target, range) ? target : undefined);
   switch (skill) {
     case 'taunt':
-      for (const f of near(me.pos, 4)) { f.tauntBy = id; f.tauntUntil = t + 5; }
+      for (const f of near(me.pos, 4)) { f.tauntBy = id; f.tauntUntil = t + 5; if (G.wears(u, 'link_bait')) f.exposedUntil = t + 5; }
       ev.push({ t, type: 'buff', src: id, dst: id, text: 'taunt' });
       break;
     case 'whirl': {
@@ -34,7 +36,7 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
     case 'stealth': u.hiddenUntil = t + 4 + T.stealth(u); u.empower = 2.5; ev.push({ t, type: 'buff', src: id, dst: id, text: 'stealth' }); break;
     case 'heal': {
       const ally = p.units.filter((x) => x.side === 'hero' && alive(p, x)).sort((a, b) => ratio(p, a) - ratio(p, b))[0]!;
-      const ae = entOf(p, ally.id)!, n = Math.min(Math.round(22 * T.heal(u)), ae.maxHp - ae.hp);
+      const ae = entOf(p, ally.id)!, n = Math.min(Math.round(22 * T.heal(u) * G.healTaken(ally)), ae.maxHp - ae.hp);
       ae.hp += n;
       ev.push({ t, type: 'heal', src: id, dst: ally.id, amount: n });
       break;
@@ -58,7 +60,7 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
       tg.nextAt = Math.max(tg.nextAt, tg.frozenUntil);
       break;
     }
-    case 'volley': { const tg = aimed(); if (!tg) return []; for (let k = 0; k < 3; k++) if (alive(p, tg)) strike(p, u, tg, t + k * 0.15, ev); break; }
+    case 'volley': { const tg = aimed(); if (!tg) return []; for (let k = 0; k < 3; k++) if (alive(p, tg)) strike(p, u, tg, t + k * 0.15, ev, 1, false); break; }
     case 'aimed': {
       const tg = aimed(); if (!tg) return [];
       ev.push({ t, type: 'shoot', src: id, dst: tg.id, from: { ...me.pos }, to: { ...posOf(p, tg) }, text: 'bow' });
@@ -82,12 +84,17 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
       const tp = posOf(p, tg);
       const spot = dist(me.pos, tp) === 1 ? me.pos : DIRS.map((d) => ({ x: tp.x + d.x, y: tp.y + d.y })).filter((c) => walkable(tileAt(p.s.map, c)) && !occupied(p, c, id)).sort((a, b) => dist(b, me.pos) - dist(a, me.pos))[0];
       if (!spot) return [];
-      if (!same(spot, me.pos)) { ev.push({ t, type: 'teleport', src: id, from: { ...me.pos }, to: { ...spot } }); me.pos = { ...spot }; }
-      strike(p, u, tg, t + 0.05, ev, 2);
+      if (!same(spot, me.pos)) {
+        const move: GEvent = { t, type: 'teleport', src: id, from: { ...me.pos }, to: { ...spot } };
+        ev.push(move); me.pos = { ...spot }; p.onMovement?.([move], ev);
+        if (!alive(p, u)) return ev;
+      }
+      strike(p, u, tg, t + 0.05, ev, 2, false);
       break;
     }
   }
-  u.ready[slot] = t + SKILLS[skill].cd * T.cd(u);
+  echoSkill(p, u);
+  u.ready[slot] = t + SKILLS[skill].cd * T.cd(u) * G.cd(u);
   u.nextAt = Math.max(u.nextAt, t + 0.6);
   return ev;
 }

@@ -44,7 +44,7 @@ export class Expedition {
   private async down(c: Carry): Promise<void> {
     const { DelveDemo } = await import('../ui/delve/delveDemo');
     this.trips++;
-    const party = newDelve(this.seed * 131 + this.trips, 1, c);
+    const party = newDelve(this.seed * 131 + this.trips, 1, { ...c, foundHeroes: [] });
     this.router.go(new DelveDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart, onAscend: (back) => { placeParty(this.surface, back); void this.up(); } }));
   }
 }

@@ -1,19 +1,24 @@
+import { HERO_SOULS, type HeroSoulId, type CarriedSoul } from '../delve/heroSouls';
+import { G, starterGear, nextItemId } from '../delve/gear';
+import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
 import { computeFov } from '../grid/fov';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
-import { alive, entOf, type Party, type Unit } from '../party/partyCore';
+import { alive, ENGAGE, entOf, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, type BaseClass } from '../party/partyDefs';
-import { awardXp } from '../party/partyLevel';
+import { awardXp, refitHp, LEVEL_XP } from '../party/partyLevel';
 import { T } from '../party/partyTraits';
 
 /** a fallen native's soul stone lying about */
-export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
+export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean; hero?: HeroSoulId }
 
 /** A party that roams a map (the land above or a dungeon floor): souls to find, clones printed at its base. */
 export interface RoamParty extends Party {
+  pack: Item[]; potions: number; nextItem: number;
   souls: Soul[];
   /** souls picked up by clones that already had one, waiting for a body at the base */
-  carried: BaseClass[];
+  carried: CarriedSoul[];
+  ore: number; crystal: number; foundHeroes: HeroSoulId[];
   nextClone: number;
   /** where new bodies come out (the ship, or the lift down) */
   base: Cell;
@@ -42,7 +47,7 @@ const BASE_REACH = 5;
 /** bio-matter one new body takes */
 export const BODY_COST = 25;
 /** bio-matter a fallen foe leaves (elites twice as much) */
-const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8 };
+const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8, ghoul: 3, shaman: 4, warlord: 30 };
 
 export const blank = (): Omit<Unit, 'id' | 'side'> => ({ nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
@@ -60,15 +65,25 @@ export function look(p: RoamParty): void {
 }
 
 /** A soul goes into a body: the clone becomes that class, armed with its first weapon, whole again. */
-export function implant(p: RoamParty, u: Unit, cls: BaseClass, ev: GEvent[]): void {
+export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]): void {
+  const hero = typeof soul === 'string' ? undefined : soul.hero;
+  if (hero && p.combat) return;
+  const cls = hero ? HERO_SOULS[hero].cls : typeof soul === 'string' ? soul : soul.cls;
   const e = entOf(p, u.id)!;
   u.cls = cls; u.soul = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
+  u.gear = starterGear(cls, () => nextItemId(p)); u.weapon = u.gear.weapon.base;
   e.hp = e.maxHp = CLASSES[cls].hp;
+  if (hero) {
+    const h = HERO_SOULS[hero];
+    u.hero = hero; u.name = h.name; u.level = h.level; u.xp = LEVEL_XP[h.level - 1]!; u.traits = { ...h.traits };
+    u.picks = 0; u.offer = []; refitHp(p, u); e.hp = e.maxHp;
+    if (!p.foundHeroes.includes(hero)) p.foundHeroes.push(hero);
+  }
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'soul' });
 }
 
 /** A new body at the base: empty, or with a soul. */
-export function print(p: RoamParty, cls: BaseClass | undefined, ev: GEvent[]): Unit | undefined {
+export function print(p: RoamParty, cls: CarriedSoul | undefined, ev: GEvent[]): Unit | undefined {
   const m = p.s.map, taken = (c: Cell) => p.units.some((u) => alive(p, u) && entOf(p, u.id)!.pos.x === c.x && entOf(p, u.id)!.pos.y === c.y);
   let at: Cell | undefined;
   for (let r = 0; r < 4 && !at; r++) for (let dx = -r; dx <= r && !at; dx++) for (let dy = -r; dy <= r && !at; dy++) {
@@ -78,7 +93,7 @@ export function print(p: RoamParty, cls: BaseClass | undefined, ev: GEvent[]): U
   if (!at) return undefined;
   const e = spawnFoe(p.s, 'minion', at, false);
   e.id = `c${p.nextClone++}`;
-  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', nextAt: p.time };
+  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)), nextAt: p.time };
   e.hp = e.maxHp = CLASSES.shell.hp;
   p.units.push(u);
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'print' });
@@ -87,26 +102,29 @@ export function print(p: RoamParty, cls: BaseClass | undefined, ev: GEvent[]): U
 }
 
 /** Souls: picked up where they lie, fallen clones drop theirs, the base prints bodies for the ones carried home. */
-function souls(p: RoamParty, ev: GEvent[]): void {
+function souls(p: RoamParty, ev: GEvent[], named = false): void {
+  if (named && p.combat) return;
   const t = p.time;
   // a clone that falls is gone, soul and all (no stone is left to recover)
-  for (const u of clones(p)) if (!alive(p, u) && u.soul) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.soul = undefined; }
+  for (const u of clones(p)) if (!named && !alive(p, u) && u.soul) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.soul = undefined; }
   for (const soul of p.souls) {
-    if (soul.taken) continue;
+    if (soul.taken || Boolean(soul.hero) !== named) continue;
     const by = living(p).find((u) => dist(entOf(p, u.id)!.pos, soul.pos) <= 1);
     if (!by) continue;
     soul.taken = true;
     ev.push({ t, type: 'pickup', src: by.id, to: soul.pos, text: 'soul' });
-    if (by.cls === 'shell') implant(p, by, soul.cls, ev); else p.carried.push(soul.cls);
+    const carried: CarriedSoul = soul.hero ? { cls: soul.cls, hero: soul.hero } : soul.cls;
+    if (soul.hero && !p.foundHeroes.includes(soul.hero)) p.foundHeroes.push(soul.hero);
+    if (by.cls === 'shell') implant(p, by, carried, ev); else p.carried.push(carried);
   }
-  for (const u of living(p)) if (u.cls === 'shell' && p.carried.length) implant(p, u, p.carried.shift()!, ev);
+  for (const u of living(p)) if (u.cls === 'shell' && p.carried.length && (typeof p.carried[0] !== 'string') === named) implant(p, u, p.carried.shift()!, ev);
   // a carried soul gets a body at the base, if there is bio-matter enough for one
-  if (p.printHere && !p.combat && p.carried.length && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
+  if (p.printHere && !p.combat && p.carried.length && (typeof p.carried[0] !== 'string') === named && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
     p.bio -= BODY_COST;
     print(p, p.carried.shift(), ev);
   }
   // the last clone fell: one more empty body if the stuff is there, else it is over
-  if (!living(p).length && !p.over) {
+  if (!named && !living(p).length && !p.over) {
     if (!p.printHere || p.bio < BODY_COST) { p.over = true; ev.push({ t, type: 'dead', text: p.printHere ? 'wiped' : 'lost' }); return; }
     p.rewakeAt ??= t + 3;
     if (t >= p.rewakeAt) { p.rewakeAt = undefined; p.bio -= BODY_COST; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
@@ -144,9 +162,10 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     band.forEach((f, i) => { f.asleep = false; f.nextAt = t + 0.2 * i; });
     ev.push({ t, type: 'wake', src: band[0]!.id, text: String(g) });
   }
-  for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH) f.asleep = true;
+  for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH && t >= (f.alertUntil ?? 0)) f.asleep = true;
   const was = p.combat;
-  p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= 12);
+  p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
+  souls(p, ev, true);
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
   // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band
   if (!was && p.combat) for (const u of living(p)) if (u.order?.kind === 'move') u.order = null;
@@ -155,7 +174,7 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     const r = T.regen(u), e = entOf(p, u.id)!;
     if (!r || e.hp >= e.maxHp) continue;
     const secs = Math.floor(p.time) - Math.floor(p.regenAt ?? p.time);
-    if (secs > 0) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * r * secs)));
+    if (secs > 0) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * r * secs * G.healTaken(u))));
   }
   p.regenAt = p.time;
   const hand = p.manual ? p.units.find((u) => u.id === p.manual) : undefined;

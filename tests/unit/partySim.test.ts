@@ -92,7 +92,7 @@ it('a warrior who keeps killing while badly hurt can become a berserker', () => 
   promote(p, 'hero');
   expect(w.cls).toBe('berserker');
   expect(e.maxHp).toBe(85);
-  expect(e.hp).toBe(35);
+  expect(e.hp).toBe(25);
 });
 
 it('kills at full health do not count toward berserker', () => {

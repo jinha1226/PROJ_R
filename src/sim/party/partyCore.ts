@@ -1,3 +1,6 @@
+import type { HeroSoulId } from '../delve/heroSouls';
+import { G, type Loadout } from '../delve/gear';
+import { basicHit, engravingMult, guardLink } from './partyEngrave';
 import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
 import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
@@ -7,6 +10,12 @@ import { PROMOTE_LEVEL, T, type TraitId } from './partyTraits';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
+  foeScale?: number; mendReady?: number; slamReady?: number; slamPending?: boolean; called?: boolean;
+  name?: string; hero?: HeroSoulId;
+  gear?: Loadout;
+  echoPending?: boolean;
+  exposedUntil?: number; markUntil?: number; markBy?: string;
+  burnUntil?: number; dotAt?: number; burnBy?: string;
   id: string; side: 'hero' | 'foe'; cls?: ClassId; weapon?: WeaponId; foe?: FoeId;
   nextAt: number; order: Order; ready: [number, number]; queued?: 0 | 1;
   tauntUntil: number; tauntBy?: string;
@@ -20,7 +29,7 @@ export interface Unit {
   /** kills that count toward this hero's advanced class */
   progress: number; promoteReady?: boolean;
   /** a camp foe that has not noticed the party yet (takes no turns) */
-  asleep?: boolean;
+  asleep?: boolean; alertUntil?: number;
   /** the camp a foe belongs to (they wake together) */
   group?: number;
   /** the soul a hero carries (what drops where it falls) */
@@ -39,6 +48,9 @@ export interface Unit {
   manualSkills?: boolean;
 }
 export interface Party {
+  onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
+  beforeStep?: (u: Unit, t: number, ev: GEvent[]) => void;
+  avoidTraps?: boolean;
   s: GridState; units: Unit[]; time: number; wave: number;
   /** on the world map: false while no awake foe is near (orders then move the whole party; arrival does not hold) */
   combat?: boolean;
@@ -54,6 +66,9 @@ export interface Party {
   waiting?: boolean;
 }
 
+/** how far a fight reaches on the roaming maps: clones go for foes this close, and a foe this close to any clone means a fight */
+export const ENGAGE = 10;
+
 export const entOf = (p: Party, id: string): Ent | undefined => (id === 'hero' ? p.s.hero : p.s.foes.find((f) => f.id === id));
 export const unitOf = (p: Party, id: string): Unit | undefined => p.units.find((u) => u.id === id);
 export const alive = (p: Party, u: Unit): boolean => entOf(p, u.id)?.alive ?? false;
@@ -64,10 +79,13 @@ const passive = (u: Unit) => (u.cls ? CLASSES[u.cls].passive : undefined);
 
 /** What a unit's basic attack is: the hero's weapon, or the foe's kind. */
 export function stats(u: Unit, t = 0): { dmg: [number, number]; range: number; atk: number; move: number } {
-  if (!u.cls) return FOES[u.foe!];
+  if (!u.cls) {
+    const f = FOES[u.foe!], scale = u.foeScale ?? 1;
+    return { ...f, dmg: [Math.round(f.dmg[0] * scale), Math.round(f.dmg[1] * scale)] };
+  }
   const w = WEAPONS[u.weapon!];
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) };
+  return { dmg: w.dmg, range, atk: w.atk * G.atk(u) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u).range): boolean {
@@ -80,13 +98,19 @@ export function targetOf(p: Party, u: Unit, t: number): Unit | undefined {
   if (u.side === 'foe' && u.tauntBy && t < u.tauntUntil) { const by = p.units.find((x) => x.id === u.tauntBy && alive(p, x)); if (by) return by; }
   if (u.order?.kind === 'attack') { const id = u.order.target; const o = p.units.find((x) => x.id === id && alive(p, x)); if (o) return o; u.order = null; }
   const me = posOf(p, u);
-  return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil) && !(p.roam && (x.asleep || dist(posOf(p, x), me) > 10))).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+  return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil) && !(p.roam && (x.asleep || dist(posOf(p, x), me) > ENGAGE))).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
 }
 
 /** One step toward `to` along a free path (other bodies block, the goal itself does not). */
 export function stepToward(p: Party, u: Unit, to: Cell, t: number, ev: GEvent[]): boolean {
   const e = entOf(p, u.id)!;
-  const next = findPath(p.s.map, e.pos, to, (c) => occupied(p, c, u.id))?.[0];
+  p.beforeStep?.(u, t, ev);
+  let safeMap = p.s.map;
+  if (p.avoidTraps && u.side === 'hero' && p.s.traps.some((trap) => trap.found)) {
+    safeMap = { ...p.s.map, tiles: [...p.s.map.tiles] };
+    for (const trap of p.s.traps) if (trap.found && !same(trap.pos, e.pos)) safeMap.tiles[idx(safeMap, trap.pos)] = 'wall';
+  }
+  const next = (findPath(safeMap, e.pos, to, (c) => occupied(p, c, u.id)) ?? findPath(p.s.map, e.pos, to, (c) => occupied(p, c, u.id)))?.[0];
   if (!next || occupied(p, next, u.id)) return false;
   ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...next } });
   e.pos = next;
@@ -101,7 +125,7 @@ export function passiveMult(p: Party, u: Unit, target: Unit, t: number, ev: GEve
   const me = entOf(p, u.id)!, te = entOf(p, target.id)!;
   switch (passive(u)) {
     case 'firstShot': return te.hp === te.maxHp ? 2 : 1;
-    case 'shatter': if (t < target.frozenUntil) { target.frozenUntil = 0; ev.push({ t, type: 'react', src: u.id, to: { ...te.pos }, text: 'shatter' }); return 2; } return 1;
+    case 'shatter': if (!G.wears(u, 'link_shatter') && t < target.frozenUntil) { target.frozenUntil = 0; ev.push({ t, type: 'react', src: u.id, to: { ...te.pos }, text: 'shatter' }); return 2; } return 1;
     case 'flank': return targetOf(p, target, t)?.id !== u.id ? 1.6 : 1;
     case 'rage': return me.hp < me.maxHp / 2 ? 1.5 : 1;
     case 'farShot': return dist(me.pos, te.pos) >= 5 ? 2 : 1;
@@ -109,12 +133,17 @@ export function passiveMult(p: Party, u: Unit, target: Unit, t: number, ev: GEve
   }
 }
 
-export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[]): void {
+export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[], secondary = false): void {
   const e = entOf(p, dst.id)!;
   if (!e.alive) return;
+  const attacker = unitOf(p, src);
+  if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') amount = Math.round(amount * G.dmg(attacker) * engravingMult(p, attacker, dst, t));
   if (dst.side === 'hero') {
     const guard = WEAPONS[dst.weapon!].guard;
     if (guard) amount = Math.max(1, Math.round(amount * guard));
+    if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));
+    const link = secondary ? undefined : guardLink(p, dst);
+    if (link) { const share = Math.round(amount * 0.3); amount -= share; if (share > 0) damage(p, t, src, link, share, ev, true); }
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
   }
@@ -173,7 +202,7 @@ export function behindCover(p: Party, shooter: Cell, target: Cell): boolean {
 }
 
 /** A basic attack (or a skill's blow at `mult`): engravings, then the weapon's own trait. */
-export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1): void {
+export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t);
   const magic = u.cls ? CLASSES[u.cls].magic : false;
   if (st.range <= 1) ev.push({ t, type: 'bump', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos } });
@@ -185,8 +214,12 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
   if (blocked || !p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); return; }
   let m = mult;
   if (u.side === 'hero') {
-    m *= passiveMult(p, u, target, t, ev) * u.empower;
-    if (u.empower > 1) { u.empower = 1; u.hiddenUntil = 0; }
+    const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
+    m *= passiveMult(p, u, target, t, ev) * empowerment;
+    if (empowerment > 1) {
+      u.empower = !basic && u.echoPending ? 2 : 1; u.hiddenUntil = 0;
+      if (basic) u.echoPending = false;
+    }
     // bond: each ally close by; steady aim: shots in a row from the same spot; a critical blow
     const near = p.units.filter((x) => x.side === 'hero' && x !== u && alive(p, x) && dist(posOf(p, x), e.pos) <= 2).length;
     m *= 1 + T.bond(u) * near;
@@ -198,7 +231,10 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
     if (T.crit(u) && p.s.rng.chance(T.crit(u))) m *= 1.5;
   }
   if (target.side === 'hero' && covered) m *= T.coverTaken(target);
+  const hp = te.hp;
   damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev);
+  if (basic) basicHit(p, u, target, t, hp - te.hp, ev);
+  if (st.range <= 1 && G.wears(target, 'thorns')) damage(p, t, target.id, u, 3, ev, true);
   const w = u.weapon ? WEAPONS[u.weapon] : undefined;
   if (w?.cleave || w?.splash) {
     const around = w.cleave ? e.pos : te.pos;
