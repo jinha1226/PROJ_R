@@ -6,11 +6,12 @@ import { D, DOOR_X, TORCH_BACK, TORCH_SIDE, W, type Built } from './roomPlan';
 import { buildCurrent } from './styleCurrent';
 import { buildKaykit } from './styleKaykit';
 import { buildVoxel } from './styleVoxel';
+import { loadStone } from '../../view/grid/stoneMats';
 
-const STYLES = [['current', '현재'], ['kaykit', 'KayKit'], ['voxel', '복셀']] as const;
+const STYLES = [['current', '현재'], ['kaykit', 'KayKit'], ['voxel', '복셀'], ['stone', '현재+석재']] as const;
 type Style = (typeof STYLES)[number][0];
 
-/** `?demo=styles`: one dungeon room in each candidate art style, same light and camera, switched with 1 2 3 (D: dot look). */
+/** `?demo=styles`: one dungeon room in each candidate art style, same light and camera, switched with 1 2 3 4 (D: dot look). */
 export async function mountStyleDemo(root: HTMLElement, lib: UalLibrary, kit: DungeonKit, base: string): Promise<void> {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -44,6 +45,7 @@ export async function mountStyleDemo(root: HTMLElement, lib: UalLibrary, kit: Du
   const built = new Map<Style, Built>();
   built.set('current', buildCurrent(kit, lib));
   built.set('voxel', buildVoxel(lib));
+  built.set('stone', buildCurrent(kit, lib, { floor: loadStone(base, 'floor'), wall: loadStone(base, 'wall') }));
   for (const b of built.values()) scene.add(b.root);
   void buildKaykit(base).then((b) => { built.set('kaykit', b); scene.add(b.root); show(style); });
 
@@ -74,7 +76,7 @@ export async function mountStyleDemo(root: HTMLElement, lib: UalLibrary, kit: Du
   });
   addEventListener('keydown', (e) => {
     const n = Number(e.key);
-    if (n >= 1 && n <= 3) show(STYLES[n - 1]![0]);
+    if (n >= 1 && n <= STYLES.length) show(STYLES[n - 1]![0]);
     if (e.key === 'd' || e.key === 'D') { dot = !dot; draw(); }
   });
   const fit = (): void => {

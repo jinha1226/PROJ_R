@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { DungeonKit, DungeonPiece } from '../../view/grid/dungeonKit';
 import { UalActor, type UalLibrary, type UalLook } from '../../view/grid/ualActor';
+import { stoneMat, type StoneSet } from '../../view/grid/stoneMats';
 import { lookOf } from '../party/partyPick';
 import { BANNER_X, D, DOOR_X, FIGS, PILLARS, PROPS, TORCH_BACK, TORCH_SIDE, W, facing, type Built, type Fig, type PropKind } from './roomPlan';
 
@@ -17,7 +18,7 @@ const FOE: Record<string, UalLook> = {
 const HERO_WEAPON = { warrior: 'swordShield', archer: 'longbow', mage: 'staff' } as const;
 
 /** The look the game has today: the Quaternius dungeon pack and the dressed mannequins. */
-export function buildCurrent(kit: DungeonKit, lib: UalLibrary): Built {
+export function buildCurrent(kit: DungeonKit, lib: UalLibrary, stone?: { floor: StoneSet; wall: StoneSet }): Built {
   const root = new THREE.Group();
   const put = (name: DungeonPiece, fit: { width?: number; height?: number }, x: number, z: number, rot = 0, y = 0): void => {
     const o = kit.clone(name, fit);
@@ -25,7 +26,16 @@ export function buildCurrent(kit: DungeonKit, lib: UalLibrary): Built {
     o.rotation.y = rot;
     root.add(o);
   };
+  // with scanned stone: one flat floor and plain wall slabs, the texture carrying all the detail
+  const floorMat = stone && stoneMat(stone.floor, 2.5, 'floor'), wallMat = stone && stoneMat(stone.wall, 2, 'wall');
+  if (floorMat) {
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(W, D).rotateX(-Math.PI / 2), floorMat);
+    f.position.set((W + 1) / 2, 0, (D + 1) / 2);
+    f.receiveShadow = true;
+    root.add(f);
+  }
   for (let x = 1; x <= W; x++) for (let z = 1; z <= D; z++) {
+    if (floorMat) break;
     const p = kit.piece('Floor_Modular')!;
     const m = new THREE.Mesh(p.geometry, p.material);
     m.scale.set(1 / p.size.x, 0.1 / p.size.y, 1 / p.size.z);
@@ -34,6 +44,14 @@ export function buildCurrent(kit: DungeonKit, lib: UalLibrary): Built {
     root.add(m);
   }
   const wall = (x: number, z: number, rot: number): void => {
+    if (wallMat) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1, WALL_H, 0.25).translate(0, WALL_H / 2, 0), wallMat);
+      m.position.set(x, 0, z);
+      m.rotation.y = rot;
+      m.castShadow = m.receiveShadow = true;
+      root.add(m);
+      return;
+    }
     const p = kit.piece('Wall_Modular')!;
     const m = new THREE.Mesh(p.geometry, p.material);
     m.scale.set(1 / p.size.x, WALL_H / p.size.y, 0.25 / p.size.z);

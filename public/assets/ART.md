@@ -31,6 +31,8 @@
   - `fx-atlas.png`: 80장 중 16장(빛무리·고리·별·반짝이·궤적·불꽃·폭발·연기·연기 고리·폭발 중심·베기·소용돌이·마법 별·룬·번개·흙)을 128px로 줄여 4×4 아틀라스로 묶음, 밝기를 알파로 사용. 파티클 엔진은 three.quarks(MIT)
 - **KayKit Dungeon Remastered 1.0** — Kay Lousberg, CC0 1.0 (리비전 `b0ca9bd`)
   - `models/kaykit/dungeon.glb`: 바닥·벽·기둥·횃불·통·상자·보물상자·탁자·의자·선반·양초·깃발·잔해 등 41종을 gltf-transform으로 하나로 묶음(조각마다 이름 붙은 노드 하나, 텍스처 1장 공유). 미술 방향 비교 데모(`?demo=styles`)용
+- **Poly Haven 텍스처** — CC0 1.0 (https://polyhaven.com)
+  - `textures/stone/floor_*.jpg`: Monastery Stone Floor, `textures/stone/wall_*.jpg`: Castle Brick 01. 1K 색(AO를 곱해 넣음)·노멀(GL)·거칠기(512px). 던전 바닥과 벽에 월드 좌표로 이어 붙임
 - 라이선스 사본: `models/qpack/LICENSE.txt`
 
 ## 가공 내용

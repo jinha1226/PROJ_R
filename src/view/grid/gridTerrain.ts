@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { idx, type GridMap, type GridState } from '../../sim/grid/types';
-import type { DungeonKit, DungeonPiece } from './dungeonKit';
+import type { DungeonKit, DungeonPiece, Piece } from './dungeonKit';
 import { wallFaces, type WallFace } from './gridLayout';
 import { addDecor, cornerColumns, runColumns } from './gridDecor';
 import { chasmMesh, sealMesh } from './toolGates';
 import { ChunkedInstances } from './chunkedInstances';
+import { loadStone, stoneMat } from './stoneMats';
 
 /** Metres per grid cell. */
 export const CELL = 1.0;
@@ -12,6 +13,18 @@ export const WALL_H = 1.5;
 const PANEL_DEPTH = 0.25;
 const CAP = new THREE.Color('#77716a');
 const SEEN = 0.3;
+
+/** Scanned stone for the dungeon's floor and walls (loaded once): a flat tile and a plain slab, the texture carrying the detail. */
+let stone: { floor: Piece; wall: Piece } | null = null;
+const stoneKit = (): { floor: Piece; wall: Piece } => {
+  if (stone) return stone;
+  const base = import.meta.env.BASE_URL;
+  stone = {
+    floor: { geometry: new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), material: stoneMat(loadStone(base, 'floor'), 2.5, 'floor'), size: new THREE.Vector3(1, 1, 1) },
+    wall: { geometry: new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), material: stoneMat(loadStone(base, 'wall'), 2, 'wall'), size: new THREE.Vector3(1, 1, 1) },
+  };
+  return stone;
+};
 
 export const toWorld = (x: number, y: number): THREE.Vector3 => new THREE.Vector3(x * CELL, 0, y * CELL);
 /** Yaw that turns a model's +z toward `dir` (grid y = world z). */
@@ -36,18 +49,7 @@ export class GridTerrain {
     this.built = [...m.tiles];
     const faces = wallFaces(m);
     const floors = m.tiles.map((t, i) => [t, i] as const).filter(([t]) => t !== 'wall' && t !== 'chasm').map(([, i]) => i);
-    const q = new THREE.Quaternion();
-    const up = new THREE.Vector3(0, 1, 0);
-    // most cells get the full flagstone, some a loose-brick tile for variety
-    const loose = (i: number) => ((i * 2246822519) >>> 0) % 100 < 14;
-    const tile = (name: DungeonPiece) => (i: number, p: THREE.Vector3) => {
-      const pc = kit.piece(name) ?? kit.piece('Floor_Modular')!;
-      q.setFromAxisAngle(up, ((i * 7) % 4) * (Math.PI / 2));
-      return new THREE.Matrix4().compose(p.setY(-0.1), q, new THREE.Vector3(CELL / pc.size.x, 0.1 / pc.size.y, CELL / pc.size.z));
-    };
-    this.instance('Floor_Modular', floors, tile('Floor_Modular'));
-    // loose bricks lie on top of a few flagstones
-    if (kit.piece('Floor_BricksSeparate')) this.instance('Floor_BricksSeparate', floors.filter(loose), (i, p) => tile('Floor_BricksSeparate')(i, p).premultiply(new THREE.Matrix4().makeTranslation(0, 0.05, 0)));
+    this.instance('Floor_Modular', floors, (_i, p) => new THREE.Matrix4().makeTranslation(p.x, 0, p.z), stoneKit().floor);
     this.instanceFaces(faces);
     // a thin stone cap on top of each wall panel only, so walls read as walls and not as solid blocks
     const caps = new ChunkedInstances(new THREE.BoxGeometry(CELL + 0.02, 0.08, PANEL_DEPTH + 0.04), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), faces.map((f) => f.wall));
@@ -89,8 +91,8 @@ export class GridTerrain {
   }
 
   /** One instanced mesh of a pack piece over many cells; matrices come from `place`. */
-  private instance(name: DungeonPiece, cells: number[], place: (i: number, p: THREE.Vector3) => THREE.Matrix4): void {
-    const pc = this.kit.piece(name);
+  private instance(name: DungeonPiece, cells: number[], place: (i: number, p: THREE.Vector3) => THREE.Matrix4, piece?: Piece): void {
+    const pc = piece ?? this.kit.piece(name);
     if (!pc || !cells.length) return;
     const mesh = new ChunkedInstances(pc.geometry, pc.material, cells.map((i) => ({ x: i % this.m.w, y: Math.floor(i / this.m.w) })), { receive: true });
     cells.forEach((i, k) => {
@@ -104,8 +106,7 @@ export class GridTerrain {
 
   /** Wall panels on every wall side facing a walkable cell, inside the wall cell, front at the boundary. */
   private instanceFaces(faces: WallFace[]): void {
-    const pc = this.kit.piece('Wall_Modular');
-    if (!pc) return;
+    const pc = stoneKit().wall;
     const mesh = new ChunkedInstances(pc.geometry, pc.material, faces.map((f) => f.wall), { cast: true, receive: true });
     const scale = new THREE.Vector3(CELL / pc.size.x, WALL_H / pc.size.y, PANEL_DEPTH / pc.size.z);
     const q = new THREE.Quaternion();
