@@ -89,3 +89,11 @@ it('full-health leech is a no-op even before lowHp bookkeeping is initialized', 
   const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,ev});});
   expect(f.status.bleed).toBeDefined();expect(ev.some(e=>e.text==='흡혈')).toBe(false);
 });
+it('a real assassin critical attack preserves poison, leech and critical bleeding in one chain', () => {
+  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1,openWound:1};u.nextCrit=true;
+  u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
+  f.order={kind:'attack',target:p.units[1]!.id};entOf(p,u.id)!.hp=40;
+  const ev:GEvent[]=[];strike(p,u,f,0,ev);
+  expect(f.status.poison?.stacks).toBe(2);expect(f.status.bleed).toBeDefined();expect(entOf(p,u.id)!.hp).toBeGreaterThan(40);
+  expect(ev.filter(e=>['배후 급소','독 묻힌 칼','독니','흡혈','상처 벌리기'].includes(e.text??''))).toHaveLength(5);
+});
