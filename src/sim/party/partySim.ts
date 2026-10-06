@@ -157,7 +157,7 @@ export function tick(p: Party, dt: number): GEvent[] {
   if (p.waiting || (p as { over?: boolean }).over) return ev;
   expireSummons(p, p.time);
   for (const u of p.units) u.promoteReady=promotionOptions(p,u).some(o=>o.met);
-  if (p.combat === false) for (const u of p.units) {u.crisisUsed = false;u.immortalUsed=false;}
+  if (p.combat === false) for (const u of p.units) {u.crisisUsed = false;u.immortalUsed=false;u.steady=0;u.still=0;}
   let statusTime = p.time;
   const end = p.time + dt;
   for (let guard = 0; guard < 100; guard++) {

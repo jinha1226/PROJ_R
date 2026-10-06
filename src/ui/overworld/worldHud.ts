@@ -1,6 +1,7 @@
 import type { Party } from '../../sim/party/partyCore';
 import { detailHtml, partyFramesHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
+import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
 
 export interface HudActions { menu(): void; stat(): void; bag(): void; select(id: string): void; skill(id: string, slot: 0 | 1): void; promote(): void;
   /** down the stairs or the shaft (shown when given; enabled by draw) */
@@ -87,4 +88,11 @@ export class WorldHud {
     this.put('.wh-party', partyFramesHtml(p, ids, sel));
     this.put('.wh-br', detailHtml(p, sel));
   }
+}
+
+/** The top-centre lines: where and which turn, then what the party holds (ore, crystal, bio-matter against a body's cost, souls carried). */
+export function statusLine(place: string, p: RoamParty): string {
+  const souls = p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : '';
+  return `<div class="st-row"><span>${place}</span><span>턴 <b>${Math.floor(p.time)}</b></span></div>`
+    + `<div class="st-row st-res"><span>광석 <b>${p.ore}</b></span><span>마정석 <b>${p.crystal}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">생체 <b>${p.bio}</b></span>${souls}</div>`;
 }

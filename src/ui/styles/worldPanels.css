@@ -61,7 +61,7 @@
 }
 
 /* ---- raid line (surface) and the night it brings ---- */
-.raid-bar { position: absolute; z-index: 7; left: 50%; top: 76px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 12px; font: 12px 'GalmuriMono', monospace; color: #ffb0a0; background: linear-gradient(180deg, #160604f0, #0a0201f0); border: 1px solid #a03a2a; box-shadow: 0 0 16px #ff3a2a44; white-space: nowrap; }
+.raid-bar { position: absolute; z-index: 7; left: 50%; top: 96px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 12px; font: 12px 'GalmuriMono', monospace; color: #ffb0a0; background: linear-gradient(180deg, #160604f0, #0a0201f0); border: 1px solid #a03a2a; box-shadow: 0 0 16px #ff3a2a44; white-space: nowrap; }
 .raid-bar[hidden] { display: none; }
 .raid-bar b { font-weight: normal; color: #ffe6c0; }
 .raid-bar b.ok { color: #5dff8a; }
@@ -72,7 +72,7 @@
 /* night: a dark red-blue wash over the land (the HUD stays bright) */
 .screen.world.night .grid-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0a0a2a33, #04020ecc); mix-blend-mode: multiply; }
 @media (orientation: portrait) and (max-width: 700px) {
-  .raid-bar { top: 60px; left: 6px; right: 6px; transform: none; flex-wrap: wrap; white-space: normal; justify-content: center; gap: 4px 10px; }
+  .raid-bar { top: 90px; left: 6px; right: 6px; transform: none; flex-wrap: wrap; white-space: normal; justify-content: center; gap: 4px 10px; }
 }
 
 /* ---- Pip window: roster tab ---- */
@@ -144,3 +144,8 @@
   .wh-bl .wl-line:nth-last-child(n + 7) { display: none; }
   .tp-zone { bottom: 280px; height: 30%; width: 64%; }
 }
+.pip-slot.soul button { font: 10px 'GalmuriMono', monospace; color: #021006; background: var(--tint); border: 0; padding: 2px 6px; cursor: pointer; }
+/* top centre: the floor and turn, then what the party holds */
+.wh-top { flex-direction: column; align-items: center; gap: 2px; }
+.wh-top .st-row { display: flex; gap: 12px; }
+.wh-top .st-res { font-size: 11px; color: #4f9f6a; }

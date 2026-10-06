@@ -18,6 +18,7 @@ export class RaidBar {
 
   constructor(private readonly p: () => WorldParty, private readonly live: (ev: GEvent[]) => void, private readonly screen: HTMLElement) {
     this.el.className = 'raid-bar';
+    this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
       const k = (e.target as HTMLElement).closest<HTMLElement>('[data-r]')?.dataset.r, p = this.p();
       if (k === 'start') this.live(startRaid(p));

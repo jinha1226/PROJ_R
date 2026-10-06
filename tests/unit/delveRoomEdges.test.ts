@@ -6,7 +6,7 @@ import { PACK_SIZE } from '../../src/sim/delve/gear';
 import { entOf, unitOf, stepToward, damage } from '../../src/sim/party/partyCore';
 import { useUltimate } from '../../src/sim/party/ultimate';
 import { command } from '../../src/sim/party/partySim';
-import { implant, print } from '../../src/sim/roam/roam';
+import { implant, implantCarried, print } from '../../src/sim/roam/roam';
 import { placeParty, takeParty } from '../../src/sim/roam/carry';
 import { newSurface } from '../../src/sim/overworld/worldSim';
 import type { GEvent } from '../../src/sim/grid/types';
@@ -151,7 +151,8 @@ it('crypt pickup and named implantation wait for combat to end for both occupied
     delveTick(p, 0.1); expect(p.souls[0]!.taken).toBe(false); expect(u.hero).toBeUndefined(); expect(p.carried).toEqual([]);
     e.alive = false; delveTick(p, 0.1); delveTick(p, 0.1);
     expect(p.souls[0]!.taken).toBe(true);
-    if (empty) expect(u.hero).toBe('mira'); else expect(p.carried).toEqual([{ cls: 'mage', hero: 'mira' }]);
+    expect(p.carried).toEqual([{ cls: 'mage', hero: 'mira' }]);
+    if (empty) { p.combat = true; expect(implantCarried(p, u.id, 0)).toEqual([]); p.combat = false; implantCarried(p, u.id, 0); expect(u.hero).toBe('mira'); }
   }
 });
 it('a lethal backstab landing trap resolves before the rogue can strike', () => {

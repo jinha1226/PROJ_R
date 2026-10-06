@@ -1,3 +1,4 @@
+import { implantCarried } from '../../src/sim/roam/roam';
 import { expect, it } from 'vitest';
 import { distanceMap } from '../../src/sim/grid/path';
 import { dist, idx } from '../../src/sim/grid/types';
@@ -23,7 +24,7 @@ it('the pod comes down where the crashed ship lay: the drill rig beside it, the 
 
 it('down the shaft and back up: the clones, souls carried and bio-matter go along', () => {
   const s = newSurface(2);
-  entOf(s, 'hero')!.pos = { ...s.souls[0]!.pos }; worldTick(s, 0.1);
+  entOf(s, 'hero')!.pos = { ...s.souls[0]!.pos }; worldTick(s, 0.1); implantCarried(s, 'hero', 0);
   s.bio = 7;
   expect(canDrill(s)).toBe(false);
   entOf(s, 'hero')!.pos = { x: s.drill!.x + 1, y: s.drill!.y };
@@ -42,15 +43,17 @@ it('down the shaft and back up: the clones, souls carried and bio-matter go alon
   expect(dist(entOf(s, 'hero')!.pos, s.s.map.start)).toBeLessThanOrEqual(1);
 });
 
-it('a soul carried up from below gets a body at the pod (bio-matter allowing)', () => {
+it('a soul carried up from below gets an empty body at the pod (bio-matter allowing) to be put in', () => {
   const s = newSurface(3);
-  entOf(s, 'hero')!.pos = { ...s.souls[0]!.pos }; worldTick(s, 0.1);
+  entOf(s, 'hero')!.pos = { ...s.souls[0]!.pos }; worldTick(s, 0.1); implantCarried(s, 'hero', 0);
   const down = newDelve(3, 1, takeParty(s));
   down.carried.push('cleric'); down.bio = 30;
   placeParty(s, takeParty(down));
   for (let i = 0; i < 10; i++) worldTick(s, 0.1);
-  expect(clones(s).map((u) => u.cls)).toEqual(['archer', 'cleric']);
+  expect(clones(s).map((u) => u.cls)).toEqual(['archer', 'shell']);
   expect(s.bio).toBe(5);
+  implantCarried(s, clones(s)[1]!.id, 0);
+  expect(clones(s).map((u) => u.cls)).toEqual(['archer', 'cleric']);
 });
 
 it('the land round the pod holds no camps and no goblins (raids will come from the edge)', () => {

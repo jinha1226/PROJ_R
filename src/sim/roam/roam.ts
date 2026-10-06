@@ -87,6 +87,15 @@ export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]):
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'soul' });
 }
 
+/** The player puts a carried soul into a living empty clone; no events when it cannot go in (not empty, no such soul, a hero soul mid-fight). */
+export function implantCarried(p: RoamParty, id: string, at: number): GEvent[] {
+  const u = living(p).find((v) => v.id === id), soul = p.carried[at], ev: GEvent[] = [];
+  if (!u || u.cls !== 'shell' || soul === undefined || (typeof soul !== 'string' && soul.hero && p.combat)) return ev;
+  p.carried.splice(at, 1);
+  implant(p, u, soul, ev);
+  return ev;
+}
+
 /** A new body at the base: empty, or with a soul. */
 export function print(p: RoamParty, cls: CarriedSoul | undefined, ev: GEvent[]): Unit | undefined {
   const m = p.s.map, taken = (c: Cell) => p.units.some((u) => alive(p, u) && entOf(p, u.id)!.pos.x === c.x && entOf(p, u.id)!.pos.y === c.y);
@@ -120,13 +129,13 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
     ev.push({ t, type: 'pickup', src: by.id, to: soul.pos, text: 'soul' });
     const carried: CarriedSoul = soul.hero ? { cls: soul.cls, hero: soul.hero } : soul.cls;
     if (soul.hero && !p.foundHeroes.includes(soul.hero)) p.foundHeroes.push(soul.hero);
-    if (by.cls === 'shell') implant(p, by, carried, ev); else p.carried.push(carried);
+    p.carried.push(carried);
   }
-  for (const u of living(p)) if (u.cls === 'shell' && p.carried.length && (typeof p.carried[0] !== 'string') === named) implant(p, u, p.carried.shift()!, ev);
-  // a carried soul gets a body at the base, if there is bio-matter enough for one
-  if (p.printHere && !p.combat && p.carried.length && (typeof p.carried[0] !== 'string') === named && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
+  // each soul waiting for a body gets an empty one at the base, if there is bio-matter enough; the player puts the soul in
+  const shells = living(p).filter((u) => u.cls === 'shell').length;
+  if (!named && p.printHere && !p.combat && p.carried.length > shells && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
     p.bio -= BODY_COST;
-    print(p, p.carried.shift(), ev);
+    print(p, undefined, ev);
   }
   // the last clone fell: one more empty body if the stuff is there, else it is over
   if (!named && !living(p).length && !p.over) {

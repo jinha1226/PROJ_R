@@ -2,7 +2,7 @@ import { BuildMode } from './buildMode';
 import { RaidBar, overPanel, raidNote, tryOutState } from './raidBar';
 import { QuickSlots } from './quickSlots';
 import { AutoExplore } from '../delve/explore';
-import { PlacePrompts, type Prompt } from './placePrompt';
+import { PlacePrompts, soulPrompt, type Prompt } from './placePrompt';
 
 /** how near the pod a clone must stand for its build button to show */
 const POD_REACH = 3;
@@ -31,7 +31,7 @@ import { OptionsMenu } from './optionsMenu';
 import { TouchPad } from './touchPad';
 import { pickTrait } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/traitDefs';
-import { WorldHud } from './worldHud';
+import { WorldHud, statusLine } from './worldHud';
 import { WorldLog } from './worldLog';
 import { Pinch, coarsePointer, startZoom } from './touchView';
 import { lookOf } from '../party/partyPick';
@@ -168,7 +168,7 @@ export class WorldScreen implements Screen {
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.build.open);
-      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>`, mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };
@@ -194,7 +194,7 @@ export class WorldScreen implements Screen {
       if (e.type === 'levelUp') this.hud.toast(`${this.name(e.src!)} 레벨 ${e.amount}`);
       if (e.type === 'buff' && e.text === 'soul') this.message(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.message(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
-      if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
+      if (e.type === 'pickup' && e.text === 'soul') this.message('영혼 회수');
       if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼 소멸');
       if (e.type === 'dead' && e.text !== 'raidLost') { this.message('전멸'); this.over.hidden = false; }
       const note = raidNote(e, this.p);
@@ -277,7 +277,7 @@ export class WorldScreen implements Screen {
     if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.drill, label: '▼ 시추공', act: () => this.descend() });
     const nearPod = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, this.p.base) <= POD_REACH; });
     if (this.p.pod && nearPod && !this.landing && !this.p.raid && !this.build.open) list.push({ at: { x: this.p.base.x + 0.5, y: this.p.base.y + 0.5 }, label: '⚒ 건설', act: () => this.build.toggle() });
-    return list;
+    return [...list, ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })];
   }
 
   /** Down the shaft: with deeper starts open, first ask which floor. */

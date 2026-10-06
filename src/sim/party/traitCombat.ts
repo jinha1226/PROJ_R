@@ -34,7 +34,7 @@ export function blink(p:Party,u:Unit,target:Unit,t:number,ev:GEvent[]):void {
   if(!u.blinkNext)return;u.blinkNext=false;
   const tp=posOf(p,target),spot=DIRS.map(d=>({x:tp.x+d.x,y:tp.y+d.y})).find(c=>walkable(tileAt(p.s.map,c))&&!occupied(p,c,u.id));
   if(!spot||dist(posOf(p,u),tp)>2)return;
-  const move:GEvent={t,type:'teleport',src:u.id,from:{...posOf(p,u)},to:spot};ev.push(move);entOf(p,u.id)!.pos=spot;p.onMovement?.([move],ev);
+  const move:GEvent={t,type:'teleport',src:u.id,from:{...posOf(p,u)},to:spot};ev.push(move);entOf(p,u.id)!.pos=spot;u.steady=0;u.still=0;p.onMovement?.([move],ev);
 }
 export function tickTraitRegen(p:Party,from:number,to:number,ev:GEvent[]):void {
   for(const u of p.units)if(alive(p,u)&&rank(u,'shadowOath')) {

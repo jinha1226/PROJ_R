@@ -4,6 +4,7 @@ import { dist, idx } from '../../src/sim/grid/types';
 import { damage, entOf } from '../../src/sim/party/partyCore';
 import { generateWorld, WORLD_SIZE } from '../../src/sim/overworld/worldGen';
 import { clones, newWorld, orderTo, worldTick } from '../../src/sim/overworld/worldSim';
+import { implantCarried } from '../../src/sim/roam/roam';
 
 it('near the ship only small strays wait; the nearest camps are small and farther out', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
@@ -66,32 +67,39 @@ it('souls lie about: the first (an archer) near the ship, the nearest three of d
   }
 });
 
-it('an empty clone that reaches a soul becomes its class', () => {
+it('an empty clone that reaches a soul carries it; the soul goes in when the player puts it in', () => {
   const p = newWorld(3);
   const soul = p.souls[0]!;
   orderTo(p, 'hero', soul.pos);
   for (let i = 0; i < 400 && !soul.taken; i++) worldTick(p, 0.1);
   expect(soul.taken).toBe(true);
-  expect(clones(p)[0]!.cls).toBe(soul.cls);
+  expect(clones(p)[0]!.cls).toBe('shell'); expect(p.carried).toEqual([soul.cls]);
+  expect(implantCarried(p, 'hero', 0).some((e) => e.text === 'soul')).toBe(true);
+  expect(clones(p)[0]!.cls).toBe(soul.cls); expect(p.carried).toEqual([]);
   expect(entOf(p, 'hero')!.maxHp).toBeGreaterThan(30);
+  expect(implantCarried(p, 'hero', 0)).toEqual([]);
 });
 
 const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
 
-it('a soul picked up by a clone that has one is carried home; at the ship it gets a new body', () => {
+it('at the ship a waiting soul gets one empty body (bio-matter enough); the player puts the soul in', () => {
   const p = newWorld(3);
   calm(p);
   p.bio = 100;
   const [a, b] = p.souls;
   entOf(p, 'hero')!.pos = { ...a!.pos };
-  worldTick(p, 0.1);
+  worldTick(p, 0.1); implantCarried(p, 'hero', 0);
   entOf(p, 'hero')!.pos = { ...b!.pos };
   worldTick(p, 0.1);
   expect(p.carried).toEqual([b!.cls]);
   orderTo(p, 'hero', p.s.map.start);
-  for (let i = 0; i < 600 && p.carried.length; i++) worldTick(p, 0.1);
-  expect(clones(p).length).toBeGreaterThanOrEqual(2);
-  expect(clones(p)[1]!.cls).toBe(b!.cls);
+  for (let i = 0; i < 600 && clones(p).length < 2; i++) worldTick(p, 0.1);
+  for (let i = 0; i < 20; i++) worldTick(p, 0.1);
+  expect(clones(p)).toHaveLength(2);
+  const two = clones(p)[1]!;
+  expect(two.cls).toBe('shell'); expect(p.carried).toEqual([b!.cls]);
+  implantCarried(p, two.id, 0);
+  expect(two.cls).toBe(b!.cls); expect(p.carried).toEqual([]);
 });
 
 it('out of combat an order walks the whole party there behind the chosen clone', () => {
@@ -112,7 +120,7 @@ it('out of combat an order walks the whole party there behind the chosen clone',
 it('a fallen clone is gone soul and all; when the last one falls the pod wakes a new empty body (if it has the bio-matter)', () => {
   const p = newWorld(3);
   p.bio = 25;
-  entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1); implantCarried(p, 'hero', 0);
   const souls = p.souls.length;
   damage(p, p.time, 'x', clones(p)[0]!, 999, []);
   const ev = worldTick(p, 0.1);

@@ -11,7 +11,7 @@ import { tapCell } from './tapCell';
 import { MiningCue } from './miningCue';
 import { AutoExplore } from './explore';
 import { QuickSlots } from '../overworld/quickSlots';
-import { PlacePrompts, type Prompt } from '../overworld/placePrompt';
+import { PlacePrompts, soulPrompt, type Prompt } from '../overworld/placePrompt';
 import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { clones, orderTo } from '../../sim/roam/roam';
@@ -27,7 +27,7 @@ import { TraitPicker } from '../overworld/traitPicker';
 import { OptionsMenu } from '../overworld/optionsMenu';
 import { pickTrait } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/traitDefs';
-import { WorldHud } from '../overworld/worldHud';
+import { WorldHud, statusLine } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
 import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
 import { DelveMinimap } from './delveMinimap';
@@ -362,7 +362,7 @@ export class DelveScreen implements Screen {
     const list: Prompt[] = [];
     if (this.p.s.map.stairs && canDescend(this.p)) list.push({ at: this.p.s.map.stairs, label: '▼ 계단', act: () => this.down() });
     if (this.opts.onAscend && canAscend(this.p)) list.push({ at: this.p.base, label: '▲ 지상으로', act: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } });
-    this.prompts.update(this.rt, list);
+    this.prompts.update(this.rt, [...list, ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })]);
   }
 
   private labels(): void {
@@ -378,7 +378,7 @@ export class DelveScreen implements Screen {
     const p = this.p;
     // no mode banner: the top centre says floor and turn, the frames say whose turn it is
     const mode = '';
-    const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span>`;
+    const status = statusLine(`지하 <b>${p.floor}층</b>`, p);
     const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
     this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target });
   }

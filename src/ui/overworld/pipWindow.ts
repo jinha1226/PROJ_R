@@ -10,9 +10,9 @@ import { skillsHtml } from './pipSkills';
 import { itemName } from '../../sim/delve/items';
 import { equip,unequip,sacrifice,weaponStats } from '../../sim/delve/gear';
 import { CATALOG } from '../../sim/delve/catalog';
-import { entOf, unitOf } from '../../sim/party/partyCore';
+import { entOf, unitOf, type Unit } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
-import { BODY_COST, clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
+import { BODY_COST, clones, implantCarried, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
@@ -41,6 +41,8 @@ export class PipWindow {
       if(act){const p=this.p(),id=act.dataset.item!,u=unitOf(p,this.who)||clones(p).find(u=>entOf(p,u.id)?.alive);if(u){if(act.dataset.action==='equip')equip(p,u.id,id);if(act.dataset.action==='sacrifice')sacrifice(p,u.id,id);if(act.dataset.action==='use')this.onEvents?.(useConsumable(p,u.id,id));}}
       const to = t.closest<HTMLElement>('[data-promote-to]')?.dataset.promoteTo as ClassId | undefined;
       if (to) this.onEvents?.(promote(this.p(), this.who, to));
+      const soul = t.closest<HTMLElement>('[data-soul]')?.dataset.soul, body = soul !== undefined && this.shell(this.p());
+      if (body) this.onEvents?.(implantCarried(this.p(), body.id, Number(soul)));
       const slot=t.closest<HTMLElement>('[data-off]')?.dataset.off as 'weapon'|'armor'|'accessory'|undefined;
       if(slot)unequip(this.p(),this.who,slot);
       if (t.closest('[data-close]') || t === this.el) { this.close(); return; }
@@ -49,6 +51,12 @@ export class PipWindow {
   }
 
   get open(): boolean { return !this.el.hidden; }
+
+  /** the empty body a soul goes into: the chosen clone if it is one, else the first living one */
+  private shell(p: RoamParty): Unit | undefined {
+    const empty = clones(p).filter((u) => u.cls === 'shell' && entOf(p, u.id)?.alive);
+    return empty.find((u) => u.id === this.who) ?? empty[0];
+  }
 
   show(tab: PipTab, who: string): void { this.tab = tab; this.who = who; this.el.hidden = false; this.draw(); }
   close(): void { if (this.el.hidden) return; this.el.hidden = true; this.onClose(); }
@@ -87,7 +95,8 @@ export class PipWindow {
   }
 
   private bag(p: RoamParty): string {
-    const items = p.carried.map((soul) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span></div>`; });
+    const empty = this.shell(p);
+    const items = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span>${empty ? `<button type="button" data-soul="${i}">주입</button>` : ''}</div>`; });
     const slots = [...items, ...Array.from({ length: Math.max(0, BAG_SLOTS - items.length) }, () => '<div class="pip-slot"></div>')].join('');
     return `<section class="pip-bag"><h4>생체 재료 <small>${p.bio} / 새 몸 ${BODY_COST}</small></h4><h4>들고 있는 것 <small>${items.length}/${BAG_SLOTS}</small></h4><div class="pip-grid">${slots}</div><h4>광석 <small>${p.ore}</small> · 마정석 <small>${p.crystal}</small></h4></section><section class="pg pip-bag">${packHtml(p, unitOf(p, this.who) ?? clones(p).find((u) => entOf(p, u.id)?.alive))}</section>`;
   }

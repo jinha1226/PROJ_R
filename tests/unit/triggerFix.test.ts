@@ -90,3 +90,8 @@ it('berserker combat stats compute the bonus from current health instead of a st
 it('counter description explicitly states its block requirement', () => {
   expect(triggerText('응수')).toContain('막기 시');
 });
+it('steady aim drops once the fight is over', () => {
+  const { p, u } = archer();
+  p.combat = false; tick(p, 0.1);
+  expect(u.steady ?? 0).toBe(0); expect(u.still).toBe(0);
+});

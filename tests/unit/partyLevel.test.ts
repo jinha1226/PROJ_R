@@ -1,3 +1,4 @@
+import { implantCarried } from '../../src/sim/roam/roam';
 import { expect, it } from 'vitest';
 import { tileAt, type GEvent } from '../../src/sim/grid/types';
 import { damage, entOf, strike, unitOf } from '../../src/sim/party/partyCore';
@@ -10,7 +11,7 @@ import { clones } from '../../src/sim/roam/roam';
 
 const withArcher = () => {
   const p = newDelve(2);
-  entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; delveTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; delveTick(p, 0.1); implantCarried(p, 'hero', 0);
   // These combat fixtures put their target three cells east: choose a clear lane without cover.
   for (const r of p.s.map.rooms) for (let y = r.y + 1; y < r.y + r.h - 1; y++) for (let x = r.x; x < r.x + r.w - 4; x++) {
     if ([0, 1, 2, 3, 4].every((dx) => [-1, 0, 1].every((dy) => tileAt(p.s.map, { x: x + dx, y: y + dy }) === 'floor'))) {

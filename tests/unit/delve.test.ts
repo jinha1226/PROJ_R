@@ -1,3 +1,4 @@
+import { implantCarried } from '../../src/sim/roam/roam';
 import { implant } from '../../src/sim/roam/roam';
 import { expect, it } from 'vitest';
 import { dist } from '../../src/sim/grid/types';
@@ -7,7 +8,7 @@ import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../..
 import { emit } from '../../src/sim/party/triggers';
 import { clones } from '../../src/sim/roam/roam';
 
-const take = (p: DelveParty, k: number) => { entOf(p, 'hero')!.pos = { ...p.souls[k]!.pos }; clones(p)[0]!.nextAt = p.time + 0.1; delveTick(p, 0.1); };
+const take = (p: DelveParty, k: number) => { entOf(p, 'hero')!.pos = { ...p.souls[k]!.pos }; clones(p)[0]!.nextAt = p.time + 0.1; delveTick(p, 0.1); implantCarried(p, 'hero', 0); };
 const calm = (p: DelveParty) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
 
 it('one empty clone steps out of the lift; the first soul (an archer) lies in the same room; the bands sleep', () => {
