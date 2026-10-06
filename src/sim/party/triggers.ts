@@ -9,7 +9,7 @@ export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'cri
 export interface Ctx { t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; reaction?: string; over?: number; depth: number; ev: GEvent[] }
 export interface TriggerDef { id: string; when: Cond; cd?: number; chance?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void; repeat?: boolean }
 export const CHAIN_CAP = 12;
-export function sourcesOf(_p: Party, u: Unit): TriggerDef[] { return [...(proficient(u) ? kitOf(u).innate.map(d=>({...d,cd:d.id==='포위 베기'?6-(u.traits?.whirlwind??0):d.id==='구원의 손'?8-2*(u.traits?.quickPrayer??0):d.cd,nth:d.id==='연쇄 주문'&&(u.traits?.quickChant??0)>=2?2:d.nth})) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]?.trigger?[TRAITS[id]!.trigger!(r)]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...(u.triggers ?? [])]; }
+export function sourcesOf(_p: Party, u: Unit): TriggerDef[] { return [...(proficient(u) ? kitOf(u).innate.map(d=>({...d,cd:d.id==='포위 베기'?6-(u.traits?.whirlwind??0):d.id==='구원의 손'?8-2*(u.traits?.quickPrayer??0):d.cd,nth:d.id==='연쇄 주문'&&(u.traits?.quickChant??0)>=2?2:d.nth})) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]?[...(TRAITS[id]!.trigger?[TRAITS[id]!.trigger!(r)]:[]),...(TRAITS[id]!.triggers?.(r)??[])]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...(u.triggers ?? [])]; }
 // A shared action budget covers siblings as well as recursive calls, including damage callbacks.
 // Within one action an effect fires once (unless it repeats); three or more effects leave a chain event for the screen.
 interface ChainState { count: number; depth: number; fired: Set<string>; ev?: GEvent[]; src?: string; t: number }

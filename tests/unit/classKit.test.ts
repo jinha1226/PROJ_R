@@ -1,3 +1,4 @@
+import { TRAITS } from '../../src/sim/party/traitDefs';
 import { it, expect } from 'vitest';
 import { partyRoom, tick } from '../../src/sim/party/partySim';
 import { damage, entOf } from '../../src/sim/party/partyCore';
@@ -43,8 +44,8 @@ it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','snip
   expect(useUltimate(p, u.id, { x: 4, y: 4 }).length).toBeGreaterThan(0);
   expect(u.ultReady).toBe(KITS[cls].ultCd); expect(useUltimate(p, u.id)).toEqual([]);
 });
-it('recounts shield gear and ranks before promoting', () => {
-  const p = partyRoom(), u = p.units[0]!; u.level = 8; u.traits = { shieldPro: 3 };
+it('recounts shield gear and cards before promoting', () => {
+  const p = partyRoom(), u = p.units[0]!; u.level = 8; u.traits = Object.fromEntries(Object.values(TRAITS).filter((d) => d.tags.includes('방패')).slice(0, 3).map((d) => [d.id, 1]));
   expect(promotionOptions(p, u).find(o=>o.to==='guardian')?.met).toBe(true);
   u.weapon = 'greataxe'; expect(promotionOptions(p, u).find(o=>o.to==='guardian')?.met).toBe(false);
   expect(promote(p, u.id, 'guardian')).toEqual([]); u.weapon = 'swordShield'; expect(promote(p, u.id, 'guardian').length).toBe(1);

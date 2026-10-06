@@ -34,6 +34,8 @@ export const TRAIT_TEXT: Record<string, TextFn> = { ...COMMON, ...TEXT_CLASS, ..
 
 /** Terse Korean description of a trait at the given rank; '' for unknown ids. */
 export function traitText(id: string, rank: number): string {
+  const d = TRAITS[id];
+  if (d?.text) { const line = rank >= 2 && d.up ? `${d.text} · 강화: ${d.up}` : d.text; return d.cost ? `${line} · 대가: ${d.cost}` : line; }
   const fn = TRAIT_TEXT[id];
   if (!fn || !TRAITS[id]) return '';
   const text = fn(Math.max(1, Math.min(rank, TRAITS[id]!.ranks)));
