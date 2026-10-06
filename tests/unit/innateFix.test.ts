@@ -97,3 +97,9 @@ it('a real assassin critical attack preserves poison, leech and critical bleedin
   expect(f.status.poison?.stacks).toBe(2);expect(f.status.bleed).toBeDefined();expect(entOf(p,u.id)!.hp).toBeGreaterThan(40);
   expect(ev.filter(e=>['배후 급소','독 묻힌 칼','독니','흡혈','상처 벌리기'].includes(e.text??''))).toHaveLength(5);
 });
+it('guard oath still redirects damage when a guardian wears an off-proficiency weapon', () => {
+  const {p,u}=setup('guardian','staff'),ally=p.units[1]!;u.shield=0;ally.shield=0;
+  u.gear={weapon:{id:'s',def:'staff',power:0},armor:null,accessory:{id:'g',def:'guardOath',power:0}};
+  entOf(p,ally.id)!.pos={x:3,y:3};const hp=entOf(p,ally.id)!.hp,guardHp=entOf(p,u.id)!.hp;
+  damage(p,0,'trap',ally,40,[]);expect(hp-entOf(p,ally.id)!.hp).toBe(28);expect(guardHp-entOf(p,u.id)!.hp).toBe(12);
+});

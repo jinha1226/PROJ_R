@@ -156,7 +156,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const link = secondary ? undefined : p.units.find(x=>x!==dst&&x.gear?.accessory?.def==='guardOath'&&alive(p,x)&&dist(posOf(p,x),e.pos)<=1) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
     if (link) {
       const share = Math.round(amount * 0.3);
-      if (share > 0 && link.cls === 'guardian') {
+      if (share > 0 && link.cls === 'guardian' && proficient(link) && link.gear?.accessory?.def !== 'guardOath') {
         link.guardIntercepted = false;
         emit(p,'guard',{t,src:link,target:attacker,amount:share,ev});
         if (link.guardIntercepted) amount -= share;
