@@ -16,7 +16,6 @@ import { GridFlow } from './gridFlow';
 import { Expedition } from './expedition';
 import '../ui/styles/pipTheme.css';
 import { UalLibrary } from '../view/grid/ualActor';
-import { DungeonKit } from '../view/grid/dungeonKit';
 import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
 import { clearRun, loadHall, loadRun } from './save';
 import { BootTitle } from '../ui/grid/bootTitle';
@@ -96,114 +95,17 @@ async function battle(): Promise<void> {
   }
 }
 
-/** `?demo=kata`: the scripted gun-kata look in the game view. */
-async function kataDemo(): Promise<void> {
+/** `?demo=looks`: every class flat and lit, side by side, for comparing the figures' look. */
+async function looksDemo(): Promise<void> {
   try {
-    const [{ KataDemo }, lib, kit, weapons] = await Promise.all([import('../ui/grid/kataDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    const [{ mountLooksDemo }, lib, weapons] = await Promise.all([import('../ui/party/looksDemo'), UalLibrary.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
     setWeaponKit(weapons);
-    router.go(new KataDemo(lib, kit));
+    mountLooksDemo(root, lib, import.meta.env.BASE_URL);
   } catch (e) {
     showFatal(root, e);
   }
 }
 
-/** `?demo=workbench`: the workbench screen on sample data. */
-async function workbenchDemo(): Promise<void> {
-  const [{ WorkbenchScreen }, { MockBench }] = await Promise.all([import('../ui/grid/ship/workbenchScreen'), import('../ui/grid/ship/workbenchMock')]);
-  await import('../ui/styles/grid.css');
-  await import('../ui/styles/gridSf.css');
-  const bench = new MockBench();
-  const host = document.createElement('div');
-  host.className = 'screen grid';
-  root.replaceChildren(host);
-  const screen = new WorkbenchScreen({ model: () => bench.model(), craft: (id) => bench.craft(id), fit: (slot, id) => bench.fit(slot, id), close: () => screen.render() });
-  host.appendChild(screen.el);
-}
-
-/** `?demo=chain`: the longest chain the engravings make, looping (for a look, or a recording with `&clean=1`). */
-async function chainDemo(): Promise<void> {
-  try {
-    const [{ ChainShowcase }, lib, kit, weapons] = await Promise.all([import('../ui/grid/chainShowcase'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
-    setWeaponKit(weapons);
-    router.go(new ChainShowcase(lib, kit));
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-/** `?demo=souls`: the turn-based souls combat prototype. */
-async function soulsDemo(): Promise<void> {
-  try {
-    const [{ SoulsDemo }, lib, kit, weapons] = await Promise.all([import('../ui/souls/soulsDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
-    setWeaponKit(weapons);
-    router.go(new SoulsDemo(lib, kit));
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-/** `?demo=party`: three heroes in real time with pause (a look at party control). */
-async function partyDemo(): Promise<void> {
-  try {
-    const [{ PartyDemo }, lib, kit, weapons] = await Promise.all([import('../ui/party/partyDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
-    setWeaponKit(weapons);
-    router.go(new PartyDemo(lib, kit));
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-/** `?demo=world`: the party crosses the open land round the crashed ship (the world map prototype). */
-async function worldDemo(): Promise<void> {
-  try {
-    const [{ WorldScreen }, { NatureKit }, lib, kit, weapons] = await Promise.all([import('../ui/overworld/worldScreen'), import('../view/overworld/natureKit'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
-    setWeaponKit(weapons);
-    router.go(new WorldScreen(lib, kit, { nature: await NatureKit.load(import.meta.env.BASE_URL) }));
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-/** `?demo=delve`: the dungeon below the ship (explore in real time, fight turn-based). */
-async function delveDemo(): Promise<void> {
-  try {
-    const [{ DelveScreen }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
-    setWeaponKit(weapons);
-    router.go(new DelveScreen(lib, kit));
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-/** `?demo=vfx`: every particle effect on loop, for tuning. */
-async function vfxDemo(): Promise<void> {
-  try {
-    const [{ mountVfxDemo }, { Vfx }, lib] = await Promise.all([import('../ui/fx/vfxDemo'), import('../view/fx/vfx'), UalLibrary.load(import.meta.env.BASE_URL)]);
-    mountVfxDemo(root, lib, await Vfx.load(import.meta.env.BASE_URL));
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-/** `?demo=styles`: one room in each candidate art style. */
-async function styleDemo(): Promise<void> {
-  try {
-    const [{ mountStyleDemo }, lib, kit, weapons] = await Promise.all([import('../ui/styles/styleDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
-    setWeaponKit(weapons);
-    await mountStyleDemo(root, lib, kit, import.meta.env.BASE_URL);
-  } catch (e) {
-    showFatal(root, e);
-  }
-}
-
-if (params.get('demo') === 'vfx') void vfxDemo();
-else if (params.get('demo') === 'styles') void styleDemo();
-else if (params.get('demo') === 'kata') void kataDemo();
-else if (params.get('demo') === 'world') void worldDemo();
-else if (params.get('demo') === 'delve') void delveDemo();
-else if (params.get('demo') === 'party') void partyDemo();
-else if (params.get('demo') === 'souls') void soulsDemo();
-else if (params.get('demo') === 'chain') void chainDemo();
-else if (params.get('demo') === 'workbench') void workbenchDemo();
+if (params.get('demo') === 'looks') void looksDemo();
 else if (params.get('screen') === 'sandbox') sandbox();
 else title();

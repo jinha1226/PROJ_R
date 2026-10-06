@@ -60,7 +60,7 @@ export function showcaseState(seed: number, suit: EngraveId[], foes: ShowFoe[], 
   return s;
 }
 
-/** `?demo=chain`: the maximum chain in the game view, looping; `&clean=1` leaves only the game picture (for recording). */
+/** The maximum chain in the game view, looping; `&clean=1` leaves only the game picture (for recording). */
 export class ChainShowcase implements Screen {
   private readonly el = document.createElement('div');
   private rt: GridRuntime | null = null;

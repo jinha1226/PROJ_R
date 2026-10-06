@@ -45,7 +45,7 @@ const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
 
 /**
- * `?demo=delve`: the dungeon below the ship. Exploring runs in real time; when a band notices the party the fight turns
+ * The dungeon below the ship. Exploring runs in real time; when a band notices the party the fight turns
  * turn-based as in Jupiter Hell — time stops on the chosen clone's moment, the companions act by themselves (1 2 3 switches
  * which clone is under the hand). The fight can be set to real time with pause instead.
  */

@@ -49,7 +49,7 @@ const RATE = 3.6;
 const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
 
-/** `?demo=world`: an empty clone wakes by the crashed ship, finds souls that give it a class (more souls carried home become new clones), and the party takes the land round the goblin camps — in real time, pause any time. */
+/** The surface: an empty clone wakes by the crashed ship, finds souls that give it a class (more souls carried home become new clones), and the party takes the land round the goblin camps — in real time, pause any time. */
 export class WorldScreen implements Screen {
   private readonly el = document.createElement('div');
   private stage!: HTMLElement;
