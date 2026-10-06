@@ -2,15 +2,19 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { WeaponLook } from './weaponMeshes';
 
+/** Held weapons are drawn bigger than life: at the dot look's few pixels a true-size dagger or bow vanishes. */
+export const HELD_SCALE = 1.45;
+
 /** Which pack model stands for each look, its length in metres, and where along it the hand grips. */
 const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: number; crosswise?: boolean; gun?: boolean }>> = {
-  sword: { name: 'Sword', length: 0.85, grip: 0.1 },
-  blade: { name: 'Sword_2', length: 0.6, grip: 0.1 },
-  dagger: { name: 'Dagger', length: 0.36, grip: 0.18 },
-  axe: { name: 'Axe', length: 0.8, grip: 0.08 },
-  spear: { name: 'Spear', length: 1.6, grip: 0.3 },
-  mace: { name: 'Hammer_Small', length: 0.7, grip: 0.08 },
-  bow: { name: 'Bow_Wooden', length: 0.95, grip: 0.5, crosswise: true },
+  // lengths are larger than life (see HELD_SCALE): each weapon must read as itself at a handful of pixels
+  sword: { name: 'Sword', length: 0.85 * HELD_SCALE, grip: 0.1 },
+  blade: { name: 'Sword_2', length: 0.6 * HELD_SCALE, grip: 0.1 },
+  dagger: { name: 'Dagger', length: 0.36 * HELD_SCALE * 1.2, grip: 0.18 },
+  axe: { name: 'Axe_Double', length: 0.8 * HELD_SCALE, grip: 0.08 },
+  spear: { name: 'Spear', length: 1.6 * HELD_SCALE, grip: 0.3 },
+  mace: { name: 'Hammer_Small', length: 0.7 * HELD_SCALE, grip: 0.08 },
+  bow: { name: 'Bow_Wooden', length: 0.95 * HELD_SCALE, grip: 0.5, crosswise: true },
   // Sci-Fi Essentials guns (a little oversized so they read from above): barrel along x, held near the back
   pistol: { name: 'Gun_Pistol', length: 0.42, grip: 0.3, gun: true },
 };

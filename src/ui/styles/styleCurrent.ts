@@ -1,9 +1,10 @@
-import { markFigure } from '../../view/grid/pixelPass';
+import { markFigure, RING } from '../../view/grid/pixelPass';
 import * as THREE from 'three';
 import type { DungeonKit, DungeonPiece } from '../../view/grid/dungeonKit';
 import { UalActor, type UalLibrary, type UalLook } from '../../view/grid/ualActor';
 import { stoneMat, type StoneSet } from '../../view/grid/stoneMats';
 import { lookOf } from '../party/partyPick';
+import { foeLook } from '../../view/grid/species';
 import { BANNER_X, D, DOOR_X, FIGS, PILLARS, PROPS, TORCH_BACK, TORCH_SIDE, W, facing, type Built, type Fig, type PropKind } from './roomPlan';
 
 const WALL_H = 1.5;
@@ -11,10 +12,11 @@ const PROP: Record<PropKind, [DungeonPiece, number]> = {
   barrel: ['Barrel', 0.7], barrels: ['Barrel2', 0.8], crates: ['Crate', 0.85], chest: ['Chest_Gold', 0.8], table: ['Table_Small', 0.9],
   chair: ['Chair', 0.55], rubble: ['Brick', 0.6], bones: ['Skull', 0.3], shelf: ['Bag_Standing', 0.5], keg: ['Bucket', 0.45],
 };
+// the cave folk as the game draws them on floors 1-5: a goblin, a goblin shaman, an ogre
 const FOE: Record<string, UalLook> = {
-  skeleton: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' },
-  skelMage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'none', idle: 'Spell_Simple_Idle_Loop' },
-  skelBrute: { body: '#8a3a32', trim: '#2a2420', scale: 1.12, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
+  skeleton: foeLook({ body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' }, 'minion', 'goblin'),
+  skelMage: foeLook({ body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'staff', idle: 'Spell_Simple_Idle_Loop' }, 'mage', 'goblin'),
+  skelBrute: foeLook({ body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' }, 'brute', 'goblin'),
 };
 const HERO_WEAPON = { warrior: 'swordShield', archer: 'longbow', mage: 'staff' } as const;
 
@@ -75,7 +77,7 @@ export function buildCurrent(kit: DungeonKit, lib: UalLibrary, stone?: { floor: 
   for (const f of FIGS) {
     const look = f.foe ? FOE[f.cls]! : lookOf(f.cls as Exclude<Fig['cls'], 'skeleton' | 'skelMage' | 'skelBrute'>, HERO_WEAPON[f.cls as 'warrior']);
     const a = new UalActor(lib, look);
-    markFigure(a.root, f.foe ? 'foe' : 'hero');
+    markFigure(a.root, look.ring ?? RING.foe);
     a.root.position.set(f.x, 0, f.z);
     a.root.rotation.y = facing(f);
     root.add(a.root);

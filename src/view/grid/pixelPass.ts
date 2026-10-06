@@ -8,12 +8,13 @@ export const ENDESGA32 = ['#be4a2f', '#d77643', '#ead4aa', '#e4a672', '#b86f50',
 /** The game's dot look: about 270 pixels across the short side, Endesga 32, a light dither. */
 export const DOT_LOOK: PixelLook = { lines: 270, palette: ENDESGA32, dither: 0.1, lift: 0.62 };
 
-/** Render layers that mark figures for the dot look's team outlines (heroes and foes). */
-export const HERO_LAYER = 2;
-export const FOE_LAYER = 3;
-/** Tags a figure (and every part under it) so the dot look can ring it in its side's colour. */
-export function markFigure(root: THREE.Object3D, side: 'hero' | 'foe'): void {
-  root.traverse((o) => o.layers.enable(side === 'hero' ? HERO_LAYER : FOE_LAYER));
+/** The render layer that marks figures for the dot look's outlines. */
+export const FIGURE_LAYER = 2;
+/** Ring colours: one per class line for the party (as their frames), red for every foe. */
+export const RING = { foe: '#e43b44', shell: '#c0cbdc', warrior: '#0099db', archer: '#63c74d', mage: '#b55088', cleric: '#feae34', rogue: '#f6757a' } as const;
+/** Tags a figure (and every part under it) so the dot look rings it in `ring`. */
+export function markFigure(root: THREE.Object3D, ring: string): void {
+  root.traverse((o) => { o.layers.enable(FIGURE_LAYER); o.userData.ring = ring; });
 }
 
 export interface PixelLook {
@@ -40,8 +41,7 @@ export class PixelPass {
   private readonly size = new THREE.Vector2();
   /** figures only: red where a hero is, green where a foe is (drawn through walls) */
   private readonly mask = new THREE.WebGLRenderTarget(1, 1, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
-  private readonly heroPaint = new THREE.MeshBasicMaterial({ color: '#ff0000' });
-  private readonly foePaint = new THREE.MeshBasicMaterial({ color: '#00ff00' });
+  private readonly paints = new Map<string, THREE.MeshBasicMaterial>();
 
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly px = 3, private readonly look: PixelLook = {}) {
     this.target.texture.generateMipmaps = false;
@@ -51,11 +51,12 @@ export class PixelPass {
     const palVec = pal.map((c) => new THREE.Vector3(...c.clone().convertLinearToSRGB().toArray()));
     const n = palVec.length;
     const mat = new THREE.ShaderMaterial({
-      uniforms: { mask: { value: this.mask.texture }, heroRing: { value: palVec.length ? new THREE.Vector3(0.17, 0.91, 0.96) : new THREE.Vector3() }, foeRing: { value: new THREE.Vector3(1, 0, 0.27) }, tex: { value: this.target.texture }, depth: { value: this.target.depthTexture }, texel: { value: new THREE.Vector2(1, 1) }, levels: { value: 28 },
+      uniforms: { mask: { value: this.mask.texture }, tex: { value: this.target.texture }, depth: { value: this.target.depthTexture }, texel: { value: new THREE.Vector2(1, 1) }, levels: { value: 28 },
         pal: { value: n ? palVec : [new THREE.Vector3()] }, spread: { value: look.dither ?? 0.09 }, lift: { value: look.lift ?? 1 } },
       defines: { PAL_N: Math.max(1, n), USE_PAL: n ? 1 : 0 },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-      fragmentShader: `uniform sampler2D tex; uniform sampler2D depth; uniform vec2 texel; uniform float levels; uniform vec3 pal[PAL_N]; uniform float spread; uniform float lift; uniform sampler2D mask; uniform vec3 heroRing; uniform vec3 foeRing; varying vec2 vUv;
+      fragmentShader: `uniform sampler2D tex; uniform sampler2D depth; uniform vec2 texel; uniform float levels; uniform vec3 pal[PAL_N]; uniform float spread; uniform float lift; uniform sampler2D mask; varying vec2 vUv;
+        vec3 ringAt(vec2 o) { return texture2D(mask, vUv + o).rgb; }
         float dz(vec2 o) { return texture2D(depth, vUv + o * texel).x; }
         float bayer(vec2 p) {
           int x = int(mod(p.x, 4.0)), y = int(mod(p.y, 4.0)), i = x + y * 4;
@@ -84,12 +85,14 @@ export class PixelPass {
             }
             gl_FragColor.rgb = best;
             // a one-pixel ring round every figure in its side's colour, where the figure itself is not
-            vec2 me = texture2D(mask, vUv).rg;
-            if (me.r + me.g < 0.5) {
-              vec2 nb = max(max(texture2D(mask, vUv + vec2(texel.x, 0.0)).rg, texture2D(mask, vUv - vec2(texel.x, 0.0)).rg),
-                            max(texture2D(mask, vUv + vec2(0.0, texel.y)).rg, texture2D(mask, vUv - vec2(0.0, texel.y)).rg));
-              if (nb.r > 0.5) gl_FragColor.rgb = heroRing;
-              else if (nb.g > 0.5) gl_FragColor.rgb = foeRing;
+            // the mask holds each figure's ring colour (linear); a pixel just outside a figure takes its neighbour's
+            vec3 me = ringAt(vec2(0.0));
+            if (me.r + me.g + me.b < 0.02) {
+              vec3 nb = ringAt(vec2(texel.x, 0.0));
+              if (nb.r + nb.g + nb.b < 0.02) nb = ringAt(vec2(-texel.x, 0.0));
+              if (nb.r + nb.g + nb.b < 0.02) nb = ringAt(vec2(0.0, texel.y));
+              if (nb.r + nb.g + nb.b < 0.02) nb = ringAt(vec2(0.0, -texel.y));
+              if (nb.r + nb.g + nb.b >= 0.02) gl_FragColor.rgb = pow(nb, vec3(1.0 / 2.2));
             }
           #else
             gl_FragColor.rgb = floor(gl_FragColor.rgb * levels + 0.5) / levels;
@@ -128,15 +131,22 @@ export class PixelPass {
     r.setRenderTarget(this.mask);
     r.setClearColor(0x000000, 1);
     r.clear();
-    // both sides into one mask: the second pass must not wipe the first
     r.autoClear = false;
     scene.background = null;
     scene.fog = null;
-    for (const [layer, paint] of [[HERO_LAYER, this.heroPaint], [FOE_LAYER, this.foePaint]] as const) {
-      camera.layers.set(layer);
-      scene.overrideMaterial = paint;
-      r.render(scene, camera);
-    }
+    // every marked part drawn flat in its ring colour, then its own material put back
+    const swapped: [THREE.Mesh, THREE.Material | THREE.Material[]][] = [];
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh, ring = o.userData.ring as string | undefined;
+      if (!m.isMesh || !ring || !o.layers.isEnabled(FIGURE_LAYER)) return;
+      let paint = this.paints.get(ring);
+      if (!paint) { paint = new THREE.MeshBasicMaterial({ color: ring }); this.paints.set(ring, paint); }
+      swapped.push([m, m.material]);
+      m.material = paint;
+    });
+    camera.layers.set(FIGURE_LAYER);
+    r.render(scene, camera);
+    for (const [m, mat] of swapped) m.material = mat;
     r.autoClear = auto;
     camera.layers.mask = layers;
     scene.overrideMaterial = over;
@@ -156,8 +166,7 @@ export class PixelPass {
   dispose(): void {
     this.target.dispose();
     this.mask.dispose();
-    this.heroPaint.dispose();
-    this.foePaint.dispose();
+    for (const m of this.paints.values()) m.dispose();
     this.quad.geometry.dispose();
     (this.quad.material as THREE.Material).dispose();
   }

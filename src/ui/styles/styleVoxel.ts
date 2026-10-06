@@ -1,4 +1,4 @@
-import { markFigure } from '../../view/grid/pixelPass';
+import { markFigure, RING } from '../../view/grid/pixelPass';
 import * as THREE from 'three';
 import { UalActor, type UalLibrary, type UalLook } from '../../view/grid/ualActor';
 import type { BlockLook } from '../../view/grid/blockBody';
@@ -77,7 +77,7 @@ export function buildVoxel(lib: UalLibrary): Built {
   for (const p of PROPS) PROP[p.kind](p.x, p.z);
   const actors = FIGS.map((f) => {
     const a = new UalActor(lib, { body: '#ffffff', trim: '#ffffff', scale: f.cls === 'skelBrute' ? 1.1 : 1, weapon: WEAPON[f.cls], idle: WEAPON[f.cls] === 'none' ? 'Spell_Simple_Idle_Loop' : 'Sword_Idle', block: BLOCK[f.cls] });
-    markFigure(a.root, f.foe ? 'foe' : 'hero');
+    markFigure(a.root, f.foe ? RING.foe : RING[f.cls as 'warrior']);
     a.root.position.set(f.x, 0, f.z);
     a.root.rotation.y = facing(f);
     root.add(a.root);

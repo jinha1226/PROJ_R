@@ -1,4 +1,4 @@
-import { markFigure } from '../../view/grid/pixelPass';
+import { markFigure, RING } from '../../view/grid/pixelPass';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -100,7 +100,7 @@ export async function buildKaykit(base: string): Promise<Built> {
       if (m.isMesh) m.castShadow = true;
     });
     grade(fig);
-    markFigure(fig, f.foe ? 'foe' : 'hero');
+    markFigure(fig, f.foe ? RING.foe : RING[f.cls as 'warrior']);
     fig.scale.setScalar(FIG_K);
     fig.position.set(f.x, 0, f.z);
     fig.rotation.y = facing(f);

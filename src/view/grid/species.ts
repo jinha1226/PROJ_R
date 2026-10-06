@@ -25,13 +25,21 @@ const SHAPES: Record<Species, BodyShape> = {
   orc: { scale: { Head: 0.85, clavicle_l: 1.22, clavicle_r: 1.22, upperarm_l: 1.12, upperarm_r: 1.12, spine_03: 1.12, hand_l: 0.75, hand_r: 0.75 }, hunch: 0.16 },
 };
 
-const SIZE: Record<Species, number> = { goblin: 0.78, skeleton: 0.95, orc: 1.12 };
+/** The ogre's gut: a wide belly and hips (the chest above eased back so arms and head do not balloon with it), thick legs, broad shoulders. */
+const FAT: BodyShape = {
+  scale: { pelvis: [1.25, 1, 1.3], thigh_l: [1.15, 1, 1.15], thigh_r: [1.15, 1, 1.15], spine_01: [1.3, 1, 1.4], spine_02: [0.82, 1, 0.78],
+    spine_03: [0.92, 1, 0.92], clavicle_l: 1.12, clavicle_r: 1.12, upperarm_l: 1.08, upperarm_r: 1.08, Head: 0.85, hand_l: 0.75, hand_r: 0.75 },
+  hunch: 0.14,
+};
+
+const SIZE: Record<Species, number> = { goblin: 0.62, skeleton: 0.95, orc: 1.12 };
 
 /** body / trim colours per kind, per species */
 const COLORS: Record<Species, Record<FoeKind, [string, string]>> = {
-  goblin: { minion: ['#7aa040', '#4a3a22'], archer: ['#8aac52', '#3a4a2a'], brute: ['#5a7a30', '#3a2a1a'], ghoul: ['#6a8a4a', '#3a2a1a'], mage: ['#6a8a3a', '#6a2a6a'], champion: ['#4f7a2a', '#d8b040'] },
+  // goblin green, loud enough to survive the dot palette; the ogre a darker, heavier green
+  goblin: { minion: ['#63c74d', '#4a3a22'], archer: ['#7ad05a', '#3a4a2a'], brute: ['#3e8948', '#3a2a1a'], ghoul: ['#6a8a4a', '#3a2a1a'], mage: ['#5ab84a', '#68386c'], champion: ['#3e8948', '#feae34'] },
   skeleton: { minion: ['#d8d2c0', '#7a7262'], archer: ['#cfc8b0', '#4a5a3a'], brute: ['#bdb59c', '#6a3a2a'], ghoul: ['#6a8a4a', '#3a2a1a'], mage: ['#c8c0d8', '#4a2a6a'], champion: ['#e0dccc', '#d8b040'] },
-  orc: { minion: ['#6a7a58', '#3a3028'], archer: ['#738260', '#3a4a2a'], brute: ['#56664a', '#2a2420'], ghoul: ['#5a7a4a', '#2a2a1a'], mage: ['#606f58', '#2a6a6a'], champion: ['#4c5a42', '#b03a2a'] },
+  orc: { minion: ['#4e9a3e', '#3a3028'], archer: ['#5aa448', '#3a4a2a'], brute: ['#3e7a3a', '#2a2420'], ghoul: ['#5a7a4a', '#2a2a1a'], mage: ['#4e8a40', '#2a6a6a'], champion: ['#3e6a30', '#b03a2a'] },
 };
 
 /** A foe's look in this species: base kit (weapon, stance, size) from the kind, colours and build from the species. */
@@ -39,7 +47,11 @@ export function foeLook(base: UalLook, kind: FoeKind, species: Species): UalLook
   const [body, trim] = COLORS[species][kind];
   // ghouls are ghouls everywhere: their own shamble, no species build
   if (kind === 'ghoul') return { ...base, body, trim };
-  return { ...base, body, trim, scale: base.scale * SIZE[species], shape: SHAPES[species], species };
+  // the brute of the living folk is an ogre wherever it stands: fat, tusked, about as tall as it was
+  if (kind === 'brute' && species !== 'skeleton') return { ...base, body, trim, scale: base.scale * 0.86, shape: FAT, species: 'orc' };
+  // goblin chiefs stand a head over their band
+  const size = species === 'goblin' && kind === 'champion' ? 0.85 : SIZE[species];
+  return { ...base, body, trim, scale: base.scale * size, shape: SHAPES[species], species };
 }
 
 /** Bones and their target scales (thin bones scaled across their length only), and the spine bone to hunch. */

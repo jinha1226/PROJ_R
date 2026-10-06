@@ -4,12 +4,16 @@ import { ULT_NAMES } from '../../sim/party/ultimate';
 import { BASE_CLASSES, CLASSES, WEAPONS, type BaseClass, type ClassId, type Pick, type WeaponId } from '../../sim/party/partyDefs';
 import type { OutfitLook } from '../../view/grid/outfitKit';
 import type { UalLook } from '../../view/grid/ualActor';
+import { RING } from '../../view/grid/pixelPass';
 
 const COLORS: Partial<Record<ClassId, [string, string]>> = {
   shell: ['#b4b8c0', '#8a9098'],
   warrior: ['#2a3a5a', '#c8b080'], berserker: ['#5a2020', '#d08040'], archer: ['#35502e', '#8a6a3a'], sniper: ['#2a3a2a', '#a0a070'],
   mage: ['#4a2a6a', '#c8a0e0'], cleric: ['#cfc6a8', '#c8a040'], rogue: ['#262626', '#7a3a3a'],
 };
+
+/** Build by class: a broad berserker, a stocky warrior, a slight rogue (heights the dot look can tell apart). */
+const BUILD: Partial<Record<ClassId, number>> = { shell: 0.95, warrior: 1.06, berserker: 1.12, archer: 0.95, mage: 0.93, cleric: 0.98, rogue: 0.88 };
 
 /** What each soul wears; the empty clone goes bare. */
 export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {
@@ -33,8 +37,10 @@ export const outfitOf = (cls: ClassId): OutfitLook | undefined => OUTFITS[cls] ?
 /** How a hero of this class with this weapon looks: a dressed soul shows the clone's grey under its clothes. */
 export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
   const w = WEAPONS[weapon], outfit = outfitOf(cls), [body, trim] = outfit ? COLORS.shell! : COLORS[cls] ?? COLORS[LINE[cls] ?? 'warrior']!;
-  const idle = cls === 'shell' ? 'Idle_Loop' : w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
-  return { body, trim, scale: cls === 'warrior' || cls === 'berserker' ? 1 : 0.95, weapon: w.look, shield: w.shield, idle, fullRun: true, outfit };
+  const caster = w.look === 'staff' || w.look === 'wand' || w.look === 'symbol';
+  const idle = cls === 'shell' ? 'Idle_Loop' : caster || w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
+  const line = cls === 'shell' || cls === 'veteran' ? 'shell' : LINE[cls] ?? cls;
+  return { body, trim, scale: (BUILD[cls] ?? BUILD[line as ClassId]) ?? 0.95, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[(cls === 'shell' || cls === 'veteran' ? 'shell' : (LINE[cls] ?? cls)) as keyof typeof RING] ?? RING.shell };
 }
 
 /** The party chooser: five classes, three to take, each with a weapon. */

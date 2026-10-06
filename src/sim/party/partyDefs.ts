@@ -5,17 +5,17 @@ export type WeaponId = 'fists' | 'swordShield' | 'greataxe' | 'longbow' | 'cross
 /** a class's own rule, always on (the class engraving) */
 export type Passive = 'none' | 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank' | 'rage' | 'farShot';
 
-export interface WeaponDef { name: string; dmg: [number, number]; range: number; atk: number; look: 'sword' | 'axe' | 'bow' | 'crossbow' | 'mace' | 'dagger' | 'none'; shield?: boolean; note: string; guard?: number; cleave?: boolean; splash?: boolean; stun?: number }
+export interface WeaponDef { name: string; dmg: [number, number]; range: number; atk: number; look: 'sword' | 'axe' | 'bow' | 'crossbow' | 'mace' | 'dagger' | 'staff' | 'wand' | 'symbol' | 'none'; shield?: boolean; note: string; guard?: number; cleave?: boolean; splash?: boolean; stun?: number }
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
   fists: { name: '맨주먹', dmg: [2, 4], range: 1, atk: 1.0, look: 'none', note: '능력 없음' },
   swordShield: { name: '검과 방패', dmg: [7, 10], range: 1, atk: 1.0, look: 'sword', shield: true, guard: 0.75, note: '받는 피해 -25%' },
   greataxe: { name: '양손 도끼', dmg: [10, 14], range: 1, atk: 1.4, look: 'axe', cleave: true, note: '옆의 적도 벤다 · 느림' },
   longbow: { name: '장궁', dmg: [6, 9], range: 7, atk: 1.1, look: 'bow', note: '사거리 7' },
   crossbow: { name: '석궁', dmg: [12, 16], range: 5, atk: 1.9, look: 'crossbow', note: '강하지만 느림' },
-  staff: { name: '지팡이', dmg: [5, 8], range: 5, atk: 1.3, look: 'none', splash: true, note: '대상 주변에 튄다' },
-  wand: { name: '완드', dmg: [3, 5], range: 6, atk: 0.7, look: 'none', note: '약하지만 빠름' },
+  staff: { name: '지팡이', dmg: [5, 8], range: 5, atk: 1.3, look: 'staff', splash: true, note: '대상 주변에 튄다' },
+  wand: { name: '완드', dmg: [3, 5], range: 6, atk: 0.7, look: 'wand', note: '약하지만 빠름' },
   mace: { name: '철퇴와 방패', dmg: [6, 9], range: 1, atk: 1.1, look: 'mace', shield: true, stun: 0.2, note: '가끔 기절' },
-  symbol: { name: '성표', dmg: [4, 6], range: 4, atk: 1.2, look: 'none', note: '원거리 신성' },
+  symbol: { name: '성표', dmg: [4, 6], range: 4, atk: 1.2, look: 'symbol', note: '원거리 신성' },
   daggers: { name: '쌍단검', dmg: [4, 6], range: 1, atk: 0.6, look: 'dagger', note: '아주 빠름' },
   knives: { name: '투척 단검', dmg: [4, 7], range: 4, atk: 1.0, look: 'dagger', note: '원거리' },
 };

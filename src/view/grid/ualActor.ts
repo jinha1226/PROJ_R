@@ -17,7 +17,11 @@ export type UalAnim = 'idle' | 'run' | 'roll' | 'swing' | 'jab' | 'bash' | 'scra
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
 export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string;
   /** run with the whole jog (arms swinging) instead of legs under a held stance */
-  fullRun?: boolean; block?: BlockLook; outfit?: OutfitLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
+  fullRun?: boolean; block?: BlockLook; outfit?: OutfitLook;
+  /** the dot look's outline colour (a party class line's colour) */
+  ring?: string;
+  /** a weapon in the left hand too (twin daggers) */
+  off?: WeaponLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
@@ -134,6 +138,7 @@ export class UalActor {
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
+    if (look.off) this.setOffhand(look.off);
     if (look.shield) {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.32), new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8 }));
       bone(model, 'lowerarm_l')?.add(s.translateY(0.15).translateX(-0.05));
