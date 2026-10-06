@@ -92,17 +92,19 @@ export const occupied = (p: Party, c: Cell, self: string): boolean => p.units.so
 const passive = (u: Unit) => (u.cls ? CLASSES[u.cls].passive : undefined);
 
 /** What a unit's basic attack is: the hero's weapon, or the foe's kind. */
-export function stats(u: Unit, t = 0): { dmg: [number, number]; range: number; atk: number; move: number } {
+export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range: number; atk: number; move: number } {
   if (!u.cls) {
     const f = FOES[u.foe!], scale = u.foeScale ?? 1;
     return { ...f, dmg: [Math.round(f.dmg[0] * scale), Math.round(f.dmg[1] * scale)] };
   }
+  const e = p && entOf(p, u.id);
+  const lowHp = e ? e.hp < e.maxHp / 2 : u.lowHp;
   const w = weaponStats(u);
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && u.lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls==='veteran'&&u.soul?u.soul:u.cls].move * T.move(u) * G.move(u) };
+  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls==='veteran'&&u.soul?u.soul:u.cls].move * T.move(u) * G.move(u) };
 }
 
-export function canHit(p: Party, u: Unit, target: Unit, range = stats(u).range): boolean {
+export function canHit(p: Party, u: Unit, target: Unit, range = stats(u, 0, p).range): boolean {
   const a = posOf(p, u), b = posOf(p, target), d = dist(a, b);
   return d <= range && (range <= 1 ? d === 1 : shotClear(p.s, a, b));
 }
@@ -175,7 +177,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     ev.push({ t, type: 'buff', src: dst.id, dst: dst.id, text: 'grit' });
   }
   if(dst.traits?.immortal && amount>=e.hp && !dst.immortalUsed) {dst.immortalUsed=true;dst.immuneUntil=t+3;amount=0;}
-  e.hp = Math.max(0, e.hp - amount); if(dst.cls!=='berserker') dst.lowHp = e.hp < e.maxHp/2;
+  e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   if (e.hp <= 0) {
     e.alive = false;
@@ -207,7 +209,7 @@ export function behindCover(p: Party, shooter: Cell, target: Cell): boolean {
 /** A basic attack (or a skill's blow at `mult`): engravings, then the weapon's own trait. */
 /** The odds of a blow before the dice: a shot at a body behind cover mostly hits the cover, eagle eyes aim truer, blindness halves it; a shield blocks some blades. */
 export function hitOdds(p: Party, u: Unit, target: Unit, t: number): { hit: number; block: number } {
-  const st = stats(u, t), covered = st.range > 1 && behindCover(p, posOf(p, u), posOf(p, target));
+  const st = stats(u, t, p), covered = st.range > 1 && behindCover(p, posOf(p, u), posOf(p, target));
   const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target)) * (t < (u.blindUntil ?? 0) ? 0.5 : 1);
   return { hit, block: st.range <= 1 ? T.block(target) + G.block(target) : 0 };
 }
@@ -223,7 +225,7 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
 }
 function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   if (!alive(p, u) || !alive(p, target)) return;
-  const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t);
+  const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t, p);
   if(basic)u.fastNext=false;
   blink(p,u,target,t,ev); if(!alive(p,u))return;
   if (basic) { u.attackMoved=u.moved; u.nth++; if (!u.moved) u.still++; else u.still = 0; emit(p, 'nth', { t, src: u, target, ev }); if (!u.moved) emit(p, 'still', { t, src: u, target, ev }); u.moved = false; }

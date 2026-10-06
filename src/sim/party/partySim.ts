@@ -78,7 +78,7 @@ export function promote(p: Party, id: string): GEvent[] {
 function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   const special = p.foeAction?.(u, t, ev) ?? foeTurn(p, u, t, ev);
   if (special !== undefined) return special;
-  const e = entOf(p, u.id)!, st = stats(u, t);
+  const e = entOf(p, u.id)!, st = stats(u, t, p);
   if (u.order?.kind === 'move') {
     const cell = u.order.cell;
     if (!same(e.pos, cell)) {

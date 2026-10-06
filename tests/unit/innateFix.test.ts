@@ -29,7 +29,7 @@ it('berserker crisis doubles attack speed and healing ends it', () => {
   const {p,u}=setup('berserker','swordShield');const before=stats(u).atk;u.shield=0;
   damage(p,0,'trap',u,60,[]); expect(stats(u).atk).toBe(before/2);
   heal(p,u,u,100,0,[]);expect(stats(u).atk).toBe(before);
-  u.lowHp=false;KITS.berserker.innate[2]!.run(p,{t:0,src:u,ev:[],depth:0});expect(u.lowHp).toBe(true);
+  u.lowHp=true;KITS.berserker.innate[2]!.run(p,{t:0,src:u,ev:[],depth:0});expect(u.lowHp).toBe(false);
 });
 it('guardian innate intercepts damage; healer overflow and elementalist fireball change state', () => {
   const {p,u,f}=setup('guardian','swordShield');const before=entOf(p,u.id)!.hp;u.shield=0;

@@ -20,6 +20,6 @@ export function targetCardHtml(p: Party, sel: string, foe: Unit | undefined): st
   const name = foe.foe ? FOE_NAME[foe.foe] : foe.cls ? CLASSES[foe.cls].name : '?';
   const cells = 10, full = Math.max(0, Math.ceil((fe.hp / fe.maxHp) * cells));
   const bar = '■'.repeat(full) + '□'.repeat(cells - full);
-  const [lo, hi] = stats(me, p.time).dmg;
+  const [lo, hi] = stats(me, p.time, p).dmg;
   return `<b>${name}</b><span class="tc-hp">${bar} ${fe.hp}/${fe.maxHp}</span><span>명중 <b>${Math.round(hitChance(p, me, foe, p.time) * 100)}%</b></span><span>피해 <b>${lo}-${hi}</b></span>${unitChips(foe, p.time)}`;
 }

@@ -19,6 +19,7 @@ export function action<T>(p:Party,run:()=>T):T {
 }
 export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?: number }): void {
   if (!alive(p, input.src)) return;
+  if (cond === 'moved') input.src.steady = 0;
   const root = !actions.has(p), action = actions.get(p) ?? { count: 0, depth: 0 };
   if (root) actions.set(p, action);
   const c: Ctx = { ...input, depth: action.depth };

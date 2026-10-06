@@ -7,7 +7,7 @@ import { podReach, raidStep } from './raidPath';
 /** Runs in the party scheduler: normal strikes against clones, otherwise break through to the pod. */
 export function raidTurn(p: WorldParty, u: Unit, t: number, ev: GEvent[]): number | undefined {
   if (!p.raid || u.group !== p.raid.group || u.side !== 'foe' || !alive(p, u)) return undefined;
-  const e = entOf(p, u.id)!, st = stats(u, t);
+  const e = entOf(p, u.id)!, st = stats(u, t, p);
   const target = p.units.filter(h => h.side === 'hero' && alive(p, h) && canHit(p, u, h)).sort((a, b) => dist(e.pos, posOf(p, a)) - dist(e.pos, posOf(p, b)))[0];
   if (target) { strike(p, u, target, t, ev); return st.atk; }
   const amount = () => p.s.rng.int(st.dmg[0], st.dmg[1]);

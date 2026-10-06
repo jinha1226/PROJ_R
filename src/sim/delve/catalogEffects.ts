@@ -36,11 +36,11 @@ export const pilgrimage = {
     crisis: (p: Party, c: Ctx) => heal(p, c.src, c.src, 12, c.t, c.ev),
     leech: (p: Party, c: Ctx) => heal(p, c.src, c.src, (c.amount ?? 0) * .15, c.t, c.ev),
 };
-export const bait: TriggerDef = { id: '미끼', when: 'taunt', run: (p, c) => { if (c.target) {
-        applyStatus(p, c.src, c.target, 'exposed', c.t, c.ev);
-        if (c.target.status.exposed)
-            c.target.status.exposed.until = c.t + 5;
-    } } };
+export const bait: TriggerDef = { id: '미끼', when: 'combatStart', run: (p, c) => {
+    for (const f of nearby(p, c.src, 3, 'foe')) {
+        f.tauntBy = c.src.id; f.tauntUntil = c.t + 2;
+    }
+} };
 export const echo: TriggerDef = { id: '메아리', when: 'allyUltimate', run: (_p, c) => { c.src.empower = Math.max(c.src.empower, 2); } };
 export const guard = {
     trigger: { id: '수호 서약', when: 'allyCrisis', run: (_p, c) => { if (c.target)
