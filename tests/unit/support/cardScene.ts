@@ -1,3 +1,4 @@
+import { TRAITS } from '../../../src/sim/party/traitDefs';
 import { partyRoom } from '../../../src/sim/party/partySim';
 import { entOf, type Party, type Unit } from '../../../src/sim/party/partyCore';
 import type { ClassId } from '../../../src/sim/party/partyDefs';
@@ -15,4 +16,8 @@ export function scene(cls: ClassId = 'warrior'): { p: Party; u: Unit; foes: Unit
 /** Puts a foe at a cell, awake, with `hp`. */
 export function put(p: Party, f: Unit, x: number, y: number, hp = 200): void {
   const e = entOf(p, f.id)!; e.pos = { x, y }; e.hp = e.maxHp = hp; e.alive = true; f.asleep = false;
+}
+/** `n` different cards that carry `tag`, as a clone's traits (tags count one per card). */
+export function cardsOf(tag: string, n: number): Record<string, number> {
+  return Object.fromEntries(Object.values(TRAITS).filter((d) => d.tags.includes(tag as never) && d.pool !== 'duo').slice(0, n).map((d) => [d.id, 1]));
 }

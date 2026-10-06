@@ -1,3 +1,4 @@
+import { cardsOf } from './support/cardScene';
 import { expect, it } from 'vitest';
 import { createRng } from '../../src/core/rng';
 import { CATALOG } from '../../src/sim/delve/catalog';
@@ -57,7 +58,7 @@ it('sacrifice removes the donor and adds exactly 25% of its numbers, power numbe
 it('worn tags and shield requirements are recounted on equip and unequip', () => {
     const { p, u } = setup();
     u.level = 8;
-    u.traits = { shieldPro: 3 };
+    u.traits = cardsOf('방패', 3);
     equip(p, u.id, give(p, 'swordShield'));
     expect(promotionOptions(p, u).find(o => o.to === 'guardian')?.met).toBe(true);
     unequip(p, u.id, 'weapon');
@@ -66,7 +67,7 @@ it('worn tags and shield requirements are recounted on equip and unequip', () =>
 it('power, cooldowns, traits, consumables and promotion survive a shaft round trip independently', () => {
     const { p, u } = setup();
     sacrifice(p, u.id, give(p, 'bloodGreat'));
-    u.level=8;u.traits={shieldPro:3};promote(p,u.id,'guardian');
+    u.level=8;u.traits=cardsOf('방패',3);promote(p,u.id,'guardian');
     u.ultReady = 42;u.trig['방벽']=17;
     u.traits = { vital: 2 };refitHp(p,u);
     p.pack.push({ id: 'wand', consumable: 'boltWand', charges: 2 });
