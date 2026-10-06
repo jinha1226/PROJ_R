@@ -19,8 +19,9 @@ const BUILD: Partial<Record<ClassId, number>> = { shell: 0.8, warrior: 1.06, ber
 export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {
   warrior: { set: 'Peasant', tint: '#9fb4e0', extra: ['pauldron'] },
   berserker: { set: 'Peasant', tint: '#e08a70', extra: ['pauldron'] },
-  archer: { set: 'Ranger', tint: '#ffffff' },
-  sniper: { set: 'Ranger', tint: '#c8d0a0', extra: ['hood'] },
+  // the archer in a loud green (plain ranger brown vanished into the torchlit stone)
+  archer: { set: 'Ranger', tint: '#7af06a' },
+  sniper: { set: 'Ranger', tint: '#e0f070', extra: ['hood'] },
   mage: { set: 'Peasant', tint: '#b090e0', extra: ['hood'] },
   cleric: { set: 'Peasant', tint: '#fff0c8' },
   rogue: { set: 'Ranger', tint: '#6a6a78', extra: ['hood'] },

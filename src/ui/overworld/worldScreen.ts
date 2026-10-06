@@ -33,8 +33,8 @@ import { lookOf } from '../party/partyPick';
 import { WorldMinimap } from './worldMinimap';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
-import '../styles/partyDemo.css';
-import '../styles/worldDemo.css';
+import '../styles/partyScreen.css';
+import '../styles/worldScreen.css';
 import '../styles/worldHud.css';
 
 /** game time per real second at normal speed */
@@ -44,7 +44,7 @@ const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
 
 /** `?demo=world`: an empty clone wakes by the crashed ship, finds souls that give it a class (more souls carried home become new clones), and the party takes the land round the goblin camps — in real time, pause any time. */
-export class WorldDemo implements Screen {
+export class WorldScreen implements Screen {
   private readonly el = document.createElement('div');
   private stage!: HTMLElement;
   private rt: GridRuntime | null = null;
@@ -136,7 +136,7 @@ export class WorldDemo implements Screen {
     this.stage.addEventListener('wheel', (e) => { e.preventDefault(); this.zoom = Math.min(26, Math.max(8, this.zoom * (e.deltaY > 0 ? 1.1 : 0.9))); this.rt?.setZoom(this.zoom); }, { passive: false });
     addEventListener('keydown', this.onKey);
     // tests and screenshots reach in through this handle
-    if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __world: WorldDemo }).__world = this;
+    if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __world: WorldScreen }).__world = this;
     this.restart();
     let last = performance.now();
     const loop = (now: number) => {

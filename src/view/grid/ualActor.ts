@@ -13,7 +13,7 @@ import { OutfitKit, type OutfitLook } from './outfitKit';
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
 const BULK = 1.25;
-export type UalAnim = 'idle' | 'run' | 'roll' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
+export type UalAnim = 'idle' | 'run' | 'mine' | 'roll' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
 export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string;
   /** run with the whole jog (arms swinging) instead of legs under a held stance */
@@ -24,7 +24,7 @@ export interface UalLook { body: string; trim: string; scale: number; weapon: We
   off?: WeaponLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
-  run: 'Jog_Fwd_Loop', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
+  run: 'Jog_Fwd_Loop', mine: 'Interact', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
   dash: 'Sword_Dash_RM', leapUp: 'NinjaJump_Start', leapLand: 'NinjaJump_Land', finisher: 'Sword_Regular_C', shove: 'Shield_OneShot', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
   reload: 'Pistol_Reload', knockback: 'Hit_Knockback', death: 'Death01', interact: 'Chest_Open', drink: 'Consume',
 };
@@ -70,8 +70,8 @@ const grips = new Map<string, THREE.Quaternion>();
  * The hand turn that stands a held thing upright (its +y to the sky, facing ahead) in a given pose — measured once on a
  * spare mannequin at a point of the clip: the bow a third into the shot (arm raised, drawing), a caster's stick in the spell stance.
  */
-function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: number): THREE.Quaternion {
-  const key = `${clipName}|${handName}`, hit = grips.get(key);
+function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: number, turn = new THREE.Quaternion()): THREE.Quaternion {
+  const key = `${clipName}|${handName}|${turn.toArray().join(',')}`, hit = grips.get(key);
   if (hit) return hit;
   const model = lib.spawn(), clip = lib.clips.get(clipName), hand = bone(model, handName);
   let q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2));
@@ -80,14 +80,19 @@ function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: nu
     mixer.clipAction(clip).play();
     mixer.setTime(clip.duration * at);
     model.updateMatrixWorld(true);
-    q = hand.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion()));
+    q = hand.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion())).multiply(turn);
     mixer.stopAllAction();
   }
   grips.set(key, q);
   return q;
 }
-/** the bow at rest hangs upright from the lowered hand; drawn, it stands upright in front of the body */
-const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3));
+/**
+ * The bow lies flat across the front of the body: limbs to the left and right (a level line seen from the front or the side),
+ * the arc ahead and the string toward the archer. The pack bow is long along y with its arc toward +x, so it is turned
+ * y → body x, x → body forward (z), z → up. Measured at rest and a third into the shot, so it follows the hand either way.
+ */
+const BOW_FLAT = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)));
+const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35, BOW_FLAT) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3, BOW_FLAT));
 const CASTER = new Set<WeaponLook>(['staff', 'wand', 'symbol']);
 
 const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined => {

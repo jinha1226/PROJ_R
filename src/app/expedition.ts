@@ -37,16 +37,16 @@ export class Expedition {
 
   /** On the surface by the pod (landing: the pod falls in first). */
   private async up(landing = false): Promise<void> {
-    const { WorldDemo } = await import('../ui/overworld/worldDemo');
-    this.router.go(new WorldDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party: this.surface, landing, restart: this.restart, nature: this.assets.nature, onDrill: (c, floor) => void this.down(c, floor) }));
+    const { WorldScreen } = await import('../ui/overworld/worldScreen');
+    this.router.go(new WorldScreen(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party: this.surface, landing, restart: this.restart, nature: this.assets.nature, onDrill: (c, floor) => void this.down(c, floor) }));
   }
 
   /** Down the shaft: a fresh chosen start floor each trip. */
   private async down(c: Carry, floor = 1): Promise<void> {
-    const { DelveDemo } = await import('../ui/delve/delveDemo');
+    const { DelveScreen } = await import('../ui/delve/delveScreen');
     const party = departSurface(this.surface, this.seed * 131 + this.trips + 1, { ...c, foundHeroes: [] }, floor);
     if (!party) return;
     this.trips++;
-    this.router.go(new DelveDemo(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart, onAscend: (back) => { returnToSurface(this.surface, back); void this.up(); } }));
+    this.router.go(new DelveScreen(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart, onAscend: (back) => { returnToSurface(this.surface, back); void this.up(); } }));
   }
 }

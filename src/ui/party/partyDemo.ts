@@ -15,7 +15,7 @@ import { PartyPick, lookOf } from './partyPick';
 import { heroCardsHtml } from './heroCards';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
-import '../styles/partyDemo.css';
+import '../styles/partyScreen.css';
 
 /** game time per real second at normal speed */
 const RATE = 1.6;

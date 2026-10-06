@@ -156,9 +156,9 @@ async function partyDemo(): Promise<void> {
 /** `?demo=world`: the party crosses the open land round the crashed ship (the world map prototype). */
 async function worldDemo(): Promise<void> {
   try {
-    const [{ WorldDemo }, { NatureKit }, lib, kit, weapons] = await Promise.all([import('../ui/overworld/worldDemo'), import('../view/overworld/natureKit'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    const [{ WorldScreen }, { NatureKit }, lib, kit, weapons] = await Promise.all([import('../ui/overworld/worldScreen'), import('../view/overworld/natureKit'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
     setWeaponKit(weapons);
-    router.go(new WorldDemo(lib, kit, { nature: await NatureKit.load(import.meta.env.BASE_URL) }));
+    router.go(new WorldScreen(lib, kit, { nature: await NatureKit.load(import.meta.env.BASE_URL) }));
   } catch (e) {
     showFatal(root, e);
   }
@@ -167,9 +167,9 @@ async function worldDemo(): Promise<void> {
 /** `?demo=delve`: the dungeon below the ship (explore in real time, fight turn-based). */
 async function delveDemo(): Promise<void> {
   try {
-    const [{ DelveDemo }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    const [{ DelveScreen }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
     setWeaponKit(weapons);
-    router.go(new DelveDemo(lib, kit));
+    router.go(new DelveScreen(lib, kit));
   } catch (e) {
     showFatal(root, e);
   }

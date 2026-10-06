@@ -33,7 +33,7 @@ import { DelveProps } from '../../view/delve/delveProps';
 import { TouchPad } from '../overworld/touchPad';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
-import '../styles/partyDemo.css';
+import '../styles/partyScreen.css';
 import '../styles/worldHud.css';
 
 /** game time per real second at normal speed */
@@ -49,7 +49,7 @@ const savedMode = (): Mode => { try { return localStorage.getItem(MODE_KEY) === 
  * turn-based as in Jupiter Hell — time stops on the chosen clone's moment, the companions act by themselves (1 2 3 switches
  * which clone is under the hand). The fight can be set to real time with pause instead.
  */
-export class DelveDemo implements Screen {
+export class DelveScreen implements Screen {
   private readonly el = document.createElement('div');
   private stage!: HTMLElement;
   private rt: GridRuntime | null = null;
@@ -129,7 +129,7 @@ export class DelveDemo implements Screen {
     this.stage.addEventListener('wheel', (e) => { e.preventDefault(); this.zoom = Math.min(20, Math.max(7, this.zoom * (e.deltaY > 0 ? 1.1 : 0.9))); this.rt?.setZoom(this.zoom); }, { passive: false });
     addEventListener('keydown', this.onKey);
     // tests and screenshots reach in through this handle
-    if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __delve: DelveDemo }).__delve = this;
+    if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __delve: DelveScreen }).__delve = this;
     this.restart();
     let last = performance.now();
     const loop = (now: number) => {

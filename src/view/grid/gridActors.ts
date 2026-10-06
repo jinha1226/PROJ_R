@@ -153,6 +153,14 @@ export class GridActors {
     v.facing = Math.atan2(v.tz - v.z, v.tx - v.x);
   }
 
+  /** A clone working a vein: turns to the rock and reaches down to gather from it. */
+  mine(id: string, rock: THREE.Vector3): void {
+    const v = this.v(id);
+    if (!v || v.dead) return;
+    v.facing = Math.atan2(rock.z - v.z, rock.x - v.x);
+    v.actor.play('mine', 1.1);
+  }
+
   face(id: string | undefined, toward: THREE.Vector3): void {
     const v = this.v(id);
     if (v) v.facing = Math.atan2(toward.z - v.z, toward.x - v.x);
