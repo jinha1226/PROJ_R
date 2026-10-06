@@ -9,18 +9,8 @@ import { lookOf } from './partyPick';
 const LINEUP: ClassId[] = ['shell', 'warrior', 'archer', 'mage', 'cleric', 'rogue'];
 const GAP = 1.6;
 
-/**
- * `?demo=looks`: the figures flat (no light on them) above and lit below, every class side by side on a stone floor by torchlight,
- * through the game's own dot look. Each row is its own page in a frame (the lighting switch is read once, from the address).
- */
+/** `?demo=looks`: every class side by side on a stone floor by torchlight, through the game's own dot look. */
 export function mountLooksDemo(root: HTMLElement, lib: UalLibrary, base: string): void {
-  const q = new URLSearchParams(location.search);
-  if (!q.has('row')) {
-    root.innerHTML = `<div style="display:grid;grid-template-rows:auto 1fr auto 1fr;height:100vh;background:#05070a;font:13px 'GalmuriMono',monospace;color:#5dff8a">
-      <div style="padding:6px 10px">조명 없음 · 자체 음영</div><iframe src="?demo=looks&row=flat" style="border:0;width:100%;height:100%"></iframe>
-      <div style="padding:6px 10px">장면 조명</div><iframe src="?demo=looks&row=lit&lit" style="border:0;width:100%;height:100%"></iframe></div>`;
-    return;
-  }
   const renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;

@@ -60,7 +60,7 @@ export class BuildMode {
   draw(): void {
     if (!this.open) return;
     const p = this.p(), next = drillCost(p.drillLevel + 1);
-    const drill = `<div class="bp-drill"><b>시추기 ${p.drillLevel}단계</b><small>시작 층 ${startFloors(p).join(' · ')}</small>${next ? `<button type="button" data-b="drill" ${canUpgradeDrill(p) ? '' : 'disabled'}>업그레이드 <small>${cost(next.ore, next.crystal)}</small></button>` : '<small>최대</small>'}</div>`;
+    const drill = `<div class="bp-drill"><b>승강기 ${p.drillLevel}단계</b><small>시작 층 ${startFloors(p).join(' · ')}</small>${next ? `<button type="button" data-b="drill" ${canUpgradeDrill(p) ? '' : 'disabled'}>업그레이드 <small>${cost(next.ore, next.crystal)}</small></button>` : '<small>최대</small>'}</div>`;
     const list = ORDER.map((k) => {
       const d = BUILDINGS[k], afford = p.ore >= d.ore && p.bio >= d.bio;
       return `<button type="button" data-b="${k}" class="${this.kind === k ? 'on' : ''}" ${afford ? '' : 'disabled'}><b>${INFO[k][0]}</b><small>${cost(d.ore, 0, d.bio)}</small><em>${INFO[k][1]}</em></button>`;

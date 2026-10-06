@@ -210,7 +210,7 @@ export class DelveScreen implements Screen {
     this.p = this.opts.party ?? newDelve(this.seed);
     this.warned.clear();
     this.log = new WorldLog();
-    this.log.add(this.p.time, `${this.opts.party ? '시추공 하강' : '승강기 하강'} · 지하 ${this.p.floor}층`, 'warn');
+    this.log.add(this.p.time, `승강기 하강 · 지하 ${this.p.floor}층`, 'warn');
     LOOK_BY_ID.clear();
     this.view();
     this.select(this.p.leader ?? 'hero');

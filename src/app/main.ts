@@ -95,7 +95,7 @@ async function battle(): Promise<void> {
   }
 }
 
-/** `?demo=looks`: every class flat and lit, side by side, for comparing the figures' look. */
+/** `?demo=looks`: every class side by side, for looking the figures over. */
 async function looksDemo(): Promise<void> {
   try {
     const [{ mountLooksDemo }, lib, weapons] = await Promise.all([import('../ui/party/looksDemo'), UalLibrary.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);

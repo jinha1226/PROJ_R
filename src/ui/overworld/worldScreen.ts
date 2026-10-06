@@ -274,7 +274,7 @@ export class WorldScreen implements Screen {
   /** Buttons over the places the party stands by: the pod (the shaft) when it can go down; the lab: build, print a clone. */
   private placePrompts(): Prompt[] {
     if (this.landing) return []; const list: Prompt[] = [];
-    if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: '▼ 시추공', act: () => this.descend() });
+    if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: '▼ 지하로', act: () => this.descend() });
     const lab = this.p.cloner ?? this.p.base, nearLab = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, lab) <= POD_REACH; });
     if (this.p.pod && nearLab && !this.p.raid && !this.build.open) list.push({ at: lab, label: '⚒ 건설', act: () => this.build.toggle() });
     return [...list, ...clonerPrompt(this.p, (ev) => this.live(ev)), ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })];
