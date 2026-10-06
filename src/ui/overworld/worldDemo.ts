@@ -1,3 +1,4 @@
+import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
@@ -91,8 +92,9 @@ export class WorldDemo implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
-    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · C 상태 · I 가방 · 휠 확대' }), {
+    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },
+      dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
       restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       close: () => { this.paused = this.pausedBeforePip; },
     });
@@ -170,7 +172,7 @@ export class WorldDemo implements Screen {
     this.stage.replaceChildren();
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p, nature: this.opts.nature });
     this.rt.setZoom(this.zoom);
-    this.rt.pixelated = false;
+    this.rt.pixelated = loadDot();
     this.pace();
     this.select(this.p.leader ?? 'hero');
     this.paused = false;

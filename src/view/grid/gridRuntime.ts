@@ -329,8 +329,9 @@ export class GridRuntime {
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));
-    if (this.bloom) this.bloom.render();
-    else if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
+    // the dot look wins over glow: the coarse target already blurs nothing
+    if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
+    else if (this.bloom) this.bloom.render();
     else this.h.renderer.render(this.h.scene, this.h.camera);
   }
   /** Pulls the camera target in so the view's edge stops at the map's edge (centred when the map is smaller than the view). */
