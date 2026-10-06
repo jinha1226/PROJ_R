@@ -96,7 +96,11 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'suit': { const p = k.at('hero'); if (p) { k.fx.transient.glow(p.x, p.z, '#5ae0ff'); k.fx.flash(p, '#5ae0ff', 26, 0.4); k.fx.number('슈트 회수!', 'combo', p); } return true; }
     case 'drink': a.anim(e.src, 'drink'); return true;
     case 'read': { a.anim(e.src, 'interact'); const p = k.at(e.src); if (p) k.particles.spray(p, '#f3e6b0', 14); return true; }
-    case 'buff': { const p = k.at(e.dst); const label = BUFF_LABEL[e.text ?? ''], fx = BUFF_VFX[e.text ?? '']; if (p && label) k.fx.number(label, 'combo', p); if (p && fx) k.particles.vfx.fire(fx[0], p, fx[1]); if (p && e.text === 'soul') k.fx.flash(p, '#ffd76a', 30, 1.0, 6); return true; }
+    case 'buff': {
+      // a trigger, an ultimate or a promotion carries its own Korean name (on its source unit): show it as it fires
+      const p = k.at(e.dst) ?? k.at(e.src);
+      const label = BUFF_LABEL[e.text ?? ''] ?? (e.text && /[가-힣]/.test(e.text) ? e.text : undefined), fx = BUFF_VFX[e.text ?? ''];
+      if (p && label) k.fx.number(label, 'combo', p); if (p && fx) k.particles.vfx.fire(fx[0], p, fx[1]); if (p && e.text === 'soul') k.fx.flash(p, '#ffd76a', 30, 1.0, 6); return true; }
     default:
       return false;
   }

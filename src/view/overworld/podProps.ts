@@ -14,6 +14,7 @@ export class LandingPod {
   private readonly body = new THREE.Group();
   private readonly flame: THREE.Mesh;
   private readonly dust: THREE.Mesh;
+  private readonly scorch: THREE.Mesh;
   private readonly door: THREE.Mesh;
   private t = -1;
   private thumped = false;
@@ -44,7 +45,7 @@ export class LandingPod {
     this.flame.position.y = -0.9;
     this.flame.visible = false;
     this.body.add(this.flame);
-    const scorch = new THREE.Mesh(new THREE.CircleGeometry(1.9, 24), fog.apply(new THREE.MeshBasicMaterial({ color: '#0c0a08', transparent: true, opacity: 0.75, depthWrite: false })));
+    const scorch = this.scorch = new THREE.Mesh(new THREE.CircleGeometry(1.9, 24), fog.apply(new THREE.MeshBasicMaterial({ color: '#0c0a08', transparent: true, opacity: 0.75, depthWrite: false })));
     scorch.rotation.x = -Math.PI / 2;
     scorch.position.y = 0.015;
     this.dust = new THREE.Mesh(new THREE.RingGeometry(0.6, 1.0, 32), new THREE.MeshBasicMaterial({ color: '#b8a890', transparent: true, opacity: 0, depthWrite: false }));
@@ -55,7 +56,7 @@ export class LandingPod {
   }
 
   /** Sends the pod up into the sky to fall in. */
-  land(): void { this.t = 0; this.thumped = false; this.body.position.y = 60; this.flame.visible = true; this.door.position.x = 0; }
+  land(): void { this.t = 0; this.thumped = false; this.body.position.y = 60; this.flame.visible = true; this.door.position.x = 0; this.scorch.visible = false; }
 
   get landing(): boolean { return this.t >= 0; }
 
@@ -66,7 +67,9 @@ export class LandingPod {
     // falls fast, brakes hard at the end
     this.body.position.y = 60 * Math.pow(1 - k, 2.6);
     this.flame.scale.setScalar(0.8 + Math.sin(this.t * 40) * 0.15 + (1 - k) * 0.6);
-    if (k >= 1 && !this.thumped) { this.thumped = true; this.flame.visible = false; this.onThump(); }
+    // the scorched ground appears only where and when the pod touches down (none while it is still in the sky)
+    if (k >= 1 && !this.thumped) { this.thumped = true; this.flame.visible = false; this.scorch.visible = true; this.onThump(); }
+    if (this.thumped) (this.scorch.material as THREE.MeshBasicMaterial).opacity = Math.min(0.75, (this.t - FALL) * 1.5);
     if (this.thumped) {
       const d = this.t - FALL;
       this.dust.scale.setScalar(1 + d * 3.5);
