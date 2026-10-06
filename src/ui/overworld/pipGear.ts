@@ -4,6 +4,9 @@ import { itemName } from '../../sim/delve/items';
 import { kitOf } from '../../sim/party/classKit';
 import type { Unit } from '../../sim/party/partyCore';
 import type { Cond } from '../../sim/party/triggers';
+import { triggerText } from '../../sim/party/triggerText';
+import { causeOf, effectOf } from './pipSkills';
+import { richText } from './richText';
 import type { RoamParty } from '../../sim/roam/roam';
 
 const SLOT: Record<ItemDef['slot'], string> = { weapon: '무기', armor: '방어구', accessory: '장신구' };
@@ -16,7 +19,8 @@ const stat = (it: GearItem): string => {
   if (d.slot === 'armor') return `받는 피해 -${Math.round(n.armor * 100)}% · 무게 ${n.weight}`;
   return d.block ? `막기 +${Math.round(n.block * 100)}%` : '';
 };
-const triggers = (d: ItemDef): string => d.triggers.map((t) => `<span class="pg-trig">${WHEN[t.when] ?? t.when}${t.nth ? ` ${t.nth}` : ''} → ${t.id}</span>`).join('');
+/** what the item sets off, Achra style: the condition, then the effect with its keywords coloured, its name after */
+const triggers = (d: ItemDef): string => d.triggers.map((t) => { const text = triggerText(t.id); return `<span class="pg-trig"><i class="k-when">${causeOf(text, t)}</i> ${richText(effectOf(text) || t.id)} <small>${t.id}</small></span>`; }).join('');
 
 /** One item's card: name, numbers, tags, what it sets off; against the worn one, how the damage or protection changes. */
 function card(it: GearItem, u: Unit, worn: GearItem | undefined, buttons: string): string {

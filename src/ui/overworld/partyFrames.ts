@@ -36,7 +36,7 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
     const state = u.order?.kind === 'hold' ? '고수' : u.order?.kind === 'attack' ? '공격' : u.order?.kind === 'move' ? '이동' : u.ultQueued ? '예약' : '';
     return `<div class="pf${id === sel ? ' on' : ''}${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
       <div class="pf-face">${classIcon(u.cls!)}<kbd>${i + 1}</kbd></div>
-      <div class="pf-body"><div class="pf-name">${cls.name}${state ? `<small>${state}</small>` : ''}</div>${hpBar(e.hp, e.maxHp, u.shield)}${unitChips(u, t)}${levelHtml(u)}
+      <div class="pf-body"><div class="pf-name">${cls.name}${state ? `<small>${state}</small>` : ''}${unitChips(u, t)}</div>${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}
       <div class="pf-skills">${skillTile(u,t,e.alive,false)}</div></div></div>`;
   }).join('');
 }
@@ -49,6 +49,6 @@ export function detailHtml(p: Party, id: string): string {
   const adv = promo.map(o=>`<div class="pd-adv">${CLASSES[o.to].name} ${o.met?'가능':'미달'}</div>`).join('') + (promo.some(o=>o.met)?'<button type="button" class="pf-promote" data-promote>전직</button>':'');
   const skills = skillTile(u,p.time,true,true);
   return `<div class="dt-head" style="--tint:${CLASS_TINT[u.cls!]}"><div class="pf-face big">${classIcon(u.cls!)}</div>
-    <div><b>${cls.name}</b><div class="dt-sub">${w.name} · 피해 ${w.dmg[0]}–${w.dmg[1]} · 사거리 ${w.range}</div>${cls.passiveName ? `<div class="dt-pas">◆ ${cls.passiveName}</div>` : '<div class="dt-pas dim">영혼 없음</div>'}</div></div>
-    ${hpBar(e.hp, e.maxHp, u.shield)}${unitChips(u, p.time)}${levelHtml(u)}<div class="dt-skills">${skills}</div>${adv}`;
+    <div><b>${cls.name}</b>${unitChips(u, p.time)}<div class="dt-sub">${w.name} · 피해 ${w.dmg[0]}–${w.dmg[1]} · 사거리 ${w.range}</div>${cls.passiveName ? `<div class="dt-pas">◆ ${cls.passiveName}</div>` : '<div class="dt-pas dim">영혼 없음</div>'}</div></div>
+    ${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}<div class="dt-skills">${skills}</div>${adv}`;
 }

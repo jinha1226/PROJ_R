@@ -96,6 +96,9 @@
 .u-chips i.good { color: #8ff0ff; border-color: #2a7a8a; background: #021014; }
 .u-chips i.bad { color: #ff8a7a; border-color: #8a2a1e; background: #140402; }
 .wh-target .u-chips { margin: 0; }
+/* on the name line: one row, cut off rather than growing the frame */
+.pf-name .u-chips, .dt-head .u-chips { display: inline-flex; flex-wrap: nowrap; overflow: hidden; max-width: 100%; vertical-align: middle; margin: 0 0 0 4px; }
+.pf-name { white-space: nowrap; overflow: hidden; }
 
 /* the top right keeps only the menu (and the shaft or lift when there); no mode banner */
 .wh-mode { display: none; }

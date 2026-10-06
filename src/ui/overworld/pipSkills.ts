@@ -21,9 +21,9 @@ function condOf(t: TriggerDef): string {
   return parts.join(' · ');
 }
 /** the effect part of a "cause → effect" text */
-const effectOf = (text: string): string => (text.includes('→') ? text.slice(text.indexOf('→') + 1).trim() : text);
+export const effectOf = (text: string): string => (text.includes('→') ? text.slice(text.indexOf('→') + 1).trim() : text);
 /** the condition: the text's own cause when it names one (it is more exact than the event), else the trigger's event, odds and cooldown */
-const causeOf = (text: string, t?: TriggerDef): string => {
+export const causeOf = (text: string, t?: TriggerDef): string => {
   const extra = t ? [t.chance ? `${Math.round(t.chance * 100)}% 확률` : '', t.cd ? `대기 ${t.cd}턴` : ''].filter(Boolean) : [];
   const head = text.includes('→') ? whenText(text.slice(0, text.indexOf('→')).trim()) : t ? condOf(t) : '상시';
   return [head, ...extra.filter((x) => !head.includes(x))].join(' · ');
