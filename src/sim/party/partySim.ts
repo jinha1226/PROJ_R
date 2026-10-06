@@ -11,6 +11,8 @@ const ROWS = ['###############', '#.............#', '#.............#', '#.......
 const FRONT: Cell[] = [{ x: 11, y: 3 }, { x: 11, y: 5 }, { x: 11, y: 6 }, { x: 12, y: 4 }, { x: 11, y: 2 }, { x: 11, y: 7 }];
 const BACK: Cell[] = [{ x: 13, y: 2 }, { x: 13, y: 7 }, { x: 13, y: 4 }, { x: 13, y: 5 }, { x: 12, y: 1 }, { x: 12, y: 8 }];
 
+/** how far round its spot a holding fighter steps out to meet foes */
+const GUARD = 3;
 const blank = (): Omit<Unit, 'id' | 'side'> => ({ nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** A room with the three picked heroes on the left and the first band on the right (heroes beyond the first stand in the foe list for the view, as allies). */
@@ -87,12 +89,16 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     return stepToward(p, u, lead.pos, t, ev) ? st.move : 0.4;
   }
   if (u.order?.kind === 'hold') {
-    // holding: strike whatever is in reach from here, never step off
-    const me = e.pos;
-    const inReach = p.units.filter((x) => x.side !== u.side && alive(p, x) && canHit(p, u, x)).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
-    if (!inReach) return 0.3;
-    strike(p, u, inReach, t, ev);
-    return st.atk;
+    const me = e.pos, spot = u.order.cell;
+    const inReach = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && canHit(p, u, x)).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+    if (inReach) { strike(p, u, inReach, t, ev); return st.atk; }
+    // a fighter guards the ground round its spot: it steps out to meet a foe that comes near, then goes back
+    if (st.range <= 1) {
+      const near = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && dist(posOf(p, x), spot) <= GUARD).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+      if (near && stepToward(p, u, posOf(p, near), t, ev)) return st.move;
+      if (!near && !same(me, spot) && stepToward(p, u, spot, t, ev)) return st.move;
+    }
+    return 0.3;
   }
   const target = targetOf(p, u, t);
   if (!target) return 0.5;
@@ -102,7 +108,16 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     if (away[0]) { ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...away[0] }, text: 'roll' }); e.pos = away[0]; return st.move; }
   }
   if (canHit(p, u, target)) { strike(p, u, target, t, ev); return st.atk; }
-  return stepToward(p, u, tp, t, ev) ? st.move : 0.5;
+  if (stepToward(p, u, tp, t, ev)) return st.move;
+  // the way to that one is blocked (a barricade, a jam of bodies): go for the next nearest instead of standing still
+  if (u.side === 'hero' && !u.order) {
+    const others = p.units.filter((x) => x.side !== u.side && x !== target && alive(p, x) && !x.asleep && dist(posOf(p, x), e.pos) <= 10).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos));
+    for (const o of others.slice(0, 3)) {
+      if (canHit(p, u, o)) { strike(p, u, o, t, ev); return st.atk; }
+      if (stepToward(p, u, posOf(p, o), t, ev)) return st.move;
+    }
+  }
+  return 0.5;
 }
 
 /** Time runs on: every unit whose moment has come acts, in time order. Returns what happened. */

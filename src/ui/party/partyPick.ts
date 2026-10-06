@@ -11,7 +11,7 @@ const COLORS: Record<ClassId, [string, string]> = {
 export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
   const w = WEAPONS[weapon], [body, trim] = COLORS[cls];
   const idle = cls === 'shell' ? 'Idle_Loop' : w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
-  return { body, trim, scale: cls === 'warrior' || cls === 'berserker' ? 1 : 0.95, weapon: w.look, shield: w.shield, idle };
+  return { body, trim, scale: cls === 'warrior' || cls === 'berserker' ? 1 : 0.95, weapon: w.look, shield: w.shield, idle, fullRun: true };
 }
 
 /** The party chooser: five classes, three to take, each with a weapon. */

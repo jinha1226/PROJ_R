@@ -149,3 +149,26 @@ it('left alone the party never throws over a long stretch of the world', () => {
   orderTo(p, 'hero', p.camps[0]!.pos);
   for (let i = 0; i < 3000; i++) expect(() => worldTick(p, 0.1)).not.toThrow();
 });
+
+it('in a fight a fighter told to hold a spot steps out to meet a foe that comes near, and goes back after', () => {
+  const p = newWorld(3);
+  for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false;
+  const w = clones(p)[0]!;
+  w.cls = 'warrior'; w.weapon = 'swordShield';
+  const spot = { ...entOf(p, 'hero')!.pos };
+  w.order = { kind: 'hold', cell: spot };
+  const [f, far] = p.units.filter((u) => u.side === 'foe');
+  const fe = entOf(p, f!.id)!;
+  fe.alive = true; fe.hp = 999; f!.asleep = false; f!.nextAt = 999;
+  fe.pos = { x: spot.x + 3, y: spot.y };
+  // a second foe farther off keeps the fight going (when the fight ends a hold is let go)
+  const fa = entOf(p, far!.id)!;
+  fa.alive = true; fa.hp = 999; far!.asleep = false; far!.nextAt = 999;
+  fa.pos = { x: spot.x - 8, y: spot.y };
+  let met = false;
+  for (let i = 0; i < 60 && !met; i++) { worldTick(p, 0.1); met = dist(entOf(p, 'hero')!.pos, fe.pos) <= 1; }
+  expect(met).toBe(true);
+  fe.alive = false;
+  for (let i = 0; i < 60; i++) worldTick(p, 0.1);
+  expect(entOf(p, 'hero')!.pos).toEqual(spot);
+});

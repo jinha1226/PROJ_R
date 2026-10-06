@@ -1,6 +1,7 @@
 import { cellAtScreen, cellVec, shotGroup } from './runtimeHelpers';
 import { ShipTerrain } from './shipTerrain';
 import { WorldTerrain, type WorldLook } from '../overworld/worldTerrain';
+import { Bloom } from '../overworld/bloom';
 import { heroLook } from './heroLook';
 import { speciesOf } from './species';
 import type { ShipKit } from './shipKit';
@@ -47,6 +48,8 @@ export class GridRuntime {
   private terrain: GridTerrain | ShipTerrain | WorldTerrain;
   /** the figure the camera follows */
   focusId = 'hero';
+  /** the world map's glow pass */
+  private bloom?: Bloom;
   actors: GridActors;
   private elements: GridElements;
   private mapRef: GridSim['s']['map'];
@@ -94,7 +97,7 @@ export class GridRuntime {
     if (!theme && !world) kit.tint(look.tint);
     this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
     // the occupied world is dark: dim moonlight, a lamp round the party, and the land's own fires
-    if (world) { this.hemi.color.set('#7884b4'); this.hemi.groundColor.set('#241c18'); this.hemi.intensity = 0.62; this.light.color.set('#e4eaff'); this.light.intensity = 4.5; this.light.distance = 9; sun.intensity = 0; }
+    if (world) { this.hemi.color.set('#7884b4'); this.hemi.groundColor.set('#241c18'); this.hemi.intensity = 0.62; this.light.color.set('#e4eaff'); this.light.intensity = 4.5; this.light.distance = 9; sun.intensity = 0; this.bloom = new Bloom(this.h.renderer, scene, this.h.camera); }
     for (const st of theme ? sim.s.map.stations ?? [] : []) this.stationAt.set(`st-${st.id}`, new THREE.Vector3(st.pos.x * CELL, 0, st.pos.y * CELL));
     if (theme) { this.intro = new ShipIntro(this.stationAt.get('st-pod'), this.stationAt.get('st-hatch'), theme.meta.best === 0); scene.add(this.intro.root); }
     if (theme) { this.hemi.color.set('#b7ddff'); this.hemi.groundColor.set('#162432'); this.hemi.intensity = 0.62; this.light.color.set('#b7eaff'); this.light.intensity = 3; }
@@ -324,7 +327,8 @@ export class GridRuntime {
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));
-    if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
+    if (this.bloom) this.bloom.render();
+    else if (this.pixelated) this.pixel.render(this.h.scene, this.h.camera);
     else this.h.renderer.render(this.h.scene, this.h.camera);
   }
   /** Pulls the camera target in so the view's edge stops at the map's edge (centred when the map is smaller than the view). */
@@ -373,6 +377,7 @@ export class GridRuntime {
     this.strikeFx.dispose();
     this.slowmo.remove();
     this.pixel.dispose();
+    this.bloom?.dispose();
     this.terrain.dispose();
     this.h.dispose();
   }

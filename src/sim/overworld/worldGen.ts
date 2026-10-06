@@ -63,7 +63,7 @@ export function generateWorld(seed: number): World {
     if (d <= 9) continue;
     const e = elev(x, y), m = wet(x, y);
     if (e > 0.66) set(c, 'rock');
-    else if (m > 0.6) set(c, rng.chance(Math.min(0.6, 0.3 + (m - 0.6) * 1.6)) ? 'tree' : 'forest');
+    else if (m > 0.6) set(c, rng.chance(Math.min(0.5, 0.24 + (m - 0.6) * 1.4)) ? 'tree' : 'forest');
     else if (rng.chance(0.025)) set(c, 'tree');
   }
   river(rng, base, set);

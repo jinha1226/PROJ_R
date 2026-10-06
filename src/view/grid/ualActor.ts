@@ -14,7 +14,9 @@ const HEIGHT = 1.6;
 const BULK = 1.25;
 export type UalAnim = 'idle' | 'run' | 'roll' | 'swing' | 'jab' | 'bash' | 'scratch' | 'weaveL' | 'weaveR' | 'parry' | 'dash' | 'leapUp' | 'leapLand' | 'finisher' | 'shove' | 'shoot' | 'shootBow' | 'cast' | 'throw' | 'reload' | 'hit' | 'knockback' | 'death' | 'interact' | 'drink';
 export type UalIdle = 'Sword_Idle' | 'Idle_Loop' | 'Pistol_Idle_Loop' | 'Spell_Simple_Idle_Loop' | 'Zombie_Idle_Loop';
-export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string; block?: BlockLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
+export interface UalLook { body: string; trim: string; scale: number; weapon: WeaponLook; shield?: boolean; idle: UalIdle; run?: string;
+  /** run with the whole jog (arms swinging) instead of legs under a held stance */
+  fullRun?: boolean; block?: BlockLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
@@ -157,11 +159,11 @@ export class UalActor {
     this.current = a;
   }
 
-  /** Idle, or a run: a legs-only jog under the held stance when both halves exist, else the whole jog. */
+  /** Idle, or a run: a legs-only jog under the held stance when both halves exist (and the look keeps a stance), else the whole jog. */
   private loopOn(running: boolean, speed: number, fade: number): void {
     const legs = `${this.runClip}__legs`;
     const up = this.lib.clips.get(`${this.idleClip}__upper`);
-    if (!running || !up || !this.lib.clips.has(legs)) {
+    if (!running || !up || !this.lib.clips.has(legs) || this.look.fullRun) {
       this.dropUpper(fade);
       this.start(running ? this.runClip : this.idleClip, true, running ? speed : 1, fade);
       return;

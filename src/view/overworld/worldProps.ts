@@ -23,20 +23,30 @@ export function instanced(geo: THREE.BufferGeometry, fog: WorldFog, items: { m: 
 const mat4 = (x: number, y: number, z: number, s: THREE.Vector3, rotY = 0, tilt = 0): THREE.Matrix4 =>
   new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(tilt, rotY, tilt * 0.6)), s);
 
-/** Trees: round leafy ones and pines, trunks under both. */
+/** Trees of a blighted land: bare dead trees (a crooked trunk, three branches) and dark pines; light falls through the dead ones. */
 export function trees(cells: Cell[], fog: WorldFog): THREE.Group {
   const g = new THREE.Group();
-  const trunks: { m: THREE.Matrix4; c: THREE.Color }[] = [], round: typeof trunks = [], pine: typeof trunks = [];
+  const trunks: { m: THREE.Matrix4; c: THREE.Color }[] = [], branches: typeof trunks = [], pine: typeof trunks = [];
   for (const c of cells) {
     const r = jitter(c.x, c.y), s = 0.8 + jitter(c.x, c.y, 1) * 0.5, ox = (jitter(c.x, c.y, 2) - 0.5) * 0.3, oz = (jitter(c.x, c.y, 3) - 0.5) * 0.3;
-    trunks.push({ m: mat4(c.x + ox, 0.45 * s, c.y + oz, new THREE.Vector3(s, s, s)), c: new THREE.Color('#5a4030') });
-    const leaf = new THREE.Color().setHSL(0.26 + jitter(c.x, c.y, 4) * 0.08, 0.45, 0.22 + jitter(c.x, c.y, 5) * 0.1);
-    if (r < 0.55) pine.push({ m: mat4(c.x + ox, 1.5 * s, c.y + oz, new THREE.Vector3(s, s * (1 + r * 0.4), s), r * 6), c: leaf.offsetHSL(0.04, 0, -0.04) });
-    else round.push({ m: mat4(c.x + ox, 1.35 * s, c.y + oz, new THREE.Vector3(s * 1.05, s * 0.9, s * 1.05), r * 6), c: leaf });
+    if (r < 0.45) {
+      trunks.push({ m: mat4(c.x + ox, 0.45 * s, c.y + oz, new THREE.Vector3(s, s, s)), c: new THREE.Color('#3a2c22') });
+      pine.push({ m: mat4(c.x + ox, 1.5 * s, c.y + oz, new THREE.Vector3(s, s * (1 + r * 0.4), s), r * 6), c: new THREE.Color().setHSL(0.36, 0.25, 0.13 + jitter(c.x, c.y, 5) * 0.06) });
+      continue;
+    }
+    // a dead tree: a tall leaning trunk with bare branches reaching out
+    const lean = (jitter(c.x, c.y, 6) - 0.5) * 0.25, yaw = jitter(c.x, c.y, 7) * Math.PI * 2;
+    trunks.push({ m: mat4(c.x + ox, 0.9 * s, c.y + oz, new THREE.Vector3(s * 0.8, s * 2, s * 0.8), yaw, lean), c: new THREE.Color().setHSL(0.07, 0.15, 0.14 + jitter(c.x, c.y, 8) * 0.06) });
+    for (let k = 0; k < 3; k++) {
+      const a = yaw + k * 2.1 + jitter(c.x, c.y, 9 + k), h = (1.0 + k * 0.35) * s;
+      const m = new THREE.Matrix4().compose(new THREE.Vector3(c.x + ox + Math.cos(a) * 0.22, h, c.y + oz + Math.sin(a) * 0.22),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9)), new THREE.Vector3(s * 0.5, s * 0.75, s * 0.5));
+      branches.push({ m, c: new THREE.Color('#2e241c') });
+    }
   }
-  g.add(instanced(new THREE.CylinderGeometry(0.09, 0.13, 0.9, 6), fog, trunks));
+  g.add(instanced(new THREE.CylinderGeometry(0.07, 0.13, 0.9, 5), fog, trunks));
+  g.add(instanced(new THREE.CylinderGeometry(0.03, 0.06, 0.9, 4), fog, branches));
   g.add(instanced(new THREE.ConeGeometry(0.62, 1.9, 7), fog, pine));
-  g.add(instanced(new THREE.IcosahedronGeometry(0.66, 0), fog, round));
   return g;
 }
 

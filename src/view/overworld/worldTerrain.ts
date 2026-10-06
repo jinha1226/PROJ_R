@@ -5,6 +5,7 @@ import { WorldFog } from './worldFog';
 import { campProps, crashedShip, instanced, jitter, rocks, ruinWalls, trees, type CampView } from './worldProps';
 import { coverProps } from './worldCover';
 import { WorldLights } from './worldLights';
+import { EmberCracks } from './emberCracks';
 
 /** what the world view needs beyond the grid state */
 export interface WorldLook { ground: Ground[]; camps: Camp[]; base: Cell; claimed: Uint8Array; souls: Soul[]; lights: LandLight[] }
@@ -16,9 +17,9 @@ const COLOR: Record<Ground, string> = {
 };
 /** the light each kind of land light gives */
 const LAND_LIGHT: Record<LandLight['kind'], { color: string; power: number; range: number; y: number; flicker: number }> = {
-  wreck: { color: '#ff8a3a', power: 7, range: 7, y: 1, flicker: 0.25 },
-  brazier: { color: '#5aff9a', power: 6, range: 7, y: 1.1, flicker: 0.15 },
-  obelisk: { color: '#ff2a48', power: 8, range: 8, y: 2.4, flicker: 0.08 },
+  wreck: { color: '#ff8a3a', power: 10, range: 9, y: 1, flicker: 0.25 },
+  brazier: { color: '#5aff9a', power: 9, range: 9, y: 1.1, flicker: 0.15 },
+  obelisk: { color: '#ff2a48', power: 12, range: 11, y: 2.4, flicker: 0.08 },
 };
 
 /** The open land of the world map: ground coloured by what grows there, trees, rocks, a river, old ruins, the crashed ship and the goblin camps; fog of war over what the party has not seen. */
@@ -33,13 +34,15 @@ export class WorldTerrain {
   private readonly stones: { soul: Soul; root: THREE.Group; gem: THREE.Mesh }[] = [];
   private clock = 0;
   private seen?: Uint8Array;
+  private readonly cracks: EmberCracks;
 
   constructor(private readonly w: number, private readonly h: number, private readonly look: WorldLook) {
     this.fog = new WorldFog(w, h);
     this.root.add(this.groundMesh(), this.water());
     const by = (g: Ground[]) => { const out: Cell[] = []; look.ground.forEach((k, i) => { if (g.includes(k)) out.push({ x: i % w, y: Math.floor(i / w) }); }); return out; };
     this.root.add(trees(by(['tree']), this.fog), rocks(by(['rock']), this.fog), ruinWalls(by(['ruinWall']), this.fog), this.tufts(by(['grass', 'forest'])));
-    this.root.add(crashedShip(look.base, this.fog), coverProps(look.ground, w, this.fog), this.lights.root);
+    this.cracks = new EmberCracks(look, w, this.fog);
+    this.root.add(crashedShip(look.base, this.fog), coverProps(look.ground, w, this.fog), this.lights.root, this.cracks.mesh);
     for (const c of look.camps) { const cp = campProps(c, this.fog); this.camps.push(cp.view); this.root.add(cp.root); }
     this.spots();
     this.sun.position.set(-18, 30, 12);
@@ -102,7 +105,7 @@ export class WorldTerrain {
     L.add({ at: { x: b.x - 3, y: b.y }, y: 2.4, color: '#5ae0ff', power: 7, range: 10, flicker: 0.05, on: () => true });
     L.add({ at: { x: b.x + 1, y: b.y + 2 }, y: 1.4, color: '#9fe8ff', power: 4, range: 7, flicker: 0, on: () => true });
     for (const c of this.look.camps) {
-      L.add({ at: c.pos, y: 0.8, color: '#ff9040', power: 6, range: 7, flicker: 0.2, on: () => !c.cleared });
+      L.add({ at: c.pos, y: 0.8, color: '#ff9040', power: 9, range: 9, flicker: 0.2, on: () => !c.cleared });
       L.add({ at: c.totem, y: 1.6, color: '#ff2a2a', power: 4, range: 5, flicker: 0.1, on: () => !c.cleared });
       L.add({ at: c.pos, y: 2.2, color: '#5ae0ff', power: 5, range: 8, flicker: 0.03, on: () => c.cleared });
     }
@@ -129,6 +132,7 @@ export class WorldTerrain {
     // a cleared camp: the fire is out and the banner taken down
     for (const v of this.camps) for (const m of [v.flame, v.flag, v.eye]) m.visible = !v.camp.cleared;
     this.seen = s.seen;
+    this.cracks.shade();
   }
 
   /** The sun's shadow box follows the view; fires flicker; the ship's beacon pulses. */
