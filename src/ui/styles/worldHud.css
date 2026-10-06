@@ -363,3 +363,8 @@
 
 /* the top right keeps only the menu (and the shaft or lift when there); no mode banner */
 .wh-mode { display: none; }
+
+/* ---- usable places in the field: a button over the shaft, lift or stairs ---- */
+.place-prompts { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.place-prompts button { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; font: 13px 'GalmuriMono', monospace; color: #021006; background: #ffd76a; border: 2px solid #021006; box-shadow: 0 0 0 1px #ffd76a, 0 0 14px #ffb04a99; padding: 6px 10px; cursor: pointer; white-space: nowrap; animation: pp-bob 1.2s ease-in-out infinite; }
+@keyframes pp-bob { 50% { margin-top: -4px; } }

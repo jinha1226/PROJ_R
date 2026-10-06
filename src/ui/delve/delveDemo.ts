@@ -8,6 +8,8 @@ import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from '../overworld/targetCard';
 import { tapCell } from './tapCell';
+import { MiningCue } from './miningCue';
+import { PlacePrompts, type Prompt } from '../overworld/placePrompt';
 import { command, promote } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { clones, orderTo } from '../../sim/roam/roam';
@@ -35,8 +37,6 @@ import '../styles/partyDemo.css';
 import '../styles/worldHud.css';
 
 /** game time per real second at normal speed */
-/** game seconds between swings at an ore vein */
-const MINE_BEAT = 0.9;
 const RATE = 3.6;
 const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
@@ -69,8 +69,8 @@ export class DelveDemo implements Screen {
   private zoom = 11;
   private mode: Mode = savedMode();
   private hover: Cell | null = null;
-  /** game time of each clone's last swing at a vein */
-  private readonly swungAt = new Map<string, number>();
+  private readonly miningCue = new MiningCue();
+  private readonly prompts = new PlacePrompts();
   /** whether the last tick moved anyone (followers still catching up keep time going) */
   private movedLast = true;
   /** turn-based: a wait runs time on to here */
@@ -95,15 +95,14 @@ export class DelveDemo implements Screen {
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
-      ...(this.opts.onAscend ? { ascend: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } } : {}),
       select: (id) => this.select(id),
       skill: (id) => this.skill(id || this.sel),
       promote: () => this.live(promote(this.p, this.sel)),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
-      descend: () => this.down(),
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
+    this.el.appendChild(this.prompts.el);
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
@@ -147,7 +146,8 @@ export class DelveDemo implements Screen {
       this.pad.update(dt);
       this.props?.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
-      this.mining();
+      this.miningCue.update(this.p, this.rt);
+      this.placePrompts();
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open);
@@ -357,20 +357,12 @@ export class DelveDemo implements Screen {
     this.rt.showPath(hoverWalk ?? (o?.kind === 'move' && e?.alive ? findPath(m, e.pos, o.cell) : null));
   }
 
-  /** Clones working a vein swing at it in time with the game clock, chips flying off the rock. */
-  private mining(): void {
-    if (!this.rt || this.p.combat) return;
-    for (const u of clones(this.p)) {
-      const e = entOf(this.p, u.id);
-      const node = e?.alive && (!u.order || u.order.kind === 'hold') ? this.p.oreNodes.find((n) => n.left > 0 && dist(n.pos, e.pos) <= 1) : undefined;
-      if (!node) { this.swungAt.delete(u.id); continue; }
-      if (this.p.time - (this.swungAt.get(u.id) ?? -9) < MINE_BEAT) continue;
-      this.swungAt.set(u.id, this.p.time);
-      const rock = new THREE.Vector3(node.pos.x, 0, node.pos.y);
-      this.rt.actors.lunge(u.id, rock, 'swing');
-      this.rt.fireVfx('dust', rock, '#8a7a68');
-      this.rt.fireVfx('hit', rock, '#c8b8ff');
-    }
+  /** The stairs down and the lift up, as buttons over them while the party can take them. */
+  private placePrompts(): void {
+    const list: Prompt[] = [];
+    if (this.p.s.map.stairs && canDescend(this.p)) list.push({ at: this.p.s.map.stairs, label: '▼ 계단', act: () => this.down() });
+    if (this.opts.onAscend && canAscend(this.p)) list.push({ at: this.p.base, label: '▲ 지상으로', act: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } });
+    this.prompts.update(this.rt, list);
   }
 
   private labels(): void {

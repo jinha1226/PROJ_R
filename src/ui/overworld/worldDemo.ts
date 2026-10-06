@@ -1,5 +1,6 @@
 import { BuildMode } from './buildMode';
 import { RaidBar, raidNote } from './raidBar';
+import { PlacePrompts } from './placePrompt';
 import { startFloors } from '../../sim/base/drill';
 import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
@@ -53,6 +54,7 @@ export class WorldDemo implements Screen {
   private paused = false;
   private build!: BuildMode;
   private raidBar!: RaidBar;
+  private readonly prompts = new PlacePrompts();
   private readonly over = document.createElement('div');
   private speed = 1;
   private zoom = 14;
@@ -88,7 +90,6 @@ export class WorldDemo implements Screen {
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
-      ...(this.opts.onDrill ? { descend: () => this.descend(), descendLabel: '▼ 시추공' } : {}),
       build: () => this.build.toggle(),
       select: (id) => this.select(id),
       skill: (id) => queueUltimate(this.p, id || this.sel),
@@ -112,6 +113,7 @@ export class WorldDemo implements Screen {
     for (const part of this.build.parts) this.el.appendChild(part);
     this.raidBar = new RaidBar(() => this.p, (ev) => this.live(ev), this.el);
     this.el.appendChild(this.raidBar.el);
+    this.el.appendChild(this.prompts.el);
     // the run is over (no clone left, no bio-matter for a body): say so and offer the way on, instead of a frozen field
     this.over.className = 'pip-win menu-win';
     this.over.hidden = true;
@@ -150,6 +152,7 @@ export class WorldDemo implements Screen {
       }
       this.build.update();
       this.raidBar.update();
+      this.prompts.update(this.rt, this.opts.onDrill && this.p.drill && canDrill(this.p) ? [{ at: this.p.drill, label: '▼ 시추공', act: () => this.descend() }] : []);
       this.pad.update(dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
