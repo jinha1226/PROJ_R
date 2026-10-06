@@ -15,6 +15,7 @@ import type { UalLibrary } from '../../view/grid/ualActor';
 import { PipWindow } from './pipWindow';
 import { WorldHud } from './worldHud';
 import { WorldLog } from './worldLog';
+import { Pinch, coarsePointer, startZoom } from './touchView';
 import { lookOf } from '../party/partyPick';
 import { WorldMinimap } from './worldMinimap';
 import '../styles/grid.css';
@@ -48,6 +49,7 @@ export class WorldDemo implements Screen {
   private log = new WorldLog();
   private raf = 0;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
+  private pinch!: Pinch;
 
   private readonly seed: number;
 
@@ -71,7 +73,10 @@ export class WorldDemo implements Screen {
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.pip.el);
-    this.stage.addEventListener('pointerup', (e) => this.click(e));
+    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
+    this.zoom = startZoom(this.zoom);
+    // a pointer-up that ends a pinch or a drag is not a click
+    this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
     this.stage.addEventListener('pointerleave', () => { this.hover = null; });
     this.stage.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -131,7 +136,7 @@ export class WorldDemo implements Screen {
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, false, undefined, { theme: 'world', look: this.p });
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p });
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = false;
     this.pace();

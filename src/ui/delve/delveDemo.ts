@@ -17,6 +17,7 @@ import { lookOf } from '../party/partyPick';
 import { PipWindow } from '../overworld/pipWindow';
 import { WorldHud } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
+import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
 import { DelveMinimap } from './delveMinimap';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
@@ -58,6 +59,7 @@ export class DelveDemo implements Screen {
   private raf = 0;
   private readonly seed: number;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
+  private pinch!: Pinch;
 
   constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
@@ -78,12 +80,16 @@ export class DelveDemo implements Screen {
       promote: () => this.live(promote(this.p, this.sel)),
       mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
       descend: () => this.down(),
+      wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.pip.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
-    this.stage.addEventListener('pointerup', (e) => this.click(e));
+    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
+    this.zoom = startZoom(this.zoom);
+    // a pointer-up that ends a pinch or a drag is not a click
+    this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
     this.stage.addEventListener('pointerleave', () => { this.hover = null; });
     this.stage.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -171,7 +177,7 @@ export class DelveDemo implements Screen {
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, false);
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer());
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = false;
     this.rt.enableBloom();
@@ -257,7 +263,7 @@ export class DelveDemo implements Screen {
     const p = this.p, turn = this.mode === 'turn';
     const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
     const keys = p.combat && turn ? '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종' : '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대';
-    this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p),
+    this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p), myTurn: this.myTurn,
       area: `<div><span>지하</span><b>${p.floor}층</b></div><div><span>처치</span><b>${this.kills}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div>${p.carried.length ? `<div class="soul"><span>영혼</span><b>${p.carried.length}</b></div>` : ''}` });
   }
 }

@@ -8,7 +8,8 @@ function skillTile(u: Unit, k: number, t: number, alive: boolean, big: boolean):
   if (!id) return '';
   const cd = SKILLS[id].cd, left = Math.max(0, u.ready[k]! - t), q = u.queued === k;
   const sweep = left > 0 ? `background:conic-gradient(#000a ${(left / cd) * 360}deg, transparent 0)` : '';
-  const label = big ? `<span class="nm">${SKILLS[id].name}</span><span class="ds">${SKILL_DESC[id]}</span>` : '';
+  // small tiles carry the name too (shown where there is room: phones, where the detail panel folds away)
+  const label = big ? `<span class="nm">${SKILLS[id].name}</span><span class="ds">${SKILL_DESC[id]}</span>` : `<span class="sn">${SKILLS[id].name}</span>`;
   return `<button type="button" class="pf-skill${q ? ' queued' : ''}${left > 0 || !alive ? ' wait' : ''}${big ? ' big' : ''}" data-skill="${k}" title="${SKILLS[id].name}"><i style="${sweep}"></i><kbd>${k ? 'W' : 'Q'}</kbd>${left > 0 ? `<em>${Math.ceil(left)}</em>` : ''}${label}</button>`;
 }
 
