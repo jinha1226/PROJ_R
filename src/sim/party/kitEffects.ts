@@ -1,4 +1,3 @@
-import { addShield } from './shield';
 import { emit } from './triggers';
 import { T } from './traitMods';
 import { rank } from './traitDefs';
@@ -13,7 +12,7 @@ export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, 
   amount *= T.heal(src)*G.healTaken(dst);
   const e = entOf(p, dst.id)!, n = Math.min(e.maxHp - e.hp, Math.round(amount));
   e.hp += n; dst.lowHp=e.hp<e.maxHp/2;
-  if (src.cls === 'healer') addShield(dst, Math.max(0, amount - n));
+  if (src.cls === 'healer' && amount > n) emit(p,'overflow',{t,src,target:dst,amount:Math.max(0,Math.round(amount)-n),ev});
   if(rank(src,'purify')) {const key=Object.keys(dst.status)[0] as keyof typeof dst.status|undefined;if(key)delete dst.status[key];}
   ev.push({ t, type: 'heal', src: src.id, dst: dst.id, amount: n });
   emit(p,'healed',{t,src,target:dst,amount:n,ev});
@@ -22,7 +21,7 @@ export function fireball(p: Party, src: Unit, dst: Unit, t: number, ev: GEvent[]
   for (const f of nearby(p, dst, 1)) {
     damage(p, t, src.id, f, Math.round(p.s.rng.int(10, 14)*T.amplify(src)), ev);
     if(rank(src,'current'))applyStatus(p,src,f,'shock',t,ev);
-    if (src.cls === 'elementalist') applyStatus(p, src, f, p.s.rng.pick(['chill', 'shock']), t, ev);
+    emit(p,'fireball',{t,src,target:f,ev});
   }
 }
 export function summon(p: Party, src: Unit, at: Cell, t: number, ev: GEvent[], cap = 2): boolean {

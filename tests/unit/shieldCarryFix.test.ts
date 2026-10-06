@@ -13,7 +13,7 @@ it('every shield source shares a cap of thirty', () => {
   const defs = [KITS.cleric.innate[1]!, CATALOG.leather!.triggers[0]!, CATALOG.swordShield!.triggers[0]!, CATALOG.guardOath!.triggers[0]!,
     ...['unyielding', 'unyieldingShield', 'elementVeil'].map(id => TRAITS[id]!.trigger!(3))];
   for (const def of defs) { u.shield = 29; def.run(p, { t: 0, src: u, target: u, depth: 0, ev }); expect(u.shield, def.id).toBe(30); }
-  u.cls = 'healer'; u.shield = 29; heal(p, u, u, 100, 0, ev); expect(u.shield).toBe(30);
+  u.cls = 'healer'; u.weapon = 'mace'; u.shield = 29; heal(p, u, u, 100, 0, ev); expect(u.shield).toBe(30);
   for (const cls of ['warrior', 'guardian'] as const) { u.cls = cls; u.ultReady = 0; u.shield = 29; useUltimate(p, u.id); expect(u.shield).toBe(30); }
 });
 it('carry clears shields when taking and placing the party', () => {

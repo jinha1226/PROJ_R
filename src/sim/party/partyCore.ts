@@ -1,5 +1,5 @@
 import { traitMult, takenMult, shieldBroken, allyStruck, blink } from './traitCombat';
-import { kitMult, proficient, LINE } from './classKit';
+import { kitMult, proficient } from './classKit';
 import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
 import { movedStatus, statusMult, type Status, type StatusId } from './status';
@@ -16,7 +16,7 @@ import { T } from './traitMods';
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
 export interface Unit {
-  fastNext?: boolean;
+  fastNext?: boolean; attackMult?: number; ironGuard?: boolean;
   ultReady: number; ultQueued?: boolean; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   nextCrit?: boolean; dodgeNext?: boolean; furyStacks?: number; furyUntil?: number; furyPower?: number; damageBuff?: number; damageBuffUntil?: number; blinkNext?: boolean; extraAttack?: boolean; attackMoved?: boolean; retreatShot?: boolean; immortalUsed?: boolean;
@@ -154,7 +154,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));
     const link = secondary ? undefined : p.units.find(x=>x!==dst&&x.gear?.accessory?.def==='guardOath'&&alive(p,x)&&dist(posOf(p,x),e.pos)<=1) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
-    if (link) { const share = Math.round(amount * 0.3); amount -= share; if (share > 0) damage(p, t, src, link, share, ev, true); }
+    if (link) { const share = Math.round(amount * 0.3); amount -= share; if (share > 0) { if(link.cls==='guardian') emit(p,'guard',{t,src:link,target:attacker,amount:share,ev}); else damage(p,t,src,link,share,ev,true); } }
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
     if(soak>0 && dst.shield===0)shieldBroken(p,dst,t,ev);
@@ -167,7 +167,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     ev.push({ t, type: 'buff', src: dst.id, dst: dst.id, text: 'grit' });
   }
   if(dst.traits?.immortal && amount>=e.hp && !dst.immortalUsed) {dst.immortalUsed=true;dst.immuneUntil=t+3;amount=0;}
-  e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
+  e.hp = Math.max(0, e.hp - amount); if(dst.cls!=='berserker') dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   if (e.hp <= 0) {
     e.alive = false;
@@ -216,8 +216,9 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const dodge = target.dodgeNext; target.dodgeNext=false;
   const blocked = st.range <= 1 && p.s.rng.chance(T.block(target)+G.block(target));
   if (dodge || blocked || !p.s.rng.chance(hit * (t<(u.blindUntil??0)?0.5:1))) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
-  const crit = !u.traits?.avatar && (u.nextCrit || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'archer' && te.hp === te.maxHp) || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
-  let m = mult * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow' || (proficient(u) && (LINE[u.cls!] ?? u.cls) === 'mage'), t, ev);
+  u.attackMult = 1; emit(p,'beforeHit',{t,src:u,target,ev});
+  const crit = !u.traits?.avatar && (u.nextCrit || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
+  let m = mult * (u.attackMult ?? 1) * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
   if (u.side === 'hero') {
     const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
     m *= passiveMult(p, u, target, t, ev) * empowerment;
