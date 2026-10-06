@@ -3,6 +3,8 @@ import { computeFov } from '../grid/fov';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
 import { alive, entOf, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, type BaseClass } from '../party/partyDefs';
+import { awardXp } from '../party/partyLevel';
+import { T } from '../party/partyTraits';
 
 /** a fallen native's soul stone lying about */
 export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
@@ -23,6 +25,8 @@ export interface RoamParty extends Party {
   over?: boolean;
   /** new bodies come out here (the pod on the surface; never in a dungeon) */
   printHere: boolean;
+  /** the last time first aid was counted */
+  regenAt?: number;
   /** how far the clones see */
   sight: number;
 }
@@ -85,14 +89,8 @@ export function print(p: RoamParty, cls: BaseClass | undefined, ev: GEvent[]): U
 /** Souls: picked up where they lie, fallen clones drop theirs, the base prints bodies for the ones carried home. */
 function souls(p: RoamParty, ev: GEvent[]): void {
   const t = p.time;
-  for (const u of clones(p)) {
-    if (!alive(p, u) && u.soul) {
-      const at = { ...entOf(p, u.id)!.pos };
-      p.souls.push({ id: p.souls.length, pos: at, cls: u.soul, taken: false });
-      ev.push({ t, type: 'drop', src: u.id, to: at, text: 'soul' });
-      u.soul = undefined;
-    }
-  }
+  // a clone that falls is gone, soul and all (no stone is left to recover)
+  for (const u of clones(p)) if (!alive(p, u) && u.soul) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.soul = undefined; }
   for (const soul of p.souls) {
     if (soul.taken) continue;
     const by = living(p).find((u) => dist(entOf(p, u.id)!.pos, soul.pos) <= 1);
@@ -125,6 +123,7 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     const e = entOf(p, f.id);
     if (f.side !== 'foe' || f.reaped || !e || e.alive) continue;
     f.reaped = true;
+    awardXp(p, f, ev);
     const n = (BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1);
     p.bio += n;
     ev.push({ t: p.time, type: 'loot', to: { ...e.pos }, amount: n, text: 'bio' });
@@ -151,6 +150,14 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
   // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band
   if (!was && p.combat) for (const u of living(p)) if (u.order?.kind === 'move') u.order = null;
+  // first aid: out of a fight a clone mends a share of its health each second
+  if (!p.combat) for (const u of living(p)) {
+    const r = T.regen(u), e = entOf(p, u.id)!;
+    if (!r || e.hp >= e.maxHp) continue;
+    const secs = Math.floor(p.time) - Math.floor(p.regenAt ?? p.time);
+    if (secs > 0) e.hp = Math.min(e.maxHp, e.hp + Math.max(1, Math.round(e.maxHp * r * secs)));
+  }
+  p.regenAt = p.time;
   const hand = p.manual ? p.units.find((u) => u.id === p.manual) : undefined;
   if (hand?.order?.kind === 'move' && (woke.size || (entOf(p, hand.id)?.hp ?? 0) < (hpBefore.get(hand.id) ?? 0))) hand.order = null;
 }

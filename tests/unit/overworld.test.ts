@@ -109,15 +109,15 @@ it('out of combat an order walks the whole party there behind the chosen clone',
   expect(dist(entOf(p, 'hero')!.pos, goal)).toBeLessThanOrEqual(2);
 });
 
-it('a fallen clone drops its soul; when the last one falls the ship wakes a new empty body (if it has the bio-matter)', () => {
+it('a fallen clone is gone soul and all; when the last one falls the pod wakes a new empty body (if it has the bio-matter)', () => {
   const p = newWorld(3);
   p.bio = 25;
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
-  const at = { ...entOf(p, 'hero')!.pos };
+  const souls = p.souls.length;
   damage(p, p.time, 'x', clones(p)[0]!, 999, []);
   const ev = worldTick(p, 0.1);
-  expect(ev.some((e) => e.type === 'drop' && e.text === 'soul')).toBe(true);
-  expect(p.souls.at(-1)!.pos).toEqual(at);
+  expect(ev.some((e) => e.type === 'drop' && e.text === 'soulLost')).toBe(true);
+  expect(p.souls).toHaveLength(souls);
   for (let i = 0; i < 50; i++) worldTick(p, 0.1);
   const fresh = clones(p).filter((u) => entOf(p, u.id)!.alive);
   expect(fresh).toHaveLength(1);

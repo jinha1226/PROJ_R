@@ -2,6 +2,7 @@ import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
 import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
 import { CLASSES, FOES, PROMOTIONS, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
+import { PROMOTE_LEVEL, T, type TraitId } from './partyTraits';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -26,6 +27,12 @@ export interface Unit {
   soul?: BaseClass;
   /** a fallen foe whose bio-matter has been gathered */
   reaped?: boolean;
+  /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */
+  level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
+  /** when grit can hold a killing blow again */
+  gritReady?: number;
+  /** the cell an archer last shot from and how many shots in a row from it (steady aim) */
+  steadyAt?: Cell; steady?: number;
   /** a companion uses its skills by itself (on unless the player turns it off) */
   manualSkills?: boolean;
 }
@@ -57,7 +64,8 @@ const passive = (u: Unit) => (u.cls ? CLASSES[u.cls].passive : undefined);
 export function stats(u: Unit, t = 0): { dmg: [number, number]; range: number; atk: number; move: number } {
   if (!u.cls) return FOES[u.foe!];
   const w = WEAPONS[u.weapon!];
-  return { dmg: w.dmg, range: w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range, atk: w.atk * (t < u.hasteUntil ? 0.5 : 1), move: CLASSES[u.cls].move };
+  const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
+  return { dmg: w.dmg, range, atk: w.atk * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u).range): boolean {
@@ -107,13 +115,23 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   }
   // a blow on a sleeping camp wakes the whole camp
   if (dst.asleep) for (const f of p.units) if (f.side === 'foe' && f.group === dst.group) f.asleep = false;
+  // grit: a blow that would kill leaves one point, once in a while
+  if (dst.side === 'hero' && amount >= e.hp && T.gritCd(dst) > 0 && t >= (dst.gritReady ?? 0)) {
+    amount = e.hp - 1; dst.gritReady = t + T.gritCd(dst);
+    ev.push({ t, type: 'buff', src: dst.id, dst: dst.id, text: 'grit' });
+  }
   e.hp = Math.max(0, e.hp - amount);
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   if (e.hp <= 0) {
     e.alive = false;
     ev.push({ t, type: 'die', src, dst: dst.id, to: { ...e.pos } });
     const killer = unitOf(p, src);
-    if (killer?.side === 'hero' && dst.side === 'foe') credit(p, killer, e.pos);
+    if (killer?.side === 'hero' && dst.side === 'foe') {
+      credit(p, killer, e.pos);
+      // mana flow: a kill takes seconds off the killer's skills
+      const f = T.flow(killer);
+      if (f) killer.ready = [killer.ready[0] - f, killer.ready[1] - f];
+    }
     return;
   }
   if (dst.side === 'hero' && e.hp < e.maxHp * 0.3) guardian(p, dst, t, ev);
@@ -134,7 +152,8 @@ function credit(p: Party, u: Unit, at: Cell): void {
   if (!promo || u.promoteReady) return;
   const me = entOf(p, u.id)!;
   const counts = u.cls === 'warrior' ? me.hp < me.maxHp / 2 : u.cls === 'archer' ? dist(me.pos, at) >= 5 : false;
-  if (counts && ++u.progress >= promo.need) u.promoteReady = true;
+  // on the roaming maps the advanced class also waits for its level
+  if (counts && ++u.progress >= promo.need && (!p.roam || (u.level ?? 1) >= PROMOTE_LEVEL)) u.promoteReady = true;
 }
 
 /** Is the target tucked beside cover on the shooter's side (a wall, a tree, a boulder…)? Point-blank ignores it. */
@@ -154,14 +173,26 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
   const magic = u.cls ? CLASSES[u.cls].magic : false;
   if (st.range <= 1) ev.push({ t, type: 'bump', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos } });
   else ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos }, text: magic ? 'spell' : 'bow' });
-  // a shot at a body behind cover mostly hits the cover
-  const hit = st.range <= 1 ? 0.9 : behindCover(p, e.pos, te.pos) ? 0.5 : 0.85;
-  if (!p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos } }); return; }
+  // a shot at a body behind cover mostly hits the cover; eagle eyes aim truer, a sprinter's dodge and a shield's block turn some aside
+  const covered = st.range > 1 && behindCover(p, e.pos, te.pos);
+  const hit = (st.range <= 1 ? 0.9 : (covered ? 0.5 : 0.85) + T.hit(u)) * (1 - T.evade(target));
+  const blocked = st.range <= 1 && p.s.rng.chance(T.block(target));
+  if (blocked || !p.s.rng.chance(hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); return; }
   let m = mult;
   if (u.side === 'hero') {
     m *= passiveMult(p, u, target, t, ev) * u.empower;
     if (u.empower > 1) { u.empower = 1; u.hiddenUntil = 0; }
+    // bond: each ally close by; steady aim: shots in a row from the same spot; a critical blow
+    const near = p.units.filter((x) => x.side === 'hero' && x !== u && alive(p, x) && dist(posOf(p, x), e.pos) <= 2).length;
+    m *= 1 + T.bond(u) * near;
+    if (st.range > 1 && T.steadyMax(u)) {
+      u.steady = u.steadyAt && u.steadyAt.x === e.pos.x && u.steadyAt.y === e.pos.y ? Math.min(T.steadyMax(u), (u.steady ?? 0) + 1) : 0;
+      u.steadyAt = { ...e.pos };
+      m *= 1 + 0.1 * u.steady;
+    }
+    if (T.crit(u) && p.s.rng.chance(T.crit(u))) m *= 1.5;
   }
+  if (target.side === 'hero' && covered) m *= T.coverTaken(target);
   damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev);
   const w = u.weapon ? WEAPONS[u.weapon] : undefined;
   if (w?.cleave || w?.splash) {
@@ -170,5 +201,5 @@ export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[],
   }
   if (w?.stun && te.alive && p.s.rng.chance(w.stun)) target.nextAt = Math.max(target.nextAt, t + 1.2);
   // a warrior struck in melee sometimes strikes straight back
-  if (u.side === 'foe' && st.range <= 1 && te.alive && passive(target) === 'counter' && p.s.rng.chance(0.25)) strike(p, target, u, t + 0.1, ev);
+  if (u.side === 'foe' && st.range <= 1 && te.alive && passive(target) === 'counter' && p.s.rng.chance(T.counter(target))) strike(p, target, u, t + 0.1, ev);
 }

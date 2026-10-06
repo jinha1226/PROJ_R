@@ -6,6 +6,7 @@ import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targe
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, PROMOTIONS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useSkill } from './partySkills';
 import { autoSkill } from './partyAuto';
+import { refitHp } from './partyLevel';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -64,9 +65,10 @@ export function promote(p: Party, id: string): GEvent[] {
   const u = unitOf(p, id);
   const promo = u?.cls && PROMOTIONS[u.cls];
   if (!u || !promo || !u.promoteReady || !alive(p, u)) return [];
-  const e = entOf(p, id)!, more = CLASSES[promo.to].hp - CLASSES[u.cls!].hp;
-  e.maxHp += more; e.hp += more;
+  const e = entOf(p, id)!;
+  if (u.level === undefined) { const more = CLASSES[promo.to].hp - CLASSES[u.cls!].hp; e.maxHp += more; e.hp += more; }
   u.cls = promo.to; u.ready = [p.time, p.time]; u.queued = undefined; u.promoteReady = false; u.progress = 0;
+  if (u.level !== undefined) refitHp(p, u);
   return [{ t: p.time, type: 'buff', src: id, dst: id, text: 'promote' }];
 }
 

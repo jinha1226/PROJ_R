@@ -24,7 +24,8 @@ export class WorldLog {
       if (e.type === 'die' && u?.side === 'foe') this.add(e.t, `${name(e.dst)} 처치`);
       else if (e.type === 'die' && u?.side === 'hero') this.add(e.t, `${name(e.dst)} 쓰러짐`, 'warn');
       else if (e.type === 'wake') this.add(e.t, Number(e.text) >= 200 ? '떠돌이 고블린이 알아챔' : Number(e.text) >= 100 ? '진지가 깨어남' : '적이 알아챔', 'warn');
-      else if (e.type === 'drop') this.add(e.t, '영혼석이 떨어짐', 'warn');
+      else if (e.type === 'drop') this.add(e.t, '영혼 소멸', 'warn');
+      else if (e.type === 'levelUp') this.add(e.t, `${name(e.src)} 레벨 ${e.amount}`, 'good');
       else if (e.type === 'pickup') this.add(e.t, '영혼석 습득');
       else if (e.type === 'buff' && e.text === 'soul') this.add(e.t, `${name(e.dst)} 영혼이 깃듦`, 'good');
       else if (e.type === 'buff' && e.text === 'print') this.add(e.t, '복제 포드가 새 몸을 출력', 'good');

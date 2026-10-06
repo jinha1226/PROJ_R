@@ -16,6 +16,9 @@ import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { lookOf } from '../party/partyPick';
 import { PipWindow } from '../overworld/pipWindow';
+import { TraitPicker } from '../overworld/traitPicker';
+import { pickTrait } from '../../sim/party/partyLevel';
+import type { TraitId } from '../../sim/party/partyTraits';
 import { WorldHud } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
 import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
@@ -45,6 +48,7 @@ export class DelveDemo implements Screen {
   private p!: DelveParty;
   private hud!: WorldHud;
   private pip!: PipWindow;
+  private picker!: TraitPicker;
   private mini!: DelveMinimap;
   private log = new WorldLog();
   private sel = 'hero';
@@ -81,12 +85,15 @@ export class DelveDemo implements Screen {
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
       promote: () => this.live(promote(this.p, this.sel)),
+      traits: (id) => { if (!this.pip.open && !this.picker.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
       descend: () => this.down(),
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.pip.el);
+    this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
+    this.el.appendChild(this.picker.el);
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
@@ -107,14 +114,14 @@ export class DelveDemo implements Screen {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.p.waiting) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.p.waiting) {
         const t0 = this.p.time, slow = this.mode === 'realtime' && now < this.slowUntil ? 0.35 : 1;
         this.live(delveTick(this.p, dt * RATE * this.speed * slow), t0);
       }
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open);
+      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open);
       this.drawHud();
       this.mini.draw();
       this.raf = requestAnimationFrame(loop);
@@ -146,9 +153,10 @@ export class DelveDemo implements Screen {
       if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'foe') this.kills++;
       if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, this.mode === 'realtime');
       if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', this.mode === 'realtime');
+      if (e.type === 'levelUp') this.hud.toast(`${this.name(e.src!)} 레벨 ${e.amount}`);
       if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
-      if (e.type === 'drop') this.hud.toast('영혼석 떨어짐');
+      if (e.type === 'drop') this.hud.toast('영혼 소멸');
       if (e.type === 'dead') {
         this.hud.toast('전멸');
         this.log.add(e.t, e.text === 'lost' ? '전멸 · 영혼은 지하에 남음' : '전멸 · 재료 부족', 'warn');
@@ -210,7 +218,7 @@ export class DelveDemo implements Screen {
   private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
 
   private togglePip(tab: 'stat' | 'bag'): void {
-    if (!this.pip.open) this.pausedBeforePip = this.paused;
+    if (!this.pip.open && !this.picker.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
   }
 
@@ -222,7 +230,8 @@ export class DelveDemo implements Screen {
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
-    if (k === 'escape') { this.pip.close(); return; }
+    if (k === 'escape') { this.pip.close(); this.picker.close(); return; }
+    if (this.picker.open) return;
     if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }

@@ -15,6 +15,9 @@ import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { PipWindow } from './pipWindow';
+import { TraitPicker } from './traitPicker';
+import { pickTrait } from '../../sim/party/partyLevel';
+import type { TraitId } from '../../sim/party/partyTraits';
 import { WorldHud } from './worldHud';
 import { WorldLog } from './worldLog';
 import { Pinch, coarsePointer, startZoom } from './touchView';
@@ -46,6 +49,7 @@ export class WorldDemo implements Screen {
   private warned = new Set<string>();
   private hud!: WorldHud;
   private pip!: PipWindow;
+  private picker!: TraitPicker;
   private pausedBeforePip = false;
   private hover: { x: number; y: number } | null = null;
   private landing = false;
@@ -78,9 +82,12 @@ export class WorldDemo implements Screen {
       select: (id) => this.select(id),
       skill: (id, slot) => queueSkill(this.p, id || this.sel, slot),
       promote: () => this.live(promote(this.p, this.sel)),
+      traits: (id) => { if (!this.pip.open && !this.picker.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.pip.el);
+    this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
+    this.el.appendChild(this.picker.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
     this.zoom = startZoom(this.zoom);
     // a pointer-up that ends a pinch or a drag is not a click
@@ -100,7 +107,7 @@ export class WorldDemo implements Screen {
       last = now;
       // while the pod falls in the world waits; then the clone steps out
       if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
-      if (!this.paused && !this.pip.open && !this.landing) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.landing) {
         const t0 = this.p.time;
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
@@ -108,7 +115,7 @@ export class WorldDemo implements Screen {
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open);
+      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open);
       const taken = this.p.camps.filter((c) => c.cleared).length;
       this.hud.draw(this.p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log,
         area: `<div><span>영역</span><b>${Math.round(claimedShare(this.p) * 100)}%</b></div><div><span>진지</span><b>${taken}/${this.p.camps.length}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${this.p.bio}/${BODY_COST}</b></div>${this.p.carried.length ? `<div class="soul"><span>영혼</span><b>${this.p.carried.length}</b></div>` : ''}`,
@@ -135,10 +142,11 @@ export class WorldDemo implements Screen {
     for (const e of ev) {
       if (e.type === 'wake') this.alert(`wake${e.text}`, Number(e.text) >= 200 ? '고블린 발견' : '진지 발견');
       if (e.type === 'buff' && e.text === 'claim') this.message(`영역 확보 · ${Math.round(claimedShare(this.p) * 100)}%`);
+      if (e.type === 'levelUp') this.hud.toast(`${this.name(e.src!)} 레벨 ${e.amount}`);
       if (e.type === 'buff' && e.text === 'soul') this.message(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.message(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
-      if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼석 떨어짐');
+      if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼 소멸');
       if (e.type === 'dead') this.message('전멸');
     }
   }
@@ -192,7 +200,8 @@ export class WorldDemo implements Screen {
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
-    if (k === 'escape') { this.pip.close(); return; }
+    if (k === 'escape') { this.pip.close(); this.picker.close(); return; }
+    if (this.picker.open) return;
     if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
@@ -249,7 +258,7 @@ export class WorldDemo implements Screen {
 
   /** The Pip-Boy window (the game waits while it is open, and goes on as it was). */
   private togglePip(tab: 'stat' | 'bag'): void {
-    if (!this.pip.open) this.pausedBeforePip = this.paused;
+    if (!this.pip.open && !this.picker.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
   }
 

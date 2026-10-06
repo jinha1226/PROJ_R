@@ -13,9 +13,9 @@ test('the title drops a pod: an empty clone steps out beside it, the drill rig w
   await expect(page.locator('.wh-log')).toContainText('포드 착륙');
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');
-  await expect(page.locator('.pip-win')).toBeVisible();
+  await expect(page.locator('.pip-win:not(.trait-win)')).toBeVisible();
   await expect(page.locator('.pip-rec')).toContainText('맨주먹');
   await page.keyboard.press('Escape');
-  await expect(page.locator('.pip-win')).toBeHidden();
+  await expect(page.locator('.pip-win:not(.trait-win)')).toBeHidden();
   expect(errors).toEqual([]);
 });

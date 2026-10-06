@@ -11,7 +11,9 @@ export interface HudActions { pause(): void; speed(): void; stat(): void; bag():
   /** back up to the pod (shown when given; enabled by draw) */
   ascend?: () => void;
   /** pass the turn (Space) — a button for touch screens, shown on the clone's turn */
-  wait?: () => void }
+  wait?: () => void;
+  /** open the level-up trait choice for a clone */
+  traits?: (id: string) => void }
 
 /**
  * The world screen's frame, laid out like Jupiter Hell: minimap and area top left, the log bottom left, mode and controls top right,
@@ -50,12 +52,14 @@ export class WorldHud {
       const t = e.target as HTMLElement, frame = t.closest<HTMLElement>('[data-hero]'), skill = t.closest<HTMLElement>('[data-skill]');
       if (frame) a.select(frame.dataset.hero!);
       if (skill && frame) a.skill(frame.dataset.hero!, Number(skill.dataset.skill) as 0 | 1);
+      if (t.closest('[data-traits]') && frame) a.traits?.(frame.dataset.hero!);
     };
     el.querySelector('.wh-party')!.addEventListener('click', party);
     el.querySelector('.wh-br')!.addEventListener('click', (e) => {
       const t = e.target as HTMLElement, skill = t.closest<HTMLElement>('[data-skill]');
       if (skill) a.skill('', Number(skill.dataset.skill) as 0 | 1);
       if (t.closest('[data-promote]')) a.promote();
+      if (t.closest('[data-traits]')) a.traits?.('');
     });
   }
 

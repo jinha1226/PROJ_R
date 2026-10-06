@@ -1,6 +1,7 @@
 import { DIRS, dist, same, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, canHit, damage, entOf, occupied, passiveMult, posOf, roll, stats, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
 import { CLASSES, SKILLS } from './partyDefs';
+import { T } from './partyTraits';
 
 /** Queue a hero's skill (as in FTL: orders are given at any time, even paused; they happen as time runs). Again cancels it. */
 export function queueSkill(p: Party, id: string, slot: 0 | 1): void {
@@ -30,29 +31,29 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
       break;
     }
     case 'frenzy': u.hasteUntil = t + 5; ev.push({ t, type: 'buff', src: id, dst: id, text: 'frenzy' }); break;
-    case 'stealth': u.hiddenUntil = t + 4; u.empower = 2.5; ev.push({ t, type: 'buff', src: id, dst: id, text: 'stealth' }); break;
+    case 'stealth': u.hiddenUntil = t + 4 + T.stealth(u); u.empower = 2.5; ev.push({ t, type: 'buff', src: id, dst: id, text: 'stealth' }); break;
     case 'heal': {
       const ally = p.units.filter((x) => x.side === 'hero' && alive(p, x)).sort((a, b) => ratio(p, a) - ratio(p, b))[0]!;
-      const ae = entOf(p, ally.id)!, n = Math.min(22, ae.maxHp - ae.hp);
+      const ae = entOf(p, ally.id)!, n = Math.min(Math.round(22 * T.heal(u)), ae.maxHp - ae.hp);
       ae.hp += n;
       ev.push({ t, type: 'heal', src: id, dst: ally.id, amount: n });
       break;
     }
     case 'ward':
-      for (const a of p.units) if (a.side === 'hero' && alive(p, a) && dist(posOf(p, a), me.pos) <= 4) { a.shield = Math.min(30, a.shield + 15); ev.push({ t, type: 'buff', src: id, dst: a.id, text: 'ward' }); }
+      for (const a of p.units) if (a.side === 'hero' && alive(p, a) && dist(posOf(p, a), me.pos) <= 4) { a.shield = Math.min(30 + T.ward(u), a.shield + 15 + T.ward(u)); ev.push({ t, type: 'buff', src: id, dst: a.id, text: 'ward' }); }
       break;
     case 'fireball': {
       const tg = aimed(); if (!tg) return [];
       const tp = posOf(p, tg);
       ev.push({ t, type: 'shoot', src: id, dst: tg.id, from: { ...me.pos }, to: { ...tp }, text: 'spell' }, { t, type: 'react', src: id, to: { ...tp }, text: 'ignite' });
-      for (const f of near(tp, 1)) damage(p, t, id, f, Math.round(roll(p, [10, 14]) * passiveMult(p, u, f, t, ev)), ev);
+      for (const f of near(tp, 1)) damage(p, t, id, f, Math.round(roll(p, [10, 14]) * passiveMult(p, u, f, t, ev) * T.amplify(u)), ev);
       break;
     }
     case 'frost': {
       const tg = aimed(); if (!tg) return [];
       const tp = posOf(p, tg);
       ev.push({ t, type: 'shoot', src: id, dst: tg.id, from: { ...me.pos }, to: { ...tp }, text: 'spell' }, { t, type: 'react', src: id, to: { ...tp }, text: 'freeze' });
-      damage(p, t, id, tg, roll(p, [6, 9]), ev);
+      damage(p, t, id, tg, Math.round(roll(p, [6, 9]) * T.amplify(u)), ev);
       tg.frozenUntil = t + 2.5;
       tg.nextAt = Math.max(tg.nextAt, tg.frozenUntil);
       break;
@@ -86,7 +87,7 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
       break;
     }
   }
-  u.ready[slot] = t + SKILLS[skill].cd;
+  u.ready[slot] = t + SKILLS[skill].cd * T.cd(u);
   u.nextAt = Math.max(u.nextAt, t + 0.6);
   return ev;
 }
