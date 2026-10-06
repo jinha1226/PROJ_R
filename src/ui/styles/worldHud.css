@@ -261,3 +261,39 @@
   .wh-bl .wl-line { font-size: 10px; line-height: 1.45; }
   .wh-bl .wl-line:nth-last-child(n + 4) { display: none; }
 }
+
+/* ---- Pip window: gear and class tabs ---- */
+.pg, .pc { display: grid; gap: 6px; align-content: start; font-size: 12px; }
+.pg-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pg-slot h5, .pc-line h5 { margin: 0 0 4px; font: 11px 'GalmuriMono', monospace; color: #34a85c; letter-spacing: 0.15em; display: flex; gap: 6px; align-items: center; }
+.pg-pack { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.pg-card { border: 1px solid #1f5a2e; background: #010a05; padding: 6px 8px; display: grid; gap: 3px; }
+.pg-card.empty { color: #2f5a3e; border-style: dashed; place-items: center; min-height: 60px; }
+.pg-card.off { border-color: #7a4a1e; }
+.pg-head { display: flex; gap: 6px; align-items: baseline; }
+.pg-head b { font-weight: normal; color: #e6ffb0; }
+.pg-head small { color: #8ff0ff; }
+.pg-head .up { color: #5dff8a; margin-left: auto; font-weight: normal; }
+.pg-head .down { color: #ff7a6a; margin-left: auto; font-weight: normal; }
+.pg-stat { color: #9dffb8; }
+.pg-tags { color: #34a85c; }
+.pg-trig { color: #ffd76a; font-size: 11px; }
+.pg-warn { color: #ff9a5a; font-size: 11px; }
+.pg-btns { display: flex; gap: 4px; }
+.pg-btns button, .pc-row button { font: 11px 'GalmuriMono', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 3px 8px; cursor: pointer; }
+.pg-btns button:disabled { opacity: 0.35; cursor: default; }
+.pg-none { color: #2f5a3e; margin: 4px 0; }
+.pc-line { border-left: 2px solid var(--tint); padding-left: 8px; margin-bottom: 6px; color: var(--tint); }
+.pc-line .cls-icon, .pc-row .cls-icon { width: 18px; height: 18px; }
+.pc-row { display: grid; grid-template-columns: 18px 72px 1fr auto; gap: 4px 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid #0f3a1e; color: var(--tint, #9dffb8); }
+.pc-row b { font-weight: normal; color: #e6ffb0; }
+.pc-row.met b { color: #ffd76a; }
+.pc-need { color: #34a85c; display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.pc-need .ok { color: #5dff8a; }
+.pc-ult { grid-column: 2 / -1; color: #8ff0ff; font-size: 11px; }
+.pc-ult b { color: #8ff0ff; margin-right: 4px; }
+.pc-row.small { font-size: 11px; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .pg-slots { grid-template-columns: 1fr; }
+  .pg-pack { grid-template-columns: 1fr; }
+}
