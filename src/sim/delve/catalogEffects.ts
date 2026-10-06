@@ -57,6 +57,5 @@ export const wind: TriggerDef = { id: '순풍', when: 'moved', run: (_p, c) => {
 export const thunder: TriggerDef = { id: '천둥', when: 'crit', run: (p, c) => { if (c.target)
         for (const f of nearby(p, c.target, 2, 'foe'))
             applyStatus(p, c.src, f, 'shock', c.t, c.ev); } };
-export const bones: TriggerDef = { id: '망자의 부름', when: 'kill', chance: .2, run: (p, c) => { if (c.target)
-        summon(p, c.src, posOf(p, c.target), c.t, c.ev); } };
+export const bones: TriggerDef = { id: '망자의 부름', when: 'kill', chance: .2, run: (p, c) => { if (c.target && !c.target.raised && summon(p, c.src, posOf(p, c.target), c.t, c.ev)) c.target.raised = true; } };
 export function gearTaken(u: Unit): number { return u.gear?.armor?.def === 'ironPlate' && u.ironGuard && u.still >= 2 ? .8 : 1; }
