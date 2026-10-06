@@ -147,7 +147,12 @@ export function tick(p: Party, dt: number): GEvent[] {
     const next = p.units.filter((u) => alive(p, u) && !u.asleep).sort((a, b) => a.nextAt - b.nextAt)[0];
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
-    if (next.id === p.manual && next.order?.kind !== 'move') { p.waiting = true; p.s.time = p.time; return ev; }
+    if (next.id === p.manual) {
+      // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
+      const o = next.order, at = entOf(p, next.id)!.pos;
+      if (o?.kind === 'move' && same(at, o.cell)) next.order = null;
+      if (next.order?.kind !== 'move') { p.waiting = true; p.s.time = p.time; return ev; }
+    }
     moment(p, next, ev);
   }
   p.time = end;

@@ -16,6 +16,7 @@ import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { PipWindow } from './pipWindow';
 import { TraitPicker } from './traitPicker';
+import { OptionsMenu } from './optionsMenu';
 import { TouchPad } from './touchPad';
 import { pickTrait } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/partyTraits';
@@ -51,6 +52,7 @@ export class WorldDemo implements Screen {
   private hud!: WorldHud;
   private pip!: PipWindow;
   private picker!: TraitPicker;
+  private menu!: OptionsMenu;
   private pad!: TouchPad;
   private pausedBeforePip = false;
   private hover: { x: number; y: number } | null = null;
@@ -76,20 +78,24 @@ export class WorldDemo implements Screen {
     root.appendChild(this.el);
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
-      pause: () => { this.paused = !this.paused; },
-      speed: () => { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); },
+      menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
-      restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       ...(this.opts.onDrill ? { descend: () => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p)); }, descendLabel: '▼ 시추공' } : {}),
       select: (id) => this.select(id),
       skill: (id, slot) => queueSkill(this.p, id || this.sel, slot),
       promote: () => this.live(promote(this.p, this.sel)),
-      traits: (id) => { if (!this.pip.open && !this.picker.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
+      traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
+    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · C 상태 · I 가방 · 휠 확대' }), {
+      speed: (v) => { this.speed = v; this.pace(); },
+      restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
+      close: () => { this.paused = this.pausedBeforePip; },
+    });
+    this.el.appendChild(this.menu.el);
     this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); });
@@ -111,7 +117,7 @@ export class WorldDemo implements Screen {
       last = now;
       // while the pod falls in the world waits; then the clone steps out
       if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.landing) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing) {
         const t0 = this.p.time;
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
@@ -120,11 +126,9 @@ export class WorldDemo implements Screen {
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open);
-      const taken = this.p.camps.filter((c) => c.cleared).length;
-      this.hud.draw(this.p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log,
-        area: `<div><span>영역</span><b>${Math.round(claimedShare(this.p) * 100)}%</b></div><div><span>진지</span><b>${taken}/${this.p.camps.length}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${this.p.bio}/${BODY_COST}</b></div>${this.p.carried.length ? `<div class="soul"><span>영혼</span><b>${this.p.carried.length}</b></div>` : ''}`,
-        mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대', stairs: canDrill(this.p) });
+      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open);
+      const bio = `<span class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${this.p.bio}/${BODY_COST}</b></span>${this.p.carried.length ? `<span class="soul">영혼 <b>${this.p.carried.length}</b></span>` : ''}`;
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: `<span><b>지상</b></span><span>턴 <b>${Math.floor(this.p.time)}</b></span>${bio}`, mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', stairs: canDrill(this.p) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };
@@ -205,8 +209,8 @@ export class WorldDemo implements Screen {
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
-    if (k === 'escape') { this.pip.close(); this.picker.close(); return; }
-    if (this.picker.open) return;
+    if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
+    if (this.picker.open || this.menu.open) return;
     if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
@@ -245,7 +249,7 @@ export class WorldDemo implements Screen {
     const me = unitOf(this.p, this.sel);
     const e = me && entOf(this.p, me.id);
     const o = me?.order;
-    this.rt.showAim(e?.alive ? [e.pos, ...(o?.kind === 'move' || o?.kind === 'hold' ? [o.cell] : [])] : null, true);
+    this.rt.showAim(null, true);
     // the mouse over a seen open cell shows the walk a click would take (as in Jupiter Hell); otherwise the walk under way
     const h = this.hover, m = this.p.s.map;
     const hoverWalk = h && e?.alive && this.p.s.seen[idx(m, h)] && walkable(tileAt(m, h)) && !same(h, e.pos) && !this.unitAt(h) ? findPath(m, e.pos, h) : null;
@@ -262,8 +266,13 @@ export class WorldDemo implements Screen {
   }
 
   /** The Pip-Boy window (the game waits while it is open, and goes on as it was). */
+  private toggleMenu(): void {
+    if (!this.menu.open) this.pausedBeforePip = this.paused;
+    this.menu.toggle();
+  }
+
   private togglePip(tab: 'stat' | 'bag'): void {
-    if (!this.pip.open && !this.picker.open) this.pausedBeforePip = this.paused;
+    if (!this.pip.open && !this.picker.open && !this.menu.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
   }
 

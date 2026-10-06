@@ -17,6 +17,7 @@ import type { UalLibrary } from '../../view/grid/ualActor';
 import { lookOf } from '../party/partyPick';
 import { PipWindow } from '../overworld/pipWindow';
 import { TraitPicker } from '../overworld/traitPicker';
+import { OptionsMenu } from '../overworld/optionsMenu';
 import { pickTrait } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/partyTraits';
 import { WorldHud } from '../overworld/worldHud';
@@ -50,6 +51,7 @@ export class DelveDemo implements Screen {
   private hud!: WorldHud;
   private pip!: PipWindow;
   private picker!: TraitPicker;
+  private menu!: OptionsMenu;
   private pad!: TouchPad;
   private mini!: DelveMinimap;
   private log = new WorldLog();
@@ -62,7 +64,6 @@ export class DelveDemo implements Screen {
   private hover: Cell | null = null;
   private warned = new Set<string>();
   private slowUntil = 0;
-  private kills = 0;
   private raf = 0;
   private readonly seed: number;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
@@ -79,16 +80,13 @@ export class DelveDemo implements Screen {
     root.appendChild(this.el);
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
-      pause: () => { this.paused = !this.paused; },
-      speed: () => { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); },
+      menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
-      restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       ...(this.opts.onAscend ? { ascend: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } } : {}),
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
       promote: () => this.live(promote(this.p, this.sel)),
-      traits: (id) => { if (!this.pip.open && !this.picker.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
-      mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
+      traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       descend: () => this.down(),
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
@@ -96,6 +94,13 @@ export class DelveDemo implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
+    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, turnBased: this.mode === 'turn', keys: '클릭 이동·공격 · Q W 기술 · Space 대기(턴제)/정지 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
+      speed: (v) => { this.speed = v; this.pace(); },
+      mode: () => { this.mode = this.mode === 'turn' ? 'realtime' : 'turn'; try { localStorage.setItem(MODE_KEY, this.mode); } catch { /* private window */ } },
+      restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
+      close: () => { this.paused = this.pausedBeforePip; },
+    });
+    this.el.appendChild(this.menu.el);
     this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), stat: () => this.togglePip('stat') });
     this.el.appendChild(this.pad.el);
     this.mini = new DelveMinimap(() => this.p);
@@ -118,7 +123,7 @@ export class DelveDemo implements Screen {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.p.waiting) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting) {
         const t0 = this.p.time, slow = this.mode === 'realtime' && now < this.slowUntil ? 0.35 : 1;
         this.live(delveTick(this.p, dt * RATE * this.speed * slow), t0);
       }
@@ -126,7 +131,7 @@ export class DelveDemo implements Screen {
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open);
+      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open);
       this.drawHud();
       this.mini.draw();
       this.raf = requestAnimationFrame(loop);
@@ -155,7 +160,6 @@ export class DelveDemo implements Screen {
     this.rt?.applyLive(ev, t0);
     this.log.read(this.p, ev);
     for (const e of ev) {
-      if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'foe') this.kills++;
       if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, this.mode === 'realtime');
       if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', this.mode === 'realtime');
       if (e.type === 'levelUp') this.hud.toast(`${this.name(e.src!)} 레벨 ${e.amount}`);
@@ -186,7 +190,6 @@ export class DelveDemo implements Screen {
   private restart(): void {
     this.p = this.opts.party ?? newDelve(this.seed);
     this.warned.clear();
-    this.kills = 0;
     this.log = new WorldLog();
     this.log.add(this.p.time, `${this.opts.party ? '시추공 하강' : '승강기 하강'} · 지하 ${this.p.floor}층`, 'warn');
     LOOK_BY_ID.clear();
@@ -222,8 +225,13 @@ export class DelveDemo implements Screen {
   private name(id: string): string { return CLASSES[unitOf(this.p, id)!.cls!].name; }
   private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
 
+  private toggleMenu(): void {
+    if (!this.menu.open) this.pausedBeforePip = this.paused;
+    this.menu.toggle();
+  }
+
   private togglePip(tab: 'stat' | 'bag'): void {
-    if (!this.pip.open && !this.picker.open) this.pausedBeforePip = this.paused;
+    if (!this.pip.open && !this.picker.open && !this.menu.open) this.pausedBeforePip = this.paused;
     this.pip.toggle(tab, this.sel);
   }
 
@@ -235,8 +243,8 @@ export class DelveDemo implements Screen {
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
-    if (k === 'escape') { this.pip.close(); this.picker.close(); return; }
-    if (this.picker.open) return;
+    if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
+    if (this.picker.open || this.menu.open) return;
     if (k === 'c' || k === 'i') { this.togglePip(k === 'c' ? 'stat' : 'bag'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
@@ -298,7 +306,7 @@ export class DelveDemo implements Screen {
   private marks(): void {
     if (!this.rt) return;
     const me = unitOf(this.p, this.sel), e = me && entOf(this.p, me.id), o = me?.order, m = this.p.s.map, h = this.hover;
-    this.rt.showAim(e?.alive ? [e.pos, ...(o?.kind === 'move' || o?.kind === 'hold' ? [o.cell] : [])] : null, true);
+    this.rt.showAim(null, true);
     const hoverWalk = h && e?.alive && this.p.s.seen[idx(m, h)] && walkable(tileAt(m, h)) && !same(h, e.pos) && !this.unitAt(h) ? findPath(m, e.pos, h) : null;
     this.rt.showPath(hoverWalk ?? (o?.kind === 'move' && e?.alive ? findPath(m, e.pos, o.cell) : null));
   }
@@ -315,8 +323,7 @@ export class DelveDemo implements Screen {
   private drawHud(): void {
     const p = this.p, turn = this.mode === 'turn';
     const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
-    const keys = p.combat && turn ? '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종' : '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대';
-    this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn,
-      area: `<div><span>지하</span><b>${p.floor}층</b></div><div><span>처치</span><b>${this.kills}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${p.bio}/${BODY_COST}</b></div>${p.carried.length ? `<div class="soul"><span>영혼</span><b>${p.carried.length}</b></div>` : ''}` });
+    const status = `<span>지하 <b>${p.floor}층</b></span><span>턴 <b>${Math.floor(p.time)}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">재료 <b>${p.bio}/${BODY_COST}</b></span>${p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : ''}`;
+    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn });
   }
 }

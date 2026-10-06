@@ -171,3 +171,19 @@ it('an archer with a foe at its side shoots it point-blank instead of only rolli
   }
   expect(shots).toBeGreaterThan(1);
 });
+
+it('a clone under the hand that walks up to a foe stops at the end of its walk and waits; it does not strike on its own', () => {
+  const p = newDelve(2);
+  take(p, 0);
+  const h = entOf(p, 'hero')!;
+  const f = p.units.find((u) => u.side === 'foe')!, fe = entOf(p, f.id)!;
+  fe.pos = { x: h.pos.x + 3, y: h.pos.y }; fe.hp = 999; f.asleep = false; f.nextAt = 999;
+  p.combat = true; p.manual = 'hero';
+  for (let i = 0; i < 20 && !p.waiting; i++) delveTick(p, 0.1);
+  command(p, { kind: 'move', cell: { x: h.pos.x + 2, y: h.pos.y } });
+  const ev: ReturnType<typeof delveTick> = [];
+  for (let i = 0; i < 40 && !p.waiting; i++) ev.push(...delveTick(p, 0.1));
+  expect(p.waiting).toBe(true);
+  expect(ev.some((e) => e.src === 'hero' && (e.type === 'shoot' || e.type === 'bump'))).toBe(false);
+  expect(clones(p)[0]!.order).toBeNull();
+});
