@@ -1,6 +1,6 @@
 import { starterGear, nextItemId } from '../delve/gear';
 import { createRng } from '../../core/rng';
-import { generateMap } from '../grid/mapgen';
+import { generateFloor, type DelveFloor } from './delveGen';
 import { distanceMap } from '../grid/path';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent, type GridMap } from '../grid/types';
@@ -16,17 +16,18 @@ const FOE_OF: Record<string, FoeId> = { minion: 'goblin', ghoul: 'goblin', arche
 
 export interface DelveParty extends RoamParty { floor: number; seed: number }
 
-/** Soul stones on a floor: the first (an archer on floor 1) in the room the lift opens into, the rest in rooms farther in; the nearest three differ. */
-function placeSouls(map: GridMap, seed: number, floor: number): Soul[] {
+/** Ordinary souls belong to normal rooms; an unclassed first arrival gets an archer by the lift. */
+function placeSouls(f: DelveFloor, seed: number, floor: number, firstArcher: boolean): Soul[] {
+  const map = f.map;
   const rng = createRng((seed ^ 0x50a1) + floor * 131);
   const d = distanceMap(map, map.start);
-  const free = (c: Cell) => map.tiles[idx(map, c)] === 'floor' && d[idx(map, c)]! > 0 && !map.spawns.some((s) => s.pos.x === c.x && s.pos.y === c.y);
+  const free = (c: Cell) => map.tiles[idx(map, c)] === 'floor' && d[idx(map, c)]! > 0 && !map.spawns.some((s) => s.pos.x === c.x && s.pos.y === c.y) && !map.chests.some((s) => s.x === c.x && s.y === c.y);
   const cellsOf = (r: GridMap['rooms'][number]) => { const out: Cell[] = []; for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) if (free({ x, y })) out.push({ x, y }); return out; };
-  const rooms = [...map.rooms].sort((a, b) => d[idx(map, { x: a.x + (a.w >> 1), y: a.y + (a.h >> 1) })]! - d[idx(map, { x: b.x + (b.w >> 1), y: b.y + (b.h >> 1) })]!);
+  const rooms = f.rooms.filter((r) => r.kind === 'normal').map((r) => r.rect).sort((a, b) => d[idx(map, { x: a.x + (a.w >> 1), y: a.y + (a.h >> 1) })]! - d[idx(map, { x: b.x + (b.w >> 1), y: b.y + (b.h >> 1) })]!);
   const spots: Cell[] = [];
-  const first = cellsOf(rooms[0]!).filter((c) => dist(c, map.start) >= 2);
-  if (first.length) spots.push(rng.pick(first));
-  for (const r of rng.shuffle(rooms.slice(2)).slice(0, floor === 1 ? 3 : 2)) { const c = cellsOf(r); if (c.length) spots.push(rng.pick(c)); }
+  const first = cellsOf(map.rooms[0]!).filter((c) => dist(c, map.start) >= 2);
+  if (firstArcher && first.length) spots.push(rng.pick(first));
+  for (const r of rng.shuffle(rooms).slice(0, (floor === 1 ? 4 : 3) - spots.length)) { const c = cellsOf(r); if (c.length) spots.push(rng.pick(c)); }
   const order: BaseClass[] = floor === 1 ? ['archer', ...rng.shuffle(BASE_CLASSES.filter((c) => c !== 'archer'))] : rng.shuffle([...BASE_CLASSES]);
   return spots.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false }));
 }
@@ -41,18 +42,12 @@ function populate(p: DelveParty): void {
   });
 }
 
-function floorMap(seed: number, floor: number): GridMap {
-  const m = generateMap(seed, floor);
-  // the party has no use (yet) for chests, barrels and hidden traps: keep the floor clean
-  return { ...m, chests: [], barrels: [], traps: [] };
-}
-
 /** An empty clone steps out of the lift on the first floor below the ship. */
 export function newDelve(seed = 1, floor = 1, carry?: Carry): DelveParty {
-  const map = floorMap(seed, floor);
+  const generated = generateFloor(seed, floor), map = generated.map;
   const s = newState(map, seed + floor * 31, 'pistol', floor);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], pack: [], potions: 2, nextItem: 1, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
+  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(generated, seed, floor, floor === 1 && !carry?.clones.some((c) => c.unit.cls && c.unit.cls !== 'shell')), carried: [], pack: [], potions: 2, nextItem: 1, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
   populate(p);
   if (carry) placeParty(p, carry);
@@ -74,9 +69,9 @@ export const canDescend = (p: DelveParty): boolean => !p.combat && !!p.s.map.sta
 /** Down the stairs: a new floor; the living clones come along as they are (the fallen and their unrecovered souls stay behind). */
 export function descend(p: DelveParty): boolean {
   if (!canDescend(p)) return false;
-  const carry = takeParty(p), floor = p.floor + 1, map = floorMap(p.seed, floor);
+  const carry = takeParty(p), floor = p.floor + 1, generated = generateFloor(p.seed, floor), map = generated.map;
   p.s = newState(map, p.seed + floor * 31, 'pistol', floor);
-  p.floor = floor; p.units = []; p.souls = placeSouls(map, p.seed, floor); p.base = { ...map.start };
+  p.floor = floor; p.units = []; p.souls = placeSouls(generated, p.seed, floor, false); p.base = { ...map.start };
   populate(p);
   placeParty(p, carry);
   return true;
