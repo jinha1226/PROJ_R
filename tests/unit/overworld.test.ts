@@ -3,7 +3,7 @@ import { distanceMap } from '../../src/sim/grid/path';
 import { dist, idx } from '../../src/sim/grid/types';
 import { damage, entOf } from '../../src/sim/party/partyCore';
 import { generateWorld, WORLD_SIZE } from '../../src/sim/overworld/worldGen';
-import { newWorld, orderTo, worldTick } from '../../src/sim/overworld/worldSim';
+import { clones, newWorld, orderTo, worldTick } from '../../src/sim/overworld/worldSim';
 
 it('the world is the same for the same seed and different for another', () => {
   expect(generateWorld(4).ground).toEqual(generateWorld(4).ground);
@@ -24,31 +24,82 @@ it('camps sit on three rings round the base, stronger farther out, and every cam
   }
 });
 
-it('the party starts by the ship on claimed land, sees only what is near, and the camps sleep', () => {
-  const p = newWorld(undefined, 3);
+it('one empty clone wakes by the ship on claimed land; it sees only what is near and the camps sleep', () => {
+  const p = newWorld(3);
+  expect(clones(p)).toHaveLength(1);
+  expect(clones(p)[0]!.cls).toBe('shell');
   expect(p.claimed[idx(p.s.map, p.s.hero.pos)]).toBe(1);
   expect(p.s.visible.size).toBeLessThan(400);
   expect(p.units.filter((u) => u.side === 'foe').every((u) => u.asleep)).toBe(true);
   expect(p.combat).toBe(false);
 });
 
-it('out of combat an order walks the whole party there behind the chosen hero', () => {
-  const p = newWorld(undefined, 3);
-  const goal = { x: p.s.hero.pos.x + 5, y: p.s.hero.pos.y + 3 };
-  orderTo(p, 'ally-1', goal);
+it('souls lie about: the first near the ship, the nearest three of different classes', () => {
+  for (const seed of [1, 2, 3, 4]) {
+    const w = generateWorld(seed);
+    const r = (c: { x: number; y: number }) => Math.hypot(c.x - w.base.x, c.y - w.base.y);
+    expect(r(w.souls[0]!.pos)).toBeLessThanOrEqual(15);
+    expect(new Set(w.souls.slice(0, 3).map((s) => s.cls)).size).toBe(3);
+    for (const c of w.camps) expect(w.souls.some((s) => dist(s.pos, c.pos) <= 3)).toBe(true);
+  }
+});
+
+it('an empty clone that reaches a soul becomes its class', () => {
+  const p = newWorld(3);
+  const soul = p.souls[0]!;
+  orderTo(p, 'hero', soul.pos);
+  for (let i = 0; i < 400 && !soul.taken; i++) worldTick(p, 0.1);
+  expect(soul.taken).toBe(true);
+  expect(clones(p)[0]!.cls).toBe(soul.cls);
+  expect(entOf(p, 'hero')!.maxHp).toBeGreaterThan(30);
+});
+
+it('a soul picked up by a clone that has one is carried home; at the ship it gets a new body', () => {
+  const p = newWorld(3);
+  const [a, b] = p.souls;
+  entOf(p, 'hero')!.pos = { ...a!.pos };
+  worldTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...b!.pos };
+  worldTick(p, 0.1);
+  expect(p.carried).toEqual([b!.cls]);
+  orderTo(p, 'hero', p.s.map.start);
+  for (let i = 0; i < 600 && p.carried.length; i++) worldTick(p, 0.1);
+  expect(clones(p)).toHaveLength(2);
+  expect(clones(p)[1]!.cls).toBe(b!.cls);
+});
+
+it('out of combat an order walks the whole party there behind the chosen clone', () => {
+  const p = newWorld(3);
+  entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; worldTick(p, 0.1);
+  entOf(p, 'hero')!.pos = { ...p.s.map.start, x: p.s.map.start.x + 2 }; worldTick(p, 0.1);
+  const two = clones(p)[1]!.id;
+  const goal = { x: p.s.map.start.x + 5, y: p.s.map.start.y + 3 };
+  orderTo(p, two, goal);
   for (let i = 0; i < 200; i++) worldTick(p, 0.1);
-  expect(entOf(p, 'ally-1')!.pos).toEqual(goal);
-  expect(p.units.find((u) => u.id === 'ally-1')!.order).toBeNull();
-  for (const id of ['hero', 'ally-2']) expect(dist(entOf(p, id)!.pos, goal)).toBeLessThanOrEqual(2);
+  expect(entOf(p, two)!.pos).toEqual(goal);
+  expect(dist(entOf(p, 'hero')!.pos, goal)).toBeLessThanOrEqual(2);
+});
+
+it('a fallen clone drops its soul; when the last one falls the ship wakes a new empty body', () => {
+  const p = newWorld(3);
+  entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
+  const at = { ...entOf(p, 'hero')!.pos };
+  damage(p, p.time, 'x', clones(p)[0]!, 999, []);
+  const ev = worldTick(p, 0.1);
+  expect(ev.some((e) => e.type === 'drop' && e.text === 'soul')).toBe(true);
+  expect(p.souls.at(-1)!.pos).toEqual(at);
+  for (let i = 0; i < 50; i++) worldTick(p, 0.1);
+  const fresh = clones(p).filter((u) => entOf(p, u.id)!.alive);
+  expect(fresh).toHaveLength(1);
+  expect(fresh[0]!.cls).toBe('shell');
 });
 
 it('walking up to a camp wakes it all at once and starts a fight; clearing it claims the land round it', () => {
-  const p = newWorld(undefined, 3);
+  const p = newWorld(3);
   const camp = p.camps[0]!;
   const band = p.units.filter((u) => u.group === camp.group);
-  const spot = { x: camp.pos.x, y: camp.pos.y };
-  for (const id of ['hero', 'ally-1', 'ally-2']) entOf(p, id)!.pos = { ...spot };
-  entOf(p, 'hero')!.pos = { x: spot.x, y: spot.y };
+  entOf(p, 'hero')!.pos = { ...camp.pos };
   const ev = worldTick(p, 0.1);
   expect(band.every((u) => !u.asleep)).toBe(true);
   expect(ev.filter((e) => e.type === 'wake')).toHaveLength(1);
@@ -61,15 +112,14 @@ it('walking up to a camp wakes it all at once and starts a fight; clearing it cl
 });
 
 it('a blow on one sleeping camp foe wakes its whole camp', () => {
-  const p = newWorld(undefined, 3);
-  const camp = p.camps[1]!;
-  const band = p.units.filter((u) => u.group === camp.group);
+  const p = newWorld(3);
+  const band = p.units.filter((u) => u.group === p.camps[1]!.group);
   damage(p, 0, 'hero', band[0]!, 1, []);
   expect(band.every((u) => !u.asleep)).toBe(true);
 });
 
 it('left alone the party never throws over a long stretch of the world', () => {
-  const p = newWorld(undefined, 9);
+  const p = newWorld(9);
   orderTo(p, 'hero', p.camps[0]!.pos);
   for (let i = 0; i < 3000; i++) expect(() => worldTick(p, 0.1)).not.toThrow();
 });

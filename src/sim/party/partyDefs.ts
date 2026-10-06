@@ -1,12 +1,13 @@
-export type ClassId = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue' | 'berserker' | 'sniper';
+export type ClassId = 'shell' | 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue' | 'berserker' | 'sniper';
 export type BaseClass = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue';
 export type SkillId = 'taunt' | 'whirl' | 'pierce' | 'volley' | 'fireball' | 'frost' | 'heal' | 'ward' | 'stealth' | 'backstab' | 'frenzy' | 'aimed';
-export type WeaponId = 'swordShield' | 'greataxe' | 'longbow' | 'crossbow' | 'staff' | 'wand' | 'mace' | 'symbol' | 'daggers' | 'knives';
+export type WeaponId = 'fists' | 'swordShield' | 'greataxe' | 'longbow' | 'crossbow' | 'staff' | 'wand' | 'mace' | 'symbol' | 'daggers' | 'knives';
 /** a class's own rule, always on (the class engraving) */
-export type Passive = 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank' | 'rage' | 'farShot';
+export type Passive = 'none' | 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank' | 'rage' | 'farShot';
 
 export interface WeaponDef { name: string; dmg: [number, number]; range: number; atk: number; look: 'sword' | 'axe' | 'bow' | 'crossbow' | 'mace' | 'dagger' | 'none'; shield?: boolean; note: string; guard?: number; cleave?: boolean; splash?: boolean; stun?: number }
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
+  fists: { name: '맨주먹', dmg: [2, 4], range: 1, atk: 1.0, look: 'none', note: '능력 없음' },
   swordShield: { name: '검과 방패', dmg: [7, 10], range: 1, atk: 1.0, look: 'sword', shield: true, guard: 0.75, note: '받는 피해 -25%' },
   greataxe: { name: '양손 도끼', dmg: [10, 14], range: 1, atk: 1.4, look: 'axe', cleave: true, note: '옆의 적도 벤다 · 느림' },
   longbow: { name: '장궁', dmg: [6, 9], range: 7, atk: 1.1, look: 'bow', note: '사거리 7' },
@@ -19,8 +20,9 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   knives: { name: '투척 단검', dmg: [4, 7], range: 4, atk: 1.0, look: 'dagger', note: '원거리' },
 };
 
-export interface ClassDef { name: string; hp: number; move: number; skills: [SkillId, SkillId]; weapons: WeaponId[]; passive: Passive; passiveName: string; magic?: boolean }
+export interface ClassDef { name: string; hp: number; move: number; skills: SkillId[]; weapons: WeaponId[]; passive: Passive; passiveName: string; magic?: boolean }
 export const CLASSES: Record<ClassId, ClassDef> = {
+  shell: { name: '빈 몸', hp: 30, move: 0.9, skills: [], weapons: ['fists'], passive: 'none', passiveName: '' },
   warrior: { name: '전사', hp: 70, move: 0.9, skills: ['taunt', 'whirl'], weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
   archer: { name: '궁수', hp: 40, move: 0.9, skills: ['pierce', 'volley'], weapons: ['longbow', 'crossbow'], passive: 'firstShot', passiveName: '상처 없는 적에게 2배' },
   mage: { name: '마법사', hp: 34, move: 1.0, skills: ['fireball', 'frost'], weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },

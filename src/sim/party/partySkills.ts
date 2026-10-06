@@ -5,7 +5,7 @@ import { CLASSES, SKILLS } from './partyDefs';
 /** Queue a hero's skill (as in FTL: orders are given at any time, even paused; they happen as time runs). Again cancels it. */
 export function queueSkill(p: Party, id: string, slot: 0 | 1): void {
   const u = unitOf(p, id);
-  if (!u || u.side !== 'hero' || !alive(p, u) || p.time < u.ready[slot]) return;
+  if (!u || u.side !== 'hero' || !alive(p, u) || p.time < u.ready[slot] || !CLASSES[u.cls!].skills[slot]) return;
   u.queued = u.queued === slot ? undefined : slot;
 }
 
@@ -14,6 +14,7 @@ export function useSkill(p: Party, id: string, slot: 0 | 1): GEvent[] {
   const u = unitOf(p, id);
   if (!u || u.side !== 'hero' || !alive(p, u) || p.time < u.ready[slot]) return [];
   const skill = CLASSES[u.cls!].skills[slot], t = p.time, ev: GEvent[] = [], me = entOf(p, id)!;
+  if (!skill) return [];
   const foes = p.units.filter((x) => x.side === 'foe' && alive(p, x));
   const near = (c: Cell, r: number) => foes.filter((f) => dist(posOf(p, f), c) <= r);
   const target = targetOf(p, u, t);

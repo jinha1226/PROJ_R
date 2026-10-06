@@ -1,7 +1,7 @@
 import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
 import { dist, same, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
-import { CLASSES, FOES, PROMOTIONS, WEAPONS, type ClassId, type FoeId, type WeaponId } from './partyDefs';
+import { CLASSES, FOES, PROMOTIONS, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -22,6 +22,8 @@ export interface Unit {
   asleep?: boolean;
   /** the camp a foe belongs to (they wake together) */
   group?: number;
+  /** the soul a hero carries (what drops where it falls) */
+  soul?: BaseClass;
 }
 export interface Party {
   s: GridState; units: Unit[]; time: number; wave: number;

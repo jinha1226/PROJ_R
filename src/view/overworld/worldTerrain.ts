@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import type { Cell, GridState } from '../../sim/grid/types';
-import type { Camp, Ground } from '../../sim/overworld/worldGen';
+import type { Camp, Ground, Soul } from '../../sim/overworld/worldGen';
 import { WorldFog } from './worldFog';
 import { campProps, crashedShip, instanced, jitter, rocks, ruinWalls, trees, type CampView } from './worldProps';
 
 /** what the world view needs beyond the grid state */
-export interface WorldLook { ground: Ground[]; camps: Camp[]; base: Cell; claimed: Uint8Array }
+export interface WorldLook { ground: Ground[]; camps: Camp[]; base: Cell; claimed: Uint8Array; souls: Soul[] }
 
 const COLOR: Record<Ground, string> = {
   grass: '#557a38', forest: '#36522a', tree: '#33502a', rock: '#5e5a54', water: '#1e3f5e', ford: '#4f7486',
@@ -19,6 +19,8 @@ export class WorldTerrain {
   private readonly sun = new THREE.DirectionalLight('#fff0d8', 1.5);
   private readonly camps: CampView[] = [];
   private readonly beacon: THREE.PointLight;
+  /** soul stones on the ground: a floating crystal and its glow each */
+  private readonly stones: { soul: Soul; root: THREE.Group; gem: THREE.Mesh }[] = [];
   private clock = 0;
 
   constructor(private readonly w: number, private readonly h: number, private readonly look: WorldLook) {
@@ -84,8 +86,24 @@ export class WorldTerrain {
     return instanced(new THREE.ConeGeometry(0.12, 0.3, 4), this.fog, items, false);
   }
 
+  /** A soul stone: a violet-white crystal turning above the grass, lighting the ground round it. */
+  private stone(soul: Soul): void {
+    const root = new THREE.Group();
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.28, 0), new THREE.MeshBasicMaterial({ color: '#d8c8ff' }));
+    gem.scale.set(1, 1.6, 1);
+    const halo = new THREE.PointLight('#b49aff', 3, 4, 1.8);
+    halo.position.y = 0.6;
+    root.add(gem, halo);
+    root.position.set(soul.pos.x, 0, soul.pos.y);
+    this.root.add(root);
+    this.stones.push({ soul, root, gem });
+  }
+
   shade(s: GridState): void {
     this.fog.update(s.visible, s.seen, this.look.claimed);
+    // souls dropped by fallen clones join the ones the land began with
+    while (this.stones.length < this.look.souls.length) this.stone(this.look.souls[this.stones.length]!);
+    for (const st of this.stones) st.root.visible = !st.soul.taken && s.seen[st.soul.pos.y * this.w + st.soul.pos.x] === 1;
     // a cleared camp: the fire is out and the banner taken down
     for (const v of this.camps) {
       v.fire.visible = !v.camp.cleared;
@@ -101,6 +119,7 @@ export class WorldTerrain {
     this.sun.target.position.set(center.x, 0, center.z);
     for (const v of this.camps) v.fire.intensity = 4.5 + Math.sin(this.clock * 13 + v.camp.id) * 0.8 + Math.sin(this.clock * 7.3) * 0.5;
     this.beacon.intensity = 4 + Math.sin(this.clock * 2.2) * 2.5;
+    for (const st of this.stones) { st.gem.position.y = 0.75 + Math.sin(this.clock * 2 + st.soul.id) * 0.12; st.gem.rotation.y = this.clock * 1.4 + st.soul.id; }
   }
 
   syncTiles(): void { /* nothing opens or breaks on the world map yet */ }

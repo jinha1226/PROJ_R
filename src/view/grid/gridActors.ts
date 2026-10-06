@@ -322,6 +322,15 @@ export class GridActors {
     }
   }
 
+  /** Drops a figure so the next sync builds it again from its (new) look — a clone taking a soul. */
+  rebuild(id: string): void {
+    const v = this.views.get(id);
+    if (!v) return;
+    this.root.remove(v.actor.root);
+    v.actor.dispose();
+    this.views.delete(id);
+  }
+
   dispose(): void {
     for (const v of this.views.values()) v.actor.dispose();
     this.bars.dispose();

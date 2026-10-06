@@ -2,6 +2,7 @@ import { BASE_CLASSES, CLASSES, PROMOTIONS, SKILLS, WEAPONS, type BaseClass, typ
 import type { UalLook } from '../../view/grid/ualActor';
 
 const COLORS: Record<ClassId, [string, string]> = {
+  shell: ['#b4b8c0', '#8a9098'],
   warrior: ['#2a3a5a', '#c8b080'], berserker: ['#5a2020', '#d08040'], archer: ['#35502e', '#8a6a3a'], sniper: ['#2a3a2a', '#a0a070'],
   mage: ['#4a2a6a', '#c8a0e0'], cleric: ['#cfc6a8', '#c8a040'], rogue: ['#262626', '#7a3a3a'],
 };
@@ -9,7 +10,7 @@ const COLORS: Record<ClassId, [string, string]> = {
 /** How a hero of this class with this weapon looks. */
 export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
   const w = WEAPONS[weapon], [body, trim] = COLORS[cls];
-  const idle = w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
+  const idle = cls === 'shell' ? 'Idle_Loop' : w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
   return { body, trim, scale: cls === 'warrior' || cls === 'berserker' ? 1 : 0.95, weapon: w.look, shield: w.shield, idle };
 }
 

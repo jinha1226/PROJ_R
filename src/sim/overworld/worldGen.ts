@@ -1,11 +1,14 @@
 import { createRng, type Rng } from '../../core/rng';
 import { distanceMap } from '../grid/path';
 import { idx, type Cell, type FoeKind, type GridMap, type Tile } from '../grid/types';
+import { BASE_CLASSES, type BaseClass } from '../party/partyDefs';
 
 /** what a cell looks like (the sim only cares about its tile) */
 export type Ground = 'grass' | 'forest' | 'tree' | 'rock' | 'water' | 'ford' | 'dirt' | 'ruin' | 'ruinWall' | 'ship' | 'camp';
 export interface Camp { id: number; pos: Cell; tier: 1 | 2 | 3; group: number; cleared: boolean }
-export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell }
+/** a fallen native's soul stone lying on the land */
+export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
+export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[] }
 
 export const WORLD_SIZE = 96;
 const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor' };
@@ -53,7 +56,8 @@ export function generateWorld(seed: number): World {
     else if (rng.chance(0.025)) set(c, 'tree');
   }
   river(rng, base, set);
-  for (let n = 0; n < 4; n++) ruin(rng, base, set);
+  const ruins: Cell[] = [];
+  for (let n = 0; n < 4; n++) ruins.push(ruin(rng, base, set));
   const camps = placeCamps(rng, base, set, get);
   for (const c of camps) if (c.tier === 1) road(rng, base, c.pos, set, get);
   ship(base, set);
@@ -63,7 +67,20 @@ export function generateWorld(seed: number): World {
     const cells = ring(camp.pos, 2).filter((c) => map.tiles[idx(map, c)] === 'floor');
     PACKS[camp.tier].forEach((kind, i) => map.spawns.push({ kind, pos: cells[i % cells.length]!, group: camp.group, elite: camp.tier === 3 && i === 5 }));
   }
-  return { map, ground, camps, base };
+  return { map, ground, camps, base, souls: placeSouls(rng, map, base, ruins, camps) };
+}
+
+/** Soul stones: one in the open near the ship (the first), one inside each ruin, one at the heart of each camp; the classes go round so the nearest ones differ. */
+function placeSouls(rng: Rng, map: GridMap, base: Cell, ruins: Cell[], camps: Camp[]): Soul[] {
+  const d = distanceMap(map, map.start);
+  const open = (c: Cell) => map.tiles[idx(map, c)] === 'floor' && d[idx(map, c)]! > 0;
+  const spot = (c: Cell): Cell | undefined => [c, ...ring(c, 3)].find(open);
+  const first: Cell[] = [];
+  for (let y = 1; y < map.h - 1; y++) for (let x = 1; x < map.w - 1; x++) { const r = near({ x, y }, base); if (r >= 11 && r <= 14 && open({ x, y })) first.push({ x, y }); }
+  const where = [first.length ? rng.pick(first) : undefined, ...ruins.map(spot), ...camps.map((c) => spot(c.pos))].filter((c): c is Cell => !!c);
+  where.sort((a, b) => near(a, base) - near(b, base));
+  const order = rng.shuffle([...BASE_CLASSES]);
+  return where.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false }));
 }
 
 /** Cells within a square radius, nearest first. */
@@ -85,14 +102,15 @@ function river(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void): void {
   }
 }
 
-/** A broken square of old walls with a way in. */
-function ruin(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void): void {
+/** A broken square of old walls with a way in; returns its middle. */
+function ruin(rng: Rng, base: Cell, set: (c: Cell, g: Ground) => void): Cell {
   const a = rng.next() * Math.PI * 2, d = rng.int(14, 40), w = rng.int(5, 8), h = rng.int(5, 7);
   const x0 = Math.round(base.x + Math.cos(a) * d), y0 = Math.round(base.y + Math.sin(a) * d);
   for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
     const edge = x === x0 || y === y0 || x === x0 + w - 1 || y === y0 + h - 1;
     set({ x, y }, edge && rng.chance(0.65) ? 'ruinWall' : 'ruin');
   }
+  return { x: x0 + (w >> 1), y: y0 + (h >> 1) };
 }
 
 /** Camps on three rings, spread round the base, each in a cleared patch. */

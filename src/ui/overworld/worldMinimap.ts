@@ -1,8 +1,7 @@
 import { entOf } from '../../sim/party/partyCore';
-import { HERO_IDS } from '../../sim/party/partyDefs';
 import type { Cell } from '../../sim/grid/types';
 import type { Ground } from '../../sim/overworld/worldGen';
-import type { WorldParty } from '../../sim/overworld/worldSim';
+import { clones, type WorldParty } from '../../sim/overworld/worldSim';
 
 const SHADE: Record<Ground, [number, number, number]> = {
   grass: [70, 110, 50], forest: [45, 75, 38], tree: [30, 60, 30], rock: [100, 96, 90], water: [40, 80, 130], ford: [80, 120, 140],
@@ -40,7 +39,9 @@ export class WorldMinimap {
       this.ctx.fillStyle = c.cleared ? '#5ae0ff' : '#ff4a3a';
       this.ctx.fillRect(c.pos.x - 1, c.pos.y - 1, 3, 3);
     }
+    this.ctx.fillStyle = '#c8a8ff';
+    for (const s of p.souls) if (!s.taken && p.s.seen[s.pos.y * m.w + s.pos.x]) this.ctx.fillRect(s.pos.x - 1, s.pos.y - 1, 2, 2);
     this.ctx.fillStyle = '#e6ffb0';
-    for (const id of HERO_IDS) { const e = entOf(p, id); if (e?.alive) this.ctx.fillRect(e.pos.x - 1, e.pos.y - 1, 2, 2); }
+    for (const u of clones(p)) { const e = entOf(p, u.id); if (e?.alive) this.ctx.fillRect(e.pos.x - 1, e.pos.y - 1, 2, 2); }
   }
 }

@@ -4,16 +4,16 @@ import { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
 import { idx, same, walkable, tileAt, type GEvent } from '../../sim/grid/types';
 import { entOf, unitOf } from '../../sim/party/partyCore';
-import { CLASSES, DEFAULT_PICKS, HERO_IDS, type Pick } from '../../sim/party/partyDefs';
+import { CLASSES } from '../../sim/party/partyDefs';
 import { promote } from '../../sim/party/partySim';
 import { queueSkill } from '../../sim/party/partySkills';
-import { claimedShare, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
+import { claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { heroCardsHtml } from '../party/heroCards';
-import { PartyPick, lookOf } from '../party/partyPick';
+import { lookOf } from '../party/partyPick';
 import { WorldMinimap } from './worldMinimap';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
@@ -24,15 +24,13 @@ import '../styles/worldDemo.css';
 const RATE = 1.6;
 const SPEEDS = [1, 2, 4];
 
-/** `?demo=world`: the party sets out from the crashed ship across open land in real time (pause any time), finds goblin camps and takes the land round them. */
+/** `?demo=world`: an empty clone wakes by the crashed ship, finds souls that give it a class (more souls carried home become new clones), and the party takes the land round the goblin camps — in real time, pause any time. */
 export class WorldDemo implements Screen {
   private readonly el = document.createElement('div');
   private stage!: HTMLElement;
   private rt: GridRuntime | null = null;
   private p!: WorldParty;
   private mini: WorldMinimap | null = null;
-  private picks: Pick[] = DEFAULT_PICKS;
-  private picker: PartyPick | null = null;
   private seed = Number(new URLSearchParams(location.search).get('seed') ?? 1) || 1;
   private sel = 'hero';
   private paused = false;
@@ -48,7 +46,7 @@ export class WorldDemo implements Screen {
   mount(root: HTMLElement): void {
     this.el.className = 'screen grid landscape party world';
     this.el.innerHTML = `<div class="grid-stage"></div><div class="pd-labels"></div><div class="pd-pause">일시정지</div>
-      <div class="pd-top"><button type="button" data-k="pause"></button><button type="button" data-k="speed"></button><button type="button" data-k="pick">편성</button><button type="button" data-k="restart">다시</button><span class="pd-wave"></span><span class="pd-msg"></span></div>
+      <div class="pd-top"><button type="button" data-k="pause"></button><button type="button" data-k="speed"></button><button type="button" data-k="restart">다시</button><span class="pd-wave"></span><span class="pd-msg"></span></div>
       <div class="wd-mini-box"></div>
       <div class="pd-cards"></div><p class="pd-help">영웅 클릭·1 2 3 선택 · 바닥 클릭 파티 이동 · 전투 중엔 그 영웅만 이동 후 고수 · 적 클릭 공격 · Q W 기술 · Space 일시정지 · 휠 확대</p>`;
     root.appendChild(this.el);
@@ -58,7 +56,6 @@ export class WorldDemo implements Screen {
       if (k === 'pause') this.paused = !this.paused;
       if (k === 'speed') { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); }
       if (k === 'restart') this.restart();
-      if (k === 'pick') this.choose();
       this.draw();
     });
     this.el.querySelector('.pd-cards')!.addEventListener('click', (e) => {
@@ -79,7 +76,7 @@ export class WorldDemo implements Screen {
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (!this.paused && !this.picker && this.heroesAlive()) {
+      if (!this.paused) {
         const t0 = this.p.time;
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
@@ -98,22 +95,28 @@ export class WorldDemo implements Screen {
 
   private live(ev: GEvent[], t0 = this.p.time): void {
     if (!ev.length) return;
+    // a new body or a soul taken: the figure's look must be set before the view builds it again
+    for (const e of ev) {
+      if (e.type !== 'buff' || (e.text !== 'soul' && e.text !== 'print')) continue;
+      const u = unitOf(this.p, e.dst!)!;
+      LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
+      if (e.text === 'soul') this.rt?.actors.rebuild(u.id);
+    }
     this.rt?.applyLive(ev, t0);
     for (const e of ev) {
       if (e.type === 'wake') this.alert(`wake${e.text}`, '진지 발견');
       if (e.type === 'buff' && e.text === 'claim') this.message(`영역 확보 · ${Math.round(claimedShare(this.p) * 100)}%`);
+      if (e.type === 'buff' && e.text === 'soul') this.message(`${this.name(e.dst!)} 영혼 깃듦`);
+      if (e.type === 'buff' && e.text === 'print') { this.message(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
+      if (e.type === 'pickup' && unitOf(this.p, e.src!)!.cls !== 'shell' && this.p.carried.length) this.message('영혼 회수 · 우주선으로');
+      if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼석 떨어짐');
     }
   }
 
-  private choose(): void {
-    this.picker?.el.remove();
-    this.picker = new PartyPick(this.picks, (picks) => { this.picks = picks; this.picker?.el.remove(); this.picker = null; this.restart(); });
-    this.el.appendChild(this.picker.el);
-  }
-
   private restart(): void {
-    this.picks.forEach((pk, i) => LOOK_BY_ID.set(HERO_IDS[i]!, lookOf(pk.cls, pk.weapon)));
-    this.p = newWorld(this.picks, this.seed);
+    LOOK_BY_ID.clear();
+    LOOK_BY_ID.set('hero', lookOf('shell', 'fists'));
+    this.p = newWorld(this.seed);
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
@@ -129,14 +132,14 @@ export class WorldDemo implements Screen {
   }
 
   private select(id: string): void { this.sel = id; if (this.rt) this.rt.focusId = id; }
-  private heroesAlive(): boolean { return HERO_IDS.some((h) => entOf(this.p, h)?.alive); }
+  /** the living clones, in the order they were made (keys 1 2 3) */
+  private ids(): string[] { return clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => u.id); }
 
   /** A hero falling low or falling, or a camp waking, stops the clock so the player can react. */
   private autoPause(): void {
-    for (const id of HERO_IDS) {
+    for (const id of this.ids()) {
       const e = entOf(this.p, id)!;
-      if (!e.alive) this.alert(`${id}:dead`, `${this.name(id)} 쓰러짐`);
-      else if (e.hp < e.maxHp * 0.35) this.alert(`${id}:low${this.p.combat ? Math.floor(this.p.time / 60) : ''}`, `${this.name(id)} 위험`);
+      if (e.hp < e.maxHp * 0.35) this.alert(`${id}:low${this.p.combat ? Math.floor(this.p.time / 60) : ''}`, `${this.name(id)} 위험`);
       else if (unitOf(this.p, id)!.promoteReady) this.alert(`${id}:promo`, `${this.name(id)} 전직 가능`);
     }
   }
@@ -153,10 +156,10 @@ export class WorldDemo implements Screen {
   private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85); }
 
   private key(e: KeyboardEvent): void {
-    if (this.picker) return;
     const k = e.key.toLowerCase();
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
-    if (k === '1' || k === '2' || k === '3') this.select(HERO_IDS[Number(k) - 1]!);
+    const pick = this.ids()[Number(k) - 1];
+    if ((k === '1' || k === '2' || k === '3') && pick) this.select(pick);
     if (k === 'q') queueSkill(this.p, this.sel, 0);
     if (k === 'w') queueSkill(this.p, this.sel, 1);
     if (k === 'r') this.restart();
@@ -175,9 +178,10 @@ export class WorldDemo implements Screen {
   /** On a hero: select it. Otherwise a foe is the chosen hero's target, a cell the place to go. */
   private click(e: PointerEvent): void {
     const c = this.rt?.cellAt(e.clientX, e.clientY);
-    if (!c || this.picker) return;
+    if (!c) return;
     const at = this.p.units.find((u) => entOf(this.p, u.id)?.alive && same(entOf(this.p, u.id)!.pos, c) && this.p.s.visible.has(idx(this.p.s.map, c)));
     if (at?.side === 'hero') { this.select(at.id); return; }
+    if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
     const me = unitOf(this.p, this.sel);
     if (!me || !entOf(this.p, me.id)?.alive) return;
     if (at) me.order = { kind: 'attack', target: at.id };
@@ -198,7 +202,7 @@ export class WorldDemo implements Screen {
     this.el.querySelector('.pd-labels')!.innerHTML = this.p.units.filter((u) => u.side === 'hero' && entOf(this.p, u.id)?.alive).map((u) => {
       const e = entOf(this.p, u.id)!;
       const pt = this.rt!.project(new THREE.Vector3(e.pos.x, 2.3, e.pos.y));
-      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${HERO_IDS.indexOf(u.id) + 1} ${CLASSES[u.cls!].name}${u.order?.kind === 'hold' ? ' ▣' : ''}</div>`;
+      return `<div class="pd-label${u.id === this.sel ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${this.ids().indexOf(u.id) + 1} ${CLASSES[u.cls!].name}${u.order?.kind === 'hold' ? ' ▣' : ''}</div>`;
     }).join('');
   }
 
@@ -206,11 +210,11 @@ export class WorldDemo implements Screen {
     this.el.querySelector<HTMLElement>('[data-k="pause"]')!.textContent = this.paused ? '▶ 재개' : '❚❚ 정지';
     this.el.querySelector<HTMLElement>('[data-k="speed"]')!.textContent = `속도 ×${this.speed}`;
     const taken = this.p.camps.filter((c) => c.cleared).length;
-    this.el.querySelector<HTMLElement>('.pd-wave')!.textContent = `${this.p.combat ? '전투' : '탐색'} · 영역 ${Math.round(claimedShare(this.p) * 100)}% · 진지 ${taken}/${this.p.camps.length}`;
+    const carried = this.p.carried.length ? ` · 들고 있는 영혼 ${this.p.carried.length}` : '';
+    this.el.querySelector<HTMLElement>('.pd-wave')!.textContent = `${this.p.combat ? '전투' : '탐색'} · 영역 ${Math.round(claimedShare(this.p) * 100)}% · 진지 ${taken}/${this.p.camps.length}${carried}`;
     this.el.classList.toggle('paused', this.paused);
-    if (!this.heroesAlive()) this.message('전멸 · R 다시');
-    else if (taken === this.p.camps.length) this.message('모든 진지 확보');
-    const cards = heroCardsHtml(this.p, this.sel);
+    if (taken === this.p.camps.length) this.message('모든 진지 확보');
+    const cards = heroCardsHtml(this.p, this.sel, this.ids());
     // only when something shown changed (a rebuilt button mid-click would swallow the click)
     if (cards !== this.cardsHtml) { this.cardsHtml = cards; this.el.querySelector('.pd-cards')!.innerHTML = cards; }
   }
