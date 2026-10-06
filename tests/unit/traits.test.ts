@@ -34,10 +34,10 @@ it('finish, morale, grit, bond and combo work end to end', () => {
   u.traits={finish:1,morale:1};damage(p,0,u.id,f,999,[]);
   expect(u.empower).toBe(1.5);expect(entOf(p,ally.id)!.hp).toBe(14);
   u.traits={grit:1};damage(p,0,'trap',u,999,[]);expect(e.hp).toBe(1);damage(p,1,'trap',u,999,[]);expect(e.alive).toBe(false);
-  const q=partyRoom(undefined,13),v=q.units[0]!,g=q.units[3]!;v.traits={combo:1,bond:1};v.nth=3;
+  const q=partyRoom(undefined,13),v=q.units[0]!,g=q.units[3]!;v.traits={combo:1};v.nth=3;
   entOf(q,g.id)!.pos={x:4,y:4};entOf(q,g.id)!.hp=entOf(q,g.id)!.maxHp=1000;
   const ev: Parameters<typeof emit>[2]['ev']=[];emit(q,'nth',{t:0,src:v,target:g,ev});expect(ev.some(e=>e.type==='bump')).toBe(true);
-  const first=entOf(q,g.id)!.hp; q.s.rng.chance=c=>c>0.2; strike(q,v,g,0,[]);expect(entOf(q,g.id)!.hp).toBeLessThan(first);
+
 });
 it.each([[9,11],[13,15]])('keystone due at a milestone survives a jump from %i to %i', async (from, to) => {
   const {gainXp, LEVEL_XP, pickTrait} = await import('../../src/sim/party/partyLevel');
@@ -46,4 +46,14 @@ it.each([[9,11],[13,15]])('keystone due at a milestone survives a jump from %i t
   gainXp(p,u,LEVEL_XP[to-1]!-u.xp,[]);expect(u.level).toBe(to);
   pickTrait(p,u.id,'vital'); expect(u.offer).toHaveLength(4);expect(TRAITS[u.offer![3]!]!.pool).toBe('keystone');
   const stone=u.offer![3]!;pickTrait(p,u.id,stone);expect(u.offer?.length??3).toBe(3);
+});
+
+it('bond adds exactly five percent per nearby living ally', () => {
+  const hit=(bond:number,near:boolean)=>{
+    const p=partyRoom(),u=p.units[0]!,f=p.units[3]!,ally=p.units[1]!;
+    p.units=[u,f,ally];u.traits={bond};entOf(p,ally.id)!.pos={x:near?3:10,y:3};
+    entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
+    p.s.rng.int=()=>20;p.s.rng.chance=c=>c>.2;strike(p,u,f,0,[]);return 1000-entOf(p,f.id)!.hp;
+  };
+  expect(hit(1,true)).toBe(21);expect(hit(0,true)).toBe(20);expect(hit(1,false)).toBe(20);
 });
