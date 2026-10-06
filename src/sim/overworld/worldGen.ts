@@ -70,7 +70,7 @@ export function generateWorld(seed: number): World {
   return { map, ground, camps, base, souls: placeSouls(rng, map, base, ruins, camps) };
 }
 
-/** Soul stones: one in the open near the ship (the first), one inside each ruin, one at the heart of each camp; the classes go round so the nearest ones differ. */
+/** Soul stones: one in the open near the ship (the first, an archer), one inside each ruin, one at the heart of each camp; the classes go round so the nearest ones differ. */
 function placeSouls(rng: Rng, map: GridMap, base: Cell, ruins: Cell[], camps: Camp[]): Soul[] {
   const d = distanceMap(map, map.start);
   const open = (c: Cell) => map.tiles[idx(map, c)] === 'floor' && d[idx(map, c)]! > 0;
@@ -79,7 +79,8 @@ function placeSouls(rng: Rng, map: GridMap, base: Cell, ruins: Cell[], camps: Ca
   for (let y = 1; y < map.h - 1; y++) for (let x = 1; x < map.w - 1; x++) { const r = near({ x, y }, base); if (r >= 11 && r <= 14 && open({ x, y })) first.push({ x, y }); }
   const where = [first.length ? rng.pick(first) : undefined, ...ruins.map(spot), ...camps.map((c) => spot(c.pos))].filter((c): c is Cell => !!c);
   where.sort((a, b) => near(a, base) - near(b, base));
-  const order = rng.shuffle([...BASE_CLASSES]);
+  // the first soul is an archer (an empty body can shoot from safety); the rest go round
+  const order: BaseClass[] = ['archer', ...rng.shuffle(BASE_CLASSES.filter((c) => c !== 'archer'))];
   return where.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false }));
 }
 

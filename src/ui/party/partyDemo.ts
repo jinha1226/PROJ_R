@@ -19,6 +19,8 @@ import '../styles/partyDemo.css';
 
 /** game time per real second at normal speed */
 const RATE = 1.6;
+/** figures animate at most this much faster (a quicker game just covers more ground per second) */
+const SHOW_MAX = 2;
 
 /** `?demo=party`: pick three of five classes; they fight on their own in real time; select one and give it an order or a skill; pause any time. */
 export class PartyDemo implements Screen {
@@ -77,7 +79,7 @@ export class PartyDemo implements Screen {
         this.live(tick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
       }
-      this.rt?.update(dt * this.speed);
+      this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
       this.draw();
@@ -136,8 +138,8 @@ export class PartyDemo implements Screen {
 
   private message(text: string): void { this.el.querySelector('.pd-msg')!.textContent = text; }
 
-  /** Figures walk at the pace units step (about one cell per 0.9 of game time). */
-  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85); }
+  /** Walk speed in cells per second of shown time: units step about every 0.85 of game time, and the show runs at min(speed, SHOW_MAX). */
+  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
 
   private key(e: KeyboardEvent): void {
     if (this.picker) return;

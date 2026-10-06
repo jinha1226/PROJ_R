@@ -21,7 +21,9 @@ import '../styles/partyDemo.css';
 import '../styles/worldDemo.css';
 
 /** game time per real second at normal speed */
-const RATE = 1.6;
+const RATE = 2.4;
+/** figures animate at most this much faster (a quicker game just covers more ground per second) */
+const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
 
 /** `?demo=world`: an empty clone wakes by the crashed ship, finds souls that give it a class (more souls carried home become new clones), and the party takes the land round the goblin camps — in real time, pause any time. */
@@ -81,7 +83,7 @@ export class WorldDemo implements Screen {
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
       }
-      this.rt?.update(dt * this.speed);
+      this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
       this.draw();
@@ -153,7 +155,8 @@ export class WorldDemo implements Screen {
 
   private name(id: string): string { return CLASSES[unitOf(this.p, id)!.cls!].name; }
   private message(text: string): void { this.el.querySelector('.pd-msg')!.textContent = text; }
-  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85); }
+  /** Walk speed in cells per second of shown time: units step about every 0.85 of game time, and the show runs at min(speed, SHOW_MAX). */
+  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();

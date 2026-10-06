@@ -34,11 +34,12 @@ it('one empty clone wakes by the ship on claimed land; it sees only what is near
   expect(p.combat).toBe(false);
 });
 
-it('souls lie about: the first near the ship, the nearest three of different classes', () => {
+it('souls lie about: the first (an archer) near the ship, the nearest three of different classes', () => {
   for (const seed of [1, 2, 3, 4]) {
     const w = generateWorld(seed);
     const r = (c: { x: number; y: number }) => Math.hypot(c.x - w.base.x, c.y - w.base.y);
     expect(r(w.souls[0]!.pos)).toBeLessThanOrEqual(15);
+    expect(w.souls[0]!.cls).toBe('archer');
     expect(new Set(w.souls.slice(0, 3).map((s) => s.cls)).size).toBe(3);
     for (const c of w.camps) expect(w.souls.some((s) => dist(s.pos, c.pos) <= 3)).toBe(true);
   }
