@@ -19,7 +19,7 @@ import { TraitPicker } from './traitPicker';
 import { OptionsMenu } from './optionsMenu';
 import { TouchPad } from './touchPad';
 import { pickTrait } from '../../sim/party/partyLevel';
-import type { TraitId } from '../../sim/party/partyTraits';
+import type { TraitId } from '../../sim/party/traitDefs';
 import { WorldHud } from './worldHud';
 import { WorldLog } from './worldLog';
 import { Pinch, coarsePointer, startZoom } from './touchView';

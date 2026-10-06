@@ -8,7 +8,7 @@ import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/typ
 import { alive, ENGAGE, entOf, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, type BaseClass } from '../party/partyDefs';
 import { awardXp, refitHp, LEVEL_XP } from '../party/partyLevel';
-import { T } from '../party/partyTraits';
+import { T } from '../party/traitMods';
 
 /** a fallen native's soul stone lying about */
 export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean; hero?: HeroSoulId }
@@ -143,7 +143,8 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     if (f.side !== 'foe' || f.reaped || !e || e.alive) continue;
     f.reaped = true;
     awardXp(p, f, ev);
-    const n = (BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1);
+    const killer=p.units.find(u=>u.id===ev.find(e=>e.type==='die'&&e.dst===f.id)?.src);
+    const n = Math.round((BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1) * (1+.25*(killer?.traits?.plunder??0)));
     p.bio += n;
     ev.push({ t: p.time, type: 'loot', to: { ...e.pos }, amount: n, text: 'bio' });
   }
@@ -167,7 +168,7 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   const was = p.combat;
   p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
   if (!was && p.combat) for (const u of living(p)) emit(p, 'combatStart', { t, src: u, ev });
-  if (!p.combat) for (const u of living(p)) u.crisisUsed = false;
+  if (!p.combat) for (const u of living(p)) {u.crisisUsed = false;u.immortalUsed=false;}
   souls(p, ev, true);
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
   // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band

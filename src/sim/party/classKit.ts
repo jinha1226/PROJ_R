@@ -1,3 +1,5 @@
+import { TRAITS, rank } from './traitDefs';
+import { T } from './traitMods';
 import { dist, type GEvent } from '../grid/types';
 import { alive, damage, entOf, posOf, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
 import { CLASSES, BASE_CLASSES, WEAPONS, type BaseClass, type ClassId, type WeaponId } from './partyDefs';
@@ -11,12 +13,12 @@ export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: numb
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
 export function proficient(u: Unit): boolean { const f = u.weapon && FAMILY[u.weapon]; return !!u.cls && !!f && kitOf(u).proficient.includes(f); }
 const warrior: TriggerDef[] = [
-  { id: '포위 베기', when: 'hit', cd: 6, test: (p,c) => nearby(p,c.src,1,'foe').length >= 2, run: (p,c) => { for (const f of nearby(p,c.src,1,'foe')) damage(p,c.t,c.src.id,f,p.s.rng.int(6,9),c.ev); } },
-  { id: '응수', when: 'block', test: (_p,c) => !!c.target && !c.target.cls && (c.target.foe !== 'archer' && c.target.foe !== 'shaman'), run: (p,c) => { if (c.target) strike(p,c.src,c.target,c.t,c.ev,1,false); } },
+  { id: '포위 베기', when: 'hit', cd: 6, test: (p,c) => nearby(p,c.src,1+(rank(c.src,'whirlwind')===3?1:0),'foe').length >= 2, run: (p,c) => { for (const f of nearby(p,c.src,1+(rank(c.src,'whirlwind')===3?1:0),'foe')) {damage(p,c.t,c.src.id,f,p.s.rng.int(6,9),c.ev);if(rank(c.src,'bloodBlade'))applyStatus(p,c.src,f,'bleed',c.t,c.ev);} } },
+  { id: '응수', when: 'block', test: (_p,c) => !!c.target && !c.target.cls && (c.target.foe !== 'archer' && c.target.foe !== 'shaman'), run: (p,c) => { if (c.target) strike(p,c.src,c.target,c.t,c.ev,T.counter(c.src),false); } },
 ];
 const archer: TriggerDef[] = [
   { id: '기습 사격', when: 'crit', test: (p,c) => !!c.target && entOf(p,c.target.id)!.hp + (c.amount ?? 0) >= entOf(p,c.target.id)!.maxHp, run: () => {} },
-  { id: '정조준', when: 'still', run: (_p,c) => { c.src.steady = Math.min(3+3*(c.src.traits?.steady??0),c.src.still); } },
+  { id: '정조준', when: 'still', run: (_p,c) => { c.src.steady = Math.min(T.steadyMax(c.src),c.src.still); } },
 ];
 const mage: TriggerDef[] = [
   { id: '연쇄 주문', when: 'nth', nth: 3, run: (p,c) => { if (c.target) fireball(p,c.src,c.target,c.t,c.ev); } },
@@ -24,11 +26,11 @@ const mage: TriggerDef[] = [
 ];
 const cleric: TriggerDef[] = [
   { id: '구원의 손', when: 'allyCrisis', cd: 8, run: (p,c) => { if (c.target) heal(p,c.src,c.target,22,c.t,c.ev); } },
-  { id: '축복', when: 'combatStart', run: (p) => { for (const u of p.units) if (u.side === 'hero' && alive(p,u)) u.shield += 10; } },
+  { id: '축복', when: 'combatStart', run: (p,c) => { for (const u of p.units) if (u.side === 'hero' && alive(p,u)) u.shield += 10+T.ward(c.src); } },
 ];
 const rogue: TriggerDef[] = [
   { id: '배후 급소', when: 'hit', test: (p,c) => !!c.target && targetOf(p,c.target,c.t)?.id !== c.src.id, run: () => {} },
-  { id: '잠행', when: 'kill', run: (_p,c) => { c.src.hiddenUntil = c.t + 1; } },
+  { id: '잠행', when: 'kill', run: (_p,c) => { c.src.hiddenUntil = c.t + 1+T.stealth(c.src); } },
 ];
 const kit = (innate: TriggerDef[], ultimate: UltId, ultCd: number, proficient: WeaponFamily[]): Kit => ({ innate, ultimate, ultCd, proficient });
 const extra = (base: TriggerDef[], def: TriggerDef) => [...base,def];
@@ -63,10 +65,9 @@ export interface PromotionRule { to: ClassId; need: Partial<Record<Tag,number>>;
 export const PROMOTIONS: Record<BaseClass,PromotionRule[]> = {
   warrior:[{to:'berserker',need:{근접:4,출혈:2}},{to:'guardian',need:{방패:4},wear:'shield'}], archer:[{to:'sniper',need:{치명:4},wear:'crossbow'},{to:'hunter',need:{출혈:2,독:2}}], mage:[{to:'elementalist',need:{화염:1,냉기:1,전기:1},anyElements:3},{to:'necromancer',need:{소환:3}}], cleric:[{to:'inquisitor',need:{방패:2,근접:2},wear:'mace'},{to:'healer',need:{치유:4}}], rogue:[{to:'assassin',need:{은신:2,치명:3}},{to:'toxicologist',need:{독:4}}],
 };
-const oldTags: Record<string,Tag[]> = { shieldPro:['방패'], riposte:['근접'], vital:['치명'], shadow:['은신'], blessing:['치유'], warding:['방패'], amplify:['화염','냉기','전기'] };
 export function tagsOf(u: Unit): Partial<Record<Tag,number>> {
   const tags: Partial<Record<Tag,number>> = {};
-  for(const [id,rank] of Object.entries(u.traits ?? {})) for(const tag of oldTags[id] ?? []) tags[tag]=(tags[tag]??0)+(rank??0);
+  for(const [id,rank] of Object.entries(u.traits ?? {})) for(const tag of TRAITS[id]?.tags ?? []) tags[tag]=(tags[tag]??0)+(rank??0);
   if(u.weapon === 'crossbow') tags.치명=(tags.치명??0)+1;
   if(u.weapon && WEAPONS[u.weapon].shield) tags.방패=(tags.방패??0)+1;
   return tags;

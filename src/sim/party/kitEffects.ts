@@ -1,3 +1,6 @@
+import { T } from './traitMods';
+import { rank } from './traitDefs';
+import { G } from '../delve/gear';
 import { spawnFoe } from '../grid/foes';
 import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, type Party, type Unit } from './partyCore';
@@ -5,14 +8,17 @@ import { applyStatus } from './status';
 export const nearby = (p: Party, u: Unit, radius: number, side = u.side) => p.units.filter(x => x.side === side && alive(p, x) && dist(posOf(p, x), posOf(p, u)) <= radius);
 export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, ev: GEvent[]): void {
   if (!alive(p, src) || !alive(p, dst)) return;
+  amount *= T.heal(src)*G.healTaken(dst);
   const e = entOf(p, dst.id)!, n = Math.min(e.maxHp - e.hp, Math.round(amount));
-  e.hp += n;
+  e.hp += n; dst.lowHp=e.hp<e.maxHp/2;
   if (src.cls === 'healer') dst.shield += Math.max(0, amount - n);
+  if(rank(src,'purify')) {const key=Object.keys(dst.status)[0] as keyof typeof dst.status|undefined;if(key)delete dst.status[key];}
   ev.push({ t, type: 'heal', src: src.id, dst: dst.id, amount: n });
 }
 export function fireball(p: Party, src: Unit, dst: Unit, t: number, ev: GEvent[]): void {
   for (const f of nearby(p, dst, 1)) {
-    damage(p, t, src.id, f, p.s.rng.int(10, 14), ev);
+    damage(p, t, src.id, f, Math.round(p.s.rng.int(10, 14)*T.amplify(src)), ev);
+    if(rank(src,'current'))applyStatus(p,src,f,'shock',t,ev);
     if (src.cls === 'elementalist') applyStatus(p, src, f, p.s.rng.pick(['chill', 'shock']), t, ev);
   }
 }

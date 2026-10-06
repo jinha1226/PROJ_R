@@ -1,5 +1,5 @@
 import type { BaseClass } from '../party/partyDefs';
-import type { TraitId } from '../party/partyTraits';
+import type { TraitId } from '../party/traitDefs';
 export type HeroSoulId = 'aren' | 'seraphine' | 'kael' | 'mira' | 'dorn';
 export type CarriedSoul = BaseClass | { cls: BaseClass; hero: HeroSoulId };
 export const HERO_SOULS: Record<HeroSoulId, { name: string; cls: BaseClass; level: number; traits: Partial<Record<TraitId, number>> }> = {

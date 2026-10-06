@@ -19,7 +19,7 @@ import { PipWindow } from '../overworld/pipWindow';
 import { TraitPicker } from '../overworld/traitPicker';
 import { OptionsMenu } from '../overworld/optionsMenu';
 import { pickTrait } from '../../sim/party/partyLevel';
-import type { TraitId } from '../../sim/party/partyTraits';
+import type { TraitId } from '../../sim/party/traitDefs';
 import { WorldHud } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
 import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';

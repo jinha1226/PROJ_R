@@ -5,15 +5,18 @@ import { alive, damage, entOf, occupied, posOf, strike, targetOf, unitOf, type P
 import { kitOf, type UltId } from './classKit';
 import { summon } from './kitEffects';
 import { applyStatus } from './status';
-import { emit } from './triggers';
-import { T } from './partyTraits';
+import { action, emit } from './triggers';
+import { T } from './traitMods';
 export const ULT_NAMES: Record<UltId,string> = { warcry:'전장의 함성',arrowRain:'화살비',meteor:'운석',sanctum:'신성 결계',shadowDance:'그림자 난무',bloodFrenzy:'피의 광란',bastion:'방벽',pierceShot:'관통탄',bleedRain:'피의 화살비',elementStorm:'원소 폭풍',deadHost:'망자의 군세',judgement:'심판의 빛',longSanctum:'빛의 결계',deathDance:'죽음의 난무',toxicFog:'독안개' };
 export function queueUltimate(p: Party,id: string,cell?: Cell): void {
   const u=unitOf(p,id); if(!u || !alive(p,u) || !kitOf(u).ultimate || p.time < u.ultReady) return;
   u.ultQueued = !u.ultQueued; u.ultCell=cell;
 }
 export function useUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
-  const u=unitOf(p,id); if(!u || u.side!=='hero' || !alive(p,u) || p.time < u.ultReady) return [];
+  return action(p,()=>castUltimate(p,id,cell));
+}
+function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
+  const u=unitOf(p,id); if(!u || u.side!=='hero' || !alive(p,u) || (p.time < u.ultReady && !u.traits?.bloodPact)) return [];
   const kit=kitOf(u), ult=kit.ultimate; if(!ult) return [];
   const t=p.time, ev:GEvent[]=[], me=posOf(p,u), target=targetOf(p,u,t), at=cell??(target && posOf(p,target));
   const foes=p.units.filter(x=>x.side==='foe' && alive(p,x) && !x.asleep);
@@ -22,6 +25,7 @@ export function useUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
   const aimed=['arrowRain','bleedRain','meteor','elementStorm','pierceShot','judgement','toxicFog'].includes(ult);
   if(aimed && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
   if(['shadowDance','deathDance','bloodFrenzy'].includes(ult) && !near(me,4).length) return [];
+  if(u.traits?.bloodPact){const e=entOf(p,id)!,cost=Math.round(e.maxHp*.3);if(e.hp<=cost)return [];e.hp-=cost;}
   switch(ult) {
     case 'warcry': case 'bastion':
       for(const f of near(me,4)) {f.tauntBy=id; f.tauntUntil=t+5; if(G.wears(u,'link_bait')) f.exposedUntil=t+5;}
@@ -30,8 +34,8 @@ export function useUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
     case 'bloodFrenzy': u.leechUntil=t+5; break;
     case 'sanctum': case 'longSanctum': for(const a of allies) if(dist(posOf(p,a),me)<=3) a.immuneUntil=t+(ult==='longSanctum'?5:3); break;
     case 'arrowRain': case 'bleedRain': {
-      const targets=near(at!,1);
-      for(let k=0;k<5;k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(ult==='bleedRain') applyStatus(p,u,f,'bleed',t,ev);}}
+      const targets=near(at!,1+(u.traits?.arrowShower?1:0));
+      for(let k=0;k<(u.traits?.arrowShower===3?8:5);k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(ult==='bleedRain') applyStatus(p,u,f,'bleed',t,ev);}}
       break;
     }
     case 'meteor': case 'elementStorm':
@@ -59,7 +63,7 @@ export function useUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
       } break;
   }
   ev.push({t,type:'buff',src:id,dst:id,text:ULT_NAMES[ult]});
-  u.ultReady=t+kit.ultCd*T.cd(u)*G.cd(u);u.ultQueued=false;u.nextAt=Math.max(u.nextAt,t+0.6);
+  u.ultReady=u.traits?.bloodPact?t:t+kit.ultCd*T.cd(u)*G.cd(u);u.ultQueued=false;u.nextAt=Math.max(u.nextAt,t+0.6);
   echoSkill(p,u);
   emit(p,'ultimate',{t,src:u,ev});return ev;
 }

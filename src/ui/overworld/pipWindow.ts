@@ -5,7 +5,7 @@ import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { BODY_COST, clones, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
-import { TRAITS, rank, type TraitId } from '../../sim/party/partyTraits';
+import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 
 export type PipTab = 'stat' | 'bag';
 const BAG_SLOTS = 12;
@@ -53,7 +53,7 @@ export class PipWindow {
     const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!], promo = promotionOptions(p,u);
     const kit=kitOf(u), skills=kit.ultimate?`<li><b>${ULT_NAMES[kit.ultimate]}</b><em>대기 ${kit.ultCd}초</em></li>`:'<li class="dim">없음</li>';
     const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
-    const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id].name} ${'●'.repeat(rank(u, id))}</b><span>${TRAITS[id].ranks[rank(u, id) - 1]}</span><em></em></li>`).join('') || '<li class="dim">없음</li>';
+    const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id]!.name} ${'●'.repeat(rank(u, id))}</b><span>${TRAITS[id]!.tags.join(' · ')}</span><em></em></li>`).join('') || '<li class="dim">없음</li>';
     return `<nav class="pip-side">${side}</nav><section class="pip-rec">
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/초</dd>

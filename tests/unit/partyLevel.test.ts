@@ -4,7 +4,7 @@ import { damage, entOf, strike, unitOf } from '../../src/sim/party/partyCore';
 import { gainXp, LEVEL_XP, pickTrait, PROMOTE_LEVEL } from '../../src/sim/party/partyLevel';
 import { useUltimate } from '../../src/sim/party/ultimate';
 import { KITS } from '../../src/sim/party/classKit';
-import { TRAITS } from '../../src/sim/party/partyTraits';
+import { TRAITS } from '../../src/sim/party/traitDefs';
 import { delveTick, newDelve } from '../../src/sim/delve/delveSim';
 import { clones } from '../../src/sim/roam/roam';
 
@@ -31,7 +31,7 @@ it('experience raises the level: more health and a pick among three traits of th
   expect(e.maxHp).toBe(40 + 8);
   expect(u.picks).toBe(2);
   expect(u.offer).toHaveLength(3);
-  for (const t of u.offer!) expect(!TRAITS[t].cls || TRAITS[t].cls === 'archer').toBe(true);
+  for (const t of u.offer!) expect(TRAITS[t]!.pool==='common'||TRAITS[t]!.pool==='archer').toBe(true);
   pickTrait(p, u.id, u.offer![0]!);
   expect(u.picks).toBe(1);
   expect(u.offer).toHaveLength(3);

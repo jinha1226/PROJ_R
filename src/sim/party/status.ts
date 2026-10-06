@@ -1,3 +1,5 @@
+import { tickTraitRegen } from './traitCombat';
+import { mods } from './traitMods';
 import { alive, damage, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import { emit } from './triggers';
@@ -7,9 +9,10 @@ const duration: Record<StatusId, number> = { burn: 3, chill: 3, freeze: 2, poiso
 export function applyStatus(p: Party, src: Unit, target: Unit, id: StatusId, t: number, ev: GEvent[], stacks = 1, spread = false): void {
   if (!alive(p, src) || !alive(p, target)) return;
   const old = target.status[id];
-  target.status[id] = { until: t + duration[id], by: src.id, stacks: id === 'poison' ? Math.min(5, (old && old.until > t ? old.stacks ?? 0 : 0) + stacks) : stacks, next: old && old.until > t ? old.next : t + 1 };
+  target.status[id] = { until: t + duration[id], by: src.id, stacks: id === 'poison' ? Math.min(5+(mods(src).poisonCap??0), (old && old.until > t ? old.stacks ?? 0 : 0) + stacks) : stacks, next: old && old.until > t ? old.next : t + 1 };
   if (id === 'freeze' || id === 'stun') target.nextAt = Math.max(target.nextAt, t + duration[id]);
   ev.push({ t, type: 'buff', src: src.id, dst: target.id, text: id });
+  if((id==='shock'||id==='bleed') && target.status.bleed && (target.status.shock?.until??0)>t) {target.status.bleed.stacks=2;ev.push({t,type:'react',src:src.id,dst:target.id,text:'혈전'});}
   emit(p, 'statusApplied', { t, src, target, status: id, ev });
   if (!spread && (id === 'burn' || id === 'poison') && (target.status.burn?.until ?? 0) > t && (target.status.poison?.until ?? 0) > t) {
     ev.push({ t, type: 'react', src: src.id, dst: target.id, text: '독연 폭발' });
@@ -17,6 +20,7 @@ export function applyStatus(p: Party, src: Unit, target: Unit, id: StatusId, t: 
   }
 }
 export function tickStatuses(p: Party, _from: number, to: number, ev: GEvent[]): void {
+  tickTraitRegen(p,_from,to,ev);
   for (const u of p.units) {
     for (const id of ['burn', 'poison'] as const) {
       const s = u.status[id];
@@ -30,7 +34,7 @@ export function tickStatuses(p: Party, _from: number, to: number, ev: GEvent[]):
 }
 export function movedStatus(p: Party, u: Unit, t: number, ev: GEvent[]): void {
   const s = u.status.bleed;
-  if (s && t < s.until) damage(p, t, s.by ?? '', u, (u.status.shock?.until ?? 0) > t ? 8 : 4, ev, true);
+  if (s && t < s.until) damage(p, t, s.by ?? '', u, 4*(s.stacks??1), ev, true);
 }
 export function statusMult(p: Party, attacker: Unit, target: Unit, heavy: boolean, t: number, ev: GEvent[]): number {
   let m = 1;

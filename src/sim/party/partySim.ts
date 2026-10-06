@@ -61,7 +61,7 @@ export function nextWave(p: Party): boolean {
     if (u.side === 'hero' && e.alive) e.hp = Math.min(e.maxHp, e.hp + Math.round(e.maxHp / 3));
   }
   spawnWave(p);
-  for(const u of p.units) if(u.side==='hero') {u.crisisUsed=false;emit(p,'combatStart',{t:p.time,src:u,ev:[]});}
+  for(const u of p.units) if(u.side==='hero') {u.crisisUsed=false;u.immortalUsed=false;emit(p,'combatStart',{t:p.time,src:u,ev:[]});}
   return true;
 }
 
@@ -120,7 +120,7 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && t >= (u.rollReady ?? 0)) {
     u.rollReady = t + 3;
     const away = DIRS.map((dir) => ({ x: e.pos.x + dir.x, y: e.pos.y + dir.y })).filter((c) => walkable(tileAt(p.s.map, c)) && !occupied(p, c, u.id) && dist(c, tp) > 1 && canStep(p.s.map, e.pos, { x: c.x - e.pos.x, y: c.y - e.pos.y }));
-    if (away[0]) { ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...away[0] }, text: 'roll' }); e.pos = away[0]; return st.move; }
+    if (away[0]) { ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...away[0] }, text: 'roll' }); e.pos = away[0]; u.moved=true;u.still=0;u.retreatShot=true;emit(p,'moved',{t,src:u,ev});return st.move; }
   }
   if (canHit(p, u, target)) { strike(p, u, target, t, ev); return st.atk; }
   if (stepToward(p, u, tp, t, ev)) return st.move;
@@ -153,7 +153,7 @@ export function tick(p: Party, dt: number): GEvent[] {
   if (p.waiting || (p as { over?: boolean }).over) return ev;
   for (const u of p.units) if(u.summonedUntil !== undefined && u.summonedUntil <= p.time) entOf(p,u.id)!.alive=false;
   for (const u of p.units) u.promoteReady=promotionOptions(p,u).some(o=>o.met);
-  if (p.combat === false) for (const u of p.units) u.crisisUsed = false;
+  if (p.combat === false) for (const u of p.units) {u.crisisUsed = false;u.immortalUsed=false;}
   let statusTime = p.time;
   const end = p.time + dt;
   for (let guard = 0; guard < 100; guard++) {

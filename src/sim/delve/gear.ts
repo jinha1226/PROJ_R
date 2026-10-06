@@ -23,7 +23,7 @@ export const G = {
   reduce: (u: Unit): number => (armor(u)?.reduce ?? 0) + (u.gear?.armor && u.gear.armor.rarity !== 'common' ? 0.05 : 0),
   hp: (u: Unit): number => 15 * affixes(u, 'sturdy') + (wears(u, 'bulwark') ? 20 : 0),
   cd: (u: Unit): number => 0.85 ** affixes(u, 'focused') * (wears(u, 'focus') ? 0.8 : 1) * (u.cls && CLASSES[u.cls].magic ? armor(u)?.magicCdMul ?? 1 : 1),
-  healTaken: (u: Unit): number => 1.25 ** affixes(u, 'vital'),
+  healTaken: (u: Unit): number => 1.25 ** affixes(u, 'vital') * (u.traits?.bloodPact ? .7 : 1),
 };
 export function starterGear(cls: ClassId, nextId: () => string): Loadout {
   return {
