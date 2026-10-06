@@ -9,9 +9,9 @@ import { COVER, generateWorld, type Camp, type Ground, type LandLight, type Soul
 
 export const SIGHT = 9;
 /** how far a sleeping camp notices the party */
-const NOTICE = 8;
+const NOTICE = 6;
 /** an awake foe farther than this from every hero gives up */
-const LEASH = 16;
+const LEASH = 12;
 const CLAIM_BASE = 11;
 const CLAIM_CAMP = 9;
 /** living clones the ship can keep at once */
@@ -42,9 +42,11 @@ export function newWorld(seed = 1): WorldParty {
   const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, carried: [], nextClone: 1, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)) };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
   s.foes.forEach((e, i) => {
-    const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group)!;
+    const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
     const kind = FOE_OF[e.kind] ?? 'goblin';
-    e.hp = e.maxHp = Math.round(FOES[kind].hp * (1 + 0.35 * (camp.tier - 1)) * (sp.elite ? 1.5 : 1));
+    // strays are a little weaker than camp goblins; camps grow tougher ring by ring
+    const scale = camp ? 1 + 0.35 * (camp.tier - 1) : 0.8;
+    e.hp = e.maxHp = Math.round(FOES[kind].hp * scale * (sp.elite ? 1.5 : 1));
     p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, asleep: true, group: sp.group, nextAt: 0.15 * i });
   });
   claim(p, w.base, CLAIM_BASE);

@@ -14,16 +14,20 @@ export interface LandLight { pos: Cell; kind: 'wreck' | 'brazier' | 'obelisk' }
 export interface Camp { id: number; pos: Cell; tier: 1 | 2 | 3; group: number; cleared: boolean; totem: Cell }
 /** a fallen native's soul stone lying on the land */
 export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean }
-export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[] }
+/** a small band away from any camp (no land to take, just a fight) */
+export interface Stray { group: number; pos: Cell }
+export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[]; strays: Stray[] }
 
 export const WORLD_SIZE = 96;
 const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor',
   boulder: 'chasm', log: 'chasm', lowWall: 'chasm', barricade: 'chasm', wreck: 'chasm', totem: 'chasm', obelisk: 'chasm', brazier: 'chasm' };
 /** camps by ring: how many, how far from the base, how strong */
-const RINGS: { n: number; near: number; far: number; tier: 1 | 2 | 3 }[] = [{ n: 3, near: 17, far: 24, tier: 1 }, { n: 3, near: 28, far: 35, tier: 2 }, { n: 2, near: 38, far: 44, tier: 3 }];
+const RINGS: { n: number; near: number; far: number; tier: 1 | 2 | 3 }[] = [{ n: 3, near: 22, far: 28, tier: 1 }, { n: 3, near: 30, far: 37, tier: 2 }, { n: 2, near: 39, far: 45, tier: 3 }];
+/** lone goblins and pairs wandering near the ship: the first fights, for an empty body or a single soul */
+const STRAYS = 4;
 const PACKS: Record<1 | 2 | 3, FoeKind[]> = {
-  1: ['minion', 'minion', 'minion', 'archer'],
-  2: ['minion', 'minion', 'minion', 'archer', 'archer', 'brute'],
+  1: ['minion', 'minion', 'archer'],
+  2: ['minion', 'minion', 'minion', 'archer', 'archer'],
   3: ['minion', 'minion', 'minion', 'archer', 'archer', 'brute', 'brute'],
 };
 
@@ -79,7 +83,29 @@ export function generateWorld(seed: number): World {
   const souls = placeSouls(rng, map, base, ruins, camps);
   // a soul walled in by rubble still has a way to it
   connect(map, ground, souls.map((x) => x.pos));
-  return { map, ground, camps, base, souls, lights };
+  const strays = placeStrays(rng, map, base, souls);
+  return { map, ground, camps, base, souls, lights, strays };
+}
+
+/** Lone goblins and pairs in the open near the ship, kept clear of the first souls. */
+function placeStrays(rng: Rng, map: GridMap, base: Cell, souls: Soul[]): Stray[] {
+  const d = distanceMap(map, map.start), out: Stray[] = [];
+  const ok = (c: Cell) => map.tiles[idx(map, c)] === 'floor' && d[idx(map, c)]! > 0 && souls.every((s) => near(s.pos, c) > 6) && out.every((o) => near(o.pos, c) > 8);
+  for (let n = 0; n < STRAYS; n++) {
+    let pos: Cell | undefined;
+    for (let t = 0; t < 80 && !pos; t++) {
+      const a = rng.next() * Math.PI * 2, r = rng.int(12, 18);
+      const c = { x: Math.round(base.x + Math.cos(a) * r), y: Math.round(base.y + Math.sin(a) * r) };
+      if (ok(c)) pos = c;
+    }
+    if (!pos) continue;
+    const group = 200 + n;
+    out.push({ group, pos });
+    map.spawns.push({ kind: 'minion', pos, group });
+    const mate = ring(pos, 1).find((c) => map.tiles[idx(map, c)] === 'floor');
+    if (n % 2 === 1 && mate) map.spawns.push({ kind: 'minion', pos: mate, group });
+  }
+  return out;
 }
 
 /** Soul stones: one in the open near the ship (the first, an archer), one inside each ruin, one at the heart of each camp; the classes go round so the nearest ones differ. */

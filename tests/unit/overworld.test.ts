@@ -5,6 +5,23 @@ import { damage, entOf } from '../../src/sim/party/partyCore';
 import { generateWorld, WORLD_SIZE } from '../../src/sim/overworld/worldGen';
 import { clones, newWorld, orderTo, worldTick } from '../../src/sim/overworld/worldSim';
 
+it('near the ship only small strays wait; the nearest camps are small and farther out', () => {
+  for (const seed of [1, 2, 3, 4, 5]) {
+    const w = generateWorld(seed);
+    const r = (c: { x: number; y: number }) => Math.hypot(c.x - w.base.x, c.y - w.base.y);
+    expect(w.strays.length).toBeGreaterThanOrEqual(3);
+    for (const st of w.strays) {
+      expect(r(st.pos)).toBeLessThanOrEqual(19);
+      expect(w.map.spawns.filter((sp) => sp.group === st.group).length).toBeLessThanOrEqual(2);
+      expect(w.map.spawns.filter((sp) => sp.group === st.group).every((sp) => sp.kind === 'minion')).toBe(true);
+    }
+    for (const c of w.camps.filter((x) => x.tier === 1)) {
+      expect(r(c.pos)).toBeGreaterThanOrEqual(21);
+      expect(w.map.spawns.filter((sp) => sp.group === c.group)).toHaveLength(3);
+    }
+  }
+});
+
 it('the world is the same for the same seed and different for another', () => {
   expect(generateWorld(4).ground).toEqual(generateWorld(4).ground);
   expect(generateWorld(4).ground).not.toEqual(generateWorld(5).ground);
