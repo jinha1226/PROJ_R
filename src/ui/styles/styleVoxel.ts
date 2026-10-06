@@ -24,7 +24,7 @@ const TEX = {
   cobble: px((put, rnd) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const edge = x % 8 === 0 || y % 8 === 0; if (edge) put(x, y, '#34302c'); else fill(((x >> 3) + (y >> 3)) % 2 ? '#5e5952' : '#55504a', 0.06)(put, rnd, x, y); } }, 3),
   plank: px((put, rnd) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(x, y, y % 4 === 0 ? '#4a2e18' : tone('#8a5a32', 1 + (rnd() - 0.5) * 0.18)); }, 5),
   barrel: px((put, rnd) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(x, y, y === 2 || y === 13 ? '#3a3a40' : x % 4 === 0 ? '#4a2e18' : tone('#7a4a28', 1 + (rnd() - 0.5) * 0.2)); }, 9),
-  gold: px((put, rnd) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(x, y, y < 3 || x < 2 || x > 13 ? '#c89a30' : tone('#7a4a28', 1 + (rnd() - 0.5) * 0.2)); if (true) { put(7, 6, '#ffe070'); put(8, 6, '#ffe070'); put(7, 7, '#ffe070'); put(8, 7, '#ffe070'); } }, 11),
+  gold: px((put, rnd) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(x, y, y < 3 || x < 2 || x > 13 ? '#c89a30' : tone('#7a4a28', 1 + (rnd() - 0.5) * 0.2)); for (const [x, y] of [[7, 6], [8, 6], [7, 7], [8, 7]] as const) put(x, y, '#ffe070'); }, 11),
   banner: px((put) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(x, y, (x === 7 || x === 8) && y > 2 && y < 13 ? '#e0b040' : y > 5 && y < 8 && x > 3 && x < 12 ? '#e0b040' : '#8a1a1a'); }),
   bone: px((put, rnd) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) fill('#e0dccc', 0.08)(put, rnd, x, y); }, 13),
 };
