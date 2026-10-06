@@ -175,7 +175,18 @@ async function delveDemo(): Promise<void> {
   }
 }
 
-if (params.get('demo') === 'kata') void kataDemo();
+/** `?demo=vfx`: every particle effect on loop, for tuning. */
+async function vfxDemo(): Promise<void> {
+  try {
+    const [{ mountVfxDemo }, { Vfx }, lib] = await Promise.all([import('../ui/fx/vfxDemo'), import('../view/fx/vfx'), UalLibrary.load(import.meta.env.BASE_URL)]);
+    mountVfxDemo(root, lib, await Vfx.load(import.meta.env.BASE_URL));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
+if (params.get('demo') === 'vfx') void vfxDemo();
+else if (params.get('demo') === 'kata') void kataDemo();
 else if (params.get('demo') === 'world') void worldDemo();
 else if (params.get('demo') === 'delve') void delveDemo();
 else if (params.get('demo') === 'party') void partyDemo();

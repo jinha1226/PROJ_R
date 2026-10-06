@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Vfx } from '../fx/vfx';
 
 const DEBRIS = 96;
 const SPARKS = 160;
@@ -7,9 +8,17 @@ const GRAVITY = 9;
 
 interface Bit { alive: boolean; p: THREE.Vector3; v: THREE.Vector3; life: number; spin: number }
 
-/** Bone chips that bounce, blood that sprays and spatters, sparks that fly. */
+let atlas: THREE.Texture | null = null;
+/** the effect atlas, loaded once and shared by every runtime */
+const fxAtlas = (): THREE.Texture => {
+  if (!atlas) { atlas = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/fx-atlas.png`); atlas.colorSpace = THREE.SRGBColorSpace; }
+  return atlas;
+};
+
+/** Bone chips that bounce, blood that sprays and spatters, sparks that fly; the textured effects (hits, blasts, heals) ride along. */
 export class GridParticles {
   readonly root = new THREE.Group();
+  readonly vfx = new Vfx(fxAtlas());
   private readonly chips: THREE.InstancedMesh;
   private readonly bits: Bit[] = [];
   private readonly sparkGeo = new THREE.BufferGeometry();
@@ -32,7 +41,7 @@ export class GridParticles {
     this.drops.count = 0;
     this.drops.frustumCulled = false;
     for (let i = 0; i < DROPS; i++) this.blobs.push({ alive: false, p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0, spin: 0 });
-    this.root.add(this.chips, spark, this.drops);
+    this.root.add(this.chips, spark, this.drops, this.vfx.root);
   }
 
   /** Bone chips bursting from a hit skeleton (more when it falls apart). */
@@ -73,6 +82,7 @@ export class GridParticles {
   }
 
   update(dt: number, focus: THREE.Vector3): void {
+    this.vfx.update(dt);
     let n = 0;
     for (const b of this.bits) {
       if (!b.alive) continue;
@@ -120,5 +130,6 @@ export class GridParticles {
     this.chips.geometry.dispose();
     this.sparkGeo.dispose();
     this.drops.geometry.dispose();
+    this.vfx.dispose();
   }
 }
