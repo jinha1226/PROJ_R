@@ -4,6 +4,7 @@ import type { DungeonKit, DungeonPiece } from './dungeonKit';
 import { wallFaces, type WallFace } from './gridLayout';
 import { addDecor, cornerColumns, runColumns } from './gridDecor';
 import { chasmMesh, sealMesh } from './toolGates';
+import { ChunkedInstances } from './chunkedInstances';
 
 /** Metres per grid cell. */
 export const CELL = 1.0;
@@ -19,12 +20,12 @@ export const yawFor = (dir: { x: number; y: number }): number => Math.atan2(dir.
 /** Floor, wall panels and columns from the Quaternius modular dungeon pack, dark wall tops, pillars, doors, chests and exits — all shaded by what the hero has seen. */
 export class GridTerrain {
   readonly root = new THREE.Group();
-  private readonly instanced: { mesh: THREE.InstancedMesh; cells: number[]; tint?: THREE.Color }[] = [];
+  private readonly instanced: { mesh: ChunkedInstances; cells: number[]; tint?: THREE.Color }[] = [];
   /** props shown only where the hero has seen (keyed by the cell that reveals them) */
   private props: [number, THREE.Object3D][] = [];
   private readonly seals = new Map<number, THREE.Object3D>();
   private readonly facesOf = new Map<number, number[]>();
-  private faceMesh: THREE.InstancedMesh | null = null;
+  private faceMesh: ChunkedInstances | null = null;
   private readonly built: string[];
   private readonly doors = new Map<number, THREE.Object3D>();
   private readonly chests = new Map<number, THREE.Object3D>();
@@ -49,7 +50,7 @@ export class GridTerrain {
     if (kit.piece('Floor_BricksSeparate')) this.instance('Floor_BricksSeparate', floors.filter(loose), (i, p) => tile('Floor_BricksSeparate')(i, p).premultiply(new THREE.Matrix4().makeTranslation(0, 0.05, 0)));
     this.instanceFaces(faces);
     // a thin stone cap on top of each wall panel only, so walls read as walls and not as solid blocks
-    const caps = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL + 0.02, 0.08, PANEL_DEPTH + 0.04), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), faces.length);
+    const caps = new ChunkedInstances(new THREE.BoxGeometry(CELL + 0.02, 0.08, PANEL_DEPTH + 0.04), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), faces.map((f) => f.wall));
     const capQ = new THREE.Quaternion();
     faces.forEach((f, k) => {
       const p = toWorld(f.wall.x + f.dir.x * (0.5 - PANEL_DEPTH / 2), f.wall.y + f.dir.y * (0.5 - PANEL_DEPTH / 2));
@@ -57,6 +58,7 @@ export class GridTerrain {
       caps.setMatrixAt(k, new THREE.Matrix4().compose(p.setY(WALL_H), capQ, new THREE.Vector3(1, 1, 1)));
       caps.setColorAt(k, new THREE.Color(0, 0, 0));
     });
+    caps.commit();
     this.root.add(caps);
     this.instanced.push({ mesh: caps, cells: faces.map((f) => idx(m, f.floor)), tint: CAP });
     for (const c of [...cornerColumns(m, faces), ...runColumns(m, faces)]) {
@@ -73,7 +75,7 @@ export class GridTerrain {
   private addLitter(floors: number[], color: string): void {
     const cells = floors.filter((i) => ((i * 2654435761) >>> 0) % 100 < 9 && this.m.tiles[i] === 'floor');
     if (!cells.length) return;
-    const mesh = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 7).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.35, metalness: 0.1 }), cells.length);
+    const mesh = new ChunkedInstances(new THREE.CircleGeometry(1, 7).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.35, metalness: 0.1 }), cells.map((i) => ({ x: i % this.m.w, y: Math.floor(i / this.m.w) })));
     cells.forEach((i, k) => {
       const h = ((i * 40503) >>> 0) % 1000 / 1000;
       const p = toWorld(i % this.m.w, Math.floor(i / this.m.w));
@@ -81,6 +83,7 @@ export class GridTerrain {
       mesh.setMatrixAt(k, new THREE.Matrix4().compose(new THREE.Vector3(p.x + (h - 0.5) * CELL * 0.5, 0.012, p.z + (((i * 7) % 10) / 10 - 0.5) * CELL * 0.5), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), h * 6), new THREE.Vector3(r * (0.7 + h * 0.6), 1, r)));
       mesh.setColorAt(k, new THREE.Color(0, 0, 0));
     });
+    mesh.commit();
     this.root.add(mesh);
     this.instanced.push({ mesh, cells, tint: new THREE.Color(color) });
   }
@@ -89,12 +92,12 @@ export class GridTerrain {
   private instance(name: DungeonPiece, cells: number[], place: (i: number, p: THREE.Vector3) => THREE.Matrix4): void {
     const pc = this.kit.piece(name);
     if (!pc || !cells.length) return;
-    const mesh = new THREE.InstancedMesh(pc.geometry, pc.material, cells.length);
-    mesh.receiveShadow = true;
+    const mesh = new ChunkedInstances(pc.geometry, pc.material, cells.map((i) => ({ x: i % this.m.w, y: Math.floor(i / this.m.w) })), { receive: true });
     cells.forEach((i, k) => {
       mesh.setMatrixAt(k, place(i, toWorld(i % this.m.w, Math.floor(i / this.m.w))));
       mesh.setColorAt(k, new THREE.Color(0, 0, 0));
     });
+    mesh.commit();
     this.root.add(mesh);
     this.instanced.push({ mesh, cells });
   }
@@ -103,9 +106,7 @@ export class GridTerrain {
   private instanceFaces(faces: WallFace[]): void {
     const pc = this.kit.piece('Wall_Modular');
     if (!pc) return;
-    const mesh = new THREE.InstancedMesh(pc.geometry, pc.material, faces.length);
-    mesh.receiveShadow = true;
-    mesh.castShadow = true;
+    const mesh = new ChunkedInstances(pc.geometry, pc.material, faces.map((f) => f.wall), { cast: true, receive: true });
     const scale = new THREE.Vector3(CELL / pc.size.x, WALL_H / pc.size.y, PANEL_DEPTH / pc.size.z);
     const q = new THREE.Quaternion();
     faces.forEach((f, k) => {
@@ -114,6 +115,7 @@ export class GridTerrain {
       mesh.setMatrixAt(k, new THREE.Matrix4().compose(p, q, scale));
       mesh.setColorAt(k, new THREE.Color(0, 0, 0));
     });
+    mesh.commit();
     this.root.add(mesh);
     this.instanced.push({ mesh, cells: faces.map((f) => idx(this.m, f.floor)) });
     this.faceMesh = mesh;
@@ -131,7 +133,7 @@ export class GridTerrain {
       if (was === 'pillar' && t === 'floor') { for (const [c, o] of this.props) if (c === i) o.removeFromParent(); this.props = this.props.filter(([c]) => c !== i); return; }
       if (t !== 'door') return;
       for (const k of this.facesOf.get(i) ?? []) this.faceMesh?.setMatrixAt(k, new THREE.Matrix4().makeScale(0, 0, 0));
-      if (this.faceMesh) this.faceMesh.instanceMatrix.needsUpdate = true;
+      this.faceMesh?.commit();
       const seal = this.seals.get(i);
       if (seal) { seal.removeFromParent(); this.props = this.props.filter(([, o]) => o !== seal); }
       this.addDoor(i);
@@ -194,7 +196,7 @@ export class GridTerrain {
     const level = (i: number) => (s.visible.has(i) ? 1 : s.seen[i] ? SEEN : 0);
     for (const it of this.instanced) {
       it.cells.forEach((cell, k) => { const l = level(cell); it.mesh.setColorAt(k, it.tint ? this.tmp.copy(it.tint).multiplyScalar(l > 0 ? Math.max(0.6, l) : 0) : this.tmp.setScalar(l)); });
-      it.mesh.instanceColor!.needsUpdate = true;
+      it.mesh.commit();
     }
     for (const [cell, o] of this.props) o.visible = level(cell) > 0;
     s.map.exits.forEach((e, n) => {
