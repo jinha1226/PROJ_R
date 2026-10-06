@@ -52,9 +52,9 @@ export const CONSUMABLES: Record<ConsumableId, string> = { potion: '치유 물�
 const weapon = (id: string, name: string, family: WeaponFamily, dmg: [
     number,
     number
-], range: number, atk: number, weight: number, tags: Tag[], triggers: TriggerDef[], floor = 1, extra: Partial<ItemDef> = {}): ItemDef => ({ id, name, slot: 'weapon', family, dmg, range, atk, weight, tags, triggers, floors: [floor, 5], ...extra });
-const armor = (id: string, name: string, reduce: number, weight: number, tags: Tag[], triggers: TriggerDef[], floor = 1): ItemDef => ({ id, name, slot: 'armor', armor: reduce, weight, tags, triggers, floors: [floor, 5] });
-const accessory = (id: string, name: string, tags: Tag[], triggers: TriggerDef[], floor = 1): ItemDef => ({ id, name, slot: 'accessory', weight: 0, tags, triggers, floors: [floor, 5] });
+], range: number, atk: number, weight: number, tags: Tag[], triggers: TriggerDef[], floor = 1, extra: Partial<ItemDef> = {}): ItemDef => ({ id, name, slot: 'weapon', family, dmg, range, atk, weight, tags, triggers, floors: [floor, Infinity], ...extra });
+const armor = (id: string, name: string, reduce: number, weight: number, tags: Tag[], triggers: TriggerDef[], floor = 1): ItemDef => ({ id, name, slot: 'armor', armor: reduce, weight, tags, triggers, floors: [floor, Infinity] });
+const accessory = (id: string, name: string, tags: Tag[], triggers: TriggerDef[], floor = 1): ItemDef => ({ id, name, slot: 'accessory', weight: 0, tags, triggers, floors: [floor, Infinity] });
 const defs: ItemDef[] = [
     weapon('swordShield', '방벽 방패와 검', 'sword', [7, 10], 1, 1, 3, ['근접', '방패'], [ward], 1, { shield: true, block: .1 }),
     weapon('sword', '수호검', 'sword', [8, 11], 1, .9, 2, ['근접'], [status('수호 베기', 'exposed', 'crit')]),

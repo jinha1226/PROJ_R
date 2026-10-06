@@ -11,7 +11,13 @@ export function rollConsumable(rng: Rng): ItemDraft {
 export function rollItem(rng: Rng, floor: number, slot?: ItemDef['slot'], tier = 1): ItemDraft {
     if (!slot && tier === 1 && rng.chance(.25))
         return rollConsumable(rng);
-    const pool = Object.values(CATALOG).filter(d => (!slot || d.slot === slot) && d.floors[0] <= floor && d.floors[1] >= floor);
+    const available = Object.values(CATALOG).filter(d => !slot || d.slot === slot);
+    let pool = available.filter(d => d.floors[0] <= floor && d.floors[1] >= floor);
+    if (!pool.length) {
+        const distance = (d: ItemDef) => Math.max(d.floors[0] - floor, floor - d.floors[1], 0);
+        const closest = Math.min(...available.map(distance));
+        pool = available.filter(d => distance(d) === closest);
+    }
     const deep = Math.max(...pool.map(d => d.floors[0]));
     const candidates = tier > 1 ? pool.filter(d => d.floors[0] >= Math.max(1, deep - (tier === 3 ? 0 : 1))) : pool;
     return { def: rng.pick(candidates).id, power: 0 };
