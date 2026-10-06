@@ -5,8 +5,11 @@ import type { WorldLog } from './worldLog';
 export interface HudActions { pause(): void; speed(): void; stat(): void; bag(): void; restart(): void; quit?: () => void; select(id: string): void; skill(id: string, slot: 0 | 1): void; promote(): void;
   /** turn-based ⇄ real-time fighting (shown when given) */
   mode?: () => void;
-  /** down the stairs (shown when given; enabled by draw) */
+  /** down the stairs or the shaft (shown when given; enabled by draw) */
   descend?: () => void;
+  descendLabel?: string;
+  /** back up to the pod (shown when given; enabled by draw) */
+  ascend?: () => void;
   /** pass the turn (Space) — a button for touch screens, shown on the clone's turn */
   wait?: () => void }
 
@@ -25,7 +28,7 @@ export class WorldHud {
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
         <button type="button" data-k="pause"></button><button type="button" data-k="speed"></button>
         <button type="button" data-k="stat">상태 <kbd>C</kbd></button><button type="button" data-k="bag">가방 <kbd>I</kbd></button>
-        ${a.mode ? '<button type="button" data-k="mode"></button>' : ''}${a.descend ? '<button type="button" data-k="descend" hidden>▼ 내려가기</button>' : ''}${a.wait ? '<button type="button" data-k="wait" hidden>대기</button>' : ''}
+        ${a.mode ? '<button type="button" data-k="mode"></button>' : ''}${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}${a.wait ? '<button type="button" data-k="wait" hidden>대기</button>' : ''}
         <button type="button" data-k="restart">다시</button>${a.quit ? '<button type="button" data-k="quit">타이틀</button>' : ''}</div>
         <div class="wh-keys"></div></aside>
       <aside class="wh-br"></aside>
@@ -40,6 +43,7 @@ export class WorldHud {
       if (k === 'quit') a.quit?.();
       if (k === 'mode') a.mode?.();
       if (k === 'descend') a.descend?.();
+      if (k === 'ascend') a.ascend?.();
       if (k === 'wait') a.wait?.();
     });
     const party = (e: Event) => {
@@ -72,7 +76,7 @@ export class WorldHud {
   }
 
   /** area: the top-left figures; mode: the top-right banner; turnBased/realTime label and whether the stairs can be taken. */
-  draw(p: Party, ids: string[], sel: string, view: { paused: boolean; speed: number; log: WorldLog; area: string; mode: string; keys: string; turnBased?: boolean; stairs?: boolean; myTurn?: boolean }): void {
+  draw(p: Party, ids: string[], sel: string, view: { paused: boolean; speed: number; log: WorldLog; area: string; mode: string; keys: string; turnBased?: boolean; stairs?: boolean; lift?: boolean; myTurn?: boolean }): void {
     if (performance.now() > this.toastUntil) this.el.querySelector('.wh-toast')!.classList.remove('on');
     this.put('.wh-area', view.area);
     this.put('.wh-mode', view.mode);
@@ -82,6 +86,8 @@ export class WorldHud {
     if (this.a.mode) this.put('[data-k="mode"]', view.turnBased ? '전투: 턴제' : '전투: 실시간');
     const down = this.el.querySelector<HTMLElement>('[data-k="descend"]');
     if (down) down.hidden = !view.stairs;
+    const up = this.el.querySelector<HTMLElement>('[data-k="ascend"]');
+    if (up) up.hidden = !view.lift;
     const wait = this.el.querySelector<HTMLElement>('[data-k="wait"]');
     if (wait) wait.hidden = !view.myTurn;
     this.put('.wh-log', view.log.html());

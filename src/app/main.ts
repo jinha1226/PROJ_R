@@ -13,7 +13,7 @@ import { Router } from './router';
 import { WeekFlow } from './weekFlow';
 import { ExtractFlow } from './extractFlow';
 import { GridFlow } from './gridFlow';
-import { WorldFlow } from './worldFlow';
+import { Expedition } from './expedition';
 import '../ui/styles/pipTheme.css';
 import { UalLibrary } from '../view/grid/ualActor';
 import { DungeonKit } from '../view/grid/dungeonKit';
@@ -42,7 +42,7 @@ function title(): void {
     lines: [['이주선 R-7 비상 전원', '가동'], ['복제 포드', '정상'], ['영혼 슬롯', '비어 있음']],
     startLabel: '깨어나기',
     hasRun: () => false,
-    start: () => void new WorldFlow(router, root, title).start(gridSeed()),
+    start: () => void new Expedition(router, root, title, gridSeed()).start(),
     resume: () => undefined,
   }));
 }

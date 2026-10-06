@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('the title wakes an empty clone that steps out of the lift into the dungeon', async ({ page }) => {
+test('the title drops a pod: an empty clone steps out beside it, the drill rig waits', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('./?seed=3');
@@ -9,8 +9,8 @@ test('the title wakes an empty clone that steps out of the lift into the dungeon
   await expect(page.locator('.wh-mini canvas')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.wh-party .pf')).toHaveCount(1);
   await expect(page.locator('.wh-party .pf')).toContainText('빈 몸');
-  await expect(page.locator('.wh-area')).toContainText('1층');
-  await expect(page.locator('.wh-log')).toContainText('승강기');
+  await expect(page.locator('.wh-area')).toContainText('재료');
+  await expect(page.locator('.wh-log')).toContainText('포드 착륙');
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');
   await expect(page.locator('.pip-win')).toBeVisible();

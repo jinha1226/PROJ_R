@@ -8,7 +8,8 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { command, promote } from '../../sim/party/partySim';
 import { queueSkill } from '../../sim/party/partySkills';
 import { BODY_COST, clones, orderTo } from '../../sim/roam/roam';
-import { canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
+import { canAscend, canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
+import { takeParty, type Carry } from '../../sim/roam/carry';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
@@ -61,7 +62,8 @@ export class DelveDemo implements Screen {
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
   private pinch!: Pinch;
 
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void } = {}) {
+  /** opts.party: the floor the expedition's party came down to; onAscend: the party rides up to the pod (also when nobody is left); restart: the expedition starts over. */
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; restart?: () => void } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -74,7 +76,8 @@ export class DelveDemo implements Screen {
       pause: () => { this.paused = !this.paused; },
       speed: () => { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); },
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
-      restart: () => this.restart(), quit: this.opts.quit,
+      restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
+      ...(this.opts.onAscend ? { ascend: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } } : {}),
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
       promote: () => this.live(promote(this.p, this.sel)),
@@ -100,7 +103,8 @@ export class DelveDemo implements Screen {
     this.restart();
     let last = performance.now();
     const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
+      // a frame's timestamp can come just before the moment the loop began: never a step back in time
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.handOver();
       if (!this.paused && !this.pip.open && !this.p.waiting) {
@@ -145,7 +149,12 @@ export class DelveDemo implements Screen {
       if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'drop') this.hud.toast('영혼석 떨어짐');
-      if (e.type === 'dead') { this.hud.toast('전멸'); this.log.add(e.t, '전멸 · 재료 부족', 'warn'); }
+      if (e.type === 'dead') {
+        this.hud.toast('전멸');
+        this.log.add(e.t, e.text === 'lost' ? '전멸 · 영혼은 지하에 남음' : '전멸 · 재료 부족', 'warn');
+        // below ground nobody comes back on their own: the pod takes it from here
+        if (e.text === 'lost' && this.opts.onAscend) setTimeout(() => this.opts.onAscend!(takeParty(this.p)), 2200);
+      }
       // in real time a clone falling low slows the world for a moment instead of stopping it
       if (e.type === 'hit' && this.mode === 'realtime' && unitOf(this.p, e.dst!)?.side === 'hero') {
         const h = entOf(this.p, e.dst!)!;
@@ -162,14 +171,14 @@ export class DelveDemo implements Screen {
   }
 
   private restart(): void {
-    this.p = newDelve(this.seed);
+    this.p = this.opts.party ?? newDelve(this.seed);
     this.warned.clear();
     this.kills = 0;
     this.log = new WorldLog();
-    this.log.add(0, '승강기 하강 · 지하 1층', 'warn');
+    this.log.add(this.p.time, `${this.opts.party ? '시추공 하강' : '승강기 하강'} · 지하 ${this.p.floor}층`, 'warn');
     LOOK_BY_ID.clear();
     this.view();
-    this.select('hero');
+    this.select(this.p.leader ?? 'hero');
     this.paused = false;
   }
 
@@ -265,7 +274,7 @@ export class DelveDemo implements Screen {
     const p = this.p, turn = this.mode === 'turn';
     const mode = !p.combat ? '<b>탐색</b>' : `<b class="fight">전투 · ${turn ? '턴제' : '실시간'}</b>${this.myTurn ? `<small class="turn">${this.name(this.sel)} 차례</small>` : ''}`;
     const keys = p.combat && turn ? '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종' : '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대';
-    this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p), myTurn: this.myTurn,
+    this.hud.draw(p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log, keys, mode, turnBased: turn, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn,
       area: `<div><span>지하</span><b>${p.floor}층</b></div><div><span>처치</span><b>${this.kills}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${p.bio}/${BODY_COST}</b></div>${p.carried.length ? `<div class="soul"><span>영혼</span><b>${p.carried.length}</b></div>` : ''}` });
   }
 }

@@ -5,15 +5,16 @@ import { WorldFog } from './worldFog';
 import { campProps, crashedShip, instanced, jitter, rocks, ruinWalls, trees, type CampView } from './worldProps';
 import { coverProps } from './worldCover';
 import { WorldLights } from './worldLights';
+import { LandingPod, drillRig } from './podProps';
 import { EmberCracks } from './emberCracks';
 
 /** what the world view needs beyond the grid state */
-export interface WorldLook { ground: Ground[]; camps: Camp[]; base: Cell; claimed: Uint8Array; souls: Soul[]; lights: LandLight[] }
+export interface WorldLook { ground: Ground[]; camps: Camp[]; base: Cell; claimed: Uint8Array; souls: Soul[]; lights: LandLight[]; pod?: boolean; drill?: Cell }
 
 const COLOR: Record<Ground, string> = {
   grass: '#4a6a32', forest: '#2e4624', tree: '#2c4424', rock: '#4e4a46', water: '#16324c', ford: '#3e5e6e',
   dirt: '#7a6244', ruin: '#6a6256', ruinWall: '#5a544c', ship: '#4a5040', camp: '#6e5636',
-  boulder: '#557a38', log: '#3c5a2c', lowWall: '#5e5a4e', barricade: '#6e5636', wreck: '#2e2420', totem: '#5a3a2a', obelisk: '#2a1c22', brazier: '#6a6256',
+  boulder: '#557a38', log: '#3c5a2c', lowWall: '#5e5a4e', barricade: '#6e5636', wreck: '#2e2420', totem: '#5a3a2a', obelisk: '#2a1c22', brazier: '#6a6256', drill: '#4a4036',
 };
 /** the light each kind of land light gives */
 const LAND_LIGHT: Record<LandLight['kind'], { color: string; power: number; range: number; y: number; flicker: number }> = {
@@ -35,6 +36,10 @@ export class WorldTerrain {
   private clock = 0;
   private seen?: Uint8Array;
   private readonly cracks: EmberCracks;
+  /** the landing pod (on the pod's ground) */
+  readonly pod?: LandingPod;
+  /** called when the falling pod hits the ground (the view shakes) */
+  onThump?: () => void;
 
   constructor(private readonly w: number, private readonly h: number, private readonly look: WorldLook) {
     this.fog = new WorldFog(w, h);
@@ -42,7 +47,11 @@ export class WorldTerrain {
     const by = (g: Ground[]) => { const out: Cell[] = []; look.ground.forEach((k, i) => { if (g.includes(k)) out.push({ x: i % w, y: Math.floor(i / w) }); }); return out; };
     this.root.add(trees(by(['tree']), this.fog), rocks(by(['rock']), this.fog), ruinWalls(by(['ruinWall']), this.fog), this.tufts(by(['grass', 'forest'])));
     this.cracks = new EmberCracks(look, w, this.fog);
-    this.root.add(crashedShip(look.base, this.fog), coverProps(look.ground, w, this.fog), this.lights.root, this.cracks.mesh);
+    // a landing pod (and the drill rig beside it) on the pod's ground, else the crashed ship
+    if (look.pod) { this.pod = new LandingPod(look.base, this.fog, () => this.onThump?.()); this.root.add(this.pod.root); }
+    else this.root.add(crashedShip(look.base, this.fog));
+    if (look.drill) this.root.add(drillRig(look.drill, this.fog));
+    this.root.add(coverProps(look.ground, w, this.fog), this.lights.root, this.cracks.mesh);
     for (const c of look.camps) { const cp = campProps(c, this.fog); this.camps.push(cp.view); this.root.add(cp.root); }
     this.spots();
     this.sun.position.set(-18, 30, 12);
@@ -102,8 +111,14 @@ export class WorldTerrain {
   /** Every light on the land, for the pool to pick from: the ship, camp fires and totems (until taken; then our beacon), wrecks, braziers, obelisks, souls. */
   private spots(): void {
     const L = this.lights, b = this.look.base;
-    L.add({ at: { x: b.x - 3, y: b.y }, y: 2.4, color: '#5ae0ff', power: 7, range: 10, flicker: 0.05, on: () => true });
-    L.add({ at: { x: b.x + 1, y: b.y + 2 }, y: 1.4, color: '#9fe8ff', power: 4, range: 7, flicker: 0, on: () => true });
+    if (this.look.pod) {
+      L.add({ at: { x: b.x, y: b.y + 1 }, y: 1.6, color: '#7ae8ff', power: 6, range: 8, flicker: 0.04, on: () => !this.pod?.landing });
+    } else {
+      L.add({ at: { x: b.x - 3, y: b.y }, y: 2.4, color: '#5ae0ff', power: 7, range: 10, flicker: 0.05, on: () => true });
+      L.add({ at: { x: b.x + 1, y: b.y + 2 }, y: 1.4, color: '#9fe8ff', power: 4, range: 7, flicker: 0, on: () => true });
+    }
+    const d = this.look.drill;
+    if (d) L.add({ at: d, y: 2.7, color: '#ffb84a', power: 5, range: 7, flicker: 0.08, on: () => true });
     for (const c of this.look.camps) {
       L.add({ at: c.pos, y: 0.8, color: '#ff9040', power: 9, range: 9, flicker: 0.2, on: () => !c.cleared });
       L.add({ at: c.totem, y: 1.6, color: '#ff2a2a', power: 4, range: 5, flicker: 0.1, on: () => !c.cleared });
@@ -141,6 +156,7 @@ export class WorldTerrain {
     this.sun.position.set(center.x - 18, 30, center.z + 12);
     this.sun.target.position.set(center.x, 0, center.z);
     this.lights.update(dt, center, (c) => this.seen?.[c.y * this.w + c.x] === 1);
+    this.pod?.update(dt);
     for (const st of this.stones) { st.gem.position.y = 0.75 + Math.sin(this.clock * 2 + st.soul.id) * 0.12; st.gem.rotation.y = this.clock * 1.4 + st.soul.id; }
   }
 

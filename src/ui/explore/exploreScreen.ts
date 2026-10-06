@@ -84,7 +84,8 @@ export class ExploreScreen implements Screen {
     this.renderHud();
     let last = performance.now();
     const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
+      // a frame's timestamp can come just before the moment the loop began: never a step back in time
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       // a frame may route away (exit, event, 귀환); never schedule past unmount
       if (guardFrame(() => this.frame(dt, cam), (err) => this.api.fatal(err)) && !this.gone) this.raf = requestAnimationFrame(loop);

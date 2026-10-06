@@ -1,13 +1,13 @@
 import { createRng } from '../../core/rng';
-import { spawnFoe } from '../grid/foes';
 import { generateMap } from '../grid/mapgen';
 import { distanceMap } from '../grid/path';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent, type GridMap } from '../grid/types';
-import { entOf, type Unit } from '../party/partyCore';
+import { entOf } from '../party/partyCore';
 import { BASE_CLASSES, CLASSES, FOES, type BaseClass, type FoeId } from '../party/partyDefs';
 import { tick } from '../party/partySim';
 import { blank, hpNow, living, look, roamStep, type RoamParty, type Soul } from '../roam/roam';
+import { placeParty, takeParty, type Carry } from '../roam/carry';
 
 export const DELVE_SIGHT = 8;
 /** the dungeon's kinds, as the party knows them */
@@ -47,13 +47,14 @@ function floorMap(seed: number, floor: number): GridMap {
 }
 
 /** An empty clone steps out of the lift on the first floor below the ship. */
-export function newDelve(seed = 1, floor = 1): DelveParty {
+export function newDelve(seed = 1, floor = 1, carry?: Carry): DelveParty {
   const map = floorMap(seed, floor);
   const s = newState(map, seed + floor * 31, 'pistol', floor);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], nextClone: 1, bio: 0, base: { ...map.start }, floor, seed };
+  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(map, seed, floor), carried: [], nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, floor, seed };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
   populate(p);
+  if (carry) placeParty(p, carry);
   look(p);
   return p;
 }
@@ -72,24 +73,13 @@ export const canDescend = (p: DelveParty): boolean => !p.combat && !!p.s.map.sta
 /** Down the stairs: a new floor; the living clones come along as they are (the fallen and their unrecovered souls stay behind). */
 export function descend(p: DelveParty): boolean {
   if (!canDescend(p)) return false;
-  const keep = living(p).map((u) => ({ u, hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp }));
-  const floor = p.floor + 1, map = floorMap(p.seed, floor);
-  const s = newState(map, p.seed + floor * 31, 'pistol', floor);
-  p.s = s; p.floor = floor; p.units = []; p.souls = placeSouls(map, p.seed, floor); p.base = { ...map.start }; p.combat = false; p.waiting = false;
-  // the first clone keeps the hero's place in the state; if it fell, that slot lies empty off the map
-  if (!keep.some((k) => k.u.id === 'hero')) { s.hero.alive = false; s.hero.pos = { x: -50, y: -50 }; }
-  keep.forEach((k, i) => {
-    const at = { x: map.start.x + (i % 2), y: map.start.y + (i >> 1) };
-    const e = k.u.id === 'hero' ? s.hero : spawnFoe(s, 'minion', at, false);
-    e.id = k.u.id; e.pos = at; e.hp = k.hp; e.maxHp = k.maxHp; e.awake = false;
-    const u: Unit = { ...k.u, order: null, queued: undefined, nextAt: p.time, ready: [p.time, p.time] };
-    p.units.push(u);
-  });
-  // foes come after the clones in the list; their spawns start the foe list of the new state
-  const clonesFirst = s.foes.filter((f) => keep.some((k) => k.u.id === f.id));
-  s.foes = s.foes.filter((f) => !clonesFirst.includes(f));
+  const carry = takeParty(p), floor = p.floor + 1, map = floorMap(p.seed, floor);
+  p.s = newState(map, p.seed + floor * 31, 'pistol', floor);
+  p.floor = floor; p.units = []; p.souls = placeSouls(map, p.seed, floor); p.base = { ...map.start };
   populate(p);
-  s.foes.push(...clonesFirst);
-  look(p);
+  placeParty(p, carry);
   return true;
 }
+
+/** The whole living party is back at the lift and nothing hunts it: they can ride up to the pod. */
+export const canAscend = (p: DelveParty): boolean => !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.base) <= 2);

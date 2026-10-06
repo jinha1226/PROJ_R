@@ -106,7 +106,8 @@ export class ChainShowcase implements Screen {
     this.restart();
     let last = performance.now();
     const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
+      // a frame's timestamp can come just before the moment the loop began: never a step back in time
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.rt?.update(dt * (this.fast ? KATA.speed : 1));
       this.raf = requestAnimationFrame(loop);

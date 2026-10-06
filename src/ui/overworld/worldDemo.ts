@@ -7,7 +7,8 @@ import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { promote } from '../../sim/party/partySim';
 import { queueSkill } from '../../sim/party/partySkills';
-import { claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
+import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
+import { takeParty, type Carry } from '../../sim/roam/carry';
 import { BODY_COST } from '../../sim/roam/roam';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
@@ -47,6 +48,7 @@ export class WorldDemo implements Screen {
   private pip!: PipWindow;
   private pausedBeforePip = false;
   private hover: { x: number; y: number } | null = null;
+  private landing = false;
   private log = new WorldLog();
   private raf = 0;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
@@ -54,7 +56,11 @@ export class WorldDemo implements Screen {
 
   private readonly seed: number;
 
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void } = {}) {
+  /**
+   * opts.party: an expedition's surface (kept between trips); landing: the pod falls in first; onDrill: the party goes down the shaft;
+   * restart: the expedition starts over (else the demo makes a new world).
+   */
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry) => void; restart?: () => void } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -67,7 +73,8 @@ export class WorldDemo implements Screen {
       pause: () => { this.paused = !this.paused; },
       speed: () => { this.speed = SPEEDS[(SPEEDS.indexOf(this.speed) + 1) % SPEEDS.length]!; this.pace(); },
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
-      restart: () => this.restart(), quit: this.opts.quit,
+      restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
+      ...(this.opts.onDrill ? { descend: () => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p)); }, descendLabel: '▼ 시추공' } : {}),
       select: (id) => this.select(id),
       skill: (id, slot) => queueSkill(this.p, id || this.sel, slot),
       promote: () => this.live(promote(this.p, this.sel)),
@@ -83,12 +90,17 @@ export class WorldDemo implements Screen {
     this.stage.addEventListener('contextmenu', (e) => e.preventDefault());
     this.stage.addEventListener('wheel', (e) => { e.preventDefault(); this.zoom = Math.min(26, Math.max(8, this.zoom * (e.deltaY > 0 ? 1.1 : 0.9))); this.rt?.setZoom(this.zoom); }, { passive: false });
     addEventListener('keydown', this.onKey);
+    // tests and screenshots reach in through this handle
+    if (new URLSearchParams(location.search).has('debug')) (window as unknown as { __world: WorldDemo }).__world = this;
     this.restart();
     let last = performance.now();
     const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
+      // a frame's timestamp can come just before the moment the loop began: never a step back in time
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
-      if (!this.paused && !this.pip.open) {
+      // while the pod falls in the world waits; then the clone steps out
+      if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
+      if (!this.paused && !this.pip.open && !this.landing) {
         const t0 = this.p.time;
         this.live(worldTick(this.p, dt * RATE * this.speed), t0);
         this.autoPause();
@@ -100,7 +112,7 @@ export class WorldDemo implements Screen {
       const taken = this.p.camps.filter((c) => c.cleared).length;
       this.hud.draw(this.p, this.ids(), this.sel, { paused: this.paused, speed: this.speed, log: this.log,
         area: `<div><span>영역</span><b>${Math.round(claimedShare(this.p) * 100)}%</b></div><div><span>진지</span><b>${taken}/${this.p.camps.length}</b></div><div><span>클론</span><b>${this.ids().length}/3</b></div><div class="bio${this.p.bio >= BODY_COST ? ' ok' : ''}"><span>재료</span><b>${this.p.bio}/${BODY_COST}</b></div>${this.p.carried.length ? `<div class="soul"><span>영혼</span><b>${this.p.carried.length}</b></div>` : ''}`,
-        mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대' });
+        mode: this.p.combat ? '<b class="fight">전투</b>' : '<b>탐색</b>', keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · 휠 확대', stairs: canDrill(this.p) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };
@@ -133,8 +145,8 @@ export class WorldDemo implements Screen {
 
   private restart(): void {
     LOOK_BY_ID.clear();
-    LOOK_BY_ID.set('hero', lookOf('shell', 'fists'));
-    this.p = newWorld(this.seed);
+    this.p = this.opts.party ?? newWorld(this.seed);
+    for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
@@ -142,11 +154,13 @@ export class WorldDemo implements Screen {
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = false;
     this.pace();
-    this.select('hero');
+    this.select(this.p.leader ?? 'hero');
     this.paused = false;
     this.message('');
     this.log = new WorldLog();
-    this.log.add(0, '복제 포드 개방 · 영혼 없음', 'warn');
+    this.log.add(this.p.time, this.p.pod ? (this.opts.landing ? '포드 착륙 · 영혼 없음' : '지상 복귀') : '복제 포드 개방 · 영혼 없음', 'warn');
+    // the pod falls in: the clone waits inside until it is down
+    if (this.opts.landing && this.rt.landPod()) { this.landing = true; this.rt.actors.setVisible(this.p.leader ?? 'hero', false); }
     this.mini = new WorldMinimap(this.p, (c) => this.walk(c));
     this.hud.minimapSlot.replaceChildren(this.mini.el);
   }

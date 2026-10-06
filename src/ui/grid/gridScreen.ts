@@ -129,7 +129,8 @@ export class GridScreen implements Screen {
     if (this.api.ship?.api.wake) this.wakeUp(rt);
     let last = performance.now();
     const loop = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
+      // a frame's timestamp can come just before the moment the loop began: never a step back in time
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       if (guardFrame(() => this.frame(dt), (err) => this.api.fatal(err)) && !this.gone) this.raf = requestAnimationFrame(loop);
     };

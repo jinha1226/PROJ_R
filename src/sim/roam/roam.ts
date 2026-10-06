@@ -19,8 +19,10 @@ export interface RoamParty extends Party {
   rewakeAt?: number;
   /** bio-matter gathered from the fallen: what new bodies are printed from */
   bio: number;
-  /** every clone fell and there was not enough bio-matter for another body */
+  /** every clone fell and there was not enough bio-matter for another body (or, below ground, nobody is left to come back) */
   over?: boolean;
+  /** new bodies come out here (the pod on the surface; never in a dungeon) */
+  printHere: boolean;
   /** how far the clones see */
   sight: number;
 }
@@ -101,13 +103,13 @@ function souls(p: RoamParty, ev: GEvent[]): void {
   }
   for (const u of living(p)) if (u.cls === 'shell' && p.carried.length) implant(p, u, p.carried.shift()!, ev);
   // a carried soul gets a body at the base, if there is bio-matter enough for one
-  if (!p.combat && p.carried.length && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
+  if (p.printHere && !p.combat && p.carried.length && p.bio >= BODY_COST && living(p).length < MAX_CLONES && nearest(p, p.base) <= BASE_REACH) {
     p.bio -= BODY_COST;
     print(p, p.carried.shift(), ev);
   }
   // the last clone fell: one more empty body if the stuff is there, else it is over
   if (!living(p).length && !p.over) {
-    if (p.bio < BODY_COST) { p.over = true; ev.push({ t, type: 'dead', text: 'wiped' }); return; }
+    if (!p.printHere || p.bio < BODY_COST) { p.over = true; ev.push({ t, type: 'dead', text: p.printHere ? 'wiped' : 'lost' }); return; }
     p.rewakeAt ??= t + 3;
     if (t >= p.rewakeAt) { p.rewakeAt = undefined; p.bio -= BODY_COST; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
   }

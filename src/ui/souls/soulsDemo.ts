@@ -61,7 +61,8 @@ export class SoulsDemo implements Screen {
     addEventListener('keydown', this.onKey);
     this.restart();
     let last = performance.now();
-    const loop = (now: number) => { const dt = Math.min(0.1, (now - last) / 1000); last = now; this.rt?.update(dt); this.labels(); this.raf = requestAnimationFrame(loop); };
+    const loop = (now: number) => { // a frame's timestamp can come just before the moment the loop began: never a step back in time
+      const dt = Math.max(0, Math.min(0.1, (now - last) / 1000)); last = now; this.rt?.update(dt); this.labels(); this.raf = requestAnimationFrame(loop); };
     this.raf = requestAnimationFrame(loop);
   }
 

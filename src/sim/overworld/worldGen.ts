@@ -6,7 +6,9 @@ import { BASE_CLASSES, type BaseClass } from '../party/partyDefs';
 /** what a cell looks like (the sim only cares about its tile) */
 export type Ground = 'grass' | 'forest' | 'tree' | 'rock' | 'water' | 'ford' | 'dirt' | 'ruin' | 'ruinWall' | 'ship' | 'camp'
   /** waist-high things: they stop a step but not a look, and a body tucked behind one is hard to shoot */
-  | 'boulder' | 'log' | 'lowWall' | 'barricade' | 'wreck' | 'totem' | 'obelisk' | 'brazier';
+  | 'boulder' | 'log' | 'lowWall' | 'barricade' | 'wreck' | 'totem' | 'obelisk' | 'brazier'
+  /** the drill rig over the shaft down */
+  | 'drill';
 /** what can be crouched behind */
 export const COVER: ReadonlySet<Ground> = new Set(['boulder', 'log', 'lowWall', 'barricade', 'wreck', 'totem', 'obelisk', 'brazier']);
 /** lights that stand on the land itself (camp fires, souls and the ship light themselves) */
@@ -16,11 +18,15 @@ import type { Soul } from '../roam/roam';
 export type { Soul };
 /** a small band away from any camp (no land to take, just a fight) */
 export interface Stray { group: number; pos: Cell }
-export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[]; strays: Stray[] }
+export interface World { map: GridMap; ground: Ground[]; camps: Camp[]; base: Cell; souls: Soul[]; lights: LandLight[]; strays: Stray[];
+  /** the drill rig over the shaft down (the pod's landing ground only) */
+  drill?: Cell;
+  /** a landing pod stands at the base instead of the crashed ship */
+  pod?: boolean }
 
 export const WORLD_SIZE = 96;
-const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor',
-  boulder: 'chasm', log: 'chasm', lowWall: 'chasm', barricade: 'chasm', wreck: 'chasm', totem: 'chasm', obelisk: 'chasm', brazier: 'chasm' };
+export const TILE: Record<Ground, Tile> = { grass: 'floor', forest: 'floor', tree: 'pillar', rock: 'wall', water: 'chasm', ford: 'floor', dirt: 'floor', ruin: 'floor', ruinWall: 'wall', ship: 'wall', camp: 'floor',
+  boulder: 'chasm', log: 'chasm', lowWall: 'chasm', barricade: 'chasm', wreck: 'chasm', totem: 'chasm', obelisk: 'chasm', brazier: 'chasm', drill: 'chasm' };
 /** camps by ring: how many, how far from the base, how strong */
 const RINGS: { n: number; near: number; far: number; tier: 1 | 2 | 3 }[] = [{ n: 3, near: 22, far: 28, tier: 1 }, { n: 3, near: 30, far: 37, tier: 2 }, { n: 2, near: 39, far: 45, tier: 3 }];
 /** lone goblins and pairs wandering near the ship: the first fights, for an empty body or a single soul */
@@ -32,7 +38,7 @@ const PACKS: Record<1 | 2 | 3, FoeKind[]> = {
 };
 
 /** Smooth value noise in [0, 1] (a few octaves of a hashed lattice). */
-function noise(seed: number): (x: number, y: number) => number {
+export function noise(seed: number): (x: number, y: number) => number {
   const hash = (x: number, y: number) => {
     let h = (x * 374761393 + y * 668265263 + seed * 2147483647) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -47,10 +53,10 @@ function noise(seed: number): (x: number, y: number) => number {
   return (x, y) => (at(x / 14, y / 14) * 0.6 + at(x / 6, y / 6) * 0.3 + at(x / 3, y / 3) * 0.1);
 }
 
-const near = (a: Cell, b: Cell) => Math.hypot(a.x - b.x, a.y - b.y);
+export const near = (a: Cell, b: Cell): number => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** The land round the crashed ship: woods, rocky hills, a river with fords, ruins, and goblin camps that grow stronger farther out. */
-export function generateWorld(seed: number): World {
+export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World {
   const N = WORLD_SIZE, rng = createRng((seed ^ 0x77a1d) >>> 0);
   const base = { x: N >> 1, y: N >> 1 };
   const ground: Ground[] = new Array<Ground>(N * N).fill('grass');
@@ -73,7 +79,11 @@ export function generateWorld(seed: number): World {
   const camps = placeCamps(rng, base, set, get);
   for (const c of camps) if (c.tier === 1) road(rng, base, c.pos, set, get);
   const lights = cover(rng, base, ruins, camps, set, get);
-  ship(base, set);
+  // a landing pod (2×2) with the drill rig beside it, or the crashed ship lying across the clearing
+  if (opts.pod) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) set({ x: base.x + dx!, y: base.y + dy! }, 'ship');
+  else ship(base, set);
+  const drill = opts.pod ? { x: base.x - 3, y: base.y } : undefined;
+  if (drill) set(drill, 'drill');
   const map: GridMap = { w: N, h: N, tiles: ground.map((g) => TILE[g]), rooms: [], start: { x: base.x, y: base.y + 3 }, exits: [], chests: [], spawns: [], barrels: [] };
   connect(map, ground, camps.map((c) => c.pos));
   for (const camp of camps) {
@@ -84,7 +94,7 @@ export function generateWorld(seed: number): World {
   // a soul walled in by rubble still has a way to it
   connect(map, ground, souls.map((x) => x.pos));
   const strays = placeStrays(rng, map, base, souls);
-  return { map, ground, camps, base, souls, lights, strays };
+  return { map, ground, camps, base, souls, lights, strays, drill, pod: opts.pod };
 }
 
 /** Lone goblins and pairs in the open near the ship, kept clear of the first souls. */
@@ -123,7 +133,7 @@ function placeSouls(rng: Rng, map: GridMap, base: Cell, ruins: Cell[], camps: Ca
 }
 
 /** Cells within a square radius, nearest first. */
-function ring(c: Cell, r: number): Cell[] {
+export function ring(c: Cell, r: number): Cell[] {
   const out: Cell[] = [];
   for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (dx || dy) out.push({ x: c.x + dx, y: c.y + dy });
   return out.sort((a, b) => near(a, c) - near(b, c));
@@ -247,7 +257,7 @@ function ship(base: Cell, set: (c: Cell, g: Ground) => void): void {
 }
 
 /** Every camp can be walked to from the base: a cut is made through trees, rocks and water where it cannot. */
-function connect(map: GridMap, ground: Ground[], goals: Cell[]): void {
+export function connect(map: GridMap, ground: Ground[], goals: Cell[]): void {
   for (const g of goals) {
     const d = distanceMap(map, map.start);
     if (d[idx(map, g)]! >= 0) continue;

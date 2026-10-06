@@ -1,27 +1,34 @@
 import { newState } from '../grid/state';
-import { idx, type Cell, type GEvent } from '../grid/types';
+import { dist, idx, type Cell, type GEvent } from '../grid/types';
 import { entOf } from '../party/partyCore';
 import { CLASSES, FOES, type FoeId } from '../party/partyDefs';
 import { tick } from '../party/partySim';
 import { blank, hpNow, living, look, roamStep, type RoamParty } from '../roam/roam';
-import { COVER, generateWorld, type Camp, type Ground, type LandLight } from './worldGen';
+import { COVER, generateWorld, type Camp, type Ground, type LandLight, type World } from './worldGen';
 
 export { clones, MAX_CLONES, orderTo } from '../roam/roam';
 export const SIGHT = 9;
 const CLAIM_BASE = 11;
 const CLAIM_CAMP = 9;
 
-export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[]; claimed: Uint8Array; lights: LandLight[] }
+export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[]; claimed: Uint8Array; lights: LandLight[];
+  /** the drill rig over the shaft down (the pod's landing ground) */
+  drill?: Cell;
+  pod?: boolean }
 
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', archer: 'archer', brute: 'brute' };
 
 /** One empty clone wakes by the crashed ship; the land round it is unknown, its camps asleep, souls lying about. */
-export function newWorld(seed = 1): WorldParty {
-  const w = generateWorld(seed);
+export function newWorld(seed = 1): WorldParty { return fromWorld(generateWorld(seed), seed); }
+
+/** Where the pod came down: one empty clone steps out beside it; the drill rig waits next to the pod. */
+export function newSurface(seed = 1): WorldParty { return fromWorld(generateWorld(seed, { pod: true }), seed); }
+
+function fromWorld(w: World, seed: number): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, carried: [], nextClone: 1, bio: 0, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)) };
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, carried: [], nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), drill: w.drill, pod: w.pod };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists' });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
@@ -68,3 +75,6 @@ export function worldTick(p: WorldParty, dt: number): GEvent[] {
 }
 
 export const claimedShare = (p: WorldParty): number => p.claimed.reduce((a, b) => a + b, 0) / p.claimed.length;
+
+/** The whole living party stands by the drill rig and nothing hunts it: they can go down the shaft. */
+export const canDrill = (p: WorldParty): boolean => !!p.drill && !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.drill!) <= 2);
