@@ -12,12 +12,13 @@ it('the first level-up offers two laws of the class and one more', () => {
   }
 });
 
-it('an owned law comes back as its upgrade; a card without one does not come back', () => {
+it('an owned card comes back as its next rank; one at its top rank does not', () => {
   const { p, u } = scene('mage'); u.level = 3;
-  u.traits = Object.fromEntries(Object.values(TRAITS).filter((d) => d.pool === 'mage').map((d) => [d.id, 1]));
+  // every mage card held, the signature and law cards at rank 2 (one more to go), the rest at their top
+  u.traits = Object.fromEntries(Object.values(TRAITS).filter((d) => d.pool === 'mage').map((d) => [d.id, d.ranks === 3 ? 2 : d.ranks]));
   for (let i = 0; i < 20; i++) {
     const own = rollOffer(p, u).filter((id) => TRAITS[id]!.pool === 'mage');
-    expect(own.every((id) => TRAITS[id]!.ranks === 2)).toBe(true);
+    expect(own.every((id) => TRAITS[id]!.ranks === 3)).toBe(true);
   }
 });
 

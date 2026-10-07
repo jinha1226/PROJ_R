@@ -3,7 +3,7 @@ import { alive, damage, levelDmg, occupied, posOf, stats, type Party, type Unit 
 import { applyStatus } from './status';
 import { tagsOf } from './classKit';
 import { resonant } from './resonance';
-import { rank } from './traitTypes';
+import { ampBase, rank } from './traitTypes';
 import { action } from './triggers';
 
 /** a rogue's snare: lightning (three go-offs, shocks) or fire (bursts once, burns); fires at most once a turn */
@@ -40,13 +40,15 @@ export function snareSpot(p: Party, from: Cell): Cell | undefined {
 }
 
 /** A snare goes off: lightning strikes the foe on it and shocks it; fire bursts (a wider burst upgraded) and burns. Chain detonation sets off the rogue's snares within two, each once. */
-function fire(p: Party, s: Snare, t: number, ev: GEvent[], done: Set<Snare>): void {
+function fire(p: Party, s: Snare, t: number, ev: GEvent[], done: Set<Snare>, chained = false): void {
   const u = owner(p, s);
   done.add(s); s.charges--; s.ready = t + 1;
   if (!u) return;
-  const [lo, hi] = stats(u, t, p).dmg, amp = rank(u, 'trapAmp') ? 1.15 ** (tagsOf(u).함정 ?? 0) : 1;
+  const [lo, hi] = stats(u, t, p).dmg, amp = (rank(u, 'trapAmp') ? ampBase(u, 'trapAmp', 1.15) ** (tagsOf(u).함정 ?? 0) : 1) * (chained && rank(u, 'chainDetonate') >= 2 ? 1.5 : 1);
   const amount = Math.max(1, Math.round(((lo + hi) / 2) * levelDmg(u) * (s.kind === 'bolt' ? 0.8 : 1) * amp));
-  const reach = s.kind === 'fire' && rank(u, 'fireTrap') >= 2 ? 1 : 0;
+  const reach = (s.kind === 'fire' && rank(u, 'fireTrap') >= 2) || (s.kind === 'bolt' && rank(u, 'lightningTrap') >= 3) ? 1 : 0;
+  // fire trap 3: burning ground where it went off
+  if (s.kind === 'fire' && rank(u, 'fireTrap') >= 3) (p.grounds ??= []).push({ at: { ...s.at }, by: u.id, until: t + 2, next: t + 1, kind: 'burn', r: 1 });
   ev.push({ t, type: 'buff', src: u.id, to: { ...s.at }, text: SNARE_NAME[s.kind] });
   for (let k = 0; k < (resonant(p, u, '함정', 2) ? 2 : 1); k++) {
     for (const f of p.units.filter((x) => x.side === 'foe' && alive(p, x) && dist(posOf(p, x), s.at) <= reach)) {
@@ -54,7 +56,7 @@ function fire(p: Party, s: Snare, t: number, ev: GEvent[], done: Set<Snare>): vo
       if (alive(p, f)) applyStatus(p, u, f, s.kind === 'bolt' ? 'shock' : 'burn', t, ev);
     }
   }
-  if (rank(u, 'chainDetonate')) for (const o of p.snares ?? []) if (!done.has(o) && o.by === s.by && o.charges > 0 && dist(o.at, s.at) <= 2) fire(p, o, t, ev, done);
+  if (rank(u, 'chainDetonate')) for (const o of p.snares ?? []) if (!done.has(o) && o.by === s.by && o.charges > 0 && dist(o.at, s.at) <= 2) fire(p, o, t, ev, done, true);
 }
 
 /** Every step: a snare with a foe on it goes off (once a turn); spent snares are cleared. */

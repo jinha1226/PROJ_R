@@ -1,8 +1,9 @@
+import { addShield } from './shield';
 import { applyStatus, type StatusId } from './status';
 import { alive, damage, entOf, occupied, posOf, stats, type DamageKind, type Party, type Unit } from './partyCore';
 import { foesNear } from './cardFx';
 import { tagsOf } from './classKit';
-import { card, inBranch, rank, type TraitDef } from './traitTypes';
+import { ampBase, card, inBranch, rank, type TraitDef } from './traitTypes';
 import { dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import type { TriggerDef } from './triggers';
 
@@ -27,42 +28,44 @@ export const nextElement = (u: Unit): StatusId => ELEMENTS[(u.cycle ?? 0) % 3]!;
 export function elementAmp(attacker: Unit, dst: Unit, kind: DamageKind, t: number): number {
   const tags = tagsOf(attacker);
   let m = 1;
-  if (kind === 'fire' && rank(attacker, 'fireAmp')) m *= 1.15 ** (tags.화염 ?? 0);
-  if (kind === 'lightning' && rank(attacker, 'boltAmp')) m *= 1.15 ** (tags.전기 ?? 0);
-  if (on(dst, 'freeze', t) && rank(attacker, 'coldAmp')) m *= 1.12 ** (tags.냉기 ?? 0);
+  if (kind === 'fire' && rank(attacker, 'fireAmp')) m *= ampBase(attacker, 'fireAmp', 1.15) ** (tags.화염 ?? 0);
+  if (kind === 'lightning' && rank(attacker, 'boltAmp')) m *= ampBase(attacker, 'boltAmp', 1.15) ** (tags.전기 ?? 0);
+  if (on(dst, 'freeze', t) && rank(attacker, 'coldAmp')) m *= ampBase(attacker, 'coldAmp', 1.12) ** (tags.냉기 ?? 0);
   return m;
 }
 
 /** A meteor on a foe: fire damage and a burn round it; each kill it makes drops another on the next burning foe (bounded). */
-function meteor(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], ground: boolean, more = 3): void {
+function meteor(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], ground: boolean, more = 3, stun = false): void {
   const at = { ...posOf(p, target) }, amount = Math.round(avg(p, u, t) * 1.5);
   let kills = 0;
   for (const f of foesNear(p, at, 1)) {
     damage(p, t, u.id, f, amount, ev, true, false, 'fire');
-    if (alive(p, f)) applyStatus(p, u, f, 'burn', t, ev); else kills++;
+    if (alive(p, f)) { applyStatus(p, u, f, 'burn', t, ev); if (stun) applyStatus(p, u, f, 'stun', t, ev); } else kills++;
   }
   if (ground) (p.grounds ??= []).push({ at, by: u.id, until: t + 2, next: t + 1 });
   for (let k = 0; k < kills && more > 0; k++, more--) {
     const next = burning(p, u, t);
-    if (next) meteor(p, u, next, t, ev, ground, more - 1);
+    if (next) meteor(p, u, next, t, ev, ground, more - 1, stun);
   }
 }
 /** the nearest burning foe within eight cells */
 const burning = (p: Party, u: Unit, t: number): Unit | undefined =>
   foesNear(p, posOf(p, u), 8).filter((f) => on(f, 'burn', t)).sort((a, b) => dist(posOf(p, a), posOf(p, u)) - dist(posOf(p, b), posOf(p, u)))[0];
 
-/** Lightning leaps from a foe to the nearest unhit foe, `jumps` times: lightning damage and shock on each. */
-function leap(p: Party, u: Unit, from: Unit, jumps: number, t: number, ev: GEvent[]): void {
+/** Lightning leaps from a foe to the nearest unhit foe, `jumps` times: lightning damage and shock on each. Returns how many it killed. */
+function leap(p: Party, u: Unit, from: Unit, jumps: number, t: number, ev: GEvent[]): number {
   const hit = new Set<Unit>([from]);
+  let kills = 0;
   let at = from;
   for (let k = 0; k < jumps; k++) {
     const next = foesNear(p, posOf(p, at), 3).filter((f) => !hit.has(f)).sort((a, b) => dist(posOf(p, a), posOf(p, at)) - dist(posOf(p, b), posOf(p, at)))[0];
     if (!next) break;
     hit.add(next); ev.push({ t, type: 'shoot', src: at.id, dst: next.id, from: { ...posOf(p, at) }, to: { ...posOf(p, next) }, text: 'bolt' });
     damage(p, t, u.id, next, Math.round(avg(p, u, t) * 0.8), ev, true, false, 'lightning');
-    if (alive(p, next)) applyStatus(p, u, next, 'shock', t, ev);
+    if (alive(p, next)) applyStatus(p, u, next, 'shock', t, ev); else kills++;
     at = next;
   }
+  return kills;
 }
 
 /** Teleport (the mage's aimed ultimate): to a free floor cell within eight, both ends bursting with the next element. */
@@ -83,32 +86,42 @@ export const MAGE_CARDS: TraitDef[] = [
   // 화염: meteors keep falling while anything burns
   inBranch(card('meteor', '운석', 'law', ['화염'], 'mage', '화상 걸린 적이 있으면 매 턴 운석(반경 1 화염 피해·화상), 운석으로 처치하면 하나 더', {
     trigger: (r) => ({ id: '운석', when: 'turn', test: (p, c) => !!burning(p, c.src, c.t), run: (p, c) => {
-      for (let k = 0; k < (r >= 2 ? 2 : 1); k++) { const f = burning(p, c.src, c.t); if (f) meteor(p, c.src, f, c.t, c.ev, r >= 2); }
+      for (let k = 0; k < (r >= 2 ? 2 : 1); k++) { const f = burning(p, c.src, c.t); if (f) meteor(p, c.src, f, c.t, c.ev, r >= 2, 3, r >= 3); }
     } }),
-  }, '매 턴 2개, 떨어진 자리 2턴 불바다'), FIRE, true),
+  }, '매 턴 2개, 떨어진 자리 2턴 불바다', '운석에 맞은 적 기절'), FIRE, true),
   inBranch(card('fireball', '화염구', 'law', ['화염'], 'mage', '세 번째 공격마다 화염구(대상 주변 1칸 화염 피해·화상)', {
     trigger: (r) => ({ id: '화염구', when: 'hit', test: (_p, c) => !!c.target && !!c.basic && c.src.nth % (r >= 2 ? 2 : 3) === 0, run: (p, c) => {
-      for (const f of foesNear(p, posOf(p, c.target!), 1)) { damage(p, c.t, c.src.id, f, Math.round(avg(p, c.src, c.t)), c.ev, true, false, 'fire'); if (alive(p, f)) applyStatus(p, c.src, f, 'burn', c.t, c.ev); }
+      const at = { ...posOf(p, c.target!) }, burnt = on(c.target!, 'burn', c.t);
+      const ball = (where: Cell) => { for (const f of foesNear(p, where, 1)) { damage(p, c.t, c.src.id, f, Math.round(avg(p, c.src, c.t)), c.ev, true, false, 'fire'); if (alive(p, f)) applyStatus(p, c.src, f, 'burn', c.t, c.ev); } };
+      ball(at);
+      // rank 3: a fireball on a burning foe throws another at the nearest foe outside the first
+      const next = r >= 3 && burnt ? foesNear(p, at, 4).filter((f) => dist(posOf(p, f), at) > 1).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0] : undefined;
+      if (next) ball({ ...posOf(p, next) });
     } }),
-  }, '두 번째 공격마다'), FIRE),
+  }, '두 번째 공격마다', '화상 적을 맞힌 화염구 → 가장 가까운 적에게 하나 더'), FIRE),
   inBranch(card('fireSpread', '화염 전이', 'convert', ['화염'], 'mage', '화염 피해로 처치 → 주변 1칸 적 화상 2중첩', {
-    trigger: () => ({ id: '화염 전이', when: 'kill', test: (_p, c) => c.kind === 'fire' && !!c.target, run: (p, c) => { for (const f of foesNear(p, posOf(p, c.target!), 1)) applyStatus(p, c.src, f, 'burn', c.t, c.ev, 2, true); } }),
-  }), FIRE),
-  inBranch(card('fireAmp', '화염 숙련', 'amp', ['화염'], 'mage', '#화염 1당 화염 피해 ×1.15 (곱)', {}), FIRE),
+    trigger: (r) => ({ id: '화염 전이', when: 'kill', test: (_p, c) => c.kind === 'fire' && !!c.target, run: (p, c) => { for (const f of foesNear(p, posOf(p, c.target!), r >= 2 ? 2 : 1)) applyStatus(p, c.src, f, 'burn', c.t, c.ev, 2, true); } }),
+  }, '주변 2칸까지'), FIRE),
+  inBranch(card('fireAmp', '화염 숙련', 'amp', ['화염'], 'mage', '#화염 1당 화염 피해 ×1.15 (곱)', {}, '×1.19'), FIRE),
   // 냉기: a blizzard that keeps falling while the mage holds its ground
   inBranch(card('blizzard', '블리자드', 'law', ['냉기'], 'mage', '2턴 동안 2칸 안에 머물면 주변 2칸에 눈보라가 계속 내림(매 턴 냉기·냉기 피해), 3칸 넘게 움직이면 그침', {
-    trigger: (r) => ({ id: '블리자드', when: 'turn', test: (p, c) => {
+    triggers: (r) => [{ id: '블리자드', when: 'turn', test: (p, c) => {
       const me = posOf(p, c.src);
       if (!c.src.anchor || (r < 2 && dist(me, c.src.anchor) > 2)) { c.src.anchor = { ...me }; c.src.anchorAt = c.t; return false; }
       if (r >= 2) c.src.anchor = { ...me };
       return c.t - (c.src.anchorAt ?? c.t) >= 2;
     }, run: (p, c) => {
       for (const f of foesNear(p, posOf(p, c.src), r >= 2 ? 3 : 2)) { damage(p, c.t, c.src.id, f, Math.round(avg(p, c.src, c.t) * 0.6), c.ev, true, false, 'cold'); if (alive(p, f)) applyStatus(p, c.src, f, 'chill', c.t, c.ev); }
-    } }),
-  }, '눈보라가 나를 따라오고 범위 3칸'), COLD, true),
+    } } satisfies TriggerDef,
+    // rank 3: a frozen foe dying in the blizzard bursts in ice shards
+    ...(r >= 3 ? [{ id: '얼음 파편', when: 'kill', repeat: true, test: (p, c) => !!c.target && on(c.target, 'freeze', c.t) && c.t - (c.src.anchorAt ?? c.t) >= 2 && dist(posOf(p, c.target), posOf(p, c.src)) <= 3, run: (p, c) => {
+      for (const f of foesNear(p, posOf(p, c.target!), 1)) damage(p, c.t, c.src.id, f, Math.round(avg(p, c.src, c.t) * 0.6), c.ev, true, false, 'cold');
+    } } satisfies TriggerDef] : [])],
+  }, '눈보라가 나를 따라오고 범위 3칸', '블리자드 안에서 빙결된 적이 죽음 → 얼음 파편(주변 1칸 냉기 피해)'), COLD, true),
   inBranch(card('frostRing', '서리 고리', 'law', ['냉기'], 'mage', '피격 또는 처치 → 주변 2칸 냉기, 붙은 적 1칸 밀침 (턴당 1회)', {
     triggers: (r) => (['struck', 'kill'] as const).map((when): TriggerDef => ({ id: '서리 고리', when, cd: 1, run: (p, c) => {
       const me = posOf(p, c.src);
+      if (r >= 3) addShield(c.src, 10);
       for (const f of foesNear(p, me, 2)) {
         if (!alive(p, f)) continue;
         applyStatus(p, c.src, f, r >= 2 ? 'freeze' : 'chill', c.t, c.ev);
@@ -118,7 +131,7 @@ export const MAGE_CARDS: TraitDef[] = [
         if (walkable(tileAt(p.s.map, to)) && !occupied(p, to, f.id)) { c.ev.push({ t: c.t, type: 'push', src: f.id, from: { ...at }, to: { ...to } }); entOf(p, f.id)!.pos = to; }
       }
     } })),
-  }, '냉기 대신 빙결'), COLD),
+  }, '냉기 대신 빙결', '서리 고리가 터질 때 보호막 10'), COLD),
   inBranch(card('frostPrison', '서리 감옥', 'convert', ['냉기'], 'mage', '냉기 두 번 → 빙결', {
     triggers: (r) => [
       { id: '서리 감옥', when: 'statusApplied', test: (_p, c) => c.status === 'chill' && !!c.target, run: (p, c) => {
@@ -129,27 +142,33 @@ export const MAGE_CARDS: TraitDef[] = [
       ...(r >= 2 ? [{ id: '얼음 파편', when: 'kill', repeat: true, test: (_p, c) => !!c.target && on(c.target, 'freeze', c.t), run: (p, c) => { for (const f of foesNear(p, posOf(p, c.target!), 2)) applyStatus(p, c.src, f, 'chill', c.t, c.ev, 1, true); } } satisfies TriggerDef] : []),
     ],
   }, '빙결된 적이 죽으면 사방 2칸 냉기'), COLD),
-  inBranch(card('coldAmp', '냉기 숙련', 'amp', ['냉기'], 'mage', '#냉기 1당 빙결된 적이 받는 피해 ×1.12 (곱)', {}), COLD),
+  inBranch(card('coldAmp', '냉기 숙련', 'amp', ['냉기'], 'mage', '#냉기 1당 빙결된 적이 받는 피해 ×1.12 (곱)', {}, '×1.16'), COLD),
   // 번개: lightning that leaps every turn while anything is shocked
   inBranch(card('chainLightning', '연쇄 번개', 'law', ['전기'], 'mage', '감전된 적이 있으면 매 턴 번개가 적 사이 3번 튐(번개 피해·감전), 치명마다 한 번 더', {
     triggers: (r) => [
       { id: '연쇄 번개', when: 'turn', test: (p, c) => foesNear(p, posOf(p, c.src), 8).some((f) => on(f, 'shock', c.t)), run: (p, c) => {
         const from = foesNear(p, posOf(p, c.src), 8).find((f) => on(f, 'shock', c.t))!;
-        leap(p, c.src, from, r >= 2 ? 5 : 3, c.t, c.ev);
+        // rank 3: a kill sends it leaping once more this turn
+        if (leap(p, c.src, from, r >= 2 ? 5 : 3, c.t, c.ev) > 0 && r >= 3) {
+          const again = foesNear(p, posOf(p, c.src), 8)[0];
+          if (again) leap(p, c.src, again, r >= 2 ? 5 : 3, c.t, c.ev);
+        }
       } },
       { id: '연쇄 번개', when: 'crit', test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => leap(p, c.src, c.target!, r >= 2 ? 5 : 3, c.t, c.ev) },
     ],
-  }, '5번 튐'), BOLT, true),
+  }, '5번 튐', '연쇄 번개로 처치 → 그 턴에 한 번 더'), BOLT, true),
   inBranch(card('staticField', '정전기장', 'law', ['전기'], 'mage', '적중 → 3칸 안 모든 적에게 현재 체력 8% 번개 피해 (턴당 1회)', {
     trigger: (r) => ({ id: '정전기장', when: 'hit', cd: 1, run: (p, c) => {
-      for (const f of foesNear(p, posOf(p, c.src), 3)) damage(p, c.t, c.src.id, f, Math.max(1, Math.round(entOf(p, f.id)!.hp * (r >= 2 ? 0.12 : 0.08))), c.ev, true, false, 'lightning');
+      for (const f of foesNear(p, posOf(p, c.src), 3)) {
+        damage(p, c.t, c.src.id, f, Math.max(1, Math.round(entOf(p, f.id)!.hp * (r >= 2 ? 0.12 : 0.08))), c.ev, true, false, 'lightning');
+        if (r >= 3 && alive(p, f)) applyStatus(p, c.src, f, 'shock', c.t, c.ev);
+      }
     } }),
-  }, '12%'), BOLT),
+  }, '12%', '정전기장 맞은 적 감전'), BOLT),
   inBranch(card('overcurrent', '과전류', 'convert', ['전기'], 'mage', '감전된 적이 맞음 → 감전이 옆 적으로 옮겨감', {
-    trigger: () => ({ id: '과전류', when: 'hit', repeat: true, test: (_p, c) => !!c.target && on(c.target, 'shock', c.t), run: (p, c) => {
-      const next = foesNear(p, posOf(p, c.target!), 1).find((f) => f !== c.target && !on(f, 'shock', c.t));
-      if (next) applyStatus(p, c.src, next, 'shock', c.t, c.ev, 1, true);
+    trigger: (r) => ({ id: '과전류', when: 'hit', repeat: true, test: (_p, c) => !!c.target && on(c.target, 'shock', c.t), run: (p, c) => {
+      for (const f of foesNear(p, posOf(p, c.target!), 1).filter((f) => f !== c.target && !on(f, 'shock', c.t)).slice(0, r >= 2 ? 2 : 1)) applyStatus(p, c.src, f, 'shock', c.t, c.ev, 1, true);
     } }),
-  }), BOLT),
-  inBranch(card('boltAmp', '번개 숙련', 'amp', ['전기'], 'mage', '#전기 1당 번개 피해 ×1.15 (곱)', {}), BOLT),
+  }, '곁의 적 2명에게'), BOLT),
+  inBranch(card('boltAmp', '번개 숙련', 'amp', ['전기'], 'mage', '#전기 1당 번개 피해 ×1.15 (곱)', {}, '×1.19'), BOLT),
 ];

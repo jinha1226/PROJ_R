@@ -230,7 +230,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst));
     // soul link (necromancer): the nearest minion takes three tenths of the harm
     const bond = rank(dst, 'soulLink') && amount > 1 ? p.units.filter((x) => x.summoner === dst.id && alive(p, x)).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos))[0] : undefined;
-    if (bond) { const share = Math.round(amount * 0.3); amount -= share; damage(p, t, src, bond, share, ev, true); }
+    if (bond) { const share = Math.round(amount * (rank(dst, 'soulLink') >= 2 ? 0.45 : 0.3)); amount -= share; damage(p, t, src, bond, share, ev, true); }
     const guard = (dst.gear ? weaponDef(dst)?.shield : WEAPONS[dst.weapon!].shield) ? .75 : undefined;
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));

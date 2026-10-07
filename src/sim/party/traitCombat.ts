@@ -16,7 +16,7 @@ export function traitMult(p:Party,u:Unit,target:Unit,t:number):number {
   if(t<(u.furyUntil??0))m*=1+(u.furyPower??0)*(u.furyStacks??0);
   if(t<(u.damageBuffUntil??0))m*=u.damageBuff??1;
   if(t<u.hiddenUntil) {
-    if(rank(u,'shadowOath'))m*=3;else if(rank(u,'ambushArt'))m*=1+.5*(tagsOf(u).은신??0);
+    if(rank(u,'shadowOath'))m*=3;else if(rank(u,'ambushArt'))m*=(rank(u,'ambushArt')>=2?1.34:1.3)**(tagsOf(u).은신??0);
   }
   if(rank(u,'loneWolf')&&nearby(p,u,2).filter(x=>x!==u&&!x.summoner).length===0)m*=1.6;
   return m;
