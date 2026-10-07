@@ -76,6 +76,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
         const spot=DIRS.map(d=>({x:tp.x+d.x,y:tp.y+d.y})).find(c=>walkable(tileAt(p.s.map,c))&&!occupied(p,c,id));
         if(!spot) continue;
         const move:GEvent={t,type:'teleport',src:id,from,to:spot}; ev.push(move);entOf(p,id)!.pos=spot;p.onMovement?.([move],ev);
+        emit(p,'teleport',{t,src:u,ev});
         if(alive(p,u)) strike(p,u,f,t,ev,2,false);
       } break;
   }

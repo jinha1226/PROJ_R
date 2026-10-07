@@ -177,7 +177,14 @@ export function passiveMult(p: Party, u: Unit, target: Unit, t: number, _ev: GEv
   void _ev; return kitMult(p, u, target, t);
 }
 
-export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[], secondary = false, statusScaled = false): void {
+/** the element a blow or an effect deals (Achra-style 'on dealing/being dealt fire damage' conditions read it) */
+export type DamageKind = 'physical' | 'fire' | 'cold' | 'lightning' | 'poison' | 'holy' | 'bone';
+
+/**
+ * Harm to a unit. `kind` is its element; `hit` marks damage that came with a landed attack or a free hit (only that is
+ * 'being hit' for the target, Achra's On being hit); any damage is 'damage' for a hero dealing it and 'damaged' for a hero taking it.
+ */
+export function damage(p: Party, t: number, src: string, dst: Unit, amount: number, ev: GEvent[], secondary = false, statusScaled = false, kind: DamageKind = 'physical', hit = false): void {
   const e = entOf(p, dst.id)!;
   if (!e.alive || t < (dst.immuneUntil ?? 0)) return;
   const attacker = unitOf(p, src);
@@ -218,6 +225,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   const prevHp = e.hp;
   e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
+  const dealer = unitOf(p, src);
+  if (dealer?.side === 'hero' && dst.side === 'foe' && amount > 0) emit(p, 'damage', { t, src: dealer, target: dst, amount, kind, ev });
   if (e.hp <= 0) {
     e.alive = false;
     ev.push({ t, type: 'die', src, dst: dst.id, to: { ...e.pos } });
@@ -233,8 +242,26 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     }
     return;
   }
-  if (dst.side === 'hero') { dst.struckTimes = [...(dst.struckTimes ?? []).filter((s) => t - s < 1), t]; emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); if (e.hp < e.maxHp * 0.5) emit(p, 'crisis', { t, src: dst, target: attacker, ev }); }
+  if (dst.side === 'hero') {
+    // being hit (an attack or a free hit landed) is not the same as taking damage (a burn, a trap, a blast)
+    if (hit) { dst.struckTimes = [...(dst.struckTimes ?? []).filter((s) => t - s < 1), t]; emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); }
+    if (amount > 0) emit(p, 'damaged', { t, src: dst, target: attacker, amount, kind, ev });
+    if (e.hp < e.maxHp * 0.5) emit(p, 'crisis', { t, src: dst, target: attacker, ev });
+  }
 
+}
+
+/**
+ * A hit an effect makes (Achra's free hit: no dodge, block or armour roll): it lands for `amount` of `kind`, and counts as
+ * a hit for the dealer's 'on hit' effects and as being hit for a hero target.
+ */
+export function freeHit(p: Party, u: Unit, target: Unit, amount: number, kind: DamageKind, t: number, ev: GEvent[]): void {
+  action(p, () => {
+    if (!alive(p, u) || !alive(p, target)) return;
+    const te = entOf(p, target.id)!, hp = te.hp;
+    damage(p, t, u.id, target, amount, ev, true, true, kind, true);
+    emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev });
+  });
 }
 
 /** Is the target tucked beside cover on the shooter's side (a wall, a tree, a boulder…)? Point-blank ignores it. */
@@ -277,6 +304,8 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const e = entOf(p, u.id)!, te = entOf(p, target.id)!, st = stats(u, t, p);
   if(basic)u.fastNext=false;
   blink(p,u,target,t,ev); if(!alive(p,u))return;
+  // every attack is an attack (Achra's On attack), whether it lands or not
+  emit(p, 'attack', { t, src: u, target, ev }); if (!alive(p, u) || !alive(p, target)) return;
   if (basic) { u.attackMoved=u.moved; u.nth++; if (!u.moved) u.still++; else u.still = 0; emit(p, 'nth', { t, src: u, target, ev }); if (!u.moved) emit(p, 'still', { t, src: u, target, ev }); u.moved = false; }
   if (!alive(p, u) || !alive(p, target)) return;
   const magic = u.cls ? CLASSES[u.cls].magic : false;
@@ -312,7 +341,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if(!alive(p,u))return;
   const hp = te.hp;
   const flat = u.nextFlat ?? 0; u.nextFlat = 0;
-  damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m) + flat, ev, false, true);
+  damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m) + flat, ev, false, true, 'physical', true);
   if (t < (u.leechUntil ?? 0)) heal(p,u,u,(hp-te.hp)*0.3,t,ev);
   emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, ev });
   if (!alive(p, u)) return;

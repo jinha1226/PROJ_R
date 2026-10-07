@@ -6,7 +6,7 @@ import { foesNear } from './cardFx';
 import { addShield } from './shield';
 import { DIRS, dist, tileAt, walkable, type GEvent } from '../grid/types';
 import type { Tag } from './traitTypes';
-import type { TriggerDef } from './triggers';
+import { emit, type TriggerDef } from './triggers';
 
 export type MemoryId = 'burnt' | 'shieldKeeper' | 'hunter' | 'traitor' | 'poisoner' | 'pilgrim' | 'scholar' | 'herald' | 'frostGrave' | 'lightning' | 'butcher' | 'warden';
 export interface Memory { name: string; tag: Tag; text: string; trigger?: TriggerDef }
@@ -19,6 +19,7 @@ function besideAlly(p: Party, u: Unit, ally: Unit, t: number, ev: GEvent[]): boo
   if (!spot) return false;
   const move: GEvent = { t, type: 'teleport', src: u.id, from: { ...posOf(p, u) }, to: spot };
   ev.push(move); entOf(p, u.id)!.pos = spot; p.onMovement?.([move], ev);
+  emit(p, 'teleport', { t, src: u, ev });
   return true;
 }
 

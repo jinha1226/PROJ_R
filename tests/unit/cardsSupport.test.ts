@@ -18,7 +18,7 @@ it('eight cleric cards and ten duos, each duo naming two classes and who runs it
 it('shield burst: an ally\'s broken shield hurts the foes beside it', () => {
   const { p, u, foes } = scene('cleric'); const [a] = foes; put(p, a!, 5, 4);
   u.traits = { shieldBurst: 1 }; u.shield = 12;
-  damage(p, 0, a!.id, u, 20, []);
+  damage(p, 0, a!.id, u, 20, [], false, false, 'physical', true);
   expect(entOf(p, a!.id)!.hp).toBe(188);
 });
 
@@ -46,7 +46,7 @@ it('a duo works only in a body holding both classes', () => {
 
 it('bait: a foe that hits the warrior is marked (archer alive)', () => {
   const { p, u, foes } = scene('warrior'); const [a] = foes; put(p, a!, 5, 4); ally(p, u, 'archer');
-  u.traits = { bait: 1 }; damage(p, 0, a!.id, u, 5, []);
+  u.traits = { bait: 1 }; damage(p, 0, a!.id, u, 5, [], false, false, 'physical', true);
   expect((a!.status.mark?.until ?? 0) > 0).toBe(true);
 });
 

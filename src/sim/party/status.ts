@@ -57,7 +57,7 @@ export function tickStatuses(p: Party, _from: number, to: number, ev: GEvent[]):
       const s = u.status[id];
       if (!s) continue;
       while (alive(p, u) && (s.next ?? Infinity) <= Math.min(to, s.until)) {
-        damage(p, s.next!, s.by ?? '', u, (id === 'burn' ? 3 : 2) * (s.stacks ?? 1), ev, true); s.next!++;
+        damage(p, s.next!, s.by ?? '', u, (id === 'burn' ? 3 : 2) * (s.stacks ?? 1), ev, true, false, id === 'burn' ? 'fire' : 'poison'); s.next!++;
       }
     }
     for (const id of Object.keys(u.status) as StatusId[]) if (u.status[id]!.until <= to) delete u.status[id];
@@ -65,9 +65,9 @@ export function tickStatuses(p: Party, _from: number, to: number, ev: GEvent[]):
 }
 export function movedStatus(p: Party, u: Unit, t: number, ev: GEvent[]): void {
   const s = u.status.bleed, by = (id?: string) => p.units.find((x) => x.id === id);
-  if (s && t < s.until) damage(p, t, s.by ?? '', u, 4*(s.stacks??1)*(resonant(p, by(s.by), '출혈', 1) ? 2 : 1), ev, true);
+  if (s && t < s.until) damage(p, t, s.by ?? '', u, 4*(s.stacks??1)*(resonant(p, by(s.by), '출혈', 1) ? 2 : 1), ev, true, false, 'physical');
   const c = u.status.chill;
-  if (c && t < c.until && resonant(p, by(c.by), '냉기', 1)) damage(p, t, c.by ?? '', u, 4, ev, true);
+  if (c && t < c.until && resonant(p, by(c.by), '냉기', 1)) damage(p, t, c.by ?? '', u, 4, ev, true, false, 'cold');
 }
 export function statusMult(p: Party, attacker: Unit, target: Unit, heavy: boolean, t: number, ev: GEvent[]): number {
   let m = 1;

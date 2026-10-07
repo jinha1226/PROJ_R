@@ -3,12 +3,12 @@ import { action, emit, CHAIN_CAP, type TriggerDef } from '../../src/sim/party/tr
 import { damage, entOf } from '../../src/sim/party/partyCore';
 import { scene, put } from './support/cardScene';
 
-it('a chain stops at twelve effects in one action', () => {
+it('a chain stops at thirty effects in one action', () => {
   const { p, u } = scene();
   let n = 0;
-  u.triggers = Array.from({ length: 20 }, (_, i): TriggerDef => ({ id: `t${i}`, when: 'hit', run: () => { n++; u.shield = n; } }));
+  u.triggers = Array.from({ length: 40 }, (_, i): TriggerDef => ({ id: `t${i}`, when: 'hit', run: () => { n++; u.shield = n; } }));
   action(p, () => emit(p, 'hit', { t: 0, src: u, ev: [] }));
-  expect(CHAIN_CAP).toBe(12); expect(n).toBe(12);
+  expect(CHAIN_CAP).toBe(30); expect(n).toBe(30);
 });
 
 it('the same effect fires once per chain unless it repeats', () => {

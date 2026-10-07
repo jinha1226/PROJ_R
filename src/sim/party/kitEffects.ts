@@ -28,6 +28,7 @@ export function summon(p: Party, src: Unit, at: Cell, t: number, ev: GEvent[], c
   const e = spawnFoe(p.s, 'minion', spot, false); e.hp = e.maxHp = 18;
   p.units.push({ id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: t + 0.5, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0, summoner: src.id, summonedUntil: t + 10 });
   ev.push({ t, type: 'summon', src: src.id, dst: e.id, to: spot });
+  emit(p, 'summon', { t, src, target: p.units[p.units.length - 1], ev });
   return true;
 }
 

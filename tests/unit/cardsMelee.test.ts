@@ -19,14 +19,14 @@ it('a foe near a warrior goes for the warrior', () => {
 it('thorns send back half a melee blow', () => {
   const { p, u, foes } = scene('warrior'); u.weapon = 'greataxe'; u.gear = undefined; const [a] = foes; put(p, a!, 5, 4);
   u.traits = { thorns: 1 };
-  damage(p, 0, a!.id, u, 20, []);
+  damage(p, 0, a!.id, u, 20, [], false, false, 'physical', true);
   expect(entOf(p, a!.id)!.hp).toBe(190);
 });
 
 it('rage builds with each blow taken and spends itself on the next strike', () => {
   const { p, u, foes } = scene('warrior'); const [a] = foes; put(p, a!, 5, 4, 999);
   u.traits = { rage: 1 };
-  for (let i = 0; i < 3; i++) damage(p, i, a!.id, u, 1, []);
+  for (let i = 0; i < 3; i++) damage(p, i, a!.id, u, 1, [], false, false, 'physical', true);
   expect(u.rage).toBe(3);
   p.s.rng.chance = () => true; strike(p, u, a!, 5, []); expect(u.rage).toBe(0);
 });

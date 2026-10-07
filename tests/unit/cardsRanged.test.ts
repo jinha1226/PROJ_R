@@ -53,6 +53,6 @@ it('elemental cycle: burn, then chill (which makes steam), then shock', () => {
 
 it('mana backflow: a blow taken leaves a shield of 30% of it', () => {
   const { p, u, foes } = scene('mage'); const [a] = foes; put(p, a!, 5, 4); u.shield = 0;
-  u.traits = { manaBack: 1 }; const e = entOf(p, u.id)!, before = e.hp; damage(p, 0, a!.id, u, 20, []);
+  u.traits = { manaBack: 1 }; const e = entOf(p, u.id)!, before = e.hp; damage(p, 0, a!.id, u, 20, [], false, false, 'physical', true);
   expect(u.shield).toBe(Math.round((before - e.hp) * 0.3));
 });

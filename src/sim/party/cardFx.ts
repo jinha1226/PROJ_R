@@ -22,6 +22,7 @@ export function stepBehind(p: Party, u: Unit, target: Unit, t: number, ev: GEven
   if (!spot) return false;
   const move: GEvent = { t, type: 'teleport', src: u.id, from: { ...posOf(p, u) }, to: spot };
   ev.push(move); entOf(p, u.id)!.pos = spot; u.steady = 0; u.still = 0; p.onMovement?.([move], ev);
+  emit(p, 'teleport', { t, src: u, ev });
   return true;
 }
 

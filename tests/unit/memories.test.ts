@@ -35,7 +35,7 @@ it('frost grave: whoever hits the clone is chilled', () => {
   const { p } = withSoul(); implantCarried(p, 'hero', 0);
   const u = clones(p)[0]!; u.souls![0]!.memory = 'frostGrave';
   const f = p.units.find((x) => x.side === 'foe')!; entOf(p, f.id)!.alive = true;
-  damage(p, p.time, f.id, u, 3, []);
+  damage(p, p.time, f.id, u, 3, [], false, false, 'physical', true);
   expect((f.status.chill?.until ?? 0) > 0).toBe(true);
 });
 
