@@ -33,6 +33,8 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
   if (cond === 'combatStart') freshFight(input.src);
   const root = !actions.has(p), action = actions.get(p) ?? fresh(input.t);
   if (root) actions.set(p, action);
+  // an effect fires once per chain: a top-level event (each heal, blow or kill the action makes) starts a fresh chain
+  if (action.depth === 0) action.fired = new Set();
   const c: Ctx = { ...input, depth: action.depth };
   try {
     if (cond === 'crisis') { if (c.src.crisisUsed) return; c.src.crisisUsed = true; }

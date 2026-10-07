@@ -1,6 +1,6 @@
 import { applyStatus, type StatusId } from './status';
 import { alive, damage, entOf, posOf, stats, strike, targetOf } from './partyCore';
-import { counter, foesNear, restore, stepBehind } from './cardFx';
+import { foesNear, stepBehind } from './cardFx';
 import { tagsOf } from './classKit';
 import { duoFor } from './cardsSupport';
 import { card, rank, type TraitDef } from './traitTypes';
@@ -37,11 +37,8 @@ const WARRIOR: TraitDef[] = [
       ...(r >= 2 ? [taunted] : []),
     ],
   }, '도발된 적이 전사를 치면 노출'),
-  card('lastStand', '최후의 버팀', 'law', ['생존'], 'warrior', '위기 중 피격 20% → 피해 무효 + 반격', {
-    trigger: (r) => ({ id: '최후의 버팀', when: 'struck', chance: r >= 2 ? 0.35 : 0.2, test: (p, c) => entOf(p, c.src.id)!.hp < entOf(p, c.src.id)!.maxHp / 2, run: (p, c) => {
-      restore(p, c.src, c.amount ?? 0); if (c.target) counter(p, c.src, c.target, c.t, c.ev);
-    } }),
-  }, '확률 35%'),
+  // the negation itself happens before the blow lands (traitCombat.negate), so it can stop a killing blow
+  card('lastStand', '최후의 버팀', 'law', ['생존'], 'warrior', '위기 중 피격 20% → 피해 무효 + 반격', {}, '확률 35%'),
   card('bloodPrice', '피의 대가', 'convert', ['출혈'], 'warrior', '받은 피해 30% → 다음 공격 피해에 더함', {
     trigger: () => ({ id: '피의 대가', when: 'struck', test: (_p, c) => (c.amount ?? 0) > 0, run: (_p, c) => { c.src.nextFlat = (c.src.nextFlat ?? 0) + Math.round((c.amount ?? 0) * 0.3); } }),
   }),

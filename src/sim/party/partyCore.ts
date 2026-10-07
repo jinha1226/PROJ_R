@@ -1,4 +1,4 @@
-import { traitMult, takenMult, shieldBroken, blink, allyFell, martyrHolds } from './traitCombat';
+import { traitMult, takenMult, shieldBroken, blink, allyFell, martyrHolds, negate } from './traitCombat';
 import { kitMult, proficient } from './classKit';
 import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
@@ -186,6 +186,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
         if (link.guardIntercepted) amount -= share;
       } else if (share > 0) { amount -= share; damage(p,t,src,link,share,ev,true); }
     }
+    amount = negate(p, dst, attacker, amount, t, ev, secondary);
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
     if(soak>0 && dst.shield===0){shieldBroken(p,dst,t,ev,soak);emit(p,'shieldBreak',{t,src:dst,target:attacker,amount:soak,ev});}

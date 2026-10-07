@@ -1,7 +1,7 @@
 import type { Rng } from '../../core/rng';
 import { applyStatus } from './status';
 import { alive, entOf, occupied, posOf, type Party, type Unit } from './partyCore';
-import { foesNear, restore } from './cardFx';
+import { foesNear } from './cardFx';
 import { addShield } from './shield';
 import { DIRS, dist, tileAt, walkable, type GEvent } from '../grid/types';
 import type { Tag } from './traitTypes';
@@ -25,8 +25,8 @@ function besideAlly(p: Party, u: Unit, ally: Unit, t: number, ev: GEvent[]): boo
 export const MEMORIES: Record<MemoryId, Memory> = {
   burnt: { name: '불탄 자', tag: '화염', text: '처치한 적이 불붙어 곁에 화상',
     trigger: { id: '불탄 자', when: 'kill', test: (_p, c) => !!c.target, run: (p, c) => { for (const f of foesNear(p, entOf(p, c.target!.id)!.pos, 1)) if (f !== c.target) applyStatus(p, c.src, f, 'burn', c.t, c.ev); } } },
-  shieldKeeper: { name: '방패지기', tag: '방패', text: '전투마다 첫 피격 무효',
-    trigger: { id: '방패지기', when: 'struck', test: (_p, c) => !c.src.keeperUsed && (c.amount ?? 0) > 0, run: (p, c) => { c.src.keeperUsed = true; restore(p, c.src, c.amount ?? 0); } } },
+  // negated before the blow lands (traitCombat.negate), so even a killing first blow is stopped
+  shieldKeeper: { name: '방패지기', tag: '방패', text: '전투마다 첫 피격 무효' },
   hunter: { name: '사냥꾼', tag: '원거리', text: '상처 없는 적에게 첫 공격 → 표식',
     trigger: { id: '사냥꾼', when: 'beforeHit', test: (p, c) => !!c.target && entOf(p, c.target.id)!.hp >= entOf(p, c.target.id)!.maxHp, run: (p, c) => applyStatus(p, c.src, c.target!, 'mark', c.t, c.ev) } },
   traitor: { name: '배신자', tag: '은신', text: '처치 → 1턴 은신',
