@@ -11,6 +11,7 @@ import { CLASSES, type BaseClass } from '../party/partyDefs';
 import { awardXp, levelOf, refitHp, LEVEL_XP } from '../party/partyLevel';
 import { BASE_SOUL_SLOTS, soulsOf } from '../party/body';
 import { rank } from '../party/traitTypes';
+import type { SfState } from '../base/workshop';
 import { T } from '../party/traitMods';
 
 /** a fallen native's soul stone lying about */
@@ -42,6 +43,8 @@ export interface RoamParty extends Party {
   sight: number;
   /** souls one body may hold (the lab raises it) */
   soulSlots?: number;
+  /** the workshop: blueprints, modules, what dismantling added to the gun and suit */
+  sf?: SfState;
 }
 
 /** how far a sleeping band notices the party */
@@ -93,7 +96,7 @@ export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]):
   const cls = s.hero ? HERO_SOULS[s.hero].cls : s.cls, e = entOf(p, u.id)!, first = !soulsOf(u).length;
   u.souls = [...soulsOf(u), { cls, hero: s.hero, memory: s.memory, ultReady: p.time }];
   if (first) {
-    u.ammo = undefined;
+    u.ammo = undefined; u.sfMods = undefined;
     u.cls = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
     u.gear = starterGear(cls, () => nextItemId(p));
   }

@@ -37,6 +37,8 @@ export interface Unit {
   struckTimes?: number[];
   /** rounds left in a gun's magazine (unset: full) */
   ammo?: number;
+  /** the workshop modules this empty body carries (a snapshot taken at the base) */
+  sfMods?: string[];
   /** empty-body state: who has already taken an aimed first shot at this foe; a piercing round loaded; hits in a row (by attack count); more forced crits; suit overload spent (floor / fight) */
   sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
   /** the souls in this body, the first setting its class (empty: the SF body) */

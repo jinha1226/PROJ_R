@@ -2,6 +2,7 @@ import { dist, type GEvent } from '../grid/types';
 import { entOf } from '../party/partyCore';
 import { BASE_REACH, BODY_COST, living, MAX_CLONES, print } from '../roam/roam';
 import type { WorldParty } from '../overworld/worldSim';
+import { applySf } from './workshop';
 
 /** how near the printer a clone must stand to ask it for a body */
 export const CLONER_REACH = 2;
@@ -17,6 +18,7 @@ export function canPrintClone(p: WorldParty): boolean {
 export function printClone(p: WorldParty): GEvent[] {
   const ev: GEvent[] = [];
   if (!canPrintClone(p)) return ev;
-  if (print(p, undefined, ev, p.cloner ?? p.s.map.start)) p.bio -= BODY_COST;
+  const u = print(p, undefined, ev, p.cloner ?? p.s.map.start);
+  if (u) { p.bio -= BODY_COST; applySf(p, u); }
   return ev;
 }
