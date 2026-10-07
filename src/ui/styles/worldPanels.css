@@ -154,3 +154,12 @@
 .place-prompts button.off { background: #3a3a2a; color: #a8a080; box-shadow: none; animation: none; cursor: default; }
 .pg-stat b.up, .pip-rec dd b.up { font-weight: normal; color: #5dff8a; }
 .pip-slot.item { color: #e6ffb0; padding: 2px; overflow: hidden; } .pip-slot.item.use { color: #ffd76a; border-color: #5a4a1e; }
+/* ---- cards: kind badge, the duo frame, the resonance a pick would light; the status tab's resonance block ---- */
+.trait-card .kind { justify-self: start; font-size: 10px; color: #021006; background: #5dff8a; padding: 1px 6px; }
+.trait-card.duo { border-color: #c8a8ff; } .trait-card.duo .kind { background: #c8a8ff; }
+.trait-card .lights { color: #ffd76a; }
+.pip-res { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 11px; }
+.pip-res li { display: grid; gap: 1px; }
+.pip-res b { font-weight: normal; color: #e6ffb0; }
+.pip-res span { color: #2f7a4a; } .pip-res span.on { color: #5dff8a; }
+.pip-slot.soul small { font-size: 9px; color: var(--tint); opacity: 0.8; }

@@ -2,6 +2,8 @@ import { alive, type Unit } from '../../sim/party/partyCore';
 import { autoDefend, defencePower, startRaid } from '../../sim/base/raids';
 import type { GEvent } from '../../sim/grid/types';
 import type { WorldParty } from '../../sim/overworld/worldSim';
+import { implant } from '../../sim/roam/roam';
+import { gainXp, LEVEL_XP } from '../../sim/party/partyLevel';
 
 const SIDE = ['서쪽', '동쪽', '북쪽', '남쪽'];
 /** auto-defence wins outright when the base outweighs the wave by this much (as the simulation rules) */
@@ -69,9 +71,11 @@ export function overPanel(restart: () => void, quit?: () => void): HTMLElement {
   return el;
 }
 
-/** Address-bar switches for trying the base out: `?rich` stocks it, `?raid` sets a raid night waiting at the pod. */
+/** Address-bar switches for trying the base out: `?rich` stocks it, `?raid` sets a raid night waiting at the pod, `?lvl` makes the first clone a level-4 mage with picks waiting. */
 export function tryOutState(p: WorldParty): void {
   const q = new URLSearchParams(location.search);
+  const first = p.units.find((u) => u.side === 'hero');
+  if (q.has('lvl') && first?.cls === 'shell') { implant(p, first, { cls: 'mage', memory: 'burnt' }, []); gainXp(p, first, LEVEL_XP[3]!, []); }
   if (q.has('rich') && p.ore < 200) { p.ore = 300; p.crystal = 40; p.bio = 60; }
   if (q.has('raid') && !p.raid && !p.raidReady) p.raidReady = { size: 40, sides: [0, 2] };
 }

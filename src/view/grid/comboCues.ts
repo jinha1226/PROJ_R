@@ -58,6 +58,8 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     }
     case 'react': {
       const r = REACT[e.text ?? ''];
+      // the party's reactions carry their Korean name and the foe they happened on
+      if (!r && e.text && /[가-힣]/.test(e.text)) { const q = k.at(e.dst); if (q) { k.fx.number(e.text, 'crit', q, 2.4); k.fx.flash(q, '#ffb04a', 26, 0.35, 6); } return true; }
       if (!r || !e.to) return true;
       const cell = new THREE.Vector3(e.to.x * CELL, 0, e.to.y * CELL);
       k.particles.vfx.fire(r.vfx, cell, r.vfx === 'smoke' ? r.color : undefined);
@@ -97,6 +99,8 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'drink': a.anim(e.src, 'drink'); return true;
     case 'read': { a.anim(e.src, 'interact'); const p = k.at(e.src); if (p) k.particles.spray(p, '#f3e6b0', 14); return true; }
     case 'buff': {
+      // three or more effects in one action: a chain, counted over the clone that set it off
+      if (e.text === 'chain') { const q = k.at(e.src); if (q) { k.fx.number(`연쇄 ×${e.amount ?? 3}`, 'crit', q, 2.8); if ((e.amount ?? 0) >= 6) k.fx.shake(0.12, 0.16); } return true; }
       // a trigger, an ultimate or a promotion carries its own Korean name (on its source unit): show it as it fires
       const p = k.at(e.dst) ?? k.at(e.src);
       const label = BUFF_LABEL[e.text ?? ''] ?? (e.text && /[가-힣]/.test(e.text) ? e.text : undefined), fx = BUFF_VFX[e.text ?? ''];

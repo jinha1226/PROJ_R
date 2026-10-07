@@ -2,6 +2,9 @@ import { promote } from '../../sim/party/classKit';
 import type { GEvent } from '../../sim/grid/types';
 import type { ClassId } from '../../sim/party/partyDefs';
 import { traitText } from '../../sim/party/traitText';
+import { KIND_NAME } from '../../sim/party/traitTypes';
+import { MEMORIES, type MemoryId } from '../../sim/party/memories';
+import { resonanceHtml } from './resonanceHtml';
 import { dmgText, gearHtml, packHtml } from './pipGear';
 import { promotionHtml } from './pipClasses';
 import { rosterHtml } from './pipRoster';
@@ -85,19 +88,20 @@ export class PipWindow {
     const u = unitOf(p, this.who), e = u && entOf(p, u.id);
     if (!u || !e) return `<nav class="pip-side">${side}</nav>`;
     const cls = CLASSES[u.cls!], w = {...WEAPONS[u.weapon!],...weaponStats(u),name:u.gear?.weapon?itemName(u.gear.weapon):WEAPONS[u.weapon!].name,note:u.gear?.weapon?CATALOG[u.gear.weapon.def]!.tags.join(' · '):WEAPONS[u.weapon!].note};
+    const memory = u.memory ? MEMORIES[u.memory as MemoryId] : undefined;
     const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
-    const traits = (Object.keys(u.traits ?? {}) as TraitId[]).map((id) => `<li><b>${TRAITS[id]!.name} ${'●'.repeat(rank(u, id))}</b><span>${traitText(id, rank(u, id))}</span><em>${TRAITS[id]!.tags.map((g) => `#${g}`).join(' ')}</em></li>`).join('') || '<li class="dim">없음</li>';
+    const traits = (Object.keys(u.traits ?? {}) as TraitId[]).filter((id) => TRAITS[id]).map((id) => `<li><b>${TRAITS[id]!.name}${rank(u, id) >= 2 ? ' +' : ''} <small>${TRAITS[id]!.kind ? KIND_NAME[TRAITS[id]!.kind!] : ''}</small></b><span>${traitText(id, rank(u, id))}</span><em>${TRAITS[id]!.tags.map((g) => `#${g}`).join(' ')}</em></li>`).join('') || '<li class="dim">없음</li>';
     return `<nav class="pip-side">${side}</nav><section class="pip-rec">
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
       <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${u.gear?.weapon ? dmgText(u.gear.weapon) : `${w.dmg[0]}-${w.dmg[1]}`} · ${(1 / w.atk).toFixed(1)}회/턴 · 사거리 ${w.range}</dd>
-      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd></dl>${promotionHtml(p, u)}
-      <h4>특성</h4><ul class="pip-skills">${traits}</ul></section>`;
+      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${memory ? `<dt>기억</dt><dd>${memory.name} <small>${memory.text}</small></dd>` : ''}</dl>${promotionHtml(p, u)}
+      <h4>특성</h4><ul class="pip-skills">${traits}</ul>${resonanceHtml(p, u)}</section>`;
   }
 
   private bag(p: RoamParty): string {
     const empty = this.shell(p);
-    const items = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span>${empty ? `<button type="button" data-soul="${i}">주입</button>` : ''}</div>`; });
+    const items = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls, m = typeof soul === 'string' || !soul.memory ? '' : `<small>${MEMORIES[soul.memory].name}</small>`; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span>${m}${empty ? `<button type="button" data-soul="${i}">주입</button>` : ''}</div>`; });
     // the pack's gear and consumables share the grid with the souls
     const gear = p.pack.map((it) => `<div class="pip-slot item${'def' in it ? '' : ' use'}" title="${itemName(it)}"><span>${itemName(it)}</span></div>`);
     const all = [...items, ...gear];

@@ -6,7 +6,7 @@ import type { WeaponLook } from './weaponMeshes';
 export const HELD_SCALE = 1.45;
 
 /** Which pack model stands for each look, its length in metres, and where along it the hand grips. */
-const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: number; crosswise?: boolean; gun?: boolean }>> = {
+const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: number; crosswise?: boolean; gun?: boolean; upright?: boolean }>> = {
   // lengths are larger than life (see HELD_SCALE): each weapon must read as itself at a handful of pixels
   sword: { name: 'Sword', length: 0.85 * HELD_SCALE, grip: 0.1 },
   blade: { name: 'Sword_2', length: 0.6 * HELD_SCALE, grip: 0.1 },
@@ -15,6 +15,8 @@ const MODEL: Partial<Record<WeaponLook, { name: string; length: number; grip: nu
   spear: { name: 'Spear', length: 1.6 * HELD_SCALE, grip: 0.3 },
   mace: { name: 'Hammer_Small', length: 0.7 * HELD_SCALE, grip: 0.08 },
   bow: { name: 'Bow_Wooden', length: 0.95 * HELD_SCALE, grip: 0.5, crosswise: true },
+  // KayKit's skeleton staff: held a quarter of the way up so its foot stays above the ground; it stands upright in the hand
+  staff: { name: 'Skeleton_Staff', length: 1.3, grip: 0.25, upright: true },
   // Sci-Fi Essentials guns (a little oversized so they read from above): barrel along x, held near the back
   pistol: { name: 'Gun_Pistol', length: 0.42, grip: 0.3, gun: true },
 };
@@ -32,7 +34,7 @@ export class WeaponKit {
 
   static async load(baseUrl: string): Promise<WeaponKit> {
     const loader = new GLTFLoader();
-    const packs = await Promise.all(['weapons', 'guns'].map((n) => loader.loadAsync(`${baseUrl}assets/models/qpack/${n}.glb`)));
+    const packs = await Promise.all([...['weapons', 'guns'].map((n) => `${baseUrl}assets/models/qpack/${n}.glb`), `${baseUrl}assets/models/props/Skeleton_Staff.glb`].map((url) => loader.loadAsync(url)));
     const map = new Map<string, THREE.Object3D>();
     for (const g of packs) for (const o of g.scene.children) map.set(o.name, o);
     return new WeaponKit(map);
@@ -55,7 +57,7 @@ export class WeaponKit {
     obj.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true; });
     const holder = new THREE.Group();
     holder.add(obj);
-    if (!m.crosswise) holder.rotation.x = Math.PI / 2;
+    if (!m.crosswise && !m.upright) holder.rotation.x = Math.PI / 2;
     return holder;
   }
 
