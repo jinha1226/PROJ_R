@@ -1,5 +1,6 @@
 import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
+import { same, tileAt, walkable, type Cell } from '../grid/types';
 import { alive, entOf, type Unit } from '../party/partyCore';
 import type { CarriedSoul, HeroSoulId } from '../delve/heroSouls';
 import { living, look, type RoamParty } from './roam';
@@ -32,6 +33,40 @@ export function placeParty(p: RoamParty, c: Carry): void {
   p.carried = structuredClone(c.carried); p.bio = c.bio; p.nextClone = c.nextClone;
   p.combat = false; p.waiting = false; p.manual = undefined; p.over = false; p.rewakeAt = undefined;
   p.leader = c.clones[0]?.unit.id ?? 'hero';
+  look(p);
+}
+
+/** One clone leaves for the dungeon: it alone goes in the carry (souls stay stored at the base); it is taken off this map. */
+export function takeClone(p: RoamParty, id: string): Carry {
+  const all = takeParty(p), c = { ...all, clones: all.clones.filter((k) => k.unit.id === id).map((k) => ({ ...k, unit: { ...k.unit, wentDown: true } })), carried: [] };
+  const e = entOf(p, id);
+  if (e) { e.alive = false; e.pos = { x: -50, y: -50 }; }
+  if (id !== 'hero') p.s.foes = p.s.foes.filter((f) => f.id !== id);
+  p.units = p.units.filter((u) => u.id !== id);
+  return c;
+}
+
+/**
+ * The clones of a carry come back beside `at` and join the ones already here (nobody here moves). Their souls reach the base;
+ * a run nobody came back from brings none (they were lost with it). The pack and resources are the carry's (this map waited).
+ */
+export function rejoin(p: RoamParty, c: Carry, at: Cell): void {
+  const s = p.s, free = (x: Cell) => walkable(tileAt(s.map, x)) && !p.units.some((u) => alive(p, u) && same(entOf(p, u.id)!.pos, x));
+  const spots: Cell[] = [];
+  for (let r = 0; r < 4; r++) for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) { const x = { x: at.x + dx, y: at.y + dy }; if (free(x) && !spots.some((o) => same(o, x))) spots.push(x); }
+  c.clones.forEach((k, i) => {
+    const pos = spots[i] ?? at, e = k.unit.id === 'hero' ? s.hero : spawnFoe(s, 'minion', pos, false);
+    e.id = k.unit.id; e.pos = { ...pos }; e.hp = k.hp; e.maxHp = k.maxHp; e.alive = true; e.awake = false;
+    const unit = structuredClone(k.unit);
+    shiftUnitTimes(unit, p.time - c.time);
+    p.units = [{ ...unit, shield: 0, order: null, queued: undefined } as Unit, ...p.units.filter((u) => u.id !== unit.id)];
+  });
+  p.pack = structuredClone(c.pack); p.nextItem = c.nextItem;
+  p.ore = c.ore; p.crystal = c.crystal; p.bio = c.bio; p.nextClone = Math.max(p.nextClone, c.nextClone);
+  p.foundHeroes = [...new Set([...p.foundHeroes, ...c.foundHeroes])];
+  if (c.clones.length) p.carried = [...p.carried, ...structuredClone(c.carried)];
+  p.combat = false; p.waiting = false; p.manual = undefined; p.over = false; p.rewakeAt = undefined;
+  if (!entOf(p, p.leader ?? '')?.alive) p.leader = living(p)[0]?.id ?? p.leader;
   look(p);
 }
 

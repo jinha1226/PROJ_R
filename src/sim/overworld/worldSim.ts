@@ -95,4 +95,11 @@ export function worldTick(p: WorldParty, dt: number): GEvent[] {
 export const claimedShare = (p: WorldParty): number => p.claimed.reduce((a, b) => a + b, 0) / p.claimed.length;
 
 /** The whole living party stands by the drill rig and nothing hunts it: they can go down the shaft. */
-export const canDrill = (p: WorldParty): boolean => !!p.drill && !p.away && !p.raid && !p.raidReady && !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.drill!) <= 2);
+/** The clone that would go down: the preferred one if it stands by the drill, else the first that does. */
+export function drillClone(p: WorldParty, prefer?: string): string | undefined {
+  if (!p.drill) return undefined;
+  const near = living(p).filter((u) => dist(entOf(p, u.id)!.pos, p.drill!) <= 2);
+  return (near.find((u) => u.id === prefer) ?? near[0])?.id;
+}
+/** One clone by the drill can go down (that one, when `id` is given), out of a fight and with no raid due. */
+export const canDrill = (p: WorldParty, id?: string): boolean => !!p.drill && !p.away && !p.raid && !p.raidReady && !p.combat && !!drillClone(p, id) && (!id || drillClone(p, id) === id);

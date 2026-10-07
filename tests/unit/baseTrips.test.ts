@@ -3,7 +3,7 @@ import { newSurface, worldTick, canDrill } from '../../src/sim/overworld/worldSi
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
 import { upgradeDrill } from '../../src/sim/base/drill';
 import { place } from '../../src/sim/base/buildings';
-import { takeParty } from '../../src/sim/roam/carry';
+import { takeClone, takeParty } from '../../src/sim/roam/carry';
 import { startRaid } from '../../src/sim/base/raids';
 
 describe('base trips', () => {
@@ -12,7 +12,7 @@ describe('base trips', () => {
     upgradeDrill(p); place(p, 'infirmary', { x: 50, y: 45 }); place(p, 'wall', { x: 44, y: 44 });
     p.podHp = 150;
     const before = structuredClone(p.buildings), claimed = [...p.claimed];
-    const delve = departSurface(p, 9, takeParty(p), 3)!;
+    const delve = departSurface(p, 9, takeClone(p, 'hero'), 3)!;
     expect(delve.floor).toBe(3); expect(p.away).toBe(true);
     expect(departSurface(p, 10, takeParty(p))).toBeNull();
     expect(worldTick(p, 100)).toEqual([]); expect(startRaid(p)).toEqual([]);
@@ -23,7 +23,7 @@ describe('base trips', () => {
     expect(p.s.hero.hp).toBe(p.s.hero.maxHp); expect(p.ore).toBe(140);
     expect(p.buildings).toEqual(before); expect([...p.claimed]).toEqual(claimed);
     expect([p.drillLevel, p.podHp, p.raidsDone]).toEqual([1, 150, 0]);
-    const next = departSurface(p, 10, takeParty(p))!;
+    const next = departSurface(p, 10, takeClone(p, 'hero'))!;
     next.deepest = 8; const ev = returnToSurface(p, takeParty(next));
     // the raid night waits at the pod until the player starts it, and nobody may leave meanwhile
     expect(ev.some(e => e.text === 'raidReady')).toBe(true); expect(p.raidReady).not.toBeNull(); expect(p.deepest).toBe(8);
@@ -33,7 +33,7 @@ describe('base trips', () => {
   it('a wiped carry still starts and resolves the scheduled raid', () => {
     const p = newSurface(); p.ore = 30; upgradeDrill(p);
     returnToSurface(p, takeParty(p));
-    const d = departSurface(p, 4, takeParty(p))!; d.s.hero.alive = false;
+    const d = departSurface(p, 4, takeClone(p, 'hero'))!; d.s.hero.alive = false;
     returnToSurface(p, takeParty(d)); expect(p.raidReady).not.toBeNull();
     startRaid(p); expect(p.raid).not.toBeNull();
     p.podHp = 0; expect(worldTick(p, 1).some(e => e.text === 'raidLost')).toBe(true);
