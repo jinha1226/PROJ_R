@@ -1,3 +1,4 @@
+import { SHIELD_CAP } from '../../src/sim/party/shield';
 import { expect, it } from 'vitest';
 import { partyRoom } from '../../src/sim/party/partySim';
 import { damage, entOf, stats, strike } from '../../src/sim/party/partyCore';
@@ -34,7 +35,7 @@ it('berserker crisis doubles attack speed and healing ends it', () => {
 it('guardian innate intercepts damage; healer overflow and elementalist fireball change state', () => {
   const {p,u,f}=setup('guardian','swordShield');const before=entOf(p,u.id)!.hp;u.shield=0;
   KITS.guardian.innate[2]!.run(p,{t:0,src:u,target:f,amount:10,ev:[],depth:0});expect(entOf(p,u.id)!.hp).toBeLessThan(before);
-  u.cls='healer';u.weapon='mace';u.shield=0;heal(p,u,u,999,0,[]);expect(u.shield).toBe(30);
+  u.cls='healer';u.weapon='mace';u.shield=0;heal(p,u,u,999,0,[]);expect(u.shield).toBe(SHIELD_CAP);
   u.shield=0;KITS.healer.innate[2]!.run(p,{t:0,src:u,target:u,amount:4,ev:[],depth:0});expect(u.shield).toBe(4);
   u.cls='elementalist';u.weapon='staff';fireball(p,u,f,0,[]);expect(f.status.chill??f.status.shock).toBeDefined();
   f.status={};KITS.elementalist.innate[2]!.run(p,{t:0,src:u,target:f,ev:[],depth:0});expect(f.status.chill??f.status.shock).toBeDefined();

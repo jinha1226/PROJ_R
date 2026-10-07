@@ -17,11 +17,33 @@ export function applyStatus(p: Party, src: Unit, target: Unit, id: StatusId, t: 
   target.status[id] = { until: t + duration[id] + extra, by: src.id, stacks: stack, next: old && old.until > t ? old.next : t + 1 };
   if (id === 'freeze' || id === 'stun') target.nextAt = Math.max(target.nextAt, t + duration[id]);
   ev.push({ t, type: 'buff', src: src.id, dst: target.id, text: id });
-  if((id==='shock'||id==='bleed') && target.status.bleed && (target.status.shock?.until??0)>t) {target.status.bleed.stacks=2;ev.push({t,type:'react',src:src.id,dst:target.id,text:'혈전'});}
+  if((id==='shock'||id==='bleed') && target.status.bleed && (target.status.shock?.until??0)>t) {target.status.bleed.stacks=2;react(p,src,target,id,'혈전',t,ev);}
   emit(p, 'statusApplied', { t, src, target, status: id, ev });
   if (!spread && (id === 'burn' || id === 'poison') && (target.status.burn?.until ?? 0) > t && (target.status.poison?.until ?? 0) > t) {
-    ev.push({ t, type: 'react', src: src.id, dst: target.id, text: '독연 폭발' });
+    react(p, src, target, id, '독연 폭발', t, ev);
     for (const f of p.units) if (f !== target && f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, target)) <= 1) applyStatus(p, src, f, 'poison', t, ev, 2, true);
+  }
+  elemental(p, src, target, id, t, ev);
+}
+const on = (u: Unit, id: StatusId, t: number) => (u.status[id]?.until ?? 0) > t;
+/** A reaction: its mark for the screen, and an event effects can hang on. */
+function react(p: Party, src: Unit, target: Unit, id: StatusId, name: string, t: number, ev: GEvent[]): void {
+  ev.push({ t, type: 'react', src: src.id, dst: target.id, text: name });
+  emit(p, 'reaction', { t, src, target, status: id, reaction: name, ev });
+}
+/** The elements meeting on one foe: burn and chill make steam, burn and shock overload, chill and shock leave it exposed. Both states go. */
+function elemental(p: Party, src: Unit, target: Unit, id: StatusId, t: number, ev: GEvent[]): void {
+  const pair = (a: StatusId, b: StatusId) => (id === a || id === b) && on(target, a, t) && on(target, b, t);
+  const boost = 1 + (mods(src).react ?? 0), round = p.units.filter((f) => f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, target)) <= 1);
+  if (pair('burn', 'chill')) {
+    delete target.status.burn; delete target.status.chill; react(p, src, target, id, '증기', t, ev);
+    for (const f of round) { f.blindUntil = Math.max(f.blindUntil ?? 0, t + 2); damage(p, t, src.id, f, Math.round(6 * boost), ev, true); }
+  } else if (pair('burn', 'shock')) {
+    delete target.status.burn; delete target.status.shock; react(p, src, target, id, '과부하', t, ev);
+    for (const f of round) damage(p, t, src.id, f, Math.round(10 * boost), ev, true);
+  } else if (pair('chill', 'shock')) {
+    delete target.status.chill; delete target.status.shock; react(p, src, target, id, '초전도', t, ev);
+    applyStatus(p, src, target, 'exposed', t, ev);
   }
 }
 export function tickStatuses(p: Party, _from: number, to: number, ev: GEvent[]): void {
@@ -45,7 +67,7 @@ export function movedStatus(p: Party, u: Unit, t: number, ev: GEvent[]): void {
 }
 export function statusMult(p: Party, attacker: Unit, target: Unit, heavy: boolean, t: number, ev: GEvent[]): number {
   let m = 1;
-  if ((target.status.freeze?.until ?? 0) > t && heavy) { m *= 2; delete target.status.freeze; ev.push({ t, type: 'react', src: attacker.id, dst: target.id, text: '파쇄' }); }
+  if ((target.status.freeze?.until ?? 0) > t && heavy) { m *= 2; delete target.status.freeze; react(p, attacker, target, 'freeze', '파쇄', t, ev); }
   else if ((target.status.freeze?.until ?? 0) > t && resonant(p, attacker, '냉기', 2)) m *= 1.5;
   if ((target.status.mark?.until ?? 0) > t && target.status.mark?.by !== attacker.id) m *= 1.3;
   if ((target.status.exposed?.until ?? 0) > t) m *= 1.5;

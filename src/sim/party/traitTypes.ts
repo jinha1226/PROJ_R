@@ -7,7 +7,7 @@ export interface Mods {
   hp: number; move: number; hit: number; range: number; cover: number; regen: number; bond: number;
   crit: number; critDmg: number; cd: number; block: number; atk: number; amplify: number; heal: number;
   ward: number; whirlCd: number; whirlRange: number; counter: number; steadyMax: number; stealth: number;
-  gritCd: number; poisonCap: number; taken: number; xp: number; bio: number; retreat: number;
+  gritCd: number; poisonCap: number; react: number; taken: number; xp: number; bio: number; retreat: number;
 }
 /** law: a new rule · amp: grows with a tag · convert: turns one thing into another · duo: two classes together · oath: a keystone with a price */
 export type CardKind = 'law' | 'amp' | 'convert' | 'duo' | 'oath';
