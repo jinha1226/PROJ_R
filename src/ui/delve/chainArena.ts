@@ -1,10 +1,15 @@
 import { newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { alive, entOf, type Unit } from '../../sim/party/partyCore';
 import { gainXp, LEVEL_XP } from '../../sim/party/partyLevel';
-import { clones, implant, print } from '../../sim/roam/roam';
+import { blank, clones, implant, print } from '../../sim/roam/roam';
+import { spawnFoe } from '../../sim/grid/foes';
 import { dist, idx, walkable, tileAt, type Cell } from '../../sim/grid/types';
 import { distanceMap } from '../../sim/grid/path';
 import type { BaseClass } from '../../sim/party/partyDefs';
+
+/** how many foes the arena packs in, and the health of the weak ones (a blow or two) */
+const HORDE = 28;
+const FODDER_HP = 10;
 
 /** The three clones of the chain demo, each with cards that set each other off (fire and lightning mage, marking archer, hit-back warrior). */
 const BUILDS: { cls: BaseClass; traits: Record<string, number>; memory: string }[] = [
@@ -28,15 +33,22 @@ export function chainArena(seed: number): DelveParty {
   const spots: Cell[] = [];
   for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) {
     const c = { x, y }, k = idx(m, c), r = d[k]!;
-    if (r >= 3 && r <= 7 && walkable(tileAt(m, c)) && !taken.has(k)) spots.push(c);
+    if (r >= 3 && r <= 9 && walkable(tileAt(m, c)) && !taken.has(k)) spots.push(c);
   }
   const centre = spots.sort((a, b) => d[idx(m, a)]! - d[idx(m, b)]!)[Math.floor(spots.length / 3)] ?? m.start;
   spots.sort((a, b) => dist(a, centre) - dist(b, centre));
+  // a horde, survivor style: the floor's foes plus goblins to make up the crowd; nearly all fall to a blow or two, a few hold
   const foes = p.units.filter((u) => u.side === 'foe');
+  for (let k = foes.length; k < HORDE && k < spots.length; k++) {
+    const e = spawnFoe(p.s, 'minion', spots[k]!, true);
+    const f: Unit = { ...blank(), id: e.id, side: 'foe', foe: 'goblin', foeScale: 1, group: 900, nextAt: 0 };
+    p.units.push(f); foes.push(f);
+  }
   foes.forEach((f, i) => {
     const e = entOf(p, f.id)!, at = spots[i];
-    if (!at || i >= 12) { e.alive = false; return; }
-    e.pos = { ...at }; e.hp = e.maxHp = Math.round(e.maxHp * 2.5); f.asleep = false; f.nextAt = 0.5 + 0.1 * i;
+    if (!at || i >= HORDE) { e.alive = false; return; }
+    const tough = i % 8 === 0;
+    e.pos = { ...at }; e.hp = e.maxHp = tough ? Math.round(e.maxHp * 1.5) : FODDER_HP; f.asleep = false; f.nextAt = 0.5 + 0.05 * i;
   });
   return p;
 }
