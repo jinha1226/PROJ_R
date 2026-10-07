@@ -35,9 +35,9 @@ it('frost prison: a second chill freezes', () => {
   expect((a!.status.freeze?.until ?? 0) > 0).toBe(true);
 });
 
-it('elemental cycle: burn, then chill (which makes steam), then shock', () => {
+it('the mage’s elemental cycle (innate): burn, then chill (which makes steam), then shock', () => {
   const { p, u, foes } = scene('mage'); u.weapon = 'staff'; u.gear = undefined; const [a] = foes; put(p, a!, 6, 4, 999);
-  u.traits = { elemCycle: 1 }; p.s.rng.chance = () => true;
+  u.traits = {}; p.s.rng.chance = () => true;
   strike(p, u, a!, 0, []); expect(a!.status.burn).toBeDefined();
   strike(p, u, a!, 1, []); expect(a!.status.burn).toBeUndefined();
 });

@@ -28,9 +28,9 @@ it('an archer with marking cards goes for the marked foe over a nearer plain one
   expect(bestTarget(p, u, 0)?.id).toBe(b!.id);
 });
 
-it('a mage with combust goes for the burning foe in a crowd', () => {
+it('a mage whose fire kills spread goes for the burning foe in a crowd', () => {
   const { p, u, foes } = scene('mage'); u.weapon = 'staff'; u.gear = undefined; const [a, b, c] = foes; put(p, a!, 6, 3, 200); put(p, b!, 8, 6, 200); put(p, c!, 9, 6, 200);
-  u.traits = { combust: 1 }; applyStatus(p, u, b!, 'burn', 0, []);
+  u.traits = { fireSpread: 1 }; applyStatus(p, u, b!, 'burn', 0, []);
   expect(bestTarget(p, u, 0)?.id).toBe(b!.id);
 });
 
@@ -51,4 +51,10 @@ it('it keeps hitting the foe it chose unless another is much better', () => {
   const first = bestTarget(p, u, 0)!; const other = first === a ? b! : a!;
   entOf(p, other.id)!.hp = 190;
   expect(bestTarget(p, u, 0.5)?.id).toBe(first.id);
+});
+
+it('a mage reads its own element cycle: its next element sets off a reaction on the foe that carries the partner', () => {
+  const { p, u, foes } = scene('mage'); u.weapon = 'staff'; u.gear = undefined; const [a, b] = foes; put(p, a!, 7, 4, 200); put(p, b!, 7, 6, 200);
+  u.traits = {}; u.cycle = 0; applyStatus(p, u, b!, 'chill', 0, []); applyStatus(p, u, a!, 'bleed', 0, []);
+  expect(bestTarget(p, u, 0)?.id).toBe(b!.id);
 });

@@ -1,16 +1,13 @@
-import { applyStatus, type StatusId } from './status';
-import { alive, damage, entOf, posOf, stats, strike, targetOf } from './partyCore';
-import { foesNear, stepBehind } from './cardFx';
+import { applyStatus } from './status';
+import { alive, damage, entOf, posOf, stats } from './partyCore';
+import { foesNear } from './cardFx';
 import { tagsOf } from './classKit';
-import { duoFor } from './cardsSupport';
-import { card, rank, type TraitDef } from './traitTypes';
-import { dist } from '../grid/types';
+import { card, type TraitDef } from './traitTypes';
 import type { TriggerDef as TriggerDef_ } from './triggers';
 
 const meleeFoe = (p: Parameters<typeof stats>[2], u: Parameters<typeof stats>[0] | undefined) => !!u && stats(u, 0, p).range <= 1;
 /** the battle cry's upgrade: a taunted foe that strikes the warrior is left exposed */
 const taunted: TriggerDef_ = { id: '도발 응징', when: 'struck', test: (_p, c) => !!c.target && c.target.tauntBy === c.src.id, run: (p, c) => applyStatus(p, c.src, c.target!, 'exposed', c.t, c.ev) };
-const live = (u: { status: Partial<Record<StatusId, { until: number }>> }, t: number) => Object.values(u.status).filter((s) => (s?.until ?? 0) > t).length;
 
 /** The warrior's cards (spec §6.2): hit back what hits it. */
 const WARRIOR: TraitDef[] = [
@@ -50,5 +47,3 @@ const WARRIOR: TraitDef[] = [
 ];
 
 export const MELEE_CARDS: TraitDef[] = WARRIOR;
-/** how deep open wounds let bleeding stack for this clone (1 without the card) */
-export const bleedCap = (u: Parameters<typeof rank>[0]): number => (rank(u, 'openWounds') >= 2 ? 8 : rank(u, 'openWounds') ? 5 : 1);
