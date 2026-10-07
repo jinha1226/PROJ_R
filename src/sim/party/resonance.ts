@@ -3,6 +3,8 @@ import { alive, entOf, posOf, stats, strike, damage, type Party, type Unit } fro
 import { tagsOf } from './classKit';
 import { applyStatus, type StatusId } from './status';
 import { addShield } from './shield';
+import { beyond } from './cardsRanged';
+import { heal } from './kitEffects';
 import type { Tag } from './traitTypes';
 import type { TriggerDef } from './triggers';
 
@@ -25,11 +27,17 @@ export const LAW_TEXT: Record<Tag, [string, string]> = {
   소환: ['소환수 +1', '소환수가 죽으면 폭발'],
   생존: ['위기 시 보호막 최대체력 20%', '위기 시 1턴 무적 (층당 1)'],
   치명: ['치명 시 출혈', '치명 시 즉시 한 번 더 공격'],
+  뼈: ['전투 시작 뼈 조각 보호막 6', '뼈 피해가 뒤의 적에게도 50%'],
+  함정: ['함정 설치 수 +1', '함정이 두 번 터진다'],
+  함성: ['기절 지속 +1턴', '함성 기술이 터질 때 보호막 10'],
+  오라: ['오라 범위 +1칸', '오라 안의 적 노출'],
+  신성: ['신성 피해마다 체력 2 회복', '신성 피해 10% 기절'],
 };
 
 /** A clone's tag counts toward resonance: its cards, worn gear and memory; teamwork summed over the living party. Empty bodies and summons have none. */
 export function tagCount(p: Party, u: Unit): Partial<Record<Tag, number>> {
-  if (!u.cls || u.cls === 'shell' || u.summoner || u.side !== 'hero') return {};
+  // the empty body is a class too (C3): it resonates; summons do not
+  if (!u.cls || u.summoner || u.side !== 'hero') return {};
   const tags = { ...tagsOf(u) };
   const team = p.units.filter((x) => x.side === 'hero' && !x.summoner && x.cls && x.cls !== 'shell' && alive(p, x)).reduce((n, x) => n + (tagsOf(x).협공 ?? 0), 0);
   if (team) tags.협공 = team; else delete tags.협공;
@@ -70,6 +78,10 @@ export function resonanceTriggers(p: Party, u: Unit): TriggerDef[] {
   add('소환', 2, { when: 'summonDied', test: (_pp, c) => !!c.target, run: (pp, c) => { const at = entOf(pp, c.target!.id)!.pos; for (const f of pp.units) if (f.side === 'foe' && alive(pp, f) && dist(posOf(pp, f), at) <= 1) damage(pp, c.t, c.src.id, f, 8, c.ev, true); } });
   add('생존', 1, { when: 'crisis', run: (pp, c) => addShield(c.src, Math.round(entOf(pp, c.src.id)!.maxHp * 0.2)) });
   add('생존', 2, { when: 'crisis', test: (pp, c) => c.src.lastStandFloor !== floorOf(pp), run: (pp, c) => { c.src.lastStandFloor = floorOf(pp); c.src.immuneUntil = c.t + 1; } });
+  add('뼈', 1, { when: 'combatStart', run: (_pp, c) => addShield(c.src, 6) });
+  add('뼈', 2, { when: 'damage', test: (pp, c) => c.kind === 'bone' && !!c.target && alive(pp, c.target), run: (pp, c) => { const behind = beyond(pp, c.src, c.target!)[0]; if (behind) damage(pp, c.t, c.src.id, behind, Math.max(1, Math.round((c.amount ?? 0) * 0.5)), c.ev, true, false, 'bone'); } });
+  add('신성', 1, { when: 'damage', test: (_pp, c) => c.kind === 'holy', run: (pp, c) => heal(pp, c.src, c.src, 2, c.t, c.ev) });
+  add('신성', 2, { when: 'damage', chance: 0.1, test: (pp, c) => c.kind === 'holy' && !!c.target && alive(pp, c.target), run: (pp, c) => applyStatus(pp, c.src, c.target!, 'stun', c.t, c.ev) });
   add('치명', 1, { when: 'crit', test: (_pp, c) => !!c.target, run: (pp, c) => applyStatus(pp, c.src, c.target!, 'bleed', c.t, c.ev) });
   add('치명', 2, { when: 'crit', test: (pp, c) => !!c.target && alive(pp, c.target), run: (pp, c) => strike(pp, c.src, c.target!, c.t, c.ev, 1, false) });
   return out;

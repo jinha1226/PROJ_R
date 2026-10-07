@@ -9,12 +9,12 @@ import { scene, put } from './support/cardScene';
 
 const of = (tag: Tag, n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => { const id = `r_${tag}${i}`; TRAITS[id] = card(id, id, 'amp', [tag], 'common', 't', {}); return [id, 1]; }));
 
-it('three fire cards light the first fire law, six the second; an empty body gets none', () => {
+it('three fire cards light the first fire law, six the second; the empty body resonates too (C3)', () => {
   const { p, u } = scene('mage'); u.gear = undefined;
   u.traits = of('화염', 3);
   expect(tagCount(p, u).화염).toBe(3); expect(resonant(p, u, '화염', 1)).toBe(true); expect(resonant(p, u, '화염', 2)).toBe(false);
   u.traits = of('화염', 6); expect(resonant(p, u, '화염', 2)).toBe(true);
-  u.cls = 'shell'; expect(resonant(p, u, '화염', 1)).toBe(false);
+  u.cls = 'shell'; expect(resonant(p, u, '화염', 1)).toBe(true);
   expect(LAW_TEXT.화염[0].length).toBeGreaterThan(4);
 });
 

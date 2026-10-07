@@ -44,7 +44,7 @@ const CARD: Record<string, Look> = {
   수호자: L('shield', '#8ff0ff', 'src'), 독살자: L('smoke', '#7ad04a', 'dst'), 사냥꾼: L('warn', '#ffd23a', 'dst'), 배신자: L('smoke', '#3a2a4a', 'src'),
 };
 /** the colour of each tag's resonance flare */
-const TAG_COLOR: Record<string, string> = { 화염: '#ff7a2a', 냉기: '#9fd8ff', 전기: '#ffe85a', 독: '#7ad04a', 출혈: '#ff3a4a', 근접: '#ffb04a', 원거리: '#9fe85a', 방패: '#d8e8ff', 은신: '#8a7aa8', 치유: '#5dff8a', 협공: '#ffd76a', 소환: '#b48aff', 생존: '#ffffff', 치명: '#ffd04a' };
+const TAG_COLOR: Record<string, string> = { 화염: '#ff7a2a', 냉기: '#9fd8ff', 전기: '#ffe85a', 독: '#7ad04a', 출혈: '#ff3a4a', 근접: '#ffb04a', 원거리: '#9fe85a', 방패: '#d8e8ff', 은신: '#8a7aa8', 치유: '#5dff8a', 협공: '#ffd76a', 소환: '#b48aff', 생존: '#ffffff', 치명: '#ffd04a', 뼈: '#e8e0c8', 함정: '#c8b090', 함성: '#ff8a4a', 오라: '#ffe08a', 신성: '#fff2b0' };
 
 function lookOf(e: GEvent): Look | undefined {
   const text = e.text ?? '';

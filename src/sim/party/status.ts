@@ -17,9 +17,9 @@ export function applyStatus(p: Party, src: Unit, target: Unit, id: StatusId, t: 
   const stack = id === 'poison' ? Math.min(5 + (mods(src).poisonCap ?? 0) + (resonant(p, src, '독', 1) ? 3 : 0), live + stacks)
     : id === 'burn' && resonant(p, src, '화염', 2) ? live + stacks
     : id === 'bleed' && bleedCap(src) > 1 ? Math.min(bleedCap(src), live + stacks) : stacks;
-  const extra = id === 'freeze' && resonant(p, src, '냉기', 2) ? 1 : 0;
+  const extra = (id === 'freeze' && resonant(p, src, '냉기', 2) ? 1 : 0) + (id === 'stun' && resonant(p, src, '함성', 1) ? 1 : 0);
   target.status[id] = { until: t + duration[id] + extra, by: src.id, stacks: stack, next: old && old.until > t ? old.next : t + 1 };
-  if (id === 'freeze' || id === 'stun') target.nextAt = Math.max(target.nextAt, t + duration[id]);
+  if (id === 'freeze' || id === 'stun') target.nextAt = Math.max(target.nextAt, t + duration[id] + extra);
   ev.push({ t, type: 'buff', src: src.id, dst: target.id, text: id });
   if((id==='shock'||id==='bleed') && target.status.bleed && (target.status.shock?.until??0)>t) {target.status.bleed.stacks=2;react(p,src,target,id,'혈전',t,ev);}
   emit(p, 'statusApplied', { t, src, target, status: id, ev });
