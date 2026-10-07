@@ -8,7 +8,7 @@ import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
 import { heal, nearby, summon } from './kitEffects';
 import { applyStatus } from './status';
-export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity' | 'teleport';
+export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity' | 'teleport' | 'golem';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, pistol: 'gun', swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
 export { proficient } from '../delve/gear';
@@ -18,6 +18,7 @@ import { counter } from './cardFx';
 import { consume, isCorpse } from './corpses';
 import { SHELL_INNATE } from './cardsShell';
 import { MAGE_INNATE } from './cardsMage';
+import { GOLEM_FALL } from './cardsNecro';
 import { sfTags } from '../base/workshop';
 import { MEMORIES } from './memories';
 import { linesOf, memoriesOf } from './body';
@@ -64,7 +65,7 @@ export const KITS: Record<ClassId, Kit> = {
   sniper: kit(extra(archer,{ id: '저격', when: 'beforeHit', test: (p,c) => !!c.target && dist(posOf(p,c.src),posOf(p,c.target)) >= 5, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'pierceShot',35,['bow','crossbow']),
   hunter: kit(extra(archer,{ id: '속박', when: 'hit', chance: 0.25, run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'freeze',c.t,c.ev); } }),'bleedRain',35,['bow','crossbow','dagger']),
   elementalist: kit(extra(MAGE_INNATE,{ id: '원소 연쇄', when: 'fireball', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,p.s.rng.pick(['chill','shock']),c.t,c.ev); } }),'elementStorm',45,['staff']),
-  necromancer: kit(necromancer,'deadHost',45,['staff']),
+  necromancer: { get innate() { return [...necromancer, GOLEM_FALL]; }, ultimate: 'golem', ultCd: 40, proficient: ['staff'] },
   inquisitor: kit(extra(cleric,{ id: '심판', when: 'hit', run: (p,c) => { const a = p.units.filter(x=>x.side==='hero' && alive(p,x)).sort((a,b)=>entOf(p,a.id)!.hp/entOf(p,a.id)!.maxHp-entOf(p,b.id)!.hp/entOf(p,b.id)!.maxHp)[0]; if(a) heal(p,c.src,a,2,c.t,c.ev); } }),'judgement',45,['mace','relic']),
   healer: kit(extra(cleric,{ id: '넘치는 빛', when: 'overflow', run: (_p,c) => { if(c.target) addShield(c.target,c.amount ?? 0); } }),'longSanctum',45,['mace','relic']),
   assassin: kit(extra(rogue,{ id: '처형술', when: 'beforeHit', test: (p,c) => !!c.target && entOf(p,c.target.id)!.hp < entOf(p,c.target.id)!.maxHp * .35, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'deathDance',35,['dagger']),

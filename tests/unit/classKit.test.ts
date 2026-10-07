@@ -9,7 +9,8 @@ import type { GEvent } from '../../src/sim/grid/types';
 it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, ally = p.units[1]!, ev: GEvent[] = [];
   u.cls = cls; u.weapon = { warrior: 'swordShield', archer: 'longbow', mage: 'staff', cleric: 'mace', rogue: 'daggers', necromancer: 'staff' }[cls] as typeof u.weapon;
-  expect(sourcesOf(p,u)).toHaveLength(2);
+  // the necromancer also carries its golem's fall
+  expect(sourcesOf(p,u)).toHaveLength(cls === 'necromancer' ? 3 : 2);
   entOf(p,f.id)!.pos={x:4,y:4};entOf(p,p.units[4]!.id)!.pos={x:3,y:5};
   entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
   entOf(p,ally.id)!.hp=1;u.nth=3;u.still=2;p.s.rng.chance=c=>c>.2;
@@ -45,6 +46,8 @@ it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','snip
   entOf(p, f.id)!.pos = { x: 4, y: 4 };
   // the mage's teleport needs a free cell; the rest aim at the foe
   const free = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([dx, dy]) => ({ x: 4 + dx!, y: 4 + dy! })).find((c) => !p.units.some((x) => entOf(p, x.id)?.alive && entOf(p, x.id)!.pos.x === c.x && entOf(p, x.id)!.pos.y === c.y))!;
+  // the golem needs a body: the foe lies dead where it stood
+  if (cls === 'necromancer') { entOf(p, f.id)!.alive = false; f.raised = false; }
   expect(useUltimate(p, u.id, cls === 'mage' ? free : { x: 4, y: 4 }).length).toBeGreaterThan(0);
   expect(u.ultReady).toBe(KITS[cls].ultCd); expect(useUltimate(p, u.id)).toEqual([]);
 });

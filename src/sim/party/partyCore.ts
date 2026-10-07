@@ -18,6 +18,7 @@ import { resonant, shieldedFury } from './resonance';
 import { markMult } from './cardsRanged';
 import { isGun, magOf } from './ammo';
 import { elementAmp } from './cardsMage';
+import { necroAmp } from './cardsNecro';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -46,6 +47,8 @@ export interface Unit {
   sfMods?: string[];
   /** empty-body state: who has already taken an aimed first shot at this foe; a piercing round loaded; hits in a row (by attack count); more forced crits; suit overload spent (floor / fight) */
   grenadeNext?: boolean; rfTurn?: number; rfCount?: number;
+  /** a golem, a shadow clone (copies its owner, takes no turns), a curse (takes 20% more) and who laid it */
+  golem?: boolean; mirror?: boolean; cursedUntil?: number; cursedBy?: string;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
   sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
@@ -96,7 +99,7 @@ export interface Unit {
 }
 export interface Party {
   foeAction?: (u: Unit, t: number, ev: GEvent[]) => number | undefined;
-  grounds?: {at:Cell;by:string;until:number;next:number}[];
+  grounds?: {at:Cell;by:string;until:number;next:number;kind?:'burn'|'poison';r?:number}[];
   /** gravity wells pulling foes in (the empty body's ultimate) */
   wells?: {at:Cell;by:string;until:number;next:number}[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
@@ -199,15 +202,24 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if(attacker && !alive(p,attacker) && !secondary) return;
   // blasting mastery (empty body): fire damage grows with every #화염
   if (attacker && kind === 'fire' && rank(attacker, 'blastAmp')) amount = Math.round(amount * 1.12 ** (tagsOf(attacker).화염 ?? 0));
+  // necromancer masteries (bone, poison, minions), multiplied
+  if (attacker && (attacker.traits || attacker.summoner)) { const m = necroAmp(p, attacker, kind); if (m !== 1) amount = Math.round(amount * m); }
   // mage masteries (fire, lightning, cold on the frozen), multiplied
   if (attacker?.traits && (attacker.traits.fireAmp || attacker.traits.boltAmp || attacker.traits.coldAmp)) amount = Math.round(amount * elementAmp(attacker, dst, kind, t));
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
+  }
+  // a curse: the foe takes a fifth more from anyone
+  if (dst.side === 'foe' && t < (dst.cursedUntil ?? 0)) amount = Math.round(amount * 1.2);
+  if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     dst.lastHitBy = src; dst.lastHitAt = t; dst.hitters = [...(dst.hitters ?? []).filter((h) => t - h.t < 1 && h.id !== src), { id: src, t }];
   }
   if (dst.side === 'hero') {
     amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst));
+    // soul link (necromancer): the nearest minion takes three tenths of the harm
+    const bond = rank(dst, 'soulLink') && amount > 1 ? p.units.filter((x) => x.summoner === dst.id && alive(p, x)).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos))[0] : undefined;
+    if (bond) { const share = Math.round(amount * 0.3); amount -= share; damage(p, t, src, bond, share, ev, true); }
     const guard = (dst.gear ? weaponDef(dst)?.shield : WEAPONS[dst.weapon!].shield) ? .75 : undefined;
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));

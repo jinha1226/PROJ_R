@@ -3,6 +3,7 @@ import type { UltId } from '../../sim/party/classKit';
 /** What each class's ultimate does, in a few terse words (numbers as the code has them). */
 export const ULT_TEXT: Record<UltId, string> = {
   warcry: '4칸 안 적 5턴 도발 · 아군 보호막 15',
+  golem: '지정한 칸 주변 3칸의 시체를 모아 골렘 소환(시체 수만큼 단단함), 주변 적을 끌어당기고 쓰러지면 대폭발',
   teleport: '지정한 칸으로 순간이동, 출발·도착 지점 주변 1칸에 다음 원소 폭발',
   gravity: '지정한 칸으로 2턴간 3칸 안 적을 끌어당긴 뒤 붕괴 (주변 1칸 피해·기절)',
   bastion: '4칸 안 적 5턴 도발 · 아군 보호막 30',

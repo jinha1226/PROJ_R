@@ -21,8 +21,8 @@ export function tickGrounds(p: Party, t: number, ev: Ctx['ev']): void {
             const src = p.units.find(u => u.id === g.by);
             if (src && alive(p, src))
                 for (const f of p.units)
-                    if (f.side === 'foe' && alive(p, f) && Math.max(Math.abs(posOf(p, f).x - g.at.x), Math.abs(posOf(p, f).y - g.at.y)) <= 1)
-                        applyStatus(p, src, f, 'burn', g.next, ev);
+                    if (f.side === 'foe' && alive(p, f) && Math.max(Math.abs(posOf(p, f).x - g.at.x), Math.abs(posOf(p, f).y - g.at.y)) <= (g.r ?? 1))
+                        applyStatus(p, src, f, g.kind ?? 'burn', g.next, ev, g.kind === 'poison' ? 2 : 1);
             g.next++;
         }
     p.grounds = p.grounds?.filter(g => g.until > t);

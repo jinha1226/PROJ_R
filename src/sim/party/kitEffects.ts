@@ -1,3 +1,4 @@
+import type { WeaponId } from './partyDefs';
 import { emit } from './triggers';
 import { T } from './traitMods';
 import { G } from '../delve/gear';
@@ -21,12 +22,15 @@ export function fireball(p: Party, src: Unit, dst: Unit, t: number, ev: GEvent[]
     emit(p,'fireball',{t,src,target:f,ev});
   }
 }
-export function summon(p: Party, src: Unit, at: Cell, t: number, ev: GEvent[], cap = 2): boolean {
-  if (!alive(p, src) || p.units.filter(x => x.summoner === src.id && alive(p, x)).length >= cap + (resonant(p, src, '소환', 1) ? 1 : 0)) return false;
+/** what a summon is: health, weapon, how long it stays (Infinity: until it falls), whether it is a golem */
+export interface SummonOpts { hp?: number; weapon?: WeaponId; life?: number; golem?: boolean; count?: (u: Unit) => boolean }
+export function summon(p: Party, src: Unit, at: Cell, t: number, ev: GEvent[], cap = 2, o: SummonOpts = {}): boolean {
+  const mine = (x: Unit) => x.summoner === src.id && alive(p, x) && (o.count ? o.count(x) : !x.golem && !x.mirror);
+  if (!alive(p, src) || p.units.filter(mine).length >= cap + (resonant(p, src, '소환', 1) ? 1 : 0)) return false;
   const spot = DIRS.map(d => ({ x: at.x + d.x, y: at.y + d.y })).find(c => walkable(tileAt(p.s.map, c)) && !occupied(p, c, ''));
   if (!spot) return false;
-  const e = spawnFoe(p.s, 'minion', spot, false); e.hp = e.maxHp = 18;
-  p.units.push({ id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: t + 0.5, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0, summoner: src.id, summonedUntil: t + 10 });
+  const e = spawnFoe(p.s, 'minion', spot, false); e.hp = e.maxHp = o.hp ?? 18;
+  p.units.push({ id: e.id, side: 'hero', cls: 'shell', weapon: o.weapon ?? 'fists', status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: t + 0.5, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0, summoner: src.id, summonedUntil: t + (o.life ?? 10), ...(o.golem ? { golem: true } : {}) });
   ev.push({ t, type: 'summon', src: src.id, dst: e.id, to: spot });
   emit(p, 'summon', { t, src, target: p.units[p.units.length - 1], ev });
   return true;
