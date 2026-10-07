@@ -149,7 +149,11 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
   if (!alive(p, u)) return;
   if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
   if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
-  if(u.ultQueued) { const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; } }
+  if(u.ultQueued) {
+    const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; }
+    // a companion lets a refused skill go (it picks again when it is worth it); the player's own queued skill waits for a target
+    if(u.id!==p.manual) u.ultQueued=false;
+  }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);
 }
@@ -197,14 +201,15 @@ export function command(p: Party, c: Command): GEvent[] {
   const u = p.units.find((x) => x.id === p.manual);
   if (!p.waiting || !u || !alive(p, u)) return [];
   const ev: GEvent[] = [];
-  action(p, () => emit(p, 'turn', { t: p.time, src: u, ev }));
-  if (!alive(p, u)) { p.waiting = false; return ev; }
-  if(c.kind==='use'){if(!('pack'in p))return[];const used=useItem(p as RoamParty,u.id,c.itemId,c.cell);if(!used.length)return[];ev.push(...used);}
+  // the turn's sustained effects go off once the command is sure to happen: a refused skill or item spends no turn
+  const begin = () => { action(p, () => emit(p, 'turn', { t: p.time, src: u, ev })); return alive(p, u); };
+  if(c.kind==='use'){if(!('pack'in p))return[];const used=useItem(p as RoamParty,u.id,c.itemId,c.cell);if(!used.length)return[];ev.push(...used);begin();}
   else if (c.kind === 'ultimate') {
     const cast = useUltimate(p, u.id, c.cell, c.slot ?? 0);
     if (!cast.length) return [];
-    ev.push(...cast);
-  } else if (c.kind === 'wait') {
+    ev.push(...cast); begin();
+  } else if (!begin()) { p.waiting = false; return ev; }
+  else if (c.kind === 'wait') {
     u.nextAt = p.time + 0.5;
     ev.push({ t: p.time, type: 'wait', src: u.id });
     action(p, () => emit(p, 'wait', { t: p.time, src: u, ev }));

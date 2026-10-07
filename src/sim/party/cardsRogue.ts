@@ -1,6 +1,6 @@
 import { applyStatus, type StatusId } from './status';
 import { alive, damage, entOf, freeHit, levelDmg, posOf, stats, strike, type Party, type Unit } from './partyCore';
-import { foesNear, stepBehind } from './cardFx';
+import { fighting, foesNear, stepBehind } from './cardFx';
 import { tagsOf } from './classKit';
 import { summon } from './kitEffects';
 import { laySnare, snareSpot } from './snares';
@@ -11,8 +11,6 @@ import type { TriggerDef } from './triggers';
 const TRAP = 'rogue:trap', MARTIAL = 'rogue:martial', SHADOW = 'rogue:shadow';
 const avg = (p: Party, u: Unit, t: number) => { const [lo, hi] = stats(u, t, p).dmg; return ((lo + hi) / 2) * levelDmg(u); };
 const live = (u: { status: Partial<Record<StatusId, { until: number }>> }, t: number) => Object.values(u.status).filter((s) => (s?.until ?? 0) > t).length;
-/** an awake foe within eight: the rogue is fighting */
-const fighting = (p: Party, u: Unit) => p.units.some((f) => f.side === 'foe' && alive(p, f) && !f.asleep && dist(posOf(p, f), posOf(p, u)) <= 8);
 export const mirrorsOf = (p: Party, u: Unit) => p.units.filter((x) => x.summoner === u.id && x.mirror && alive(p, x));
 /** martial mastery: every #치명 adds a tenth to what each ki is worth */
 const kiWorth = (u: Unit) => (rank(u, 'martialAmp') ? 0.1 * (tagsOf(u).치명 ?? 0) : 0);

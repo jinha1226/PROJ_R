@@ -1,7 +1,7 @@
 import { applyStatus } from './status';
 import { addShield } from './shield';
 import { alive, damage, entOf, freeHit, posOf, stats, type Party, type Unit } from './partyCore';
-import { foesNear } from './cardFx';
+import { fighting, foesNear } from './cardFx';
 import { tagsOf } from './classKit';
 import { beyond } from './cardsRanged';
 import { summon } from './kitEffects';
@@ -37,7 +37,7 @@ export function necroAmp(p: Party, attacker: Unit, kind: string): number {
   if (kind === 'bone' && rank(attacker, 'boneAmp')) m *= 1.12 ** (tagsOf(attacker).뼈 ?? 0);
   if (kind === 'poison' && rank(attacker, 'plagueAmp')) m *= 1.15 ** (tagsOf(attacker).독 ?? 0);
   const owner = attacker.summoner ? p.units.find((x) => x.id === attacker.summoner) : undefined;
-  if (owner && rank(owner, 'legionAmp')) m *= 1 + 0.1 * (tagsOf(owner).소환 ?? 0);
+  if (owner && rank(owner, 'legionAmp')) m *= 1.1 ** (tagsOf(owner).소환 ?? 0);
   return m;
 }
 
@@ -87,7 +87,7 @@ export const NECRO_CARDS: TraitDef[] = [
   inBranch(card('boneAmp', '뼈 숙련', 'amp', ['뼈'], 'necromancer', '#뼈 1당 뼈 피해 ×1.12 (곱)', {}), BONE),
   // 군단: skeletons rising from every body
   inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '3칸 안에 시체가 있으면 매 턴 해골(최대 3), 대기하면 하나 더', {
-    triggers: (r) => (['turn', 'wait'] as const).map((when): TriggerDef => ({ id: '해골 일으키기', when, test: (p, c) => minions(p, c.src).length < (r >= 2 ? 5 : 3) && corpsesNear(p, posOf(p, c.src), 3).length > 0, run: (p, c) => {
+    triggers: (r) => (['turn', 'wait'] as const).map((when): TriggerDef => ({ id: '해골 일으키기', when, test: (p, c) => fighting(p, c.src) && minions(p, c.src).length < (r >= 2 ? 5 : 3) && corpsesNear(p, posOf(p, c.src), 3).length > 0, run: (p, c) => {
       const body = corpsesNear(p, posOf(p, c.src), 3)[0]!, archer = r >= 2 && minions(p, c.src).length % 2 === 1;
       if (summon(p, c.src, posOf(p, body), c.t, c.ev, r >= 2 ? 5 : 3, { hp: 24, weapon: archer ? 'longbow' : 'fists' })) consume(body);
     } })),

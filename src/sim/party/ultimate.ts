@@ -7,6 +7,7 @@ import { soulsOf } from './body';
 import { dropWell, GRAVITY_REACH } from './gravity';
 import { teleport } from './cardsMage';
 import { raiseGolem } from './cardsNecro';
+import { corpsesNear, isCorpse } from './corpses';
 import { shadowClone } from './cardsRogue';
 import { summon } from './kitEffects';
 import { applyStatus } from './status';
@@ -41,7 +42,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
   const aimed=AIMED.includes(ult);
   if(aimed && ult!=='teleport' && ult!=='golem' && ult!=='shadowClone' && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='gravity'?GRAVITY_REACH:ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
   if(['shadowDance','deathDance','bloodFrenzy'].includes(ult) && !near(me,4).length) return [];
-  if(u.traits?.bloodPact){const e=entOf(p,id)!,cost=Math.round(e.maxHp*.3);if(e.hp<=cost)return [];e.hp-=cost;}
+  const pact=u.traits?.bloodPact?Math.round(entOf(p,id)!.maxHp*.3):0; if(pact && entOf(p,id)!.hp<=pact) return [];
   switch(ult) {
     case 'warcry': case 'bastion':
       for(const f of near(me,4)) {f.tauntBy=id; f.tauntUntil=t+5; emit(p,'taunt',{t,src:u,target:f,ev});}
@@ -86,6 +87,8 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
         if(alive(p,u)) strike(p,u,f,t,ev,2,false);
       } break;
   }
+  // the blood pact is paid only for an ultimate that went off
+  if(pact) entOf(p,id)!.hp-=pact;
   ev.push({t,type:'buff',src:id,dst:id,text:ULT_NAMES[ult]});
   const next=u.traits?.bloodPact?t:t+s.cd*T.cd(u)*G.cd(u);
   if (soulsOf(u).length) soulsOf(u)[slot]!.ultReady=next; else u.ultReady=next;
@@ -107,6 +110,23 @@ function aiUse(p: Party,u: Unit,ult: UltId): Cell | undefined | null {
   if(!foes.length) return null;
   if(['sanctum','longSanctum','warcry','bastion'].includes(ult)) return p.units.some(x=>x.side==='hero'&&alive(p,x)&&entOf(p,x.id)!.hp<entOf(p,x.id)!.maxHp/2)||foes.length>=3 ? undefined:null;
   if(['bloodFrenzy','shadowDance','deathDance'].includes(ult)) return foes.some(x=>dist(posOf(p,x),me)<=4)?undefined:null;
+  // teleport: away from two foes at its side, to the free cell within reach farthest from every foe
+  if(ult==='teleport') {
+    if(foes.filter(x=>dist(posOf(p,x),me)<=1).length<2) return null;
+    let best: Cell | null = null, far = 1;
+    for(let dy=-8;dy<=8;dy++) for(let dx=-8;dx<=8;dx++) {
+      const c={x:me.x+dx,y:me.y+dy};
+      if(!walkable(tileAt(p.s.map,c))||occupied(p,c,u.id)) continue;
+      const d=Math.min(...foes.map(x=>dist(posOf(p,x),c)));
+      if(d>far){far=d;best=c;}
+    }
+    return best;
+  }
+  // golem: on the body with the most bodies within three (two at least)
+  if(ult==='golem') {
+    const spots=p.units.filter(x=>isCorpse(p,x)&&dist(posOf(p,x),me)<=10).map(x=>({at:posOf(p,x),n:corpsesNear(p,posOf(p,x),3).length})).sort((a,b)=>b.n-a.n);
+    return spots[0]&&spots[0].n>=2?{...spots[0].at}:null;
+  }
   // the clones stand beside the rogue: they copy its blows on the foes round it and draw their blows off it
   if(ult==='shadowClone') return foes.filter(x=>dist(posOf(p,x),me)<=2).length>=2?me:null;
   if(ult==='deadHost') return p.units.some(x=>x.side==='foe'&&!alive(p,x)&&!x.raised&&dist(posOf(p,x),me)<=6)?undefined:null;

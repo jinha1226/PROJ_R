@@ -29,7 +29,8 @@ it('bone spear: a third of blows send a bone spear through every foe in line (hi
 });
 
 it('raise skeleton: with a body within three a skeleton rises every turn, up to three', () => {
-  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 };
+  // skeletons rise in a fight: a foe stands awake a way off
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 10);
   for (let k = 0; k < 4; k++) { const f = s.put(k, 3 + k, 8, 1); kill(s, f); f.raised = false; }
   for (const f of s.p.units.filter((x) => x.side === 'foe')) if (!entOf(s.p, f.id)!.alive) f.raised = false;
   for (let t = 1; t <= 5; t++) turn(s.p, s.u, t);
@@ -37,7 +38,7 @@ it('raise skeleton: with a body within three a skeleton rises every turn, up to 
 });
 
 it('grasp of the dead: a fallen minion leaves two bodies', () => {
-  const s = necroScene(); s.u.traits = { deadGrasp: 1, raiseSkeleton: 1 };
+  const s = necroScene(); s.u.traits = { deadGrasp: 1, raiseSkeleton: 1 }; s.put(8, 11, 10);
   const f = s.put(0, 6, 6, 1); kill(s, f); f.raised = false;
   turn(s.p, s.u, 1);
   const sk = minions(s.p, s.u.id)[0]!, at = { ...entOf(s.p, sk.id)!.pos };
@@ -46,7 +47,7 @@ it('grasp of the dead: a fallen minion leaves two bodies', () => {
 });
 
 it('soul link: a third of the harm the necromancer takes goes to the nearest minion', () => {
-  const s = necroScene(); s.u.traits = { soulLink: 1, raiseSkeleton: 1 };
+  const s = necroScene(); s.u.traits = { soulLink: 1, raiseSkeleton: 1 }; s.put(8, 11, 10);
   const f = s.put(0, 5, 6, 1); kill(s, f); f.raised = false; turn(s.p, s.u, 1);
   const sk = minions(s.p, s.u.id)[0]!, e = entOf(s.p, 'hero')!; e.hp = e.maxHp = 1000; s.u.gear!.armor = null;
   const skHp = entOf(s.p, sk.id)!.hp;

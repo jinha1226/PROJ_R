@@ -71,9 +71,10 @@ export function teleport(p: Party, u: Unit, cell: Cell, t: number, ev: GEvent[])
   if (!walkable(tileAt(p.s.map, cell)) || occupied(p, cell, u.id) || dist(from, cell) > 8) return false;
   const element = nextElement(u), kind: DamageKind = element === 'burn' ? 'fire' : element === 'chill' ? 'cold' : 'lightning';
   const burst = (at: Cell) => { for (const f of foesNear(p, at, 1)) { damage(p, t, u.id, f, Math.round(avg(p, u, t) * 1.2), ev, true, false, kind); if (alive(p, f)) applyStatus(p, u, f, element, t, ev); } };
-  burst(from);
+  // the mage is gone before either end bursts: nothing the bursts push or raise can take the cell it lands on
   ev.push({ t, type: 'teleport', src: u.id, from, to: { ...cell } });
   entOf(p, u.id)!.pos = { ...cell };
+  burst(from);
   burst(cell);
   return true;
 }

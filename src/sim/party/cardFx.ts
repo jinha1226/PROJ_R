@@ -5,6 +5,8 @@ import { resonant } from './resonance';
 import { duoFor } from './cardsSupport';
 
 /** The living units of a side within `r` cells of a cell. */
+/** an awake foe within eight: the clone is fighting (sustained laws wait for a fight) */
+export const fighting = (p: Party, u: Unit): boolean => p.units.some((f) => f.side === 'foe' && alive(p, f) && !f.asleep && dist(posOf(p, f), posOf(p, u)) <= 8);
 export const foesNear = (p: Party, at: Cell, r: number, side: 'foe' | 'hero' = 'foe'): Unit[] =>
   p.units.filter((x) => x.side === side && alive(p, x) && dist(posOf(p, x), at) <= r);
 
