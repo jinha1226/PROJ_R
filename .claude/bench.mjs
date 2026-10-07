@@ -12,6 +12,7 @@ for (const [name, vp] of [['land', { width: 1280, height: 720 }], ['port', { wid
   const btn = p.locator('.place-prompts [data-i]', { hasText: '작업장' });
   console.log(name, 'prompt', await btn.count());
   if (await btn.count()) { await btn.first().evaluate((el) => el.click()); await p.waitForTimeout(800); }
+  await p.locator('[data-tab="suit"]').evaluate((el) => el.click()).catch(() => {}); await p.waitForTimeout(500);
   const dis = p.locator('[data-act="dismantle"]').first();
   if (await dis.count()) { await dis.click(); await p.waitForTimeout(300); }
   await p.screenshot({ path: `${out}/bench-${name}.png` });

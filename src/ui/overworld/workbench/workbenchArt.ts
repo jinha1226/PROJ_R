@@ -13,13 +13,15 @@ const ART: Record<'pistol' | 'suit', Art> = {
     file: 'pistol_outline_green.svg', view: [800, 488], stroke: 3, place: [0, 0, 0.5],
     zones: [
       { slot: 'gun0', box: [596, 66, 780, 206], callout: [330, 118] },
-      { slot: 'gun1', box: [34, 300, 192, 478], callout: [104, 214] },
+      // the grip with the magazine in it, down to the base plate
+      { slot: 'gun1', box: [38, 208, 192, 476], callout: [104, 214] },
     ],
   },
   suit: {
     file: 'suit_outline_green.svg', view: [252, 600], stroke: 2.4, place: [149, 0, 244 / 600],
     zones: [
-      { slot: 'suit0', box: [86, 95, 168, 182], callout: [236, 44] },
+      // the chest plate between the shoulders (read off the drawing on a 50-unit grid)
+      { slot: 'suit0', box: [88, 92, 184, 172], callout: [236, 44] },
     ],
   },
 };

@@ -6,7 +6,7 @@ import { implant, living } from '../../src/sim/roam/roam';
 import { navigate, supplies } from './delveBotPolicy';
 
 /** solo runs: the souls in the one body that goes down */
-export const compositions: BaseClass[][] = [['warrior', 'cleric'], ['mage', 'archer'], ['rogue', 'warrior']];
+export const compositions: BaseClass[][] = [['warrior', 'cleric'], ['mage', 'archer'], ['rogue', 'warrior'], []];
 interface FloorStats { floor: number; common: number; fine: number; rare: number; trinkets: number; consumables: number; ore: number; crystal: number; bio: number; seconds: number }
 export interface Run { seed: number; comp: string; floor: number; general: boolean; lost: number; end: 'wipe' | 'general' | 'floor5' | 'timeout'; seconds: number; lastPolicy: string; idleSeconds: number; fights?: number; fightsDeep?: number; chains?: number; chainsDeep?: number; floors: FloorStats[] }
 const floorStats = (floor: number): FloorStats => ({ floor, common: 0, fine: 0, rare: 0, trinkets: 0, consumables: 0, ore: 0, crystal: 0, bio: 0, seconds: 0 });
@@ -16,7 +16,7 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
   for (const cls of comp) implant(p, living(p)[0]!, cls, []);
   for (const u of living(p)) { u.level = 1; u.xp = 0; }
   const seen = new Set(inventory(p).map((it) => it.id));
-  const result: Run = { seed, comp: comp.join('/'), floor: 1, general: false, lost: 0, end: 'timeout', seconds: 0, lastPolicy: '', idleSeconds: 0, fights: 0, fightsDeep: 0, chains: 0, chainsDeep: 0, floors: [floorStats(1)] };
+  const result: Run = { seed, comp: comp.join('/') || 'empty', floor: 1, general: false, lost: 0, end: 'timeout', seconds: 0, lastPolicy: '', idleSeconds: 0, fights: 0, fightsDeep: 0, chains: 0, chainsDeep: 0, floors: [floorStats(1)] };
   let lastActivity = 0, fighting = false, deepThisFight = false;
   while (p.time < 3600) {
     const f = result.floors[result.floors.length - 1]!;
@@ -69,5 +69,5 @@ export function summarize(runs: Run[]) {
     for (const k of ['common', 'fine', 'rare', 'trinkets', 'consumables', 'ore', 'crystal', 'bio', 'seconds'] as const) sum[k] /= visited.length || 1;
     return { visits: visited.length, ...sum };
   });
-  return { total: group(runs), comps: compositions.map((c) => ({ comp: c.join('/'), ...group(runs.filter((r) => r.comp === c.join('/'))) })), floors };
+  return { total: group(runs), comps: compositions.map((c) => ({ comp: c.join('/') || 'empty', ...group(runs.filter((r) => r.comp === (c.join('/') || 'empty'))) })), floors };
 }
