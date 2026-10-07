@@ -100,4 +100,5 @@ if (params.get('demo') === 'looks') void looksDemo();
 else if (params.get('demo') === 'chains') void chainsDemo();
 else if (params.get('demo') === 'deep') void deepDemo();
 else if (params.get('demo') === 'branch') void branchDemo();
+else if (params.get('demo') === 'horde') void import('../ui/demo/hordeDemo').then(({ hordeDemo }) => hordeDemo(root)).catch((e) => showFatal(root, e));
 else title();
