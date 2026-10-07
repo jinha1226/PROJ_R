@@ -1,13 +1,12 @@
 import { expect, it } from 'vitest';
-import { damage, entOf, strike } from '../../src/sim/party/partyCore';
+import { entOf, strike } from '../../src/sim/party/partyCore';
 import { applyStatus } from '../../src/sim/party/status';
 import { action, emit } from '../../src/sim/party/triggers';
 import { RANGED_CARDS } from '../../src/sim/party/cardsRanged';
 import { scene, put } from './support/cardScene';
 
-it('eight archer and eight mage cards', () => {
+it('eight archer cards (the mage moved to its own file)', () => {
   expect(RANGED_CARDS.filter((d) => d.pool === 'archer')).toHaveLength(8);
-  expect(RANGED_CARDS.filter((d) => d.pool === 'mage')).toHaveLength(8);
 });
 
 it('hunt mark: the first shot of a fight marks', () => {
@@ -29,14 +28,6 @@ it('spike trap: waiting cuts and pins the foes beside', () => {
   expect(a!.status.bleed).toBeDefined(); expect(a!.status.stun).toBeDefined();
 });
 
-it('combust: a burning foe that dies blows up; upgraded, the blast can set off more blasts', () => {
-  const { p, u, foes } = scene('mage'); const [a, b, c] = foes; put(p, a!, 5, 4); entOf(p, a!.id)!.hp = 1; put(p, b!, 6, 4, 10); put(p, c!, 7, 4);
-  u.traits = { combust: 2 };
-  applyStatus(p, u, a!, 'burn', 0, []); applyStatus(p, u, b!, 'burn', 0, []);
-  damage(p, 0, u.id, a!, 99, []);
-  expect(entOf(p, b!.id)!.alive).toBe(false); expect(entOf(p, c!.id)!.hp).toBeLessThan(200);
-});
-
 it('frost prison: a second chill freezes', () => {
   const { p, u, foes } = scene('mage'); const [a] = foes; put(p, a!, 5, 4);
   u.traits = { frostPrison: 1 };
@@ -51,8 +42,3 @@ it('elemental cycle: burn, then chill (which makes steam), then shock', () => {
   strike(p, u, a!, 1, []); expect(a!.status.burn).toBeUndefined();
 });
 
-it('mana backflow: a blow taken leaves a shield of 30% of it', () => {
-  const { p, u, foes } = scene('mage'); const [a] = foes; put(p, a!, 5, 4); u.shield = 0;
-  u.traits = { manaBack: 1 }; const e = entOf(p, u.id)!, before = e.hp; damage(p, 0, a!.id, u, 20, [], false, false, 'physical', true);
-  expect(u.shield).toBe(Math.round((before - e.hp) * 0.3));
-});

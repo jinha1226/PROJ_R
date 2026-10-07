@@ -21,7 +21,8 @@ it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (
     emit(p,'still',{t:0,src:u,target:f,ev});expect(u.steady).toBe(2);
   } else if(cls==='mage') {
     f.status.freeze={until:2};emit(p,'beforeHit',{t:0,src:u,target:f,ev});expect(u.attackMult).toBe(2);expect(f.status.freeze).toBeUndefined();
-    emit(p,'nth',{t:0,src:u,target:f,ev});expect(entOf(p,f.id)!.hp).toBeLessThan(1000);
+    // the element cycle lays the next element on a blow
+    const before=Object.keys(f.status).length;emit(p,'hit',{t:0,src:u,target:f,ev});expect(Object.keys(f.status).length).toBeGreaterThan(before);
   } else if(cls==='cleric') {
     emit(p,'allyCrisis',{t:0,src:u,target:ally,ev});expect(entOf(p,ally.id)!.hp).toBe(23);
     emit(p,'combatStart',{t:0,src:u,ev});expect(p.units.filter(x=>x.side==='hero').map(x=>x.shield)).toEqual([10,10,10]);
@@ -42,7 +43,9 @@ it('off-proficiency disables innates', () => {
 it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','sniper','hunter','elementalist','necromancer','inquisitor','healer','assassin','toxicologist'] as ClassId[])('%s ultimate executes once and waits its cooldown', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!; u.cls = cls;
   entOf(p, f.id)!.pos = { x: 4, y: 4 };
-  expect(useUltimate(p, u.id, { x: 4, y: 4 }).length).toBeGreaterThan(0);
+  // the mage's teleport needs a free cell; the rest aim at the foe
+  const free = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([dx, dy]) => ({ x: 4 + dx!, y: 4 + dy! })).find((c) => !p.units.some((x) => entOf(p, x.id)?.alive && entOf(p, x.id)!.pos.x === c.x && entOf(p, x.id)!.pos.y === c.y))!;
+  expect(useUltimate(p, u.id, cls === 'mage' ? free : { x: 4, y: 4 }).length).toBeGreaterThan(0);
   expect(u.ultReady).toBe(KITS[cls].ultCd); expect(useUltimate(p, u.id)).toEqual([]);
 });
 it('AI casts sanctuary on its moment and prevents damage until expiry', () => {

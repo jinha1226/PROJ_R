@@ -17,6 +17,7 @@ import { rank } from './traitTypes';
 import { resonant, shieldedFury } from './resonance';
 import { markMult } from './cardsRanged';
 import { isGun, magOf } from './ammo';
+import { elementAmp } from './cardsMage';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -45,6 +46,8 @@ export interface Unit {
   sfMods?: string[];
   /** empty-body state: who has already taken an aimed first shot at this foe; a piercing round loaded; hits in a row (by attack count); more forced crits; suit overload spent (floor / fight) */
   grenadeNext?: boolean; rfTurn?: number; rfCount?: number;
+  /** the blizzard's spot and since when the mage has held it */
+  anchor?: Cell; anchorAt?: number;
   sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
   /** the souls in this body, the first setting its class (empty: the SF body) */
   souls?: BodySoul[];
@@ -196,6 +199,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if(attacker && !alive(p,attacker) && !secondary) return;
   // blasting mastery (empty body): fire damage grows with every #화염
   if (attacker && kind === 'fire' && rank(attacker, 'blastAmp')) amount = Math.round(amount * 1.12 ** (tagsOf(attacker).화염 ?? 0));
+  // mage masteries (fire, lightning, cold on the frozen), multiplied
+  if (attacker?.traits && (attacker.traits.fireAmp || attacker.traits.boltAmp || attacker.traits.coldAmp)) amount = Math.round(amount * elementAmp(attacker, dst, kind, t));
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);

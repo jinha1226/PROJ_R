@@ -1,7 +1,6 @@
-import { applyStatus, type StatusId } from './status';
-import { alive, damage, entOf, posOf, stats, strike, type Party, type Unit } from './partyCore';
+import { applyStatus } from './status';
+import { alive, damage, posOf, stats, strike, type Party, type Unit } from './partyCore';
 import { foesNear } from './cardFx';
-import { addShield } from './shield';
 import { tagsOf } from './classKit';
 import { card, rank, type TraitDef } from './traitTypes';
 import { dist, inBounds } from '../grid/types';
@@ -11,7 +10,6 @@ import type { TriggerDef as TriggerDef_ } from './triggers';
 const tr = (d: TriggerDef_): TriggerDef_ => d;
 const ranged = (p: Party, u: Unit) => stats(u, 0, p).range > 1;
 const marked = (u: Unit | undefined, t: number) => !!u && (u.status.mark?.until ?? 0) > t;
-const ELEMENTS: StatusId[] = ['burn', 'chill', 'shock'];
 
 /** How much more a marked foe takes from this attacker (the hunter's eye card adds by the attacker's ranged tags). */
 export const markMult = (attacker: Unit | undefined): number => 1.3 + (attacker && rank(attacker, 'hunterEye') ? 0.1 * (tagsOf(attacker).원거리 ?? 0) : 0);
@@ -67,43 +65,5 @@ const ARCHER: TraitDef[] = [
 ];
 
 /** The mage's cards (spec §6.4): elements, and what they make when they meet. */
-const MAGE: TraitDef[] = [
-  card('elemCycle', '원소 순환', 'law', ['화염', '냉기', '전기'], 'mage', '적중마다 화상 → 냉기 → 감전 순서로 부여', {
-    trigger: (r) => ({ id: '원소 순환', when: 'hit', test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => {
-      const i = c.src.cycle ?? 0; c.src.cycle = i + 1;
-      applyStatus(p, c.src, c.target!, ELEMENTS[i % 3]!, c.t, c.ev);
-      if (r >= 2 && alive(p, c.target!)) applyStatus(p, c.src, c.target!, ELEMENTS[(i + 1) % 3]!, c.t, c.ev);
-    } }),
-  }, '두 원소씩'),
-  card('chainReact', '연쇄 반응', 'law', ['전기'], 'mage', '반응 → 주변 1칸 적에게 같은 원소', {
-    trigger: (r) => ({ id: '연쇄 반응', when: 'reaction', test: (_p, c) => !!c.target && !!c.status, run: (p, c) => {
-      for (const f of foesNear(p, entOf(p, c.target!.id)!.pos, r >= 2 ? 2 : 1)) if (f !== c.target) applyStatus(p, c.src, f, c.status!, c.t, c.ev, 1, true);
-    } }),
-  }, '2칸'),
-  card('combust', '연소 폭발', 'law', ['화염'], 'mage', '화상 걸린 적이 죽음 → 폭발 (최대체력 25% 피해, 화상 전이)', {
-    trigger: (r) => ({ id: '연소 폭발', when: 'kill', repeat: r >= 2, test: (_p, c) => !!c.target && (c.target.status.burn?.until ?? 0) > c.t, run: (p, c) => {
-      const t = c.target!, e = entOf(p, t.id)!;
-      for (const f of foesNear(p, e.pos, 1)) if (f !== t) { damage(p, c.t, c.src.id, f, Math.round(e.maxHp * 0.25), c.ev, true); applyStatus(p, c.src, f, 'burn', c.t, c.ev, 1, true); }
-    } }),
-  }, '폭발로 죽은 적도 폭발'),
-  card('frostPrison', '서리 감옥', 'law', ['냉기'], 'mage', '냉기 두 번 → 빙결', {
-    trigger: (r) => ({ id: '서리 감옥', when: 'statusApplied', test: (_p, c) => c.status === 'chill' && !!c.target, run: (p, c) => {
-      const t = c.target!; t.chillHits = (t.chillHits ?? 0) + 1;
-      if (t.chillHits < 2) return;
-      t.chillHits = 0; applyStatus(p, c.src, t, 'freeze', c.t, c.ev);
-      if (r >= 2) for (const f of foesNear(p, posOf(p, t), 1)) if (f !== t) applyStatus(p, c.src, f, 'chill', c.t, c.ev, 1, true);
-    } }),
-  }, '빙결 시 주변 냉기'),
-  card('arcChain', '번개 사슬', 'law', ['전기'], 'mage', '감전 튐 → 한 번 더 튐', {}, '두 번째 튐 피해 ×1.5'),
-  card('manaBack', '마력 역류', 'convert', ['생존'], 'mage', '피격 → 받은 피해 30%만큼 보호막', {
-    trigger: () => ({ id: '마력 역류', when: 'struck', test: (_p, c) => (c.amount ?? 0) > 0, run: (_p, c) => addShield(c.src, (c.amount ?? 0) * 0.3, c.src) }),
-  }),
-  card('overload', '원소 과부하', 'convert', ['화염', '냉기', '전기'], 'mage', '궁극기 → 3칸 안 적에게 화상·냉기·감전', {
-    trigger: () => ({ id: '원소 과부하', when: 'ultimate', run: (p, c) => { for (const f of foesNear(p, posOf(p, c.src), 3)) for (const id of ELEMENTS) if (alive(p, f)) applyStatus(p, c.src, f, id, c.t, c.ev); } }),
-  }),
-  card('reactAmp', '반응 증폭', 'amp', ['화염', '냉기', '전기'], 'mage', '가진 원소 태그 종류 1당 반응 피해 +40%', {
-    passive: (u) => { const t = tagsOf(u); return { react: 0.4 * (['화염', '냉기', '전기'] as const).filter((k) => (t[k] ?? 0) > 0).length }; },
-  }),
-];
 
-export const RANGED_CARDS: TraitDef[] = [...ARCHER, ...MAGE];
+export const RANGED_CARDS: TraitDef[] = [...ARCHER];

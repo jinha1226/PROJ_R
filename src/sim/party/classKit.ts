@@ -6,9 +6,9 @@ import { alive, damage, entOf, levelDmg, posOf, stats, targetOf, type Party, typ
 import { WEAPONS, type BaseClass, type ClassId, type WeaponId } from './partyDefs';
 import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
-import { heal, nearby, fireball, summon } from './kitEffects';
+import { heal, nearby, summon } from './kitEffects';
 import { applyStatus } from './status';
-export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity';
+export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity' | 'teleport';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, pistol: 'gun', swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
 export { proficient } from '../delve/gear';
@@ -17,6 +17,7 @@ import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
 import { consume, isCorpse } from './corpses';
 import { SHELL_INNATE } from './cardsShell';
+import { MAGE_INNATE } from './cardsMage';
 import { sfTags } from '../base/workshop';
 import { MEMORIES } from './memories';
 import { linesOf, memoriesOf } from './body';
@@ -34,10 +35,6 @@ const warrior: TriggerDef[] = [
 const archer: TriggerDef[] = [
   { id: '기습 사격', when: 'beforeHit', test: (p,c) => !!c.target && entOf(p,c.target.id)!.hp === entOf(p,c.target.id)!.maxHp, run: (_p,c) => { c.src.nextCrit = true; } },
   { id: '정조준', when: 'still', run: (_p,c) => { c.src.steady = Math.min(T.steadyMax(c.src),c.src.still); } },
-];
-const mage: TriggerDef[] = [
-  { id: '연쇄 주문', when: 'nth', nth: 3, run: (p,c) => { if (c.target) fireball(p,c.src,c.target,c.t,c.ev); } },
-  { id: '파쇄', when: 'beforeHit', test: (_p,c) => (c.target?.status.freeze?.until ?? 0) > c.t, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; if(c.target) delete c.target.status.freeze; } },
 ];
 const cleric: TriggerDef[] = [
   { id: '구원의 손', when: 'allyCrisis', cd: 8, run: (p,c) => { if (c.target) heal(p,c.src,c.target,22,c.t,c.ev); } },
@@ -61,12 +58,12 @@ const extra = (base: TriggerDef[], def: TriggerDef) => [...base,def];
 export const KITS: Record<ClassId, Kit> = {
   // the innates are read on use: the card module and this one import each other
   shell: { get innate() { return SHELL_INNATE; }, ultimate: 'gravity', ultCd: 35, proficient: ['gun'] },
-  warrior: kit(warrior,'warcry',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: kit(mage,'meteor',45,['staff']), cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: kit(rogue,'shadowDance',35,['dagger']),
+  warrior: kit(warrior,'warcry',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: { get innate() { return MAGE_INNATE; }, ultimate: 'teleport', ultCd: 30, proficient: ['staff'] }, cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: kit(rogue,'shadowDance',35,['dagger']),
   berserker: kit(extra(warrior,{ id: '광분', when: 'struck', test: (p,c) => entOf(p,c.src.id)!.hp < entOf(p,c.src.id)!.maxHp/2, run: (p,c) => { const e = entOf(p,c.src.id)!; c.src.lowHp = e.hp < e.maxHp/2; } }),'bloodFrenzy',35,['sword','great','mace']),
   guardian: kit(extra(warrior,{ id: '수호', when: 'guard', run: (p,c) => { c.src.guardIntercepted = true; damage(p,c.t,c.target?.id ?? '',c.src,c.amount ?? 0,c.ev,true,false,'physical',true); } }),'bastion',35,['sword','mace']),
   sniper: kit(extra(archer,{ id: '저격', when: 'beforeHit', test: (p,c) => !!c.target && dist(posOf(p,c.src),posOf(p,c.target)) >= 5, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'pierceShot',35,['bow','crossbow']),
   hunter: kit(extra(archer,{ id: '속박', when: 'hit', chance: 0.25, run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'freeze',c.t,c.ev); } }),'bleedRain',35,['bow','crossbow','dagger']),
-  elementalist: kit(extra(mage,{ id: '원소 연쇄', when: 'fireball', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,p.s.rng.pick(['chill','shock']),c.t,c.ev); } }),'elementStorm',45,['staff']),
+  elementalist: kit(extra(MAGE_INNATE,{ id: '원소 연쇄', when: 'fireball', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,p.s.rng.pick(['chill','shock']),c.t,c.ev); } }),'elementStorm',45,['staff']),
   necromancer: kit(necromancer,'deadHost',45,['staff']),
   inquisitor: kit(extra(cleric,{ id: '심판', when: 'hit', run: (p,c) => { const a = p.units.filter(x=>x.side==='hero' && alive(p,x)).sort((a,b)=>entOf(p,a.id)!.hp/entOf(p,a.id)!.maxHp-entOf(p,b.id)!.hp/entOf(p,b.id)!.maxHp)[0]; if(a) heal(p,c.src,a,2,c.t,c.ev); } }),'judgement',45,['mace','relic']),
   healer: kit(extra(cleric,{ id: '넘치는 빛', when: 'overflow', run: (_p,c) => { if(c.target) addShield(c.target,c.amount ?? 0); } }),'longSanctum',45,['mace','relic']),

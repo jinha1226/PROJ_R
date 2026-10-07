@@ -41,7 +41,7 @@ it('the innates of every soul in the body are live', () => {
   const { p, u } = body('warrior', 'mage');
   const ids = sourcesOf(p, u).map((d) => d.id);
   expect(ids).toContain('회오리 베기');
-  expect(ids).toContain('연쇄 주문');
+  expect(ids).toContain('원소 순환');
 });
 
 it('the empty body levels up and, like every class, first picks a branch: its three signatures', () => {

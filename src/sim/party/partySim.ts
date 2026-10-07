@@ -143,6 +143,9 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
 /** One unit's moment: a companion may reach for a skill, a queued skill goes off (it waits while it has no target in reach), else its usual action. */
 function moment(p: Party, u: Unit, ev: GEvent[]): void {
   const start = ev.length;
+  // the clone's own turn begins: sustained states (meteors, blizzards, leaping lightning) take their turn
+  if (u.side === 'hero' && !u.summoner) action(p, () => emit(p, 'turn', { t: p.time, src: u, ev }));
+  if (!alive(p, u)) return;
   if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
   if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
   if(u.ultQueued) { const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; } }
@@ -193,6 +196,8 @@ export function command(p: Party, c: Command): GEvent[] {
   const u = p.units.find((x) => x.id === p.manual);
   if (!p.waiting || !u || !alive(p, u)) return [];
   const ev: GEvent[] = [];
+  action(p, () => emit(p, 'turn', { t: p.time, src: u, ev }));
+  if (!alive(p, u)) { p.waiting = false; return ev; }
   if(c.kind==='use'){if(!('pack'in p))return[];const used=useItem(p as RoamParty,u.id,c.itemId,c.cell);if(!used.length)return[];ev.push(...used);}
   else if (c.kind === 'ultimate') {
     const cast = useUltimate(p, u.id, c.cell, c.slot ?? 0);

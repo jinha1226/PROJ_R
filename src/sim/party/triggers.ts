@@ -10,7 +10,7 @@ import { alive, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import type { StatusId } from './status';
 import type { DamageKind } from './partyCore';
-export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'crisis' | 'nth' | 'still' | 'moved' | 'allyHit' | 'allyCrisis' | 'combatStart' | 'statusApplied' | 'ultimate' | 'healed' | 'taunt' | 'allyUltimate' | 'beforeHit' | 'guard' | 'overflow' | 'fireball' | 'counter' | 'shieldBreak' | 'summonDied' | 'reaction' | 'wait' | 'reload' | 'attack' | 'damage' | 'damaged' | 'teleport' | 'summon';
+export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'crisis' | 'nth' | 'still' | 'moved' | 'allyHit' | 'allyCrisis' | 'combatStart' | 'statusApplied' | 'ultimate' | 'healed' | 'taunt' | 'allyUltimate' | 'beforeHit' | 'guard' | 'overflow' | 'fireball' | 'counter' | 'shieldBreak' | 'summonDied' | 'reaction' | 'wait' | 'reload' | 'attack' | 'damage' | 'damaged' | 'teleport' | 'summon' | 'turn';
 export interface Ctx { kind?: DamageKind; basic?: boolean; t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; reaction?: string; over?: number; depth: number; ev: GEvent[] }
 export interface TriggerDef { id: string; when: Cond; cd?: number; chance?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void; repeat?: boolean }
 export const CHAIN_CAP = 30;
