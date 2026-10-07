@@ -30,6 +30,8 @@ export interface Unit {
   martyrFloor?: number;
   /** the foe a companion's utility AI last chose (it sticks with it unless another is clearly better) */
   aiTarget?: string;
+  /** when this clone was struck within the last turn (the whirlwind counts them) */
+  struckTimes?: number[];
   /** the memory the soul in this body carried from its life (a starting rule) */
   memory?: string;
   /** once-a-fight memories already spent (shield keeper, poisoner) */
@@ -220,7 +222,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     }
     return;
   }
-  if (dst.side === 'hero') { emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); if (e.hp < e.maxHp * 0.5) emit(p, 'crisis', { t, src: dst, target: attacker, ev }); }
+  if (dst.side === 'hero') { dst.struckTimes = [...(dst.struckTimes ?? []).filter((s) => t - s < 1), t]; emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); if (e.hp < e.maxHp * 0.5) emit(p, 'crisis', { t, src: dst, target: attacker, ev }); }
 
 }
 

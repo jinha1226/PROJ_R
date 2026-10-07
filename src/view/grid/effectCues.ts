@@ -2,6 +2,8 @@ import type * as THREE from 'three';
 import type { GEvent } from '../../sim/grid/types';
 import type { VfxKind } from '../fx/vfx';
 import type { CueKit } from './comboCues';
+import { CELL } from './gridTerrain';
+import { WHIRL_REACH } from '../../sim/party/classKit';
 
 /** How one effect looks: a particle burst (tinted), where it lands (on the target, on the one who set it off, or a streak from one to the other), a ground flash and a shake. */
 interface Look { vfx?: VfxKind; color?: string; at: 'dst' | 'src' | 'line'; burst?: number; shake?: number }
@@ -55,6 +57,13 @@ function lookOf(e: GEvent): Look | undefined {
 
 /** Plays an effect's own look (particles, ground flash, a streak or a shake); false when the event has none. */
 export function effectCue(k: CueKit, e: GEvent): boolean {
+  // the whirlwind: the warrior spins and a blade sweeps round it out to four cells
+  if (e.type === 'buff' && e.text === '회오리 베기') {
+    const at = k.at(e.src);
+    if (!at) return false;
+    k.actors.spin(e.src); k.fx.sweep.play(at, WHIRL_REACH * CELL); k.particles.vfx.fire('dust', at); k.fx.shake(0.14, 0.2);
+    return true;
+  }
   const look = lookOf(e);
   if (!look) return false;
   const src = k.at(e.src), dst = k.at(e.dst) ?? src, at: THREE.Vector3 | undefined = look.at === 'src' ? src : dst;

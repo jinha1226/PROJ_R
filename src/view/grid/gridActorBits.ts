@@ -57,6 +57,8 @@ export interface View {
   dead: boolean;
   /** seconds since it fell (a fallen foe sinks away after a moment); gone once it has */
   deadFor?: number; gone?: boolean;
+  /** time left in a whirlwind spin */
+  spin?: number;
 }
 
 /** a fallen foe lies this long (the fallen of a fight pile up), then sinks into the floor over this long and is gone (its blood stays) */
@@ -64,5 +66,7 @@ export const SINK_AT = 6;
 export const SINK_SEC = 0.8;
 /** how high a fallen body lies above the ground (the floor tiles' tops stand a little above zero) */
 export const BODY_LIFT = 0.12;
+/** how long a whirlwind spin takes (two full turns) */
+export const SPIN_SEC = 0.45;
 /** the outline a body keeps (dark, not the living foe's red) */
 export const DEAD_OUTLINE = '#3a1418';

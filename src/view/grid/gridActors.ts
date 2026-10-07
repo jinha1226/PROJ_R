@@ -7,7 +7,7 @@ import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActo
 import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
 import { markFigure, RING } from './pixelPass';
-import { ABSORB_SEC, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, type View } from './gridActorBits';
+import { ABSORB_SEC, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, SPIN_SEC, type View } from './gridActorBits';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
@@ -196,6 +196,14 @@ export class GridActors {
     if (this.isAlly(id)) this.v(id)?.actor.flash(0xff3a2a, 90);
   }
 
+  /** The whirlwind: a swing while the whole body turns round twice. */
+  spin(id: string | undefined): void {
+    const v = this.v(id);
+    if (!v || v.dead) return;
+    v.spin = SPIN_SEC;
+    v.actor.play('swing', 2.2);
+  }
+
   /** One of the party (the hero or a clone), not a foe. */
   isAlly(id: string | undefined): boolean {
     return !!id && (id === 'hero' || LOOK_BY_ID.has(id));
@@ -308,7 +316,8 @@ export class GridActors {
       v.z = g.z * CELL;
       const moved = Math.hypot(v.x - px, v.z - pz);
       v.runHold = moved > 1e-4 ? 0.16 : Math.max(0, v.runHold - step);
-      v.yaw = turnToward(v.yaw, v.facing, step);
+      if (v.spin && v.spin > 0) { v.spin = Math.max(0, v.spin - step); v.yaw = v.facing - (1 - v.spin / SPIN_SEC) * Math.PI * 4; }
+      else v.yaw = turnToward(v.yaw, v.facing, step);
       if (v.offT > 0) {
         v.offT -= step;
         const k = Math.max(0, v.offT / LUNGE_SEC);

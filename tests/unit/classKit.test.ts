@@ -15,7 +15,7 @@ it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (
   entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
   entOf(p,ally.id)!.hp=1;u.nth=3;u.still=2;p.s.rng.chance=c=>c>.2;
   if(cls==='warrior') {
-    emit(p,'hit',{t:0,src:u,target:f,ev});expect(entOf(p,f.id)!.hp).toBeLessThan(1000);
+    u.struckTimes=[0,0.2];emit(p,'struck',{t:0.2,src:u,target:f,ev});expect(entOf(p,f.id)!.hp).toBeLessThan(1000);
     const hp=entOf(p,f.id)!.hp;emit(p,'block',{t:0,src:u,target:f,ev});expect(entOf(p,f.id)!.hp).toBeLessThan(hp);
   } else if(cls==='archer') {
     emit(p,'beforeHit',{t:0,src:u,target:f,ev});expect(u.nextCrit).toBe(true);
@@ -31,11 +31,8 @@ it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (
     emit(p,'kill',{t:0,src:u,target:f,ev});expect(u.hiddenUntil).toBe(1);
   }
 });
-it('whirl waits six seconds and off-proficiency disables innates', () => {
-  const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, ev: GEvent[] = [];
-  entOf(p, f.id)!.pos = { x: 4, y: 4 }; entOf(p, p.units[4]!.id)!.pos = { x: 3, y: 5 };
-  emit(p, 'hit', { t: 0, src: u, target: f, ev }); emit(p, 'hit', { t: 5, src: u, target: f, ev });
-  expect(ev.filter(e => e.text === '포위 베기')).toHaveLength(1);
+it('off-proficiency disables innates', () => {
+  const p = partyRoom(), u = p.units[0]!;
   u.weapon = 'staff'; expect(sourcesOf(p, u)).toEqual([]); u.weapon = 'swordShield'; expect(sourcesOf(p, u)).toHaveLength(2);
 });
 it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','sniper','hunter','elementalist','necromancer','inquisitor','healer','assassin','toxicologist'] as ClassId[])('%s ultimate executes once and waits its cooldown', (cls) => {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SweepFx } from './sweepFx';
 import { TransientFx } from '../fx/transientFx';
 import { DamageNumbers, type NumberKind } from '../overlay/damageNumbers';
 import '../overlay/overlay.css';
@@ -20,6 +21,8 @@ export class GridFx {
   private readonly numbers: DamageNumbers;
   private readonly bolts: Bolt[] = [];
   private readonly beams: { mesh: THREE.Mesh; life: number }[] = [];
+  /** whirlwind sweeps (a spinning blade arc out to a reach) */
+  readonly sweep: SweepFx;
   private readonly aim: THREE.LineSegments;
   private readonly icons = new Map<string, HTMLDivElement>();
   private readonly iconLayer = document.createElement('div');
@@ -34,6 +37,7 @@ export class GridFx {
 
   constructor(private readonly scene: THREE.Scene, private readonly overlay: HTMLElement, private readonly project: (p: THREE.Vector3) => { left: number; top: number }, flashCount = 4) {
     this.transient = new TransientFx(scene);
+    this.sweep = new SweepFx(scene);
     this.flashes = new FlashLights(scene, flashCount);
     this.numbers = new DamageNumbers(overlay);
     this.iconLayer.className = 'grid-icons';
@@ -139,6 +143,7 @@ export class GridFx {
     const scaled = dt * this.timeScale;
     this.slowLeft = Math.max(0, this.slowLeft - dt);
     this.flashes.update(scaled);
+    this.sweep.update(scaled);
     for (let i = this.beams.length - 1; i >= 0; i--) {
       const b = this.beams[i]!; b.life -= dt;
       b.mesh.scale.y = 1 + (0.5 - b.life) * 10; b.mesh.position.y = b.mesh.scale.y / 2;
@@ -168,6 +173,7 @@ export class GridFx {
     for (const b of this.beams) { this.scene.remove(b.mesh); b.mesh.geometry.dispose(); (b.mesh.material as THREE.Material).dispose(); }
     this.flashes.dispose();
     this.transient.dispose();
+    this.sweep.dispose();
     this.numbers.dispose();
     this.iconLayer.remove();
     this.hurtEl.remove();

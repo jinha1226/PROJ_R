@@ -26,10 +26,10 @@ it('any clone equips any weapon; off proficiency changes damage and attack time 
     equip(p, u.id, give(p, 'longbow'));
     expect(G.dmg(u)).toBe(.7);
     expect(G.atk(u)).toBe(1.2);
-    expect(sourcesOf(p, u).some(d => d.id === '포위 베기')).toBe(false);
+    expect(sourcesOf(p, u).some(d => d.id === '회오리 베기')).toBe(false);
     equip(p, u.id, give(p, 'swordShield'));
     expect(G.dmg(u)).toBe(1);
-    expect(sourcesOf(p, u).some(d => d.id === '포위 베기')).toBe(true);
+    expect(sourcesOf(p, u).some(d => d.id === '회오리 베기')).toBe(true);
 });
 it('weight above six adds five percent per point to movement and attack time', () => {
     const { p, u } = setup();

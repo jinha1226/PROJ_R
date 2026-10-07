@@ -1,8 +1,8 @@
 import { addShield } from './shield';
-import { TRAITS, rank } from './traitDefs';
+import { TRAITS } from './traitDefs';
 import { T } from './traitMods';
 import { dist, type GEvent } from '../grid/types';
-import { alive, damage, entOf, posOf, targetOf, unitOf, type Party, type Unit } from './partyCore';
+import { alive, damage, entOf, levelDmg, posOf, stats, targetOf, unitOf, type Party, type Unit } from './partyCore';
 import { CLASSES, BASE_CLASSES, WEAPONS, type BaseClass, type ClassId, type WeaponId } from './partyDefs';
 import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
@@ -17,8 +17,15 @@ import { proficient, worn, weaponDef } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
 import { MEMORIES, type MemoryId } from './memories';
+/** how far the whirlwind reaches (cells) */
+export const WHIRL_REACH = 4;
 const warrior: TriggerDef[] = [
-  { id: '포위 베기', when: 'hit', cd: 6, test: (p,c) => nearby(p,c.src,1,'foe').length >= 2, run: (p,c) => { for (const f of nearby(p,c.src,1,'foe')) {damage(p,c.t,c.src.id,f,p.s.rng.int(6,9),c.ev);if(rank(c.src,'bloodBlade'))applyStatus(p,c.src,f,'bleed',c.t,c.ev);} } },
+  // the whirlwind: two blows taken within a turn and the warrior spins, cutting every foe within four cells (once a turn)
+  { id: '회오리 베기', when: 'struck', cd: 1, test: (_p,c) => (c.src.struckTimes?.length ?? 0) >= 2, run: (p,c) => {
+    c.src.struckTimes = [];
+    const st = stats(c.src, c.t, p), dmg = Math.max(1, Math.round(((st.dmg[0] + st.dmg[1]) / 2) * levelDmg(c.src) * 0.8)), me = posOf(p, c.src);
+    for (const f of nearby(p, c.src, WHIRL_REACH, 'foe')) { const at = posOf(p, f); if (Math.hypot(at.x - me.x, at.y - me.y) <= WHIRL_REACH + 0.5) damage(p, c.t, c.src.id, f, dmg, c.ev); }
+  } },
   { id: '응수', when: 'block', test: (_p,c) => !!c.target && !c.target.cls && (c.target.foe !== 'archer' && c.target.foe !== 'shaman'), run: (p,c) => { if (c.target) counter(p,c.src,c.target,c.t,c.ev,T.counter(c.src)); } },
 ];
 const archer: TriggerDef[] = [
