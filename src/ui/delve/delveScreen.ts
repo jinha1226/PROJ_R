@@ -14,7 +14,7 @@ import { QuickSlots } from '../overworld/quickSlots';
 import { PlacePrompts, type Prompt } from '../overworld/placePrompt';
 import { command } from '../../sim/party/partySim';
 import { queueUltimate, ultSlots } from '../../sim/party/ultimate';
-import { canBeacon, startBeacon } from '../../sim/delve/beacon';
+import { canBeacon, portalOpen, startBeacon } from '../../sim/delve/beacon';
 import { aimNeeded } from './aim';
 import { ULT_KEYS } from '../overworld/partyFrames';
 import { clones, orderTo } from '../../sim/roam/roam';
@@ -205,8 +205,10 @@ export class DelveScreen implements Screen {
       if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'drop') this.hud.toast('영혼 소멸');
-      if (e.type === 'buff' && e.text === 'beaconOpen' && this.opts.onBeacon) setTimeout(() => this.opts.onBeacon!(takeParty(this.p)), 900);
+      if (e.type === 'buff' && e.text === 'beaconEnter' && this.opts.onBeacon) setTimeout(() => this.opts.onBeacon!(takeParty(this.p)), 900);
       if (e.type === 'buff' && e.text === 'beaconCut') this.hud.toast('신호기 끊김');
+      if (e.type === 'buff' && e.text === 'beaconOpen') this.hud.toast('포탈 열림');
+      if (e.type === 'buff' && e.text === 'beaconClosed') this.hud.toast('포탈 닫힘');
       if (e.type === 'dead') {
         this.hud.toast('사망');
         this.log.add(e.t, e.text === 'lost' ? '사망 · 영혼 소멸' : '사망 · 재료 부족', 'warn');
@@ -393,6 +395,8 @@ export class DelveScreen implements Screen {
   private placePrompts(): void {
     const list: Prompt[] = [];
     if (this.p.s.map.stairs && canDescend(this.p)) list.push({ at: this.p.s.map.stairs, label: '▼ 계단', act: () => this.down() });
+    const b = this.p.beacon;
+    if (b && portalOpen(this.p)) list.push({ at: b.at, label: `◎ 포탈 ${Math.max(0, Math.ceil(b.closeAt - this.p.time))}`, act: () => { this.paused = false; if (this.myTurn) { const to = b.at; this.live(command(this.p, { kind: 'move', cell: to })); } else orderTo(this.p, this.sel, b.at); } });
     if (this.opts.onAscend && canAscend(this.p)) list.push({ at: this.p.base, label: '▲ 지상으로', act: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } });
     this.prompts.update(this.rt, list);
   }
@@ -412,7 +416,7 @@ export class DelveScreen implements Screen {
     const mode = '';
     const status = statusLine(`지하 <b>${p.floor}층</b>`, p);
     const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
-    const beacon = p.beacon ? { label: `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
+    const beacon = p.beacon ? { label: portalOpen(p) ? `포탈 ${Math.max(0, Math.ceil(p.beacon.closeAt - p.time))}` : `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
     this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon });
   }
 }

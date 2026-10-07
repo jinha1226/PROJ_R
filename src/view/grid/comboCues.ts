@@ -13,7 +13,7 @@ export interface CueKit { actors: GridActors; fx: GridFx; particles: GridParticl
 
 const TRAP_COLOR: Record<string, string> = { spike: '#d8d8d8', alarm: '#ffd23a', poison: '#7ad04a', fire: '#ff6a2a', teleport: '#b48aff', net: '#c8b090' };
 const TRAP_LABEL: Record<string, string> = { spike: '가시 함정!', alarm: '경보!', poison: '독가스!', fire: '화염 함정!', teleport: '순간이동!', net: '그물!' };
-const BUFF_LABEL: Record<string, string> = { haste: '신속!', invis: '투명', confuse: '혼란', fear: '공포', taunt: '도발!', ward: '보호막', stealth: '은신', frenzy: '광분!', promote: '전직!', claim: '영역 확보!', soul: '영혼 깃듦!', print: '클론 출력', beacon: '신호기 작동', beaconOpen: '포탈 열림', beaconCut: '신호기 끊김' };
+const BUFF_LABEL: Record<string, string> = { haste: '신속!', invis: '투명', confuse: '혼란', fear: '공포', taunt: '도발!', ward: '보호막', stealth: '은신', frenzy: '광분!', promote: '전직!', claim: '영역 확보!', soul: '영혼 깃듦!', print: '클론 출력', beacon: '신호기 작동', beaconOpen: '포탈 열림', beaconCut: '신호기 끊김', beaconClosed: '포탈 닫힘', beaconEnter: '귀환' };
 
 const REACT: Record<string, { color: string; label: string; vfx: VfxKind }> = {
   ignite: { color: '#ff7a2a', label: '점화!', vfx: 'blast' },
