@@ -17,7 +17,7 @@ it('goblins stand well under a person; the ogre keeps its height but not its wai
 it('builds and weapons tell the party apart: twin daggers in both hands, casters hold their staff', () => {
   expect(lookOf('rogue', 'daggers').off).toBe('dagger');
   expect(lookOf('mage', 'staff').weapon).toBe('staff');
-  expect(lookOf('berserker', 'greataxe').scale).toBeGreaterThan(lookOf('rogue', 'daggers').scale);
+  expect(lookOf('warrior', 'greataxe').scale).toBeGreaterThan(lookOf('rogue', 'daggers').scale);
 });
 
 it('the empty clone is plainly smaller than any soul-bearer', () => {

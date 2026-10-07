@@ -1,4 +1,3 @@
-import { LINE } from '../../sim/party/classKit';
 import { KITS } from '../../sim/party/classKit';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { BASE_CLASSES, CLASSES, WEAPONS, type BaseClass, type ClassId, type Pick, type WeaponId } from '../../sim/party/partyDefs';
@@ -8,39 +7,33 @@ import { RING } from '../../view/grid/pixelPass';
 
 const COLORS: Partial<Record<ClassId, [string, string]>> = {
   shell: ['#b4b8c0', '#8a9098'],
-  warrior: ['#2a3a5a', '#c8b080'], berserker: ['#5a2020', '#d08040'], archer: ['#35502e', '#8a6a3a'], sniper: ['#2a3a2a', '#a0a070'],
+  warrior: ['#2a3a5a', '#c8b080'], archer: ['#35502e', '#8a6a3a'],
   mage: ['#4a2a6a', '#c8a0e0'], cleric: ['#cfc6a8', '#c8a040'], rogue: ['#262626', '#7a3a3a'],
 };
 
-/** Build by class: a broad berserker, a stocky warrior, a slight rogue (heights the dot look can tell apart). */
-const BUILD: Partial<Record<ClassId, number>> = { shell: 0.8, warrior: 1.06, berserker: 1.12, archer: 0.95, mage: 0.93, cleric: 0.98, rogue: 0.88 };
+/** Build by class: a stocky warrior, a slight rogue (heights the dot look can tell apart). */
+const BUILD: Partial<Record<ClassId, number>> = { shell: 0.8, warrior: 1.06, archer: 0.95, mage: 0.93, cleric: 0.98, rogue: 0.88 };
 
 /** What each soul wears; the empty clone goes bare. */
 export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {
   // strong, near-primary dyes (the cloth texture keeps only its shading): each class reads by colour against torchlit stone
   warrior: { set: 'Peasant', tint: '#2f6bff', extra: ['pauldron'] },
-  berserker: { set: 'Peasant', tint: '#ff3a24', extra: ['pauldron'] },
   archer: { set: 'Ranger', tint: '#2fd040' },
-  sniper: { set: 'Ranger', tint: '#e8d81a', extra: ['hood'] },
   mage: { set: 'Peasant', tint: '#9a3cff', extra: ['hood'] },
   cleric: { set: 'Peasant', tint: '#f4f4f0' },
   rogue: { set: 'Ranger', tint: '#ff2f8a', extra: ['hood'] },
-  guardian: { set: 'Peasant', tint: '#36c8ff', extra: ['pauldron', 'hood'] },
   necromancer: { set: 'Peasant', tint: '#22c8a0', extra: ['hood'] },
-  inquisitor: { set: 'Peasant', tint: '#ffa21a', extra: ['pauldron'] },
-  assassin: { set: 'Ranger', tint: '#c01848', extra: ['hood', 'pauldron'] },
 };
 
-/** The outfit a class shows: its own, else its line's. */
-export const outfitOf = (cls: ClassId): OutfitLook | undefined => OUTFITS[cls] ?? (LINE[cls] ? OUTFITS[LINE[cls]!] : undefined);
+/** The outfit a class shows. */
+export const outfitOf = (cls: ClassId): OutfitLook | undefined => OUTFITS[cls];
 
 /** How a hero of this class with this weapon looks: a dressed soul shows the clone's grey under its clothes. */
 export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
-  const w = WEAPONS[weapon], outfit = outfitOf(cls), [body, trim] = outfit ? COLORS.shell! : COLORS[cls] ?? COLORS[LINE[cls] ?? 'warrior']!;
+  const w = WEAPONS[weapon], outfit = outfitOf(cls), [body, trim] = outfit ? COLORS.shell! : COLORS[cls] ?? COLORS.warrior!;
   const caster = w.look === 'staff' || w.look === 'wand' || w.look === 'symbol';
   const idle = cls === 'shell' ? 'Idle_Loop' : caster || w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
-  const line = cls === 'shell' ? 'shell' : LINE[cls] ?? cls;
-  return { body, trim, scale: (BUILD[cls] ?? BUILD[line as ClassId]) ?? 0.95, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[(cls === 'shell' ? 'shell' : (LINE[cls] ?? cls)) as keyof typeof RING] ?? RING.shell };
+  return { body, trim, scale: BUILD[cls] ?? 0.95, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[cls as keyof typeof RING] ?? RING.shell };
 }
 
 /** The party chooser: five classes, three to take, each with a weapon. */

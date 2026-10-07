@@ -1,5 +1,4 @@
-export type AdvancedClass = 'berserker' | 'guardian' | 'sniper' | 'hunter' | 'elementalist' | 'inquisitor' | 'healer' | 'assassin' | 'toxicologist';
-export type ClassId = 'shell' | BaseClass | AdvancedClass;
+export type ClassId = 'shell' | BaseClass;
 export type BaseClass = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue' | 'necromancer';
 export type WeaponId = 'fists' | 'pistol' | 'swordShield' | 'greataxe' | 'longbow' | 'crossbow' | 'staff' | 'wand' | 'mace' | 'symbol' | 'daggers' | 'knives';
 /** a class's own rule, always on (the class engraving) */
@@ -29,16 +28,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   mage: { name: '마법사', hp: 45, move: 1.0, weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
   cleric: { name: '성직자', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'guardian', passiveName: '아군 위기 시 보호막', magic: true },
   rogue: { name: '도적', hp: 55, move: 0.75, weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
-  berserker: { name: '광전사', hp: 85, move: 0.85, weapons: ['swordShield', 'greataxe'], passive: 'rage', passiveName: '체력 절반 이하 피해 1.5배' },
-  sniper: { name: '저격수', hp: 45, move: 0.9, weapons: ['longbow', 'crossbow'], passive: 'farShot', passiveName: '사거리 +2 · 5칸 밖 2배' },
-  guardian: { name: '수호기사', hp: 80, move: 0.9, weapons: ['swordShield', 'mace'], passive: 'none', passiveName: '수호기사' },
-  hunter: { name: '사냥꾼', hp: 40, move: 0.9, weapons: ['longbow', 'crossbow', 'daggers'], passive: 'none', passiveName: '사냥꾼' },
-  elementalist: { name: '원소술사', hp: 45, move: 1, weapons: ['staff'], passive: 'none', passiveName: '원소술사', magic: true },
   necromancer: { name: '강령술사', hp: 45, move: 1, weapons: ['staff'], passive: 'none', passiveName: '강령술사', magic: true },
-  inquisitor: { name: '심판관', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'none', passiveName: '심판관', magic: true },
-  healer: { name: '치유사', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'none', passiveName: '치유사', magic: true },
-  assassin: { name: '암살자', hp: 55, move: 0.75, weapons: ['daggers'], passive: 'none', passiveName: '암살자' },
-  toxicologist: { name: '독술사', hp: 55, move: 0.75, weapons: ['daggers'], passive: 'none', passiveName: '독술사' },
 };
 export const BASE_CLASSES: BaseClass[] = ['warrior', 'archer', 'mage', 'cleric', 'rogue', 'necromancer'];
 

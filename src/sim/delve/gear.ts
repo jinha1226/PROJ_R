@@ -43,7 +43,7 @@ export function weaponStats(u: Unit): {
 }
 const weight = (u: Unit) => 1 + .05 * Math.max(0, worn(u).reduce((n, it) => n + numbers(it).weight, 0) - 6);
 export const G = {
-    dmg: (u: Unit): number => u.cls && u.weapon !== 'fists' && !proficient(u) ? .7 : u.cls === 'berserker' && (weaponDef(u)?.twoHand || (!u.gear && u.weapon === 'greataxe')) ? 1.2 : 1,
+    dmg: (u: Unit): number => u.cls && u.weapon !== 'fists' && !proficient(u) ? .7 : 1,
     atk: (u: Unit): number => weight(u) * (u.cls && u.weapon !== 'fists' && !proficient(u) ? 1.2 : 1),
     move: weight,
     reduce: (u: Unit): number => Math.min(.8, worn(u).reduce((n, it) => n + numbers(it).armor, 0)),

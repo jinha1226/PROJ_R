@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { wearsPart } from '../../src/view/grid/outfitKit';
 import { lookOf, outfitOf } from '../../src/ui/party/partyPick';
+import { BASE_CLASSES } from '../../src/sim/party/partyDefs';
 
 describe('outfits', () => {
   it('a peasant wears its own pieces and only the ranger pieces it asks for', () => {
@@ -20,8 +21,7 @@ describe('outfits', () => {
   it('every soul is dressed; the empty clone stays bare and keeps its grey', () => {
     expect(outfitOf('shell')).toBeUndefined();
     expect(lookOf('shell', 'fists').outfit).toBeUndefined();
-    for (const cls of ['warrior', 'berserker', 'guardian', 'archer', 'sniper', 'hunter', 'mage', 'elementalist', 'necromancer', 'cleric', 'healer', 'inquisitor', 'rogue', 'assassin', 'toxicologist'] as const) expect(outfitOf(cls)).toBeDefined();
-    expect(outfitOf('hunter')).toBe(outfitOf('archer'));
+    for (const cls of BASE_CLASSES) expect(outfitOf(cls)).toBeDefined();
     expect(lookOf('archer', 'longbow').body).toBe(lookOf('mage', 'staff').body);
   });
 });

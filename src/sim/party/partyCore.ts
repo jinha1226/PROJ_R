@@ -1,5 +1,5 @@
 import { traitMult, takenMult, shieldBroken, blink, allyFell, martyrHolds, negate } from './traitCombat';
-import { kitMult, proficient, tagsOf } from './classKit';
+import { kitMult, tagsOf } from './classKit';
 import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
 import { movedStatus, statusMult, type Status, type StatusId } from './status';
@@ -146,7 +146,6 @@ export const alive = (p: Party, u: Unit): boolean => entOf(p, u.id)?.alive ?? fa
 export const posOf = (p: Party, u: Unit): Cell => entOf(p, u.id)!.pos;
 export const roll = (p: Party, r: [number, number]): number => p.s.rng.int(r[0], r[1]);
 export const occupied = (p: Party, c: Cell, self: string): boolean => p.units.some((u) => u.id !== self && alive(p, u) && same(posOf(p, u), c));
-const passive = (u: Unit) => (u.cls ? CLASSES[u.cls].passive : undefined);
 
 /** What a unit's basic attack is: the hero's weapon, or the foe's kind. */
 export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range: number; atk: number; move: number } {
@@ -154,11 +153,9 @@ export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range
     const f = FOES[u.foe!], scale = u.foeScale ?? 1;
     return { ...f, dmg: [Math.round(f.dmg[0] * scale), Math.round(f.dmg[1] * scale)] };
   }
-  const e = p && entOf(p, u.id);
-  const lowHp = e ? e.hp < e.maxHp / 2 : u.lowHp;
   const w = weaponStats(u);
-  const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) + (p && resonant(p, u, '원거리', 1) ? 1 : 0) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * (t < (u.zealUntil ?? 0) ? 0.7 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
+  const range = w.range + (w.range > 1 ? T.range(u) + (p && resonant(p, u, '원거리', 1) ? 1 : 0) : 0);
+  return { dmg: w.dmg, range, atk: w.atk * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * (t < (u.zealUntil ?? 0) ? 0.7 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u, 0, p).range): boolean {
@@ -246,14 +243,10 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const guard = (dst.gear ? weaponDef(dst)?.shield : WEAPONS[dst.weapon!].shield) ? .75 : undefined;
     if (guard) amount = Math.max(1, Math.round(amount * guard));
     if (G.reduce(dst)) amount = Math.max(1, Math.round(amount * (1 - G.reduce(dst))));
-    const link = secondary ? undefined : p.units.find(x=>x!==dst&&x.gear?.accessory?.def==='guardOath'&&alive(p,x)&&dist(posOf(p,x),e.pos)<=1) ?? p.units.find(x=>x.cls==='guardian'&&x!==dst&&alive(p,x)&&proficient(x)&&dist(posOf(p,x),e.pos)<=1);
+    const link = secondary ? undefined : p.units.find(x=>x!==dst&&x.gear?.accessory?.def==='guardOath'&&alive(p,x)&&dist(posOf(p,x),e.pos)<=1);
     if (link) {
       const share = Math.round(amount * 0.3);
-      if (share > 0 && link.cls === 'guardian' && proficient(link) && link.gear?.accessory?.def !== 'guardOath') {
-        link.guardIntercepted = false;
-        emit(p,'guard',{t,src:link,target:attacker,amount:share,ev});
-        if (link.guardIntercepted) amount -= share;
-      } else if (share > 0) { amount -= share; damage(p,t,src,link,share,ev,true); }
+      if (share > 0) { amount -= share; damage(p,t,src,link,share,ev,true); }
     }
     amount = negate(p, dst, attacker, amount, t, ev, secondary);
     const soak = Math.min(dst.shield, amount);
@@ -339,7 +332,7 @@ export const hitChance = (p: Party, u: Unit, target: Unit, t: number): number =>
 };
 
 /** the warrior line: foes close by go for them */
-const WARRIORS = new Set<ClassId>(['warrior', 'berserker', 'guardian']);
+const WARRIORS = new Set<ClassId>(['warrior']);
 /** Each level adds 6% to a clone's blows. */
 export const levelDmg = (u: Unit): number => 1 + 0.06 * ((u.level ?? 1) - 1);
 

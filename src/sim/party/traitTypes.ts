@@ -1,5 +1,5 @@
 import type { Unit } from './partyCore';
-import type { BaseClass, AdvancedClass } from './partyDefs';
+import type { BaseClass } from './partyDefs';
 import type { TriggerDef } from './triggers';
 import type { Tag } from './buildTypes';
 export type { Tag } from './buildTypes';
@@ -13,7 +13,7 @@ export interface Mods {
 export type CardKind = 'law' | 'amp' | 'convert' | 'duo' | 'oath';
 export const KIND_NAME: Record<CardKind, string> = { law: '법칙', amp: '증폭', convert: '변환', duo: '듀오', oath: '서약' };
 export interface TraitDef {
-  id: string; name: string; tags: Tag[]; pool: 'common' | BaseClass | AdvancedClass | 'keystone' | 'duo' | 'shell'; ranks: 1 | 2 | 3;
+  id: string; name: string; tags: Tag[]; pool: 'common' | BaseClass | 'keystone' | 'duo' | 'shell'; ranks: 1 | 2 | 3;
   passive?: (u: Unit, rank: number) => Partial<Mods>; trigger?: (rank: number) => TriggerDef; triggers?: (rank: number) => TriggerDef[]; cost?: string;
   /** a card's kind, its line (Achra style) and, for a law, what its upgrade (rank 2) adds */
   kind?: CardKind; text?: string; up?: string;

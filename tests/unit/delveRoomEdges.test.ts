@@ -155,14 +155,13 @@ it('crypt pickup and named implantation wait for combat to end for both occupied
     if (empty) { p.combat = true; expect(implantCarried(p, u.id, 0)).toEqual([]); p.combat = false; implantCarried(p, u.id, 0); expect(u.hero).toBe('mira'); }
   }
 });
-it('a lethal backstab landing trap resolves before the rogue can strike', () => {
+it('a lethal trap under an earth slam’s landing resolves before the warrior can strike', () => {
   const p = arena(), u = unitOf(p, 'hero')!, me = entOf(p, u.id)!;
-  // the assassin's death dance still steps from foe to foe (the rogue's own ultimate is now its clones)
-  u.souls = []; implant(p, u, 'rogue', []); u.souls = []; u.cls = 'assassin'; me.hp = 1;
+  u.souls = []; implant(p, u, 'warrior', []); me.hp = 1; me.pos = { x: 7, y: 7 };
   const foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;
   e.alive = true; e.hp = 100; e.pos = { x: 10, y: 7 }; foe.asleep = false;
   for (let y = 6; y <= 8; y++) for (let x = 9; x <= 11; x++) p.s.traps.push({ pos: { x, y }, kind: 'spike', found: false });
-  const ev = useUltimate(p, u.id);
+  const ev = useUltimate(p, u.id, { x: 9, y: 7 });
   expect(me.alive).toBe(false); expect(e.hp).toBe(100);
   expect(ev.some((v) => v.type === 'hit' && v.src === u.id)).toBe(false);
   expect(ev.filter((v) => v.type === 'trap')).toHaveLength(1);

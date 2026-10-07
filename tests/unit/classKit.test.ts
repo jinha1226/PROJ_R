@@ -41,7 +41,7 @@ it('off-proficiency disables innates', () => {
   const p = partyRoom(), u = p.units[0]!;
   u.weapon = 'staff'; expect(sourcesOf(p, u)).toEqual([]); u.weapon = 'swordShield'; expect(sourcesOf(p, u)).toHaveLength(2);
 });
-it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','sniper','hunter','elementalist','necromancer','inquisitor','healer','assassin','toxicologist'] as ClassId[])('%s ultimate executes once and waits its cooldown', (cls) => {
+it.each(['warrior','archer','mage','cleric','rogue','necromancer'] as ClassId[])('%s ultimate executes once and waits its cooldown', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!; u.cls = cls;
   entOf(p, f.id)!.pos = { x: 4, y: 4 };
   // the mage's teleport and the warrior's earth slam need a free cell; the rest aim at the foe

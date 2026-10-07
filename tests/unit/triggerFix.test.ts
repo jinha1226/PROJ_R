@@ -2,9 +2,8 @@ import { expect, it } from 'vitest';
 import { CATALOG } from '../../src/sim/delve/catalog';
 import { starterGear } from '../../src/sim/delve/gear';
 import { partyRoom, tick } from '../../src/sim/party/partySim';
-import { damage, entOf, passiveMult, stats, stepToward, strike, targetOf } from '../../src/sim/party/partyCore';
-import { heal } from '../../src/sim/party/kitEffects';
-import { action, emit, type TriggerDef } from '../../src/sim/party/triggers';
+import { entOf, passiveMult, stepToward, strike, targetOf } from '../../src/sim/party/partyCore';
+import { emit, type TriggerDef } from '../../src/sim/party/triggers';
 import { triggerText } from '../../src/sim/party/triggerText';
 
 const archer = () => {
@@ -62,30 +61,6 @@ it('bait taunts foes within three cells for two turns for a non-warrior wearer',
   expect(f.tauntBy).toBe(u.id); expect(f.tauntUntil).toBe(9);
   expect(targetOf(p, f, 8.99)).toBe(u); expect(targetOf(p, f, 9)).toBe(p.units[0]);
   expect(far.tauntBy).toBeUndefined(); expect(f.status.exposed).toBeUndefined();
-});
-it('berserker low health stays accurate when damage exhausts the trigger budget and healing reaches half', () => {
-  const p = partyRoom(), u = p.units[0]!, actor = p.units[1]!, e = entOf(p, u.id)!;
-  u.cls = 'berserker'; u.weapon = 'greataxe'; u.shield = 0;
-  e.hp = e.maxHp = 100; const before = stats(u).atk;
-  actor.triggers = Array.from({ length: 5 }, (_, i) => ({
-    id: `budget${i}`, when: 'hit', run: () => { actor.progress++; },
-  }));
-  action(p, () => {
-    emit(p, 'hit', { t: 0, src: actor, ev: [] });
-    damage(p, 0, 'trap', u, 60, []);
-  });
-  expect(actor.progress).toBe(5); expect(e.hp).toBe(40);
-  expect(u.lowHp).toBe(true); expect(stats(u).atk).toBe(before / 2);
-  heal(p, u, u, 10, 1, []);
-  expect(u.lowHp).toBe(false); expect(stats(u).atk).toBe(before);
-  heal(p, u, u, 20, 2, []); expect(stats(u).atk).toBe(before);
-});
-it('berserker combat stats compute the bonus from current health instead of a stale flag', () => {
-  const p = partyRoom(), u = p.units[0]!, e = entOf(p, u.id)!;
-  u.cls = 'berserker'; u.weapon = 'swordShield';
-  e.hp = e.maxHp = 100; const before = stats(u, 0, p).atk;
-  e.hp = 40; u.lowHp = false; expect(stats(u, 0, p).atk).toBe(before / 2);
-  e.hp = 60; u.lowHp = true; expect(stats(u, 0, p).atk).toBe(before);
 });
 it('counter description explicitly states its block requirement', () => {
   expect(triggerText('응수')).toContain('막기 시');
