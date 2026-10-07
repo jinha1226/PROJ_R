@@ -16,7 +16,7 @@ it('an engraving slows the game and trails its source', () => {
 });
 it('ends slow motion using wall time and returns to normal speed', () => {
   const fx = Object.assign(Object.create(GridFx.prototype), {
-    flashes: { update: vi.fn() }, beams: [], bolts: [], transient: { update: vi.fn() }, stop: 0, shakeT: 0,
+    flashes: { update: vi.fn() }, beams: [], bolts: [], transient: { update: vi.fn() }, sweep: { update: vi.fn() }, stop: 0, shakeT: 0,
   }) as GridFx;
   expect(fx.timeScale).toBe(1);
   fx.slow(1.4, 0.35); expect(fx.timeScale).toBe(0.35);

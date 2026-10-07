@@ -15,7 +15,7 @@ it('an engraving firing holds the show a beat before what it set off', () => {
 
 it('an engraving pop slows the show briefly, without cutting a chain slow short', () => {
   const fx = Object.assign(Object.create(GridFx.prototype), {
-    flashes: { update: vi.fn() }, beams: [], bolts: [], transient: { update: vi.fn() }, stop: 0, shakeT: 0,
+    flashes: { update: vi.fn() }, beams: [], bolts: [], transient: { update: vi.fn() }, sweep: { update: vi.fn() }, stop: 0, shakeT: 0,
   }) as GridFx;
   fx.slow(0.5, 0.45);
   expect(fx.timeScale).toBe(0.45);
