@@ -68,3 +68,10 @@ it('a clone\'s step is not kept waiting behind its chain', () => {
   const seen = drain(pb), step = seen.find((s) => s.ev.type === 'move')!, last = seen.filter((s) => s.ev.type === 'buff').pop()!;
   expect(step.at).toBeLessThan(last.at);
 });
+
+it('a clone that steps and then shoots finishes the step before the shot (no sliding while attacking)', () => {
+  const pb = new Playback(true);
+  pb.push([{ t: 1, type: 'move', src: 'c2', to: { x: 2, y: 2 } }, { t: 1.1, type: 'shoot', src: 'c2', dst: 'f1' }], 1);
+  const seen = drain(pb), step = seen.find((s) => s.ev.type === 'move')!, shot = seen.find((s) => s.ev.type === 'shoot')!;
+  expect(shot.at - step.at).toBeGreaterThanOrEqual(0.2);
+});

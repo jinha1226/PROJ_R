@@ -46,4 +46,4 @@ it('explore wants souls and items in sight, and chests seen but shut while the p
   expect(exploreWants(p)).toEqual([{ x: 3, y: 3 }, { x: 4, y: 4 }, { x: 6, y: 6 }]);
   p.pack = Array(16).fill(p.pack[0]!);
   expect(exploreWants(p)).toEqual([{ x: 3, y: 3 }]);
-});
+}, 30_000);

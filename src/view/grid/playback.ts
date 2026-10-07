@@ -16,6 +16,8 @@ const SWING_HOLD = 0.15;
 const CHAIN_GAP = 0.06;
 /** ...but one clone's chain never holds its show longer than this */
 const CHAIN_MAX = 0.45;
+/** party fights: how long a figure takes to walk one cell (a swing or shot waits for the step before it to land, so nobody slides while attacking) */
+const STEP_SEC = 0.24;
 /** party fights: when the show falls this far behind, it plays faster until it catches up */
 const BEHIND = 0.9;
 const korean = (s?: string) => !!s && /[가-힣]/.test(s);
@@ -63,12 +65,22 @@ export class Playback {
       const at = this.party
         // a party fight: at its own moment, only after what is still to show of the same clone
         // (a step is not kept waiting behind a chain still flashing: the figure walks while its effects play)
-        ? (ev.type === 'move' ? this.now + Math.max(0, ev.t - startTime) * TURN_SEC : Math.max(this.now + Math.max(0, ev.t - startTime) * TURN_SEC, this.tail(src)))
+        ? (ev.type === 'move' ? this.now + Math.max(0, ev.t - startTime) * TURN_SEC
+          : Math.max(this.now + Math.max(0, ev.t - startTime) * TURN_SEC, this.tail(src), ev.type === 'bump' || ev.type === 'shoot' ? this.landed(src) : 0))
         : base + Math.max(0, ev.t - startTime) * TURN_SEC + list.indexOf(src) * STAGGER;
       this.cues.push({ at, ev });
     }
     this.cues.sort((a, b) => a.at - b.at);
   }
+
+  /** when this clone's last step (shown or still to show) has landed */
+  private landed(src: string): number {
+    let t = (this.walked.get(src) ?? -Infinity) + STEP_SEC;
+    for (const c of this.cues) if (c.ev.type === 'move' && (c.ev.src ?? '') === src && c.at + STEP_SEC > t) t = c.at + STEP_SEC;
+    return t;
+  }
+  /** when each clone's last step was shown */
+  private walked = new Map<string, number>();
 
   /** when the last cue still waiting for this clone shows (now if none) */
   private tail(src: string): number {
@@ -89,6 +101,7 @@ export class Playback {
       const ev = this.cues.shift()!.ev;
       out.push(ev);
       if (this.party) {
+        if (ev.type === 'move') this.walked.set(ev.src ?? '', this.now);
         // only this clone's later cues wait: the others go on acting at the same time
         const hold = this.partyHold(ev), who = ev.src ?? '';
         if (hold) { for (const c of this.cues) if ((c.ev.src ?? '') === who && c.ev.type !== 'move') c.at += hold; this.cues.sort((a, b) => a.at - b.at); }

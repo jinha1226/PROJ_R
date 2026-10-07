@@ -104,7 +104,7 @@ async function chainsDemo(): Promise<void> {
     let seed = urlSeed || 7;
     const stage = (): void => {
       const party = chainArena(seed++);
-      router.go(new DelveScreen(lib, kit, { party, auto: true, restart: stage, quit: stage }));
+      router.go(new DelveScreen(lib, kit, { party, auto: true, stepped: true, restart: stage, quit: stage }));
       let overFor = 0;
       const watch = setInterval(() => { overFor = arenaOver(party) ? overFor + 1 : 0; if (overFor >= 3) { clearInterval(watch); stage(); } }, 1000);
     };

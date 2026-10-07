@@ -94,7 +94,9 @@ function uprightGrip(lib: UalLibrary, clipName: string, handName: string, at: nu
 const BOW_FLAT = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)));
 /** Carried (not drawn): level along the way the body faces, the string on top and the arc below — seen from the side, a flat bow with its string up. */
 const BOW_CARRY = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0, 0, 1), new THREE.Vector3(-1, 0, 0)));
-const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35, BOW_FLAT) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3, BOW_CARRY));
+/** the pack bow turned half round its own z (the arc and string the other way about), as the player asked */
+const BOW_FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI);
+const bowGrip = (lib: UalLibrary, drawn: boolean) => (drawn ? uprightGrip(lib, CLIP.shootBow, 'hand_l', 0.35, BOW_FLAT.clone().multiply(BOW_FLIP)) : uprightGrip(lib, 'Idle_Loop', 'hand_l', 0.3, BOW_CARRY.clone().multiply(BOW_FLIP)));
 const CASTER = new Set<WeaponLook>(['staff', 'wand', 'symbol']);
 
 const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined => {
@@ -327,7 +329,7 @@ export class UalActor {
     if (this.dead) return;
     this.dead = true;
     // a body on its back reads like a raised-arms pose from above: darken it so the dead read as dead
-    for (const m of this.mats) m.color.multiplyScalar(0.08); // linear colour: about a third as bright on screen
+    for (const m of this.mats) m.color.multiplyScalar(0.35); // dimmed, not blacked out: a body, not a silhouette
     this.dropUpper(0.05);
     this.start(CLIP.death, false, 1.3, 0.05);
   }

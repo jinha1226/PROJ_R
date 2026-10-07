@@ -7,71 +7,20 @@ import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActo
 import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
 import { markFigure, RING } from './pixelPass';
+import { ABSORB_SEC, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, type View } from './gridActorBits';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
 
-/** a two-cell leap takes as long as the glide over two cells */
-const LEAP_SEC = 0.28;
-const LEAP_HEIGHT = 0.9;
-
-/** Every kind is the same mannequin: colour, size and the weapon tell them apart. */
-const LOOK: Record<Ent['kind'], UalLook> = {
-  hero: { body: '#1d2630', trim: '#2c3946', scale: 1, weapon: 'sword', idle: 'Sword_Idle', suit: true, armor: false },
-  minion: { body: '#d8d2c0', trim: '#7a7262', scale: 0.92, weapon: 'blade', idle: 'Idle_Loop' },
-  archer: { body: '#9fb08a', trim: '#4a5a3a', scale: 0.95, weapon: 'crossbow', idle: 'Idle_Loop' },
-  brute: { body: '#8a3a32', trim: '#2a2420', scale: 1.22, weapon: 'axe', shield: true, idle: 'Sword_Idle' },
-  ghoul: { body: '#6a8a4a', trim: '#3a2a1a', scale: 0.95, weapon: 'none', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop' },
-  mage: { body: '#5a3a7a', trim: '#2a1a3a', scale: 0.95, weapon: 'none', idle: 'Spell_Simple_Idle_Loop' },
-  champion: { body: '#3a3a44', trim: '#d8b040', scale: 1.45, weapon: 'sword', shield: true, idle: 'Sword_Idle' },
-};
-const LUNGE = 0.3;
 /** figure size against the cell (1 = a person fills a cell); scripted views may change it */
 let FIGURE_SCALE = 1;
 export const setFigureScale = (k: number): void => { FIGURE_SCALE = k; };
-
-/** The coloured ring under each figure (gold hero and elites, red ordinary foes). */
-function ring(color: string, scale: number): THREE.Mesh {
-  const m = new THREE.Mesh(new THREE.RingGeometry(0.32 * scale, 0.4 * scale, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2;
-  m.position.y = 0.03;
-  m.userData.ring = true;
-  return m;
-}
-const LUNGE_SEC = 0.12;
-const SHOVE = 0.15;
-
-/** a clone taking a soul glows and casts this long before it stands up in its new look, which then grows in over POP_SEC */
-const ABSORB_SEC = 0.9;
-const POP_SEC = 0.4;
-const SOUL_GOLD = 0xffd76a;
-
-interface View {
-  actor: UalActor;
-  bar: THREE.Group;
-  /** visual position (metres) chasing the logical cell */
-  x: number;
-  z: number;
-  tx: number;
-  tz: number;
-  facing: number;
-  /** drawn yaw, easing toward `facing` */
-  yaw: number;
-  /** keeps the run cycle going briefly between steps so a held walk never flickers to idle */
-  runHold: number;
-  /** a short offset (lunge toward a target, recoil, shove), decaying over `offT` */
-  ox: number;
-  oz: number;
-  offT: number;
-  /** time left in a leap (the figure arcs up and lands when it runs out) */
-  air: number;
-  dead: boolean;
-}
 
 /** Looks set by id (party heroes drawn as heroes, with their own colours and weapons; their health bars show). */
 export const LOOK_BY_ID = new Map<string, UalLook>();
 
 /** One model per entity: chases its cell, faces where it goes, lunges, recoils and flinches on cue. */
+
 export class GridActors {
   private readonly bars = new HpBars();
   readonly root = new THREE.Group();
@@ -242,16 +191,21 @@ export class GridActors {
     v.actor.setTint(!st ? null : st.freeze > 0 ? '#5ab4ff' : st.burn > 0 ? '#ff7a2a' : st.poison > 0 ? '#7ad04a' : null);
   }
 
-  /** Just the white flash (the knock-back motion carries the rest). */
+  /** Just the flash (the knock-back motion carries the rest): red on a clone, none on a foe (it bleeds instead). */
   flashOnly(id: string | undefined): void {
-    this.v(id)?.actor.flash(0xffffff, 110);
+    if (this.isAlly(id)) this.v(id)?.actor.flash(0xff3a2a, 90);
   }
 
-  /** Took a hit: flash, flinch and get shoved away from the attacker. */
+  /** One of the party (the hero or a clone), not a foe. */
+  isAlly(id: string | undefined): boolean {
+    return !!id && (id === 'hero' || LOOK_BY_ID.has(id));
+  }
+
+  /** Took a hit: flinch and get shoved away from the attacker (a clone also flashes red; a foe just bleeds). */
   hurt(id: string | undefined, from: THREE.Vector3 | undefined): void {
     const v = this.v(id);
     if (!v || v.dead) return;
-    v.actor.flash(0xffffff, 110);
+    this.flashOnly(id);
     v.actor.play('hit', 1.8);
     if (from) this.nudge(v, from, -SHOVE);
   }
@@ -293,19 +247,26 @@ export class GridActors {
   private heroWeapon: WeaponLook | null = null;
 
   /** Hard hits throw the figure back instead of a flinch. */
-  knock(id: string | undefined): void {
-    this.v(id)?.actor.play('knockback', 1.6);
+  knock(id: string | undefined, from?: THREE.Vector3): void {
+    const v = this.v(id);
+    if (!v || v.dead) return;
+    this.flashOnly(id);
+    v.actor.play('knockback', 1.6);
+    if (from) this.nudge(v, from, -SHOVE * 1.8);
   }
 
   private kindOf(id: string): Ent['kind'] {
     return this.kinds.get(id) ?? 'minion';
   }
 
-  die(id: string | undefined): void {
+  /** Falls: thrown back from the killer as it drops, then (a foe) sinks into the floor and is gone, its blood left behind. */
+  die(id: string | undefined, from?: THREE.Vector3): void {
     const v = this.v(id);
     if (!v || v.dead) return;
     v.dead = true;
+    v.deadFor = 0;
     v.actor.setDead();
+    if (from) this.nudge(v, from, -SHOVE * 2.4);
     // the ring under a figure marks it as a living threat: the fallen lose it
     for (const c of v.actor.root.children) if (c.userData.ring) c.visible = false;
   }
@@ -313,7 +274,7 @@ export class GridActors {
   /** Foes are shown only on tiles the hero can see (the dead stay where they fell once seen). */
   setVisible(id: string, on: boolean): void {
     const v = this.views.get(id);
-    if (v) v.actor.root.visible = on;
+    if (v && !v.gone) v.actor.root.visible = on;
   }
 
   /** frozen: hit-stop — models hold their pose for a moment. */
@@ -330,7 +291,7 @@ export class GridActors {
       if (v) v.actor.root.scale.setScalar(1 - 0.3 * (t / POP_SEC) ** 2);
       if (t <= 0) this.popIn.delete(id); else this.popIn.set(id, t);
     }
-    for (const v of this.views.values()) {
+    for (const [vid, v] of this.views) {
       const step = frozen ? 0 : dt;
       const px = v.x;
       const pz = v.z;
@@ -349,6 +310,12 @@ export class GridActors {
         v.air = Math.max(0, v.air - step);
         v.actor.root.position.y = Math.sin((1 - v.air / LEAP_SEC) * Math.PI) * LEAP_HEIGHT;
         if (v.air === 0) v.actor.play('leapLand', 2);
+      }
+      if (v.deadFor !== undefined && !v.gone && !this.isAlly(vid)) {
+        v.deadFor += step;
+        const k = Math.min(1, Math.max(0, (v.deadFor - SINK_AT) / SINK_SEC));
+        if (k > 0) v.actor.root.position.y = -0.7 * k;
+        if (k >= 1) { v.gone = true; v.actor.root.visible = false; }
       }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
       if (!v.dead) v.actor.setLocomotion(v.runHold > 0);

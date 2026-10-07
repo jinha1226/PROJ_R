@@ -65,6 +65,8 @@ export class DelveScreen implements Screen {
   private sel = 'hero';
   private paused = false;
   private pausedBeforePip = false;
+  /** turn by turn (opts.stepped): the moment the current turn ends */
+  private turnEnd = 1;
   private speed = 1;
   private zoom = 11;
   private hover: Cell | null = null;
@@ -82,8 +84,8 @@ export class DelveScreen implements Screen {
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
   private pinch!: Pinch;
 
-  /** opts.party: the floor the expedition's party came down to; onAscend: the party rides up to the pod (also when nobody is left); restart: the expedition starts over; auto: every clone fights by itself (the chain demo). */
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; restart?: () => void; auto?: boolean } = {}) {
+  /** opts.party: the floor the expedition's party came down to; onAscend: the party rides up to the pod (also when nobody is left); restart: the expedition starts over; auto: every clone fights by itself (the chain demo); stepped: the game stops at each turn's end until the next is asked for. */
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; restart?: () => void; auto?: boolean; stepped?: boolean } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -117,6 +119,12 @@ export class DelveScreen implements Screen {
     this.el.appendChild(this.menu.el);
     this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
+    if (this.opts.stepped) {
+      const next = document.createElement('button');
+      next.type = 'button'; next.className = 'step-next'; next.textContent = '다음 턴 ▶';
+      next.addEventListener('click', () => { this.paused = false; });
+      this.el.appendChild(next);
+    }
     this.mini = new DelveMinimap(() => this.p);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
@@ -142,6 +150,8 @@ export class DelveScreen implements Screen {
         const ev = delveTick(this.p, dt * RATE * this.speed);
         this.movedLast = ev.some((e) => e.type === 'move');
         this.live(ev, t0);
+        // turn by turn: stop at each turn's end (the show plays on) until Space, a tap or the button asks for the next
+        if (this.opts.stepped && this.p.time >= this.turnEnd) { this.paused = true; this.turnEnd = Math.floor(this.p.time) + 1; }
       }
       this.pad.update(dt, !!this.p.combat);
       this.props?.update(dt);
@@ -152,7 +162,7 @@ export class DelveScreen implements Screen {
       this.placePrompts();
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open);
+      this.el.classList.toggle('paused', this.paused && !this.opts.stepped && !this.pip.open && !this.picker.open && !this.menu.open);
       this.drawHud();
       this.mini.draw();
       this.raf = requestAnimationFrame(loop);
@@ -303,6 +313,7 @@ export class DelveScreen implements Screen {
 
   /** Wait: pass the turn on the clone's turn, otherwise stop where it stands. */
   private waitOrStop(): void {
+    if (this.opts.stepped) { this.paused = false; return; }
     if (this.myTurn) { this.live(command(this.p, { kind: 'wait' })); return; }
     // turn-based and nothing doing: wait passes one turn
     if (!this.p.combat) { this.waitUntil = this.p.time + 1; return; }
@@ -328,6 +339,7 @@ export class DelveScreen implements Screen {
 
   /** On a clone: choose it. On its turn a click is its action (a step toward, or a blow); otherwise an order. */
   private click(e: PointerEvent): void {
+    if (this.opts.stepped) { this.paused = false; return; }
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
     const at = this.unitAt(c);
