@@ -1,14 +1,14 @@
 import { expect, it } from 'vitest';
 import { distanceMap } from '../../src/sim/grid/path';
 import { idx } from '../../src/sim/grid/types';
-import { DELVE_SIZE, generateFloor } from '../../src/sim/delve/delveGen';
+import { delveSize, generateFloor } from '../../src/sim/delve/delveGen';
 
-it('a floor is 64 wide with 16–22 rooms, all reachable, with one vault, a den and ore', () => {
+it('floor three is 80 wide with 24–32 rooms, all reachable, with one vault, a den and ore', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
     const f = generateFloor(seed, 3);
-    expect(f.map.w).toBe(DELVE_SIZE);
-    expect(f.rooms.length).toBeGreaterThanOrEqual(16);
-    expect(f.rooms.length).toBeLessThanOrEqual(22);
+    expect(f.map.w).toBe(delveSize(3));
+    expect(f.rooms.length).toBeGreaterThanOrEqual(24);
+    expect(f.rooms.length).toBeLessThanOrEqual(32);
     const d = distanceMap(f.map, f.map.start);
     for (const r of f.rooms) expect(d[idx(f.map, { x: r.rect.x + (r.rect.w >> 1), y: r.rect.y + (r.rect.h >> 1) })]).toBeGreaterThanOrEqual(0);
     expect(f.rooms.filter((r) => r.kind === 'vault')).toHaveLength(1);

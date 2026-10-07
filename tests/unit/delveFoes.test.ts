@@ -4,7 +4,7 @@ import { damage, entOf, stats } from '../../src/sim/party/partyCore';
 import { foeTurn } from '../../src/sim/party/partyFoeAi';
 import { CLASSES, FOES } from '../../src/sim/party/partyDefs';
 import { dist, tileAt, walkable } from '../../src/sim/grid/types';
-import { delveTick, newDelve } from '../../src/sim/delve/delveSim';
+import { delveTick, newDelve, FODDER_HP } from '../../src/sim/delve/delveSim';
 
 it('a shaman mends a hurt band-mate instead of attacking, then waits', () => {
   for (let seed = 1; seed < 40; seed++) {
@@ -108,12 +108,12 @@ it('reinforcements occupy distinct free cells, inherit scaling, and call only on
   expect(events.filter((e) => e.type === 'summon')).toHaveLength(3);
 });
 
-it('floor scaling applies to every foe, with elite HP only and faster ghouls', () => {
+it('floor scaling applies to every foe (fodder from its own base), with elite HP only and faster ghouls', () => {
   for (let seed = 1; seed <= 8; seed++) {
     const p = newDelve(seed, 4), scale = 1.45;
     for (const u of p.units.filter((u) => u.side === 'foe')) {
       const e = entOf(p, u.id)!, def = FOES[u.foe!];
-      expect(e.maxHp).toBe(Math.round(def.hp * scale * (e.elite ? 1.8 : 1)));
+      expect(e.maxHp).toBe(Math.round((u.fodder ? FODDER_HP : def.hp) * scale * (e.elite ? 1.8 : 1)));
       expect(stats(u).dmg).toEqual(def.dmg.map((n) => Math.round(n * scale)));
     }
   }

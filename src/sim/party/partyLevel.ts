@@ -42,7 +42,7 @@ export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
 /** Fallen foes give experience to the clones fighting near them (on the surface, only to clones that have been down: a fresh body stays ready for souls). */
 export function awardXp(p: Party, fallen: Unit, ev: GEvent[]): void {
   const at = entOf(p, fallen.id)!;
-  const n = (XP[fallen.foe ?? ''] ?? 4) * (at.elite ? 2 : 1);
+  const n = (XP[fallen.foe ?? ''] ?? 4) * (at.elite ? 2 : 1) * (fallen.fodder ? 0.5 : 1);
   for (const u of p.units) {
     const e = entOf(p, u.id);
     if (u.side !== 'hero' || !e || !alive(p, u)) continue;

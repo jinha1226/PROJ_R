@@ -28,7 +28,7 @@ export interface GridMap {
   start: Cell;
   exits: Cell[];
   chests: Cell[];
-  spawns: { kind: FoeKind; pos: Cell; group: number; elite?: boolean }[];
+  spawns: { kind: FoeKind; pos: Cell; group: number; elite?: boolean; fodder?: boolean }[];
   /** oil barrels (block the way, explode when hit) */
   barrels?: Cell[];
   /** the way down (boss floors unlock it on the guardian’s death) */

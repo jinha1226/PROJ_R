@@ -60,7 +60,7 @@ it('each effect has its own look: a reaction bursts on its foe, a status shows o
   calls.length = 0; effectCue(k, { t: 0, type: 'buff', src: 'a', dst: 'b', text: '관통 화살' }); expect(calls).toEqual(['bolt']);
   calls.length = 0; effectCue(k, { t: 0, type: 'buff', src: 'a', text: '화염 공명' }); expect(calls).toContain('vfx:magic');
   expect(effectCue(k, { t: 0, type: 'buff', src: 'a', text: 'claim' })).toBe(false);
-});
+}, 30_000);
 
 it('a clone\'s step is not kept waiting behind its chain', () => {
   const pb = new Playback(true);

@@ -15,24 +15,34 @@ export interface DelveFloor {
   boss: boolean;
 }
 export const DELVE_SIZE = 64;
+/** Floors widen and fill as they go deeper (spec §1.6): size, room count, a normal room's band, the fodder and elite shares. */
+export const DENSITY: { upTo: number; size: number; rooms: [number, number]; band: [number, number]; fodder: number; elite: number }[] = [
+  { upTo: 2, size: 64, rooms: [16, 22], band: [3, 5], fodder: 0.8, elite: 0 },
+  { upTo: 5, size: 80, rooms: [24, 32], band: [5, 8], fodder: 0.7, elite: 0.05 },
+  { upTo: 9, size: 96, rooms: [32, 42], band: [8, 12], fodder: 0.65, elite: 0.1 },
+  { upTo: Infinity, size: 112, rooms: [42, 54], band: [12, 18], fodder: 0.6, elite: 0.12 },
+];
+export const densityOf = (floor: number) => DENSITY.find((d) => floor <= d.upTo)!;
+export const delveSize = (floor: number): number => densityOf(floor).size;
 const centre = (r: Room): Cell => ({ x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) });
 const inside = (r: Room, c: Cell): boolean => c.x >= r.x && c.x < r.x + r.w && c.y >= r.y && c.y < r.y + r.h;
 const overlaps = (a: Room, b: Room): boolean => a.x - 2 < b.x + b.w && b.x - 2 < a.x + a.w && a.y - 2 < b.y + b.h && b.y - 2 < a.y + a.h;
 
-function placeRooms(rng: Rng): Room[] {
-  const target = rng.int(16, 22), rooms: Room[] = [];
+function placeRooms(rng: Rng, floor: number): Room[] {
+  const D = densityOf(floor), S = D.size, target = rng.int(D.rooms[0], D.rooms[1]), rooms: Room[] = [];
   for (let attempt = 0; attempt < 12000 && rooms.length < target; attempt++) {
     const max = attempt < 1000 ? 11 : 7;
     const w = rng.int(5, max), h = rng.int(5, max);
-    const r = { x: rng.int(1, DELVE_SIZE - w - 1), y: rng.int(1, DELVE_SIZE - h - 1), w, h };
+    const r = { x: rng.int(1, S - w - 1), y: rng.int(1, S - h - 1), w, h };
     if (!rooms.some((o) => overlaps(o, r))) rooms.push(r);
   }
   // A bounded fallback guarantees the minimum even for an unusually crowded packing.
-  if (rooms.length < 16) {
+  if (rooms.length < D.rooms[0]) {
     rooms.length = 0;
-    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) rooms.push({ x: 2 + x * 15, y: 2 + y * 15, w: rng.int(5, 11), h: rng.int(5, 11) });
+    const n = Math.ceil(Math.sqrt(D.rooms[0])), step = Math.floor((S - 4) / n);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) rooms.push({ x: 2 + x * step, y: 2 + y * step, w: rng.int(5, Math.min(11, step - 3)), h: rng.int(5, Math.min(11, step - 3)) });
   }
-  const score = (r: Room) => (centre(r).x - DELVE_SIZE / 4) ** 2 + (centre(r).y - DELVE_SIZE / 2) ** 2;
+  const score = (r: Room) => (centre(r).x - S / 4) ** 2 + (centre(r).y - S / 2) ** 2;
   return rooms.sort((a, b) => score(a) - score(b));
 }
 
@@ -66,9 +76,9 @@ function cellsOf(m: GridMap, r: Room, taken: Set<number>, margin = 0): Cell[] {
   return cells;
 }
 
-function layout(rng: Rng): { map: GridMap; corridors: Cell[][] } {
-  const rooms = placeRooms(rng);
-  const map: GridMap = { w: DELVE_SIZE, h: DELVE_SIZE, tiles: new Array<Tile>(DELVE_SIZE ** 2).fill('wall'), rooms, start: centre(rooms[0]!), exits: [], chests: [], spawns: [], traps: [] };
+function layout(rng: Rng, floor: number): { map: GridMap; corridors: Cell[][] } {
+  const rooms = placeRooms(rng, floor), S = delveSize(floor);
+  const map: GridMap = { w: S, h: S, tiles: new Array<Tile>(S ** 2).fill('wall'), rooms, start: centre(rooms[0]!), exits: [], chests: [], spawns: [], traps: [] };
   for (const r of rooms) for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) map.tiles[idx(map, { x, y })] = 'floor';
   const corridors: Cell[][] = [], links = new Set<string>();
   for (let i = 1; i < rooms.length; i++) {
@@ -137,12 +147,17 @@ function contents(f: DelveFloor, floor: number, loot: Rng, spawns: Rng): void {
       const pos = loot.pick(cellsOf(m, rect, taken));
       f.chests.push({ pos, tier }); m.chests.push(pos); taken.add(idx(m, pos));
     }
-    const count = kind === 'normal' ? spawns.int(1, 3) + (floor >= 4 ? 1 : 0) : kind === 'den' ? spawns.int(4, 5) : kind === 'crypt' || kind === 'vault' ? 2 : kind === 'boss' ? 3 : 0;
+    const D = densityOf(floor);
+    const count = kind === 'normal' ? spawns.int(D.band[0], D.band[1]) : kind === 'den' ? spawns.int(4, 5) : kind === 'crypt' || kind === 'vault' ? 2 : kind === 'boss' ? 3 : 0;
     const cells = spawns.shuffle(cellsOf(m, rect, taken).filter((pos) => dist(pos, m.start) > 6));
     for (let i = 0; i < count; i++) {
-      const pos = cells.pop()!;
-      const elite = kind === 'den' ? i < 2 : kind === 'crypt' && i === 0;
-      m.spawns.push({ pos, group, kind: kind === 'boss' ? (i === 0 ? 'champion' : 'brute') : foeKind(spawns, floor), ...(elite ? { elite: true } : {}) });
+      // a small room holds what it can
+      const pos = cells.pop();
+      if (!pos) break;
+      const roll = kind === 'normal' ? spawns.next() : 1;
+      const elite = kind === 'den' ? i < 2 : kind === 'crypt' ? i === 0 : kind === 'normal' && roll < D.elite;
+      const fodder = kind === 'normal' && !elite && roll < D.elite + D.fodder;
+      m.spawns.push({ pos, group, kind: kind === 'boss' ? (i === 0 ? 'champion' : 'brute') : fodder ? 'minion' : foeKind(spawns, floor), ...(elite ? { elite: true } : {}), ...(fodder ? { fodder: true } : {}) });
       taken.add(idx(m, pos));
     }
   });
@@ -155,7 +170,7 @@ export function generateFloor(seed: number, floor: number): DelveFloor {
   const spawns = createRng((seed ^ 0x5a11) + floor * 6151);
   const traps = createRng((seed ^ 0x51ed27) + floor * 104729);
   for (;;) {
-    const { map, corridors } = layout(layoutRng);
+    const { map, corridors } = layout(layoutRng, floor);
     const rooms = roles(map, layoutRng, floor);
     const f: DelveFloor = { map, rooms, chests: [], ore: [], boss: floor % 5 === 0 };
     if (!oreSpots(f, layoutRng)) continue;

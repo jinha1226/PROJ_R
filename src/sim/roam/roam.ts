@@ -178,7 +178,7 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     if (f.side !== 'foe' || f.reaped || !e || e.alive) continue;
     f.reaped = true;
     awardXp(p, f, ev);
-    const n = Math.round((BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1));
+    const n = Math.max(1, Math.round((BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1) * (f.fodder ? 0.5 : 1)));
     p.bio += n;
     ev.push({ t: p.time, type: 'loot', to: { ...e.pos }, amount: n, text: 'bio' });
   }

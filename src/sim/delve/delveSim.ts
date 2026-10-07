@@ -16,6 +16,8 @@ import { placeParty, takeParty, type Carry } from '../roam/carry';
 import { beaconStep, type Beacon } from './beacon';
 
 export const DELVE_SIGHT = 8;
+/** a fodder foe's health before the depth scaling */
+export const FODDER_HP = 10;
 /** the dungeon's kinds, as the party knows them */
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', ghoul: 'ghoul', archer: 'archer', mage: 'shaman', brute: 'brute', champion: 'warlord' };
 
@@ -46,8 +48,9 @@ function populate(p: DelveParty): void {
   const m = p.s.map, scale = 1 + 0.15 * (p.floor - 1);
   p.s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, kind = FOE_OF[e.kind] ?? 'goblin';
-    e.hp = e.maxHp = Math.round(FOES[kind].hp * scale * (sp.elite ? 1.8 : 1));
-    p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, foeScale: scale, asleep: true, group: sp.group, nextAt: 0.15 * i });
+    // fodder falls to a blow or two: the fuel a chain burns through
+    e.hp = e.maxHp = Math.round((sp.fodder ? FODDER_HP : FOES[kind].hp) * scale * (sp.elite ? 1.8 : 1));
+    p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, foeScale: scale, asleep: true, group: sp.group, nextAt: 0.15 * i, ...(sp.fodder ? { fodder: true } : {}) });
   });
 }
 

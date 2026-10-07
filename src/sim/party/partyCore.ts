@@ -35,6 +35,8 @@ export interface Unit {
   aiTarget?: string;
   /** when this clone was struck within the last turn (the whirlwind counts them) */
   struckTimes?: number[];
+  /** a weak horde foe (half the experience and bio-matter) */
+  fodder?: boolean;
   /** rounds left in a gun's magazine (unset: full) */
   ammo?: number;
   /** the workshop modules this empty body carries (a snapshot taken at the base) */
