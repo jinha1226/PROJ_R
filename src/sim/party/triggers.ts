@@ -45,13 +45,13 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
       const key = `${c.src.id}:${def.id}`;
       if (def.when !== cond || (!def.repeat && action.fired.has(key)) || c.t < (c.src.trig[def.id] ?? 0) || (def.nth && c.src.nth % def.nth !== 0) || (def.test && !def.test(p, c))) continue;
       if (def.chance !== undefined && !p.s.rng.chance(def.chance)) continue;
-      const before = effectState(p), oldReady = c.src.trig[def.id], eventAt = c.ev.length;
+      const before = effectState(p, c.src), oldReady = c.src.trig[def.id], eventAt = c.ev.length;
       // Reserve a slot before entering recursive callbacks; release it for a no-op.
       c.src.trig[def.id] = c.t + (def.cd ?? 0) * (c.src.traits?.fanatic ? .5 : 1);
       const had = action.fired.has(key); action.fired.add(key);
       action.count++; action.depth++;
       try { def.run(p, { ...c, depth: action.depth }); } finally { action.depth--; }
-      if (effectState(p) !== before) {
+      if (effectState(p, c.src) !== before) {
         action.ev ??= c.ev; action.src ??= c.src.id; action.t = c.t;
         c.ev.splice(eventAt, 0, { t: c.t, type: 'buff', src: c.src.id, dst: c.target?.id, text: def.id });
       } else {
@@ -68,8 +68,18 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
   } finally { if (root) close(p, action); }
 }
 
-// Ignore cooldown bookkeeping and presentation events when deciding whether an effect worked.
-function effectState(p: Party): string {
-  return JSON.stringify([p.units.map(u => ({ ...u, trig: undefined, triggers: undefined })),
-    [p.s.hero, ...p.s.foes].map(e => [e.id, e.hp, e.alive, e.pos]), p.grounds]);
+// Whether an effect worked: the source unit in full (minus cooldown bookkeeping), and for everyone else a light fingerprint of
+// what effects change (health, life, place, shield, states, taunt, stealth, immunity, raised, sleep, aimed-at), plus counts of
+// units, burning ground and gravity wells. A full JSON of every unit was too slow with a horde on the floor.
+function effectState(p: Party, src: Unit): string {
+  let h = 0;
+  const mix = (v: number) => { h = (Math.imul(h, 31) + Math.round(v * 1000)) | 0; };
+  mix(p.units.length); mix(p.grounds?.length ?? 0); mix(p.wells?.length ?? 0);
+  for (const u of p.units) {
+    if (u === src) continue;
+    for (const k in u.status) { const st = u.status[k as StatusId]; if (st) { mix(st.until); mix(st.stacks ?? 0); } }
+    mix(u.shield); mix(u.tauntUntil); mix(u.hiddenUntil); mix(u.immuneUntil ?? 0); mix(u.raised ? 1 : 0); mix(u.asleep ? 1 : 0); mix(u.sighted?.length ?? 0); mix(u.nextAt);
+  }
+  for (const e of [p.s.hero, ...p.s.foes]) { mix(e.hp); mix(e.alive ? 1 : 0); mix(e.pos.x); mix(e.pos.y); }
+  return `${h}|${JSON.stringify({ ...src, trig: undefined, triggers: undefined })}`;
 }
