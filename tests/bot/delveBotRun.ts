@@ -2,19 +2,18 @@ import { newDelve, delveTick, canDescend, descend, type DelveParty } from '../..
 import { CATALOG } from '../../src/sim/delve/catalog';
 import type { Item } from '../../src/sim/delve/items';
 import type { BaseClass } from '../../src/sim/party/partyDefs';
-import { BODY_COST, implant, living, print } from '../../src/sim/roam/roam';
+import { implant, living } from '../../src/sim/roam/roam';
 import { navigate, supplies } from './delveBotPolicy';
 
-export const compositions: BaseClass[][] = [['warrior', 'archer', 'cleric'], ['warrior', 'mage', 'rogue'], ['archer', 'cleric', 'mage']];
+/** solo runs: the souls in the one body that goes down */
+export const compositions: BaseClass[][] = [['warrior', 'cleric'], ['mage', 'archer'], ['rogue', 'warrior']];
 interface FloorStats { floor: number; common: number; fine: number; rare: number; trinkets: number; consumables: number; ore: number; crystal: number; bio: number; seconds: number }
 export interface Run { seed: number; comp: string; floor: number; general: boolean; lost: number; end: 'wipe' | 'general' | 'floor5' | 'timeout'; seconds: number; lastPolicy: string; idleSeconds: number; fights?: number; fightsDeep?: number; chains?: number; chainsDeep?: number; floors: FloorStats[] }
 const floorStats = (floor: number): FloorStats => ({ floor, common: 0, fine: 0, rare: 0, trinkets: 0, consumables: 0, ore: 0, crystal: 0, bio: 0, seconds: 0 });
 const inventory = (p: DelveParty): Item[] => [...p.pack, ...living(p).flatMap((u) => u.gear ? Object.values(u.gear).filter((it):it is NonNullable<typeof it>=>!!it) : [])];
 export function runDelveBot(seed: number, comp: BaseClass[]): Run {
   const p = newDelve(seed);
-  p.bio = BODY_COST * 3;
-  implant(p, living(p)[0]!, comp[0]!, []); p.bio -= BODY_COST;
-  for (const cls of comp.slice(1)) { if (!print(p, cls, [])) throw Error('starting print failed'); p.bio -= BODY_COST; }
+  for (const cls of comp) implant(p, living(p)[0]!, cls, []);
   for (const u of living(p)) { u.level = 1; u.xp = 0; }
   const seen = new Set(inventory(p).map((it) => it.id));
   const result: Run = { seed, comp: comp.join('/'), floor: 1, general: false, lost: 0, end: 'timeout', seconds: 0, lastPolicy: '', idleSeconds: 0, fights: 0, fightsDeep: 0, chains: 0, chainsDeep: 0, floors: [floorStats(1)] };
@@ -51,7 +50,7 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
     }
   }
   result.seconds = p.time;
-  result.lost = 3 - living(p).length;
+  result.lost = 1 - living(p).length;
   result.idleSeconds = p.time - lastActivity;
   return result;
 }

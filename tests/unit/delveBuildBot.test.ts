@@ -14,6 +14,6 @@ it('bot picks the first offered trait until its pending choices are spent',()=>{
  const first=u.offer![0]!;expect(u.picks).toBeGreaterThan(0);supplies(p);expect(u.traits?.[first]).toBeGreaterThan(0);expect(u.picks).toBe(0);
 });
 it('summary distinguishes arriving at floor three from surviving it',()=>{
- const run=(floor:number):Run=>({seed:floor,comp:'warrior/mage/rogue',floor,general:false,lost:2,end:'wipe',seconds:100,lastPolicy:'combat',idleSeconds:0,floors:[]});
- const s=summarize([run(3),run(4)]);expect(s.total.reach3).toBe(100);expect(s.total.survive3).toBe(50);expect(s.comps.find(c=>c.comp==='warrior/mage/rogue')!.survive3).toBe(50);
+ const run=(floor:number):Run=>({seed:floor,comp:'mage/archer',floor,general:false,lost:1,end:'wipe',seconds:100,lastPolicy:'combat',idleSeconds:0,floors:[]});
+ const s=summarize([run(3),run(4)]);expect(s.total.reach3).toBe(100);expect(s.total.survive3).toBe(50);expect(s.comps.find(c=>c.comp==='mage/archer')!.survive3).toBe(50);
 });
