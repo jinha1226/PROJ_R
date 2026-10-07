@@ -61,3 +61,10 @@ it('each effect has its own look: a reaction bursts on its foe, a status shows o
   calls.length = 0; effectCue(k, { t: 0, type: 'buff', src: 'a', text: '화염 공명' }); expect(calls).toContain('vfx:magic');
   expect(effectCue(k, { t: 0, type: 'buff', src: 'a', text: 'claim' })).toBe(false);
 });
+
+it('a clone\'s step is not kept waiting behind its chain', () => {
+  const pb = new Playback(true);
+  pb.push([...['원소 순환', '증기', '연소 폭발', '연쇄 반응'].map((text): GEvent => ({ t: 2, type: 'buff', src: 'c1', text })), { t: 2, type: 'move', src: 'c1', to: { x: 1, y: 1 } }], 2);
+  const seen = drain(pb), step = seen.find((s) => s.ev.type === 'move')!, last = seen.filter((s) => s.ev.type === 'buff').pop()!;
+  expect(step.at).toBeLessThan(last.at);
+});

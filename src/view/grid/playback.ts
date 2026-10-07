@@ -62,7 +62,8 @@ export class Playback {
       order.set(ev.t, list);
       const at = this.party
         // a party fight: at its own moment, only after what is still to show of the same clone
-        ? Math.max(this.now + Math.max(0, ev.t - startTime) * TURN_SEC, this.tail(src))
+        // (a step is not kept waiting behind a chain still flashing: the figure walks while its effects play)
+        ? (ev.type === 'move' ? this.now + Math.max(0, ev.t - startTime) * TURN_SEC : Math.max(this.now + Math.max(0, ev.t - startTime) * TURN_SEC, this.tail(src)))
         : base + Math.max(0, ev.t - startTime) * TURN_SEC + list.indexOf(src) * STAGGER;
       this.cues.push({ at, ev });
     }
@@ -90,7 +91,7 @@ export class Playback {
       if (this.party) {
         // only this clone's later cues wait: the others go on acting at the same time
         const hold = this.partyHold(ev), who = ev.src ?? '';
-        if (hold) { for (const c of this.cues) if ((c.ev.src ?? '') === who) c.at += hold; this.cues.sort((a, b) => a.at - b.at); }
+        if (hold) { for (const c of this.cues) if ((c.ev.src ?? '') === who && c.ev.type !== 'move') c.at += hold; this.cues.sort((a, b) => a.at - b.at); }
         continue;
       }
       const hold = holdAfter(ev);

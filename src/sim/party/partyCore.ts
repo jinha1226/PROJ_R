@@ -28,6 +28,8 @@ export interface Unit {
   /** card state: rage built from blows taken, damage stored for the next blow, judgment marks, when a foe was last betrayed, chills taken toward a freeze */
   markFirst?: boolean; cycle?: number;
   martyrFloor?: number;
+  /** the foe a companion's utility AI last chose (it sticks with it unless another is clearly better) */
+  aiTarget?: string;
   /** the memory the soul in this body carried from its life (a starting rule) */
   memory?: string;
   /** once-a-fight memories already spent (shield keeper, poisoner) */

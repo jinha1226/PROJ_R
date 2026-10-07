@@ -12,6 +12,7 @@ import { DIRS, canStep, dist, same, tileAt, walkable, type Cell, type Ent, type 
 import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useUltimate, aiUltimate } from './ultimate';
+import { bestTarget, charge } from './utility';
 import { promote as promoteTo, promotionOptions } from './classKit';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
@@ -107,7 +108,8 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     }
     return 0.3;
   }
-  const target = targetOf(p, u, t);
+  // a companion picks the blow that does the most good (utility AI); the clone under the hand and the foes go by their orders or the nearest
+  const target = u.side === 'hero' && !u.order && u.id !== p.manual && p.combat ? bestTarget(p, u, t) ?? targetOf(p, u, t) : targetOf(p, u, t);
   if (!target) {
     // in a fight but nothing in reach (left behind, or the foes are out of range): close in on the nearest awake foe, else keep up with the leader
     if (u.side === 'hero' && p.roam && p.combat) {
@@ -119,6 +121,8 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     return 0.5;
   }
   const tp = posOf(p, target), d = dist(e.pos, tp);
+  // a melee clone's basic attack leaps in on a foe two or three cells off and strikes in the same action
+  if (u.side === 'hero' && st.range <= 1 && d >= 2 && charge(p, u, target, t, ev)) { strike(p, u, target, t, ev); return st.atk; }
   // a ranged clone steps back from a foe at its side now and then (not when told whom to hit, not under the player's hand,
   // not while another clone already stands at that foe holding it); else it shoots point-blank
   const held = p.units.some((x) => x.side === u.side && x !== u && alive(p, x) && dist(posOf(p, x), tp) <= 1);
