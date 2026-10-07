@@ -44,11 +44,11 @@ it('off-proficiency disables innates', () => {
 it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','sniper','hunter','elementalist','necromancer','inquisitor','healer','assassin','toxicologist'] as ClassId[])('%s ultimate executes once and waits its cooldown', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!; u.cls = cls;
   entOf(p, f.id)!.pos = { x: 4, y: 4 };
-  // the mage's teleport needs a free cell; the rest aim at the foe
+  // the mage's teleport and the warrior's earth slam need a free cell; the rest aim at the foe
   const free = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]].map(([dx, dy]) => ({ x: 4 + dx!, y: 4 + dy! })).find((c) => !p.units.some((x) => entOf(p, x.id)?.alive && entOf(p, x.id)!.pos.x === c.x && entOf(p, x.id)!.pos.y === c.y))!;
   // the golem needs a body: the foe lies dead where it stood
   if (cls === 'necromancer') { entOf(p, f.id)!.alive = false; f.raised = false; }
-  expect(useUltimate(p, u.id, cls === 'mage' ? free : { x: 4, y: 4 }).length).toBeGreaterThan(0);
+  expect(useUltimate(p, u.id, cls === 'mage' || cls === 'warrior' ? free : { x: 4, y: 4 }).length).toBeGreaterThan(0);
   expect(u.ultReady).toBe(KITS[cls].ultCd); expect(useUltimate(p, u.id)).toEqual([]);
 });
 it('AI casts sanctuary on its moment and prevents damage until expiry', () => {

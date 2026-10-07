@@ -15,7 +15,7 @@ it('every shield source shares one cap', () => {
     TRAITS.unyielding!.trigger!(2), ...TRAITS.answeredPrayer!.triggers!(2)];
   for (const def of defs) { u.shield = SHIELD_CAP - 1; def.run(p, { t: 0, src: u, target: u, depth: 0, ev }); expect(u.shield, def.id).toBe(SHIELD_CAP); }
   u.cls = 'healer'; u.weapon = 'mace'; u.shield = SHIELD_CAP - 1; heal(p, u, u, 100, 0, ev); expect(u.shield).toBe(SHIELD_CAP);
-  for (const cls of ['warrior', 'guardian'] as const) { u.cls = cls; u.ultReady = 0; u.shield = SHIELD_CAP - 1; useUltimate(p, u.id); expect(u.shield).toBe(SHIELD_CAP); }
+  for (const cls of ['guardian'] as const) { u.cls = cls; u.ultReady = 0; u.shield = SHIELD_CAP - 1; useUltimate(p, u.id); expect(u.shield).toBe(SHIELD_CAP); }
 });
 it('carry clears shields when taking and placing the party', () => {
   const p = newDelve(2), u = living(p)[0]!; u.shield = 30;

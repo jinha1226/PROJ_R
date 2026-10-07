@@ -9,14 +9,15 @@ import { teleport } from './cardsMage';
 import { raiseGolem } from './cardsNecro';
 import { corpsesNear, isCorpse } from './corpses';
 import { shadowClone } from './cardsRogue';
+import { earthSlam } from './cardsWarrior';
 import { summon } from './kitEffects';
 import { applyStatus } from './status';
 import { action, emit } from './triggers';
 import { T } from './traitMods';
-export const ULT_NAMES: Record<UltId,string> = { warcry:'전장의 함성',arrowRain:'화살비',meteor:'운석',sanctum:'신성 결계',shadowDance:'그림자 난무',bloodFrenzy:'피의 광란',bastion:'방벽',pierceShot:'관통탄',bleedRain:'피의 화살비',elementStorm:'원소 폭풍',deadHost:'망자의 군세',judgement:'심판의 빛',longSanctum:'빛의 결계',deathDance:'죽음의 난무',toxicFog:'독안개',gravity:'중력탄',teleport:'순간이동',golem:'골렘',shadowClone:'그림자 분신' };
+export const ULT_NAMES: Record<UltId,string> = { warcry:'전장의 함성',arrowRain:'화살비',meteor:'운석',sanctum:'신성 결계',shadowDance:'그림자 난무',bloodFrenzy:'피의 광란',bastion:'방벽',pierceShot:'관통탄',bleedRain:'피의 화살비',elementStorm:'원소 폭풍',deadHost:'망자의 군세',judgement:'심판의 빛',longSanctum:'빛의 결계',deathDance:'죽음의 난무',toxicFog:'독안개',gravity:'중력탄',teleport:'순간이동',golem:'골렘',shadowClone:'그림자 분신',earthSlam:'대지 강타' };
 export interface UltSlot { slot: number; ult: UltId; ready: number; cd: number }
 /** the ultimates that need a cell picked by the player */
-export const AIMED: UltId[] = ['arrowRain', 'bleedRain', 'meteor', 'elementStorm', 'pierceShot', 'judgement', 'toxicFog', 'gravity', 'teleport', 'golem', 'shadowClone'];
+export const AIMED: UltId[] = ['arrowRain', 'bleedRain', 'meteor', 'elementStorm', 'pierceShot', 'judgement', 'toxicFog', 'gravity', 'teleport', 'golem', 'shadowClone', 'earthSlam'];
 /** One ultimate per soul in the body, each with its own cooldown (a unit given a class directly has its class's one). */
 export function ultSlots(u: Unit): UltSlot[] {
   // summoned bodies (skeletons share the empty body's class) cast nothing
@@ -40,7 +41,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
   const near=(center:Cell,r:number)=>foes.filter(f=>dist(posOf(p,f),center)<=r);
   const allies=p.units.filter(x=>x.side==='hero' && alive(p,x));
   const aimed=AIMED.includes(ult);
-  if(aimed && ult!=='teleport' && ult!=='golem' && ult!=='shadowClone' && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='gravity'?GRAVITY_REACH:ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
+  if(aimed && ult!=='teleport' && ult!=='golem' && ult!=='shadowClone' && ult!=='earthSlam' && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='gravity'?GRAVITY_REACH:ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
   if(['shadowDance','deathDance','bloodFrenzy'].includes(ult) && !near(me,4).length) return [];
   const pact=u.traits?.bloodPact?Math.round(entOf(p,id)!.maxHp*.3):0; if(pact && entOf(p,id)!.hp<=pact) return [];
   switch(ult) {
@@ -56,6 +57,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
       break;
     }
     case 'gravity': dropWell(p,id,at!,t); break;
+    case 'earthSlam': if(!cell || !earthSlam(p,u,cell,t,ev)) return []; break;
     case 'shadowClone': if(!cell || !shadowClone(p,u,cell,t,ev)) return []; break;
     case 'golem': if(!cell || !raiseGolem(p,u,cell,t,ev)) return []; break;
     case 'teleport': if(!cell || !teleport(p,u,cell,t,ev)) return []; emit(p,'teleport',{t,src:u,ev}); break;
@@ -126,6 +128,14 @@ function aiUse(p: Party,u: Unit,ult: UltId): Cell | undefined | null {
   if(ult==='golem') {
     const spots=p.units.filter(x=>isCorpse(p,x)&&dist(posOf(p,x),me)<=10).map(x=>({at:posOf(p,x),n:corpsesNear(p,posOf(p,x),3).length})).sort((a,b)=>b.n-a.n);
     return spots[0]&&spots[0].n>=2?{...spots[0].at}:null;
+  }
+  // earth slam: beside the foe within five with the most foes within two of it (two at least)
+  if(ult==='earthSlam') {
+    const near=(f:Unit)=>foes.filter(x=>dist(posOf(p,x),posOf(p,f))<=2).length;
+    const best=foes.filter(f=>dist(posOf(p,f),me)<=6).sort((a,b)=>near(b)-near(a))[0];
+    if(!best||near(best)<2) return null;
+    const bp=posOf(p,best);
+    return DIRS.map(d=>({x:bp.x+d.x,y:bp.y+d.y})).find(c=>walkable(tileAt(p.s.map,c))&&!occupied(p,c,u.id)&&dist(c,me)<=5)??null;
   }
   // the clones stand beside the rogue: they copy its blows on the foes round it and draw their blows off it
   if(ult==='shadowClone') return foes.filter(x=>dist(posOf(p,x),me)<=2).length>=2?me:null;

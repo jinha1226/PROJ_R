@@ -5,6 +5,7 @@ import { dist, type GEvent } from '../grid/types';
 import { emit } from './triggers';
 import { resonant } from './resonance';
 import { markMult } from './cardsRanged';
+import { bleedCap } from './cardsWarrior';
 export type StatusId = 'burn' | 'chill' | 'freeze' | 'poison' | 'shock' | 'bleed' | 'stun' | 'mark' | 'exposed';
 export interface Status { until: number; stacks?: number; by?: string; next?: number }
 const duration: Record<StatusId, number> = { burn: 3, chill: 3, freeze: 2, poison: 4, shock: Infinity, bleed: 4, stun: 1, mark: 4, exposed: 3 };
@@ -14,7 +15,7 @@ export function applyStatus(p: Party, src: Unit, target: Unit, id: StatusId, t: 
   // poison stacks to five (eight with poison 3); burns stack with fire 6
   const stack = id === 'poison' ? Math.min(5 + (mods(src).poisonCap ?? 0) + (resonant(p, src, '독', 1) ? 3 : 0), live + stacks)
     : id === 'burn' && resonant(p, src, '화염', 2) ? live + stacks
-    : stacks;
+    : id === 'bleed' && bleedCap(src) > 1 ? Math.min(bleedCap(src), live + stacks) : stacks;
   const extra = (id === 'freeze' && resonant(p, src, '냉기', 2) ? 1 : 0) + (id === 'stun' && resonant(p, src, '함성', 1) ? 1 : 0);
   target.status[id] = { until: t + duration[id] + extra, by: src.id, stacks: stack, next: old && old.until > t ? old.next : t + 1 };
   if (id === 'freeze' || id === 'stun') target.nextAt = Math.max(target.nextAt, t + duration[id] + extra);

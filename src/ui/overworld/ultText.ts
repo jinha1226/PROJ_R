@@ -19,6 +19,7 @@ export const ULT_TEXT: Record<UltId, string> = {
   pierceShot: '일직선 관통 피해 18-24',
   deadHost: '6칸 안 시체를 해골로 일으킴 (최대 3)',
   shadowDance: '4칸 안 적 4명에게 순간이동 베기 (피해 2배)',
+  earthSlam: '지정한 칸(5칸 안)으로 도약해 내려찍기: 주변 2칸 기절 + 회오리 베기',
   shadowClone: '지정한 칸에 분신 둘 (3턴, 내 공격을 따라 함, 한 대 맞으면 사라짐)',
   deathDance: '4칸 안 적 6명에게 순간이동 베기 (피해 2배)',
 };

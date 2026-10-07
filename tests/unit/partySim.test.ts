@@ -1,3 +1,4 @@
+import { freeBeside } from './support/freeCell';
 import { expect, it } from 'vitest';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { nextWave, partyRoom, tick } from '../../src/sim/party/partySim';
@@ -31,7 +32,7 @@ it('a move order walks the hero there, then it holds that cell and fights from i
 });
 
 it('a queued ultimate waits for the actor moment', () => {
-  const p=partyRoom(); queueUltimate(p,'hero'); expect(unitOf(p,'hero')!.ultQueued).toBe(true);
+  const p=partyRoom(); queueUltimate(p,'hero',freeBeside(p,'hero')); expect(unitOf(p,'hero')!.ultQueued).toBe(true);
   tick(p,0.1); expect(unitOf(p,'hero')!.ultReady).toBeGreaterThan(0);
 });
 it('sanctuary makes incoming blows harmless', () => {

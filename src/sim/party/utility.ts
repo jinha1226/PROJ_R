@@ -44,7 +44,7 @@ export function utility(p: Party, u: Unit, f: Unit, t: number): number {
   if (on(f, 'bleed', t) && duoFor(p, u, 'bloodFeast')) s += 1.5;
   const next = nextElement(u);
   if (next) for (const [a, b] of REACTIONS) if ((a === next && on(f, b, t)) || (b === next && on(f, a, t))) s += 3 * (1 + (mods(u).react ?? 0));
-  const splash = rank(u, 'quake') || (u.weapon && (WEAPONS[u.weapon].cleave || WEAPONS[u.weapon].splash));
+  const splash = (u.spinUntil ?? 0) > t || (u.weapon && (WEAPONS[u.weapon].cleave || WEAPONS[u.weapon].splash));
   s += crowd * (splash ? 1 : 0.3);
   const aim = targetOf(p, f, t);
   // a ranged clone deals with the foe that is on top of it

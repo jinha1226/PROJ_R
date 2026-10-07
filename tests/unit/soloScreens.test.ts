@@ -15,7 +15,7 @@ it('a hybrid shows one ultimate tile per soul with its own key', () => {
 
 it('only aimed ultimates ask for a cell', () => {
   const p = newDelve(4, 1), u = unitOf(p, 'hero')!;
-  implant(p, u, 'warrior', []); implant(p, u, 'archer', []);
+  implant(p, u, 'cleric', []); implant(p, u, 'archer', []);
   expect(aimNeeded(u, 0)).toBe(false);
   expect(aimNeeded(u, 1)).toBe(true);
 });

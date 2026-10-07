@@ -19,6 +19,7 @@ import { markMult } from './cardsRanged';
 import { isGun, magOf } from './ammo';
 import { elementAmp } from './cardsMage';
 import { necroAmp } from './cardsNecro';
+import { shoutAmp } from './cardsWarrior';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -50,6 +51,8 @@ export interface Unit {
   /** a golem, a shadow clone (copies its owner, takes no turns), a curse (takes 20% more) and who laid it */
   golem?: boolean; mirror?: boolean; cursedUntil?: number; cursedBy?: string;
   /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
+  /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */
+  spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
@@ -214,6 +217,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
   }
+  // shout mastery (warrior): a stunned or taunted foe takes more, multiplied
+  if (attacker?.traits?.shoutAmp) amount = Math.round(amount * shoutAmp(attacker, dst, t));
   // a curse: the foe takes a fifth more from anyone
   if (dst.side === 'foe' && t < (dst.cursedUntil ?? 0)) amount = Math.round(amount * 1.2);
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {

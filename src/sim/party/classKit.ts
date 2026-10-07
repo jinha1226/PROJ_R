@@ -2,13 +2,13 @@ import { addShield } from './shield';
 import { TRAITS } from './traitDefs';
 import { T } from './traitMods';
 import { dist } from '../grid/types';
-import { alive, damage, entOf, levelDmg, posOf, stats, targetOf, type Party, type Unit } from './partyCore';
+import { alive, damage, entOf, posOf, targetOf, type Party, type Unit } from './partyCore';
 import { WEAPONS, type BaseClass, type ClassId, type WeaponId } from './partyDefs';
 import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
 import { heal, nearby, summon } from './kitEffects';
 import { applyStatus } from './status';
-export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity' | 'teleport' | 'golem' | 'shadowClone';
+export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity' | 'teleport' | 'golem' | 'shadowClone' | 'earthSlam';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, pistol: 'gun', swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
 export { proficient } from '../delve/gear';
@@ -20,6 +20,7 @@ import { SHELL_INNATE } from './cardsShell';
 import { MAGE_INNATE } from './cardsMage';
 import { GOLEM_FALL } from './cardsNecro';
 import { MIRROR_STRIKE } from './cardsRogue';
+import { whirlwind } from './cardsWarrior';
 import { sfTags } from '../base/workshop';
 import { MEMORIES } from './memories';
 import { linesOf, memoriesOf } from './body';
@@ -27,11 +28,7 @@ import { linesOf, memoriesOf } from './body';
 export const WHIRL_REACH = 4;
 const warrior: TriggerDef[] = [
   // the whirlwind: two blows taken within a turn and the warrior spins, cutting every foe within four cells (once a turn)
-  { id: '회오리 베기', when: 'struck', cd: 1, test: (_p,c) => (c.src.struckTimes?.length ?? 0) >= 2, run: (p,c) => {
-    c.src.struckTimes = [];
-    const st = stats(c.src, c.t, p), dmg = Math.max(1, Math.round(((st.dmg[0] + st.dmg[1]) / 2) * levelDmg(c.src) * 0.8)), me = posOf(p, c.src);
-    for (const f of nearby(p, c.src, WHIRL_REACH, 'foe')) { const at = posOf(p, f); if (Math.hypot(at.x - me.x, at.y - me.y) <= WHIRL_REACH + 0.5) damage(p, c.t, c.src.id, f, dmg, c.ev); }
-  } },
+  { id: '회오리 베기', when: 'struck', cd: 1, test: (_p,c) => (c.src.struckTimes?.length ?? 0) >= 2, run: (p,c) => { c.src.struckTimes = []; whirlwind(p, c.src, c.t, c.ev); } },
   { id: '응수', when: 'block', test: (_p,c) => !!c.target && !c.target.cls && (c.target.foe !== 'archer' && c.target.foe !== 'shaman'), run: (p,c) => { if (c.target) counter(p,c.src,c.target,c.t,c.ev,T.counter(c.src)); } },
 ];
 const archer: TriggerDef[] = [
@@ -60,7 +57,7 @@ const extra = (base: TriggerDef[], def: TriggerDef) => [...base,def];
 export const KITS: Record<ClassId, Kit> = {
   // the innates are read on use: the card module and this one import each other
   shell: { get innate() { return SHELL_INNATE; }, ultimate: 'gravity', ultCd: 35, proficient: ['gun'] },
-  warrior: kit(warrior,'warcry',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: { get innate() { return MAGE_INNATE; }, ultimate: 'teleport', ultCd: 30, proficient: ['staff'] }, cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: { get innate() { return [...rogue, MIRROR_STRIKE]; }, ultimate: 'shadowClone', ultCd: 35, proficient: ['dagger'] },
+  warrior: kit(warrior,'earthSlam',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: { get innate() { return MAGE_INNATE; }, ultimate: 'teleport', ultCd: 30, proficient: ['staff'] }, cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: { get innate() { return [...rogue, MIRROR_STRIKE]; }, ultimate: 'shadowClone', ultCd: 35, proficient: ['dagger'] },
   berserker: kit(extra(warrior,{ id: '광분', when: 'struck', test: (p,c) => entOf(p,c.src.id)!.hp < entOf(p,c.src.id)!.maxHp/2, run: (p,c) => { const e = entOf(p,c.src.id)!; c.src.lowHp = e.hp < e.maxHp/2; } }),'bloodFrenzy',35,['sword','great','mace']),
   guardian: kit(extra(warrior,{ id: '수호', when: 'guard', run: (p,c) => { c.src.guardIntercepted = true; damage(p,c.t,c.target?.id ?? '',c.src,c.amount ?? 0,c.ev,true,false,'physical',true); } }),'bastion',35,['sword','mace']),
   sniper: kit(extra(archer,{ id: '저격', when: 'beforeHit', test: (p,c) => !!c.target && dist(posOf(p,c.src),posOf(p,c.target)) >= 5, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'pierceShot',35,['bow','crossbow']),
