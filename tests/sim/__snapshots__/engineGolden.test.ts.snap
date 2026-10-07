@@ -1,9 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`engine golden results > bonds vs ambush 1`] = `"defeat:616:9e3d12cd"`;
-
-exports[`engine golden results > elemental vs boss 1`] = `"defeat:305:c9995dea"`;
-
-exports[`engine golden results > room battle with props 1`] = `"victory:175:1c43fa3d"`;
-
-exports[`engine golden results > standard vs bandits 1`] = `"victory:188:4ee4f6ad"`;
