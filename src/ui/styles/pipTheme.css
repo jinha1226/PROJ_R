@@ -27,3 +27,10 @@
 .ui-pip .loading:not([hidden]) { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #031208 0%, #010603 100%); color: #5dff8a; font: 16px 'GalmuriMono', ui-monospace, monospace; text-shadow: 0 0 4px #3dff7a99; }
 .ui-pip .loading:not([hidden])::after { content: '▌'; margin-left: 4px; animation: pip-cursor 0.8s steps(1) infinite; }
 @keyframes pip-cursor { 50% { opacity: 0; } }
+.branch-menu { padding: 24px; color: #5dff8a; font-family: 'GalmuriMono', monospace; background: #02080a; min-height: 100vh; box-sizing: border-box; }
+.branch-menu h2 { font-weight: normal; margin: 0 0 16px; }
+.branch-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.branch-line b { width: 72px; font-weight: normal; color: #9dffb8; }
+.branch-line a { color: #5dff8a; border: 1px solid #1f7a3e; padding: 4px 10px; text-decoration: none; }
+.branch-line a:hover { background: #5dff8a; color: #021006; }
+.branch-line span { color: #34a85c; font-size: 12px; }

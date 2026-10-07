@@ -29,6 +29,12 @@ export function chainArena(seed: number): DelveParty {
   implant(p, first, { cls: BUILDS[0]!.cls, memory: BUILDS[0]!.memory }, []);
   for (const b of BUILDS.slice(1)) print(p, { cls: b.cls, memory: b.memory }, []);
   clones(p).forEach((u, i) => dress(p, u, BUILDS[i]!));
+  packHorde(p);
+  return p;
+}
+
+/** Every foe on the floor gathers awake in a crowd a few cells from the clones: a horde, most of it fodder, a few tough ones. */
+export function packHorde(p: DelveParty): void {
   // every foe on the floor gathers in a crowd near the party, awake
   const m = p.s.map, d = distanceMap(m, m.start), taken = new Set(clones(p).map((u) => idx(m, entOf(p, u.id)!.pos)));
   const spots: Cell[] = [];
@@ -51,7 +57,6 @@ export function chainArena(seed: number): DelveParty {
     const tough = i % 8 === 0;
     e.pos = { ...at }; e.hp = e.maxHp = tough ? Math.round(e.maxHp * 1.5) : FODDER_HP; f.asleep = false; f.nextAt = 0.5 + 0.05 * i;
   });
-  return p;
 }
 
 function dress(p: DelveParty, u: Unit, b: (typeof BUILDS)[number]): void {

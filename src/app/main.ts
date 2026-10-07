@@ -50,6 +50,27 @@ async function chainsDemo(): Promise<void> {
   }
 }
 
+/** `?demo=branch`: a menu of class branches; `&b=<branch>` stages that branch's build against a horde, turn by turn. */
+async function branchDemo(): Promise<void> {
+  try {
+    const { branchArena, branchMenuHtml } = await import('../ui/delve/branchArena');
+    const key = params.get('b');
+    if (!key) { root.innerHTML = branchMenuHtml(); return; }
+    const [{ DelveScreen }, { arenaOver }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), import('../ui/delve/chainArena'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    let seed = urlSeed || 7;
+    const stage = (): void => {
+      const party = branchArena(seed++, key);
+      router.go(new DelveScreen(lib, kit, { party, auto: true, stepped: true, restart: stage, quit: () => { location.search = '?demo=branch'; } }));
+      let overFor = 0;
+      const watch = setInterval(() => { overFor = arenaOver(party) ? overFor + 1 : 0; if (overFor >= 3) { clearInterval(watch); stage(); } }, 1000);
+    };
+    stage();
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 /** `?demo=deep&floor=N`: a deep floor with a level-10 empty body fighting by itself, for checking how a horde runs on screen. */
 async function deepDemo(): Promise<void> {
   try {
@@ -78,4 +99,5 @@ async function looksDemo(): Promise<void> {
 if (params.get('demo') === 'looks') void looksDemo();
 else if (params.get('demo') === 'chains') void chainsDemo();
 else if (params.get('demo') === 'deep') void deepDemo();
+else if (params.get('demo') === 'branch') void branchDemo();
 else title();
