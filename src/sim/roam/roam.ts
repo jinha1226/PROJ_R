@@ -147,7 +147,8 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
     if (!by) continue;
     soul.taken = true;
     ev.push({ t, type: 'pickup', src: by.id, to: soul.pos, text: 'soul' });
-    const carried: CarriedSoul = soul.hero ? { cls: soul.cls, hero: soul.hero, memory: soul.memory } : soul.memory ? { cls: soul.cls, memory: soul.memory } : soul.cls;
+    // picked up below, a stone is unidentified until it reaches the base
+    const carried: CarriedSoul = !p.printHere ? { cls: soul.cls, hero: soul.hero, memory: soul.memory, unknown: true } : soul.hero ? { cls: soul.cls, hero: soul.hero, memory: soul.memory } : soul.memory ? { cls: soul.cls, memory: soul.memory } : soul.cls;
     if (soul.hero && !p.foundHeroes.includes(soul.hero)) p.foundHeroes.push(soul.hero);
     p.carried.push(carried);
   }

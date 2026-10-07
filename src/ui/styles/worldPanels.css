@@ -166,3 +166,10 @@
 /* the chain demo's turn-by-turn button */
 .step-next { position: absolute; z-index: 9; left: 50%; bottom: 128px; transform: translateX(-50%); font: 14px 'GalmuriMono', monospace; color: #021006; background: #5dff8a; border: 2px solid #021006; box-shadow: 0 0 0 1px #5dff8a; padding: 8px 18px; cursor: pointer; }
 @media (orientation: portrait) and (max-width: 700px) { .step-next { bottom: auto; top: 96px; } }
+.pip-souls h3 small { color: #34a85c; font-size: 11px; }
+.pip-stone { display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; align-items: center; padding: 6px 8px; border: 1px solid #1f7a3e; border-left: 3px solid var(--tint, #5dff8a); margin-bottom: 6px; }
+.pip-stone b { color: var(--tint, #5dff8a); font-weight: normal; }
+.pip-stone b em { color: #ffd76a; font-style: normal; font-size: 11px; margin-left: 6px; }
+.pip-stone-mem, .pip-stone-cards { grid-column: 2; margin: 0; font-size: 12px; }
+.pip-stone-mem small { color: #34a85c; margin-left: 6px; }
+.pip-stone-cards { color: #9dffb8; font-size: 11px; }

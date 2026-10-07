@@ -2,7 +2,7 @@ import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
 import { same, tileAt, walkable, type Cell } from '../grid/types';
 import { alive, entOf, type Unit } from '../party/partyCore';
-import type { CarriedSoul, HeroSoulId } from '../delve/heroSouls';
+import { identify, type CarriedSoul, type HeroSoulId } from '../delve/heroSouls';
 import { heldHeroes, living, look, type RoamParty } from './roam';
 
 /** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the bio-matter, the next clone's number. */
@@ -64,7 +64,7 @@ export function rejoin(p: RoamParty, c: Carry, at: Cell): void {
   p.pack = structuredClone(c.pack); p.nextItem = c.nextItem;
   p.ore = c.ore; p.crystal = c.crystal; p.bio = c.bio; p.nextClone = Math.max(p.nextClone, c.nextClone);
   p.foundHeroes = [...new Set([...p.foundHeroes, ...c.foundHeroes])];
-  if (c.clones.length) p.carried = [...p.carried, ...structuredClone(c.carried)];
+  if (c.clones.length) p.carried = [...p.carried, ...structuredClone(c.carried).map(identify)];
   p.combat = false; p.waiting = false; p.manual = undefined; p.over = false; p.rewakeAt = undefined;
   if (!entOf(p, p.leader ?? '')?.alive) p.leader = living(p)[0]?.id ?? p.leader;
   look(p);

@@ -3,6 +3,7 @@ import { traitText } from '../../sim/party/traitText';
 import { KIND_NAME } from '../../sim/party/traitTypes';
 import { MEMORIES } from '../../sim/party/memories';
 import { linesOf, memoriesOf, soulsOf } from '../../sim/party/body';
+import { soulListHtml } from './pipSouls';
 import { resonanceHtml } from './resonanceHtml';
 import { dmgText, gearHtml, packHtml } from './pipGear';
 import { rosterHtml } from './pipRoster';
@@ -19,8 +20,8 @@ import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 
-export type PipTab = 'roster' | 'stat' | 'skill' | 'gear' | 'bag';
-const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', skill: '기술', gear: '장비', bag: '가방' };
+export type PipTab = 'roster' | 'stat' | 'skill' | 'gear' | 'bag' | 'soul';
+const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', skill: '기술', gear: '장비', bag: '가방', soul: '영혼석' };
 const BAG_SLOTS = 16;
 
 /** The Pip-Boy style window: the clones' records (status), their gear, the class tree, and what the party carries (bag). The game waits while it is open. */
@@ -64,11 +65,11 @@ export class PipWindow {
 
   private draw(): void {
     const p = this.p();
-    const tabs = (['roster', 'stat', 'skill', 'gear', 'bag'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
-    const body = this.tab === 'roster' ? rosterHtml(p) : this.tab === 'stat' ? this.stat(p) : this.tab === 'bag' ? this.bag(p)
+    const tabs = (['roster', 'stat', 'skill', 'gear', 'bag', 'soul'] as const).map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
+    const body = this.tab === 'roster' ? rosterHtml(p) : this.tab === 'stat' ? this.stat(p) : this.tab === 'bag' ? this.bag(p) : this.tab === 'soul' ? soulListHtml(p, !p.printHere)
       : `<nav class="pip-side">${this.side(p)}</nav>${this.tab === 'skill' ? skillsHtml(p, unitOf(p, this.who)) : gearHtml(p, unitOf(p, this.who))}`;
     this.el.innerHTML = `<div class="pip-frame"><header>${tabs}<span class="pip-title">R-7 기록 장치</span><button type="button" data-close>✕</button></header>
-      <div class="pip-body">${body}</div><footer>L 명단 · C 상태 · K 기술 · E 장비 · I 가방 · Esc 닫기</footer></div>`;
+      <div class="pip-body">${body}</div><footer>L 명단 · C 상태 · K 기술 · E 장비 · I 가방 · J 영혼석 · Esc 닫기</footer></div>`;
   }
 
   /** the living clones to choose from (the empty pods after them) */
@@ -97,7 +98,7 @@ export class PipWindow {
 
   private bag(p: RoamParty): string {
     const empty = this.shell(p);
-    const items = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls, m = typeof soul === 'string' || !soul.memory ? '' : `<small>${MEMORIES[soul.memory].name}</small>`; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span>${m}${empty ? `<button type="button" data-soul="${i}">주입</button>` : ''}</div>`; });
+    const items = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls, m = typeof soul === 'string' || !soul.memory ? '' : `<small>${soul.unknown ? '???' : MEMORIES[soul.memory].name}</small>`; return `<div class="pip-slot soul" style="--tint:${CLASS_TINT[c]}">${classIcon(c)}<span>${CLASSES[c].name}의 영혼</span>${m}${empty ? `<button type="button" data-soul="${i}">주입</button>` : ''}</div>`; });
     // the pack's gear and consumables share the grid with the souls
     const gear = p.pack.map((it) => `<div class="pip-slot item${'def' in it ? '' : ' use'}" title="${itemName(it)}"><span>${itemName(it)}</span></div>`);
     const all = [...items, ...gear];

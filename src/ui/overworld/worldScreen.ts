@@ -294,7 +294,7 @@ export class WorldScreen implements Screen {
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : 'gear'); return; }
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k' || k === 'j') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : k === 'j' ? 'soul' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];

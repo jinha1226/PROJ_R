@@ -50,7 +50,7 @@ it('stairs and shaft carry resources and copied souls but leave floor items behi
 });
 it('named souls retain identity on pickup, carry and printing with the correct growth', () => {
   const p = quiet(); p.souls = [{ id: 99, cls: 'mage', hero: 'mira', pos: { ...entOf(p, 'hero')!.pos }, taken: false }];
-  delveTick(p, 0.1); expect(p.carried).toEqual([{ cls: 'mage', hero: 'mira' }]); expect(p.foundHeroes).toContain('mira');
+  delveTick(p, 0.1); expect(p.carried).toEqual([{ cls: 'mage', hero: 'mira', unknown: true }]); expect(p.foundHeroes).toContain('mira');
   const s = newSurface(2); placeParty(s, takeParty(p)); const u = print(s, s.carried.shift(), [])!;
   expect(u).toMatchObject({ hero: 'mira', name: '미라', cls: 'mage', level: 4, xp: 45, traits: HERO_SOULS.mira.traits });
   expect(entOf(s, u.id)!.hp).toBe(entOf(s, u.id)!.maxHp);
@@ -151,7 +151,7 @@ it('crypt pickup and named implantation wait for combat to end for both occupied
     delveTick(p, 0.1); expect(p.souls[0]!.taken).toBe(false); expect(u.hero).toBeUndefined(); expect(p.carried).toEqual([]);
     e.alive = false; delveTick(p, 0.1); delveTick(p, 0.1);
     expect(p.souls[0]!.taken).toBe(true);
-    expect(p.carried).toEqual([{ cls: 'mage', hero: 'mira' }]);
+    expect(p.carried).toEqual([{ cls: 'mage', hero: 'mira', unknown: true }]);
     if (empty) { p.combat = true; expect(implantCarried(p, u.id, 0)).toEqual([]); p.combat = false; implantCarried(p, u.id, 0); expect(u.hero).toBe('mira'); }
   }
 });
