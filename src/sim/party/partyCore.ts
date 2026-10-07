@@ -21,6 +21,7 @@ import { elementAmp } from './cardsMage';
 import { necroAmp } from './cardsNecro';
 import { shoutAmp } from './cardsWarrior';
 import { elementShooterAmp } from './cardsArcher';
+import { holyAmp } from './cardsCleric';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -58,6 +59,8 @@ export interface Unit {
   returnFiring?: boolean;
   /** the archer's volley ending and its piercing build-up */
   volleyUntil?: number; pierceStack?: number;
+  /** the cleric's extra hammers (when each ends), where the ring stands, its next step, a hammer blow under way; the aura's build-up; zeal */
+  hammers?: number[]; hammerPhase?: number; hammerNext?: number; hammering?: boolean; auraBoost?: number; zealUntil?: number;
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
@@ -114,6 +117,8 @@ export interface Party {
   wells?: {at:Cell;by:string;until:number;next:number}[];
   /** the rogue's snares on the floor */
   snares?: import('./snares').Snare[];
+  /** sanctuaries on the floor (the cleric's ultimate) */
+  zones?: { at: Cell; by: string; until: number; next: number; r: number }[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
   beforeStep?: (u: Unit, t: number, ev: GEvent[]) => void;
   avoidTraps?: boolean;
@@ -153,7 +158,7 @@ export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range
   const lowHp = e ? e.hp < e.maxHp / 2 : u.lowHp;
   const w = weaponStats(u);
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) + (p && resonant(p, u, '원거리', 1) ? 1 : 0) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
+  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * (t < (u.zealUntil ?? 0) ? 0.7 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u, 0, p).range): boolean {
@@ -222,6 +227,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
   }
+  // holy mastery (cleric), multiplied
+  if (attacker?.traits?.holyAmp) amount = Math.round(amount * holyAmp(attacker, kind));
   // element archer mastery: fire and cold, multiplied
   if (attacker?.traits?.elementShooter) amount = Math.round(amount * elementShooterAmp(attacker, kind));
   // shout mastery (warrior): a stunned or taunted foe takes more, multiplied

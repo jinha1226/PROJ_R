@@ -30,7 +30,7 @@ export function takenMult(p:Party,u:Unit,t:number):number {
 }
 /** A clone's shield gave out: a cleric with shield burst hurts the foes beside it by what broke. */
 export function shieldBroken(p:Party,u:Unit,t:number,ev:GEvent[],amount=0):void {
-  for(const c of p.units) if(c.side==='hero'&&alive(p,c)&&rank(c,'shieldBurst')) for(const f of nearby(p,u,1,'foe')) { damage(p,t,c.id,f,amount,ev,true); if(rank(c,'shieldBurst')>=2) applyStatus(p,c,f,'stun',t,ev); }
+  for(const c of p.units) if(c.side==='hero'&&alive(p,c)&&rank(c,'shieldBurst')) for(const f of nearby(p,u,rank(c,'shieldBurst')>=3?2:1,'foe')) { damage(p,t,c.id,f,amount,ev,true); if(rank(c,'shieldBurst')>=2) applyStatus(p,c,f,'stun',t,ev); }
 }
 /** A clone fell: a martyr's party heals a third and hits harder for two turns. */
 export function allyFell(p:Party,u:Unit,t:number,ev:GEvent[]):void {

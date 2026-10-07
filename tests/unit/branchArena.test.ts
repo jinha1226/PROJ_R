@@ -24,7 +24,7 @@ it('the menu lists the empty body branches as links', () => {
   for (const b of ['shell:shot', 'shell:blast', 'shell:suit']) expect(html).toContain(`?demo=branch&b=${b}`);
 });
 
-it.each(['rogue:trap', 'rogue:martial', 'rogue:shadow', 'warrior:whirl', 'warrior:frenzy', 'warrior:shout', 'archer:volley', 'archer:element', 'archer:precision'])('the %s demo fights on its own: foes fall, nothing throws', (b) => {
+it.each(['rogue:trap', 'rogue:martial', 'rogue:shadow', 'warrior:whirl', 'warrior:frenzy', 'warrior:shout', 'archer:volley', 'archer:element', 'archer:precision', 'cleric:hammer', 'cleric:shield', 'cleric:aura'])('the %s demo fights on its own: foes fall, nothing throws', (b) => {
   const p = branchArena(7, b), foes = () => p.units.filter((f) => f.side === 'foe' && entOf(p, f.id)?.alive).length, start = foes();
   for (let k = 0; k < 300; k++) delveTick(p, 0.1);
   expect(foes()).toBeLessThan(start);

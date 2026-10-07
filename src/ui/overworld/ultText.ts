@@ -8,7 +8,7 @@ export const ULT_TEXT: Record<UltId, string> = {
   gravity: '지정한 칸으로 2턴간 3칸 안 적을 끌어당긴 뒤 붕괴 (주변 1칸 피해·기절)',
   bastion: '4칸 안 적 5턴 도발 · 아군 보호막 30',
   bloodFrenzy: '5턴간 준 피해의 30% 회복',
-  sanctum: '3칸 안 아군 3턴 무적',
+  sanctum: '지정한 칸(6칸 안) 주변 2칸에 3턴 결계: 안의 아군 무적, 적은 매 턴 신성 피해',
   longSanctum: '3칸 안 아군 5턴 무적',
   arrowRain: '대상 주변 1칸에 화살 5발',
   bleedRain: '대상 주변 1칸에 화살 5발 · 출혈',

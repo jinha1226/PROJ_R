@@ -90,8 +90,8 @@ export function descend(p: DelveParty): boolean {
   p.s = newState(map, p.seed + floor * 31, 'pistol', floor);
   p.deepest = Math.max(p.deepest, floor);
   p.beacon = undefined; p.beaconUsed = false; p.beaconAt = undefined;
-  // snares, wells and burning ground belong to the floor they were set on
-  p.snares = []; p.wells = []; p.grounds = [];
+  // snares, wells, burning ground and sanctuaries belong to the floor they were set on
+  p.snares = []; p.wells = []; p.grounds = []; p.zones = [];
   p.floor = floor; p.units = []; p.souls = placeSouls(generated, p.seed, floor, false); p.base = { ...map.start };
   populate(p);
   placeParty(p, carry);

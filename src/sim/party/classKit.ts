@@ -36,7 +36,9 @@ const archer: TriggerDef[] = [
   { id: '정조준', when: 'still', run: (_p,c) => { c.src.steady = Math.min(T.steadyMax(c.src),c.src.still); } },
 ];
 const cleric: TriggerDef[] = [
+  // the hand of salvation: the cleric itself or one of its minions in crisis is healed (one cooldown for both)
   { id: '구원의 손', when: 'allyCrisis', cd: 8, run: (p,c) => { if (c.target) heal(p,c.src,c.target,22,c.t,c.ev); } },
+  { id: '구원의 손', when: 'crisis', cd: 8, run: (p,c) => heal(p,c.src,c.src,22,c.t,c.ev) },
   { id: '축복', when: 'combatStart', run: (p,c) => { for (const u of p.units) if (u.side === 'hero' && alive(p,u)) addShield(u, 10+T.ward(c.src)); } },
 ];
 const rogue: TriggerDef[] = [

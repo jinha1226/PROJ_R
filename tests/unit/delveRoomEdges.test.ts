@@ -187,11 +187,12 @@ it('an alarm starting a fight stops the manual clone and companions immediately'
   expect(ev.some((e) => e.type === 'trap')).toBe(true); expect(foe.asleep).toBe(false); expect(p.combat).toBe(true);
   expect(hero.order).toBeNull(); expect(companion.order).toBeNull();
 });
-it('the stairs leave snares, gravity wells and burning ground behind on the floor they were set', () => {
+it('the stairs leave snares, gravity wells, burning ground and sanctuaries behind on the floor they were set', () => {
   const p = quiet();
   p.snares = [{ at: { x: 2, y: 2 }, by: 'hero', kind: 'bolt', charges: 3, ready: 0 }];
   p.wells = [{ at: { x: 2, y: 2 }, by: 'hero', until: 9, next: 0 }];
   p.grounds = [{ at: { x: 2, y: 2 }, by: 'hero', until: 9, next: 0 }];
+  p.zones = [{ at: { x: 2, y: 2 }, by: 'hero', until: 9, next: 0, r: 2 }];
   entOf(p, 'hero')!.pos = { ...p.s.map.stairs! }; expect(descend(p)).toBe(true);
-  expect(p.snares ?? []).toEqual([]); expect(p.wells ?? []).toEqual([]); expect(p.grounds ?? []).toEqual([]);
+  expect(p.snares ?? []).toEqual([]); expect(p.wells ?? []).toEqual([]); expect(p.grounds ?? []).toEqual([]); expect(p.zones ?? []).toEqual([]);
 });

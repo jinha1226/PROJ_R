@@ -9,8 +9,8 @@ const ally = (p: ReturnType<typeof scene>['p'], u: ReturnType<typeof scene>['u']
   const o = p.units.find((v) => v.side === 'hero' && v !== u && !entOf(p, v.id)!.alive)!; o.cls = cls; o.souls = [{ cls, ultReady: 0 }]; o.traits = {}; entOf(p, o.id)!.alive = true; entOf(p, o.id)!.pos = { x, y }; return o;
 };
 
-it('eight cleric cards and ten duos, each duo naming two classes and who runs it', () => {
-  expect(SUPPORT_CARDS.filter((d) => d.pool === 'cleric')).toHaveLength(8);
+it('ten duos (the cleric moved to its branches), each naming two classes and who runs it', () => {
+  expect(SUPPORT_CARDS.filter((d) => d.pool === 'cleric')).toHaveLength(0);
   const duos = SUPPORT_CARDS.filter((d) => d.pool === 'duo');
   expect(duos).toHaveLength(10); expect(duos.every((d) => d.duo?.length === 2 && !!d.who && d.kind === 'duo')).toBe(true);
 });

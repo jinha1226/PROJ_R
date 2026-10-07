@@ -10,6 +10,7 @@ import { raiseGolem } from './cardsNecro';
 import { corpsesNear, isCorpse } from './corpses';
 import { shadowClone } from './cardsRogue';
 import { earthSlam } from './cardsWarrior';
+import { sanctuary } from './cardsCleric';
 import { summon } from './kitEffects';
 import { applyStatus } from './status';
 import { action, emit } from './triggers';
@@ -17,7 +18,7 @@ import { T } from './traitMods';
 export const ULT_NAMES: Record<UltId,string> = { warcry:'전장의 함성',arrowRain:'화살비',meteor:'운석',sanctum:'신성 결계',shadowDance:'그림자 난무',bloodFrenzy:'피의 광란',bastion:'방벽',pierceShot:'관통탄',bleedRain:'피의 화살비',elementStorm:'원소 폭풍',deadHost:'망자의 군세',judgement:'심판의 빛',longSanctum:'빛의 결계',deathDance:'죽음의 난무',toxicFog:'독안개',gravity:'중력탄',teleport:'순간이동',golem:'골렘',shadowClone:'그림자 분신',earthSlam:'대지 강타' };
 export interface UltSlot { slot: number; ult: UltId; ready: number; cd: number }
 /** the ultimates that need a cell picked by the player */
-export const AIMED: UltId[] = ['arrowRain', 'bleedRain', 'meteor', 'elementStorm', 'pierceShot', 'judgement', 'toxicFog', 'gravity', 'teleport', 'golem', 'shadowClone', 'earthSlam'];
+export const AIMED: UltId[] = ['arrowRain', 'bleedRain', 'meteor', 'elementStorm', 'pierceShot', 'judgement', 'toxicFog', 'gravity', 'teleport', 'golem', 'shadowClone', 'earthSlam', 'sanctum'];
 /** One ultimate per soul in the body, each with its own cooldown (a unit given a class directly has its class's one). */
 export function ultSlots(u: Unit): UltSlot[] {
   // summoned bodies (skeletons share the empty body's class) cast nothing
@@ -41,7 +42,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
   const near=(center:Cell,r:number)=>foes.filter(f=>dist(posOf(p,f),center)<=r);
   const allies=p.units.filter(x=>x.side==='hero' && alive(p,x));
   const aimed=AIMED.includes(ult);
-  if(aimed && ult!=='teleport' && ult!=='golem' && ult!=='shadowClone' && ult!=='earthSlam' && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='gravity'?GRAVITY_REACH:ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
+  if(aimed && ult!=='teleport' && ult!=='golem' && ult!=='shadowClone' && ult!=='earthSlam' && ult!=='sanctum' && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='gravity'?GRAVITY_REACH:ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
   if(['shadowDance','deathDance','bloodFrenzy'].includes(ult) && !near(me,4).length) return [];
   const pact=u.traits?.bloodPact?Math.round(entOf(p,id)!.maxHp*.3):0; if(pact && entOf(p,id)!.hp<=pact) return [];
   switch(ult) {
@@ -50,7 +51,8 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
       for(const a of allies) addShield(a, ult==='bastion'?30:15);
       break;
     case 'bloodFrenzy': u.leechUntil=t+5; break;
-    case 'sanctum': case 'longSanctum': for(const a of allies) if(dist(posOf(p,a),me)<=3) a.immuneUntil=t+(ult==='longSanctum'?5:3); break;
+    case 'sanctum': if(!cell || !sanctuary(p,u,cell,t)) return []; break;
+    case 'longSanctum': for(const a of allies) if(dist(posOf(p,a),me)<=3) a.immuneUntil=t+5; break;
     case 'arrowRain': case 'bleedRain': {
       const targets=near(at!,1);
       for(let k=0;k<5;k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(alive(p,f)) applyStatus(p,u,f,'mark',t,ev); if(ult==='bleedRain' && alive(p,f)) applyStatus(p,u,f,'bleed',t,ev);}}
@@ -110,7 +112,9 @@ export function aiUltimate(p: Party,u: Unit): { slot: number; cell?: Cell } | nu
 function aiUse(p: Party,u: Unit,ult: UltId): Cell | undefined | null {
   const me=posOf(p,u), foes=p.units.filter(x=>x.side==='foe'&&alive(p,x)&&!x.asleep&&dist(posOf(p,x),me)<=10);
   if(!foes.length) return null;
-  if(['sanctum','longSanctum','warcry','bastion'].includes(ult)) return p.units.some(x=>x.side==='hero'&&alive(p,x)&&entOf(p,x.id)!.hp<entOf(p,x.id)!.maxHp/2)||foes.length>=3 ? undefined:null;
+  // the sanctuary goes where the cleric stands, when it is hurt or crowded
+  if(ult==='sanctum') return entOf(p,u.id)!.hp<entOf(p,u.id)!.maxHp/2||foes.filter(x=>dist(posOf(p,x),me)<=3).length>=3 ? {...me}:null;
+  if(['longSanctum','warcry','bastion'].includes(ult)) return p.units.some(x=>x.side==='hero'&&alive(p,x)&&entOf(p,x.id)!.hp<entOf(p,x.id)!.maxHp/2)||foes.length>=3 ? undefined:null;
   if(['bloodFrenzy','shadowDance','deathDance'].includes(ult)) return foes.some(x=>dist(posOf(p,x),me)<=4)?undefined:null;
   // teleport: away from two foes at its side, to the free cell within reach farthest from every foe
   if(ult==='teleport') {

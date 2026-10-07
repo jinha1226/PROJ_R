@@ -7,12 +7,11 @@ import { rollOffer } from '../../src/sim/party/traitPool';
 import { BASE_CLASSES } from '../../src/sim/party/partyDefs';
 it('has exactly 12 common, the class cards, 12 empty-body, 10 duo and six oath cards', () => {
   const defs=Object.values(TRAITS);
-  expect(defs).toHaveLength(108);
+  expect(defs).toHaveLength(112);
   expect(defs.filter(d=>d.pool==='shell')).toHaveLength(12);
   expect(defs.filter(d=>d.pool==='common')).toHaveLength(12);
-  // the classes moved to branches (C3b) have twelve; the rest still eight
-  for(const cls of BASE_CLASSES.filter((c)=>!['necromancer','mage','rogue','warrior','archer'].includes(c))) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
-  expect(defs.filter(d=>d.pool==='mage')).toHaveLength(12); expect(defs.filter(d=>d.pool==='necromancer')).toHaveLength(12); expect(defs.filter(d=>d.pool==='rogue')).toHaveLength(12); expect(defs.filter(d=>d.pool==='warrior')).toHaveLength(12); expect(defs.filter(d=>d.pool==='archer')).toHaveLength(12);
+  // every soul class on its three branches of four
+  for(const cls of BASE_CLASSES) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(12);
   expect(defs.filter(d=>d.pool==='duo')).toHaveLength(10);
   expect(defs.filter(d=>d.pool==='keystone')).toHaveLength(6);
   expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||!!d.kind))).toBe(true);
@@ -59,4 +58,10 @@ it('bond adds fifteen percent per nearby living ally', () => {
     p.s.rng.int=()=>20;p.s.rng.chance=c=>c>.2;strike(p,u,f,0,[]);return 1000-entOf(p,f.id)!.hp;
   };
   expect(hit(1,true)).toBe(23);expect(hit(0,true)).toBe(20);expect(hit(1,false)).toBe(20);
+});
+
+it('no two cards share an id (a later one would silently replace the earlier)', async () => {
+  const mods = await Promise.all(['cardsCommon', 'cardsWarrior', 'cardsArcher', 'cardsCleric', 'cardsSupport', 'cardsShell', 'cardsMage', 'cardsNecro', 'cardsRogue'].map((m) => import(`../../src/sim/party/${m}.ts`)));
+  const ids = mods.flatMap((m) => Object.values(m).filter(Array.isArray).flat().filter((d: { id?: string; ranks?: number }) => d && d.id && d.ranks).map((d: { id: string }) => d.id));
+  expect(ids.length).toBe(new Set(ids).size);
 });

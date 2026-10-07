@@ -9,8 +9,8 @@ import type { GEvent } from '../../src/sim/grid/types';
 it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, ally = p.units[1]!, ev: GEvent[] = [];
   u.cls = cls; u.weapon = { warrior: 'swordShield', archer: 'longbow', mage: 'staff', cleric: 'mace', rogue: 'daggers', necromancer: 'staff' }[cls] as typeof u.weapon;
-  // the necromancer also carries its golem's fall, the rogue its clones' blows
-  expect(sourcesOf(p,u)).toHaveLength(cls === 'necromancer' || cls === 'rogue' ? 3 : 2);
+  // the necromancer also carries its golem's fall, the rogue its clones' blows, the cleric's hand of salvation answers its own crisis too
+  expect(sourcesOf(p,u)).toHaveLength(cls === 'necromancer' || cls === 'rogue' || cls === 'cleric' ? 3 : 2);
   entOf(p,f.id)!.pos={x:4,y:4};entOf(p,p.units[4]!.id)!.pos={x:3,y:5};
   entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
   entOf(p,ally.id)!.hp=1;u.nth=3;u.still=2;p.s.rng.chance=c=>c>.2;
@@ -51,11 +51,10 @@ it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','snip
   expect(useUltimate(p, u.id, cls === 'mage' || cls === 'warrior' ? free : { x: 4, y: 4 }).length).toBeGreaterThan(0);
   expect(u.ultReady).toBe(KITS[cls].ultCd); expect(useUltimate(p, u.id)).toEqual([]);
 });
-it('AI casts sanctuary on its moment and prevents damage until expiry', () => {
+it('a hurt AI cleric raises the sanctuary where it stands, and blows inside do nothing', () => {
   const p=partyRoom(),u=p.units[2]!;u.cls='cleric';u.weapon='symbol';
-  const ally=p.units[0]!, e=entOf(p,ally.id)!;e.hp=10;
-  expect(aiUltimate(p,u)).not.toBeNull();for(const v of p.units)v.nextAt=100;u.nextAt=0;
-  tick(p,.1);expect(ally.immuneUntil).toBe(3);expect(u.ultReady).toBe(45);
-  damage(p,1,'trap',ally,10,[]);expect(e.hp).toBe(10);
-  u.trig['구원의 손']=100;ally.shield=0;damage(p,3,'trap',ally,4,[]);expect(e.hp).toBe(7);
+  const e=entOf(p,u.id)!;e.hp=10;
+  expect(aiUltimate(p,u)).toEqual({ slot: 0, cell: e.pos });for(const v of p.units)v.nextAt=100;u.nextAt=0;
+  tick(p,.1);expect((u.immuneUntil??0)>p.time).toBe(true);expect(u.ultReady).toBe(45);
+  u.shield=0;damage(p,p.time,'trap',u,10,[]);expect(e.hp).toBe(10);
 });
