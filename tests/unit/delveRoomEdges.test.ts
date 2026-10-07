@@ -157,7 +157,8 @@ it('crypt pickup and named implantation wait for combat to end for both occupied
 });
 it('a lethal backstab landing trap resolves before the rogue can strike', () => {
   const p = arena(), u = unitOf(p, 'hero')!, me = entOf(p, u.id)!;
-  u.souls = []; implant(p, u, 'rogue', []); me.hp = 1;
+  // the assassin's death dance still steps from foe to foe (the rogue's own ultimate is now its clones)
+  u.souls = []; implant(p, u, 'rogue', []); u.souls = []; u.cls = 'assassin'; me.hp = 1;
   const foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;
   e.alive = true; e.hp = 100; e.pos = { x: 10, y: 7 }; foe.asleep = false;
   for (let y = 6; y <= 8; y++) for (let x = 9; x <= 11; x++) p.s.traps.push({ pos: { x, y }, kind: 'spike', found: false });
@@ -185,4 +186,12 @@ it('an alarm starting a fight stops the manual clone and companions immediately'
   const ev = command(p, { kind: 'move', cell: { x: 11, y: 7 } });
   expect(ev.some((e) => e.type === 'trap')).toBe(true); expect(foe.asleep).toBe(false); expect(p.combat).toBe(true);
   expect(hero.order).toBeNull(); expect(companion.order).toBeNull();
+});
+it('the stairs leave snares, gravity wells and burning ground behind on the floor they were set', () => {
+  const p = quiet();
+  p.snares = [{ at: { x: 2, y: 2 }, by: 'hero', kind: 'bolt', charges: 3, ready: 0 }];
+  p.wells = [{ at: { x: 2, y: 2 }, by: 'hero', until: 9, next: 0 }];
+  p.grounds = [{ at: { x: 2, y: 2 }, by: 'hero', until: 9, next: 0 }];
+  entOf(p, 'hero')!.pos = { ...p.s.map.stairs! }; expect(descend(p)).toBe(true);
+  expect(p.snares ?? []).toEqual([]); expect(p.wells ?? []).toEqual([]); expect(p.grounds ?? []).toEqual([]);
 });

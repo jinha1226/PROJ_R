@@ -10,12 +10,12 @@ import { scene, put } from './support/cardScene';
 it('a card fires again for each heal, strike and kill in one action, not only the first', () => {
   const { p, u, foes } = scene('cleric'); const [a, b] = foes; put(p, a!, 5, 4, 999); put(p, b!, 6, 4, 999);
   const o = p.units.find((v) => v.side === 'hero' && v !== u)!; o.cls = 'warrior'; entOf(p, o.id)!.alive = true; entOf(p, o.id)!.pos = { x: 1, y: 1 };
-  u.traits = { overflowGrace: 1, envenom: 1 }; u.shield = 0; o.shield = 0;
+  u.traits = { overflowGrace: 1, curse: 1 }; u.shield = 0; o.shield = 0;
   action(p, () => { heal(p, u, u, 999, 0, []); heal(p, u, o, 999, 0, []); });
   expect(u.shield).toBeGreaterThan(0); expect(o.shield).toBeGreaterThan(0);
   p.s.rng.chance = () => true;
   action(p, () => { strike(p, u, a!, 0, [], 1, false); strike(p, u, b!, 0, [], 1, false); });
-  expect(a!.status.poison?.stacks).toBe(1); expect(b!.status.poison?.stacks).toBe(1);
+  expect(a!.cursedUntil).toBe(3); expect(b!.cursedUntil).toBe(3);
 });
 
 it('combo\'s extra blow does not rob the main blow of its bonuses', () => {

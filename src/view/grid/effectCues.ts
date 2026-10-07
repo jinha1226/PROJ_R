@@ -32,8 +32,10 @@ const CARD: Record<string, Look> = {
   독화살: L('smoke', '#7ad04a', 'dst'), '독 표식': L('smoke', '#7ad04a', 'dst'), '가시 덫': L('dust', '#c8b090', 'src', 1.2), '구르며 쏘기': L('dust', undefined, 'src'),
   '가시 갑옷': L('hit', '#d8d8d8', 'dst'), '땅 울림': L('dust', '#c8b090', 'src', 1.8, 0.14), '도발 함성': L('warn', '#ff8a4a', 'src', 3.0), '도발 응징': L('hit', '#ff8a4a', 'dst'),
   '분노 폭발': L('blast', '#ff3a2a', 'dst', 1.0, 0.1), '최후의 버팀': L('shield', '#ffffff', 'src', 1.2), '철벽 반격': L('crit', '#d8e8ff', 'dst'),
-  '급소 찌르기': L('crit', '#ffd04a', 'dst'), 처형: L('crit', '#ff2a2a', 'dst', 1.0, 0.16), '독 폭발': L('smoke', '#7ad04a', 'dst', 1.7, 0.1),
-  '그림자 걸음': L('smoke', '#3a2a4a', 'src'), '배신의 칼날': L('crit', '#c8a8ff', 'dst'), '상처 벌리기': L('hit', '#ff3a4a', 'dst'),
+  '급소 찌르기': L('crit', '#ffd04a', 'dst'), '독 폭발': L('smoke', '#7ad04a', 'dst', 1.7, 0.1),
+  '그림자 걸음': L('smoke', '#3a2a4a', 'src'), '그림자 독': L('smoke', '#5a8a3a', 'dst'),
+  '번개 함정': L('shock', '#ffe85a', 'dst', 1.2), '화염 함정': L('blast', '#ff7a2a', 'dst', 1.4, 0.1), '함정 설치': L('warn', '#ffd23a', 'dst', 0.5),
+  충격파: L('dust', '#e8e0c8', 'src', 1.0), '마무리 폭발': L('blast', '#ffd04a', 'dst', 1.6, 0.12), '용의 발톱': L('crit', '#ff9a3a', 'dst'),
   '심판 낙인': L('blast', '#ffd76a', 'dst', 1.3), '응답하는 기도': L('heal', '#ffd76a', 'dst', 1.2), '축복 확산': L('shield', '#ffd76a', 'src', 2.4),
   '축복의 처치': L('shield', '#ffd76a', 'src'), '넘친 은총': L('shield', '#ffd76a', 'dst'), '생명 전이': L('magic', '#ffd76a', 'dst'),
   마무리: L('crit', '#ffd76a', 'src'), 연타: L('hit', undefined, 'dst'), '반사 신경': L('magic', '#9fe8ff', 'src'), 선제: L('magic', '#ffd76a', 'src'),
@@ -74,7 +76,7 @@ export function effectCue(k: CueKit, e: GEvent): boolean {
   }
   const look = lookOf(e);
   if (!look) return false;
-  const src = k.at(e.src), dst = k.at(e.dst) ?? src, at: THREE.Vector3 | undefined = look.at === 'src' ? src : dst;
+  const src = k.at(e.src), dst = k.at(e.dst) ?? (e.to ? toWorld(e.to.x, e.to.y) : src), at: THREE.Vector3 | undefined = look.at === 'src' ? src : dst;
   if (look.at === 'line') { if (src && dst && src !== dst) k.fx.bolt(src, dst, () => undefined, 1.6); return true; }
   if (!at) return false;
   if (look.vfx) k.particles.vfx.fire(look.vfx, at, look.color);

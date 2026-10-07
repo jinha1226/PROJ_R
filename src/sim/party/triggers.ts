@@ -75,7 +75,7 @@ function effectState(p: Party, src: Unit): string {
   let h = 0;
   // a state with no end (shock) lasts Infinity: fold it to a big finite number, or the hash collapses to 0
   const mix = (v: number) => { h = (Math.imul(h, 31) + Math.round((Number.isFinite(v) ? v : 1e9) * 1000)) | 0; };
-  mix(p.units.length); mix(p.grounds?.length ?? 0); mix(p.wells?.length ?? 0);
+  mix(p.units.length); mix(p.grounds?.length ?? 0); mix(p.wells?.length ?? 0); mix(p.snares?.length ?? 0);
   for (const u of p.units) {
     if (u === src) continue;
     for (const k in u.status) { const st = u.status[k as StatusId]; if (st) { mix(st.until); mix(st.stacks ?? 0); } }

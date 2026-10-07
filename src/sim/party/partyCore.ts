@@ -49,6 +49,8 @@ export interface Unit {
   grenadeNext?: boolean; rfTurn?: number; rfCount?: number;
   /** a golem, a shadow clone (copies its owner, takes no turns), a curse (takes 20% more) and who laid it */
   golem?: boolean; mirror?: boolean; cursedUntil?: number; cursedBy?: string;
+  /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
+  ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
   sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
@@ -102,6 +104,8 @@ export interface Party {
   grounds?: {at:Cell;by:string;until:number;next:number;kind?:'burn'|'poison';r?:number}[];
   /** gravity wells pulling foes in (the empty body's ultimate) */
   wells?: {at:Cell;by:string;until:number;next:number}[];
+  /** the rogue's snares on the floor */
+  snares?: import('./snares').Snare[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
   beforeStep?: (u: Unit, t: number, ev: GEvent[]) => void;
   avoidTraps?: boolean;

@@ -7,13 +7,12 @@ import { rollOffer } from '../../src/sim/party/traitPool';
 import { BASE_CLASSES } from '../../src/sim/party/partyDefs';
 it('has exactly 12 common, the class cards, 12 empty-body, 10 duo and six oath cards', () => {
   const defs=Object.values(TRAITS);
-  expect(defs).toHaveLength(96);
+  expect(defs).toHaveLength(100);
   expect(defs.filter(d=>d.pool==='shell')).toHaveLength(12);
   expect(defs.filter(d=>d.pool==='common')).toHaveLength(12);
-  // the necromancer's cards arrive with plan C3b task 3
   // the classes moved to branches (C3b) have twelve; the rest still eight
-  for(const cls of BASE_CLASSES.filter((c)=>c!=='necromancer'&&c!=='mage')) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
-  expect(defs.filter(d=>d.pool==='mage')).toHaveLength(12); expect(defs.filter(d=>d.pool==='necromancer')).toHaveLength(12);
+  for(const cls of BASE_CLASSES.filter((c)=>!['necromancer','mage','rogue'].includes(c))) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
+  expect(defs.filter(d=>d.pool==='mage')).toHaveLength(12); expect(defs.filter(d=>d.pool==='necromancer')).toHaveLength(12); expect(defs.filter(d=>d.pool==='rogue')).toHaveLength(12);
   expect(defs.filter(d=>d.pool==='duo')).toHaveLength(10);
   expect(defs.filter(d=>d.pool==='keystone')).toHaveLength(6);
   expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||!!d.kind))).toBe(true);

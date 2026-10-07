@@ -4,6 +4,7 @@ import { tickStatuses } from './status';
 import { foeTurn } from './partyFoeAi';
 import { tickGrounds } from '../delve/catalogEffects';
 import { tickWells } from './gravity';
+import { tickSnares } from './snares';
 import { aiItem, useItem } from '../delve/gear';
 import type { RoamParty } from '../roam/roam';
 import { spawnFoe } from '../grid/foes';
@@ -169,7 +170,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     if (!next || next.nextAt > end) break;
     p.time = Math.max(p.time, next.nextAt);
     expireSummons(p, p.time);
-    tickGrounds(p,p.time,ev); tickWells(p,p.time,ev);
+    tickGrounds(p,p.time,ev); tickWells(p,p.time,ev); tickSnares(p,p.time,ev);
     tickStatuses(p, statusTime, p.time, ev); statusTime = p.time;
     if (!p.units.includes(next) || !alive(p, next)) continue;
     if (next.id === p.manual) {
@@ -182,7 +183,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     moment(p, next, ev);
   }
   expireSummons(p, end);
-  tickGrounds(p,end,ev); tickWells(p,end,ev);
+  tickGrounds(p,end,ev); tickWells(p,end,ev); tickSnares(p,end,ev);
   tickStatuses(p, statusTime, end, ev);
   p.time = end;
   p.s.time = end;

@@ -9,8 +9,8 @@ import type { GEvent } from '../../src/sim/grid/types';
 it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, ally = p.units[1]!, ev: GEvent[] = [];
   u.cls = cls; u.weapon = { warrior: 'swordShield', archer: 'longbow', mage: 'staff', cleric: 'mace', rogue: 'daggers', necromancer: 'staff' }[cls] as typeof u.weapon;
-  // the necromancer also carries its golem's fall
-  expect(sourcesOf(p,u)).toHaveLength(cls === 'necromancer' ? 3 : 2);
+  // the necromancer also carries its golem's fall, the rogue its clones' blows
+  expect(sourcesOf(p,u)).toHaveLength(cls === 'necromancer' || cls === 'rogue' ? 3 : 2);
   entOf(p,f.id)!.pos={x:4,y:4};entOf(p,p.units[4]!.id)!.pos={x:3,y:5};
   entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
   entOf(p,ally.id)!.hp=1;u.nth=3;u.still=2;p.s.rng.chance=c=>c>.2;

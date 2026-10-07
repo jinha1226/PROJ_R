@@ -2,6 +2,8 @@ import { expect, it } from 'vitest';
 import { branchArena, branchMenuHtml } from '../../src/ui/delve/branchArena';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { clones } from '../../src/sim/roam/roam';
+import { entOf } from '../../src/sim/party/partyCore';
+import { delveTick } from '../../src/sim/delve/delveSim';
 
 it('a branch demo body holds every card of the branch at top rank, at level 8, before an awake horde', () => {
   const p = branchArena(7, 'shell:blast'), u = clones(p)[0]!;
@@ -20,4 +22,10 @@ it('a line without branches gives its whole line', () => {
 it('the menu lists the empty body branches as links', () => {
   const html = branchMenuHtml();
   for (const b of ['shell:shot', 'shell:blast', 'shell:suit']) expect(html).toContain(`?demo=branch&b=${b}`);
+});
+
+it.each(['rogue:trap', 'rogue:martial', 'rogue:shadow'])('the %s demo fights on its own: foes fall, nothing throws', (b) => {
+  const p = branchArena(7, b), foes = () => p.units.filter((f) => f.side === 'foe' && entOf(p, f.id)?.alive).length, start = foes();
+  for (let k = 0; k < 300; k++) delveTick(p, 0.1);
+  expect(foes()).toBeLessThan(start);
 });

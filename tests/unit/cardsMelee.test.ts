@@ -5,9 +5,9 @@ import { action, emit } from '../../src/sim/party/triggers';
 import { MELEE_CARDS } from '../../src/sim/party/cardsMelee';
 import { scene, put } from './support/cardScene';
 
-it('eight warrior and eight rogue cards', () => {
+it('eight warrior cards (the rogue moved to its branches)', () => {
   expect(MELEE_CARDS.filter((d) => d.pool === 'warrior')).toHaveLength(8);
-  expect(MELEE_CARDS.filter((d) => d.pool === 'rogue')).toHaveLength(8);
+  expect(MELEE_CARDS.filter((d) => d.pool === 'rogue')).toHaveLength(0);
 });
 
 it('a foe near a warrior goes for the warrior', () => {
@@ -48,24 +48,3 @@ it('vitals: each state on the foe adds a quarter', () => {
   expect(run(true)).toBeGreaterThan(run(false));
 });
 
-it('toxic burst: five poison stacks blow up and spread', () => {
-  const { p, u, foes } = scene('rogue'); const [a, b] = foes; put(p, a!, 5, 4); put(p, b!, 6, 4);
-  u.traits = { toxicBurst: 1 };
-  applyStatus(p, u, a!, 'poison', 0, [], 5);
-  expect(a!.status.poison).toBeUndefined(); expect(entOf(p, a!.id)!.hp).toBe(170); expect(b!.status.poison?.stacks).toBe(2);
-});
-
-it('shadow step: a kill hides the rogue and puts it beside the nearest foe; with no foe left, no step and no error', () => {
-  const { p, u, foes } = scene('rogue'); const [a, b] = foes; put(p, a!, 5, 4, 1); put(p, b!, 9, 4);
-  u.traits = { shadowStep: 1 };
-  damage(p, 0, u.id, a!, 50, []);
-  expect(u.hiddenUntil).toBeGreaterThanOrEqual(1); expect(Math.abs(entOf(p, u.id)!.pos.x - 9)).toBeLessThanOrEqual(1);
-  entOf(p, b!.id)!.alive = false; put(p, a!, 5, 4, 1); expect(() => damage(p, 2, u.id, a!, 50, [])).not.toThrow();
-});
-
-it('open wounds: hits stack bleeding up to five', () => {
-  const { p, u, foes } = scene('rogue'); const [a] = foes; put(p, a!, 5, 4, 999);
-  u.traits = { openWounds: 1 };
-  for (let i = 0; i < 7; i++) action(p, () => emit(p, 'hit', { t: i * 0.1, src: u, target: a, ev: [] }));
-  expect(a!.status.bleed?.stacks).toBe(5);
-});
