@@ -12,6 +12,7 @@ import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type
 import { CLASSES, FOES, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
 import { type TraitId } from './traitDefs';
 import { T } from './traitMods';
+import { resonant, shieldedFury } from './resonance';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -21,6 +22,8 @@ export interface Unit {
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   nextCrit?: boolean; dodgeNext?: boolean; furyStacks?: number; furyUntil?: number; furyPower?: number; damageBuff?: number; damageBuffUntil?: number; blinkNext?: boolean; extraAttack?: boolean; attackMoved?: boolean; retreatShot?: boolean; immortalUsed?: boolean;
   blindUntil?: number;
+  /** who last struck this foe and when, and everyone who did within the last turn (teamwork laws); the floor a last-stand law was used on */
+  lastHitBy?: string; lastHitAt?: number; hitters?: { id: string; t: number }[]; lastStandFloor?: number;
   lowHp?: boolean;
   foeScale?: number; mendReady?: number; slamReady?: number; slamPending?: boolean; called?: boolean;
   name?: string; hero?: HeroSoulId;
@@ -100,7 +103,7 @@ export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range
   const e = p && entOf(p, u.id);
   const lowHp = e ? e.hp < e.maxHp / 2 : u.lowHp;
   const w = weaponStats(u);
-  const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) : 0);
+  const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) + (p && resonant(p, u, '원거리', 1) ? 1 : 0) : 0);
   return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls==='veteran'&&u.soul?u.soul:u.cls].move * T.move(u) * G.move(u) };
 }
 
@@ -150,6 +153,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?1.3:1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
+    dst.lastHitBy = src; dst.lastHitAt = t; dst.hitters = [...(dst.hitters ?? []).filter((h) => t - h.t < 1 && h.id !== src), { id: src, t }];
   }
   if (dst.side === 'hero') {
     amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst));
@@ -247,7 +251,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const crit = !u.traits?.avatar && (u.nextCrit || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
   let m = mult * (u.attackMult ?? 1) * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
   if (u.side === 'hero') {
-    m *= levelDmg(u);
+    m *= levelDmg(u) * (u.shield > 0 && shieldedFury(p) ? 1.2 : 1);
     const empowerment = basic || !u.echoPending || u.empower > 2 ? u.empower : 1;
     m *= passiveMult(p, u, target, t, ev) * empowerment;
     if (empowerment > 1) {

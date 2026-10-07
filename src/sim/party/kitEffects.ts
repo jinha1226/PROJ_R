@@ -6,13 +6,14 @@ import { spawnFoe } from '../grid/foes';
 import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, type Party, type Unit } from './partyCore';
 import { applyStatus } from './status';
+import { resonant } from './resonance';
 export const nearby = (p: Party, u: Unit, radius: number, side = u.side) => p.units.filter(x => x.side === side && alive(p, x) && dist(posOf(p, x), posOf(p, u)) <= radius);
 export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, ev: GEvent[]): void {
   if (!alive(p, src) || !alive(p, dst)) return;
   amount *= T.heal(src)*G.healTaken(dst);
   const e = entOf(p, dst.id)!, n = Math.min(e.maxHp - e.hp, Math.round(amount));
   if (n > 0) { e.hp += n; dst.lowHp=e.hp<e.maxHp/2; }
-  if (src.cls === 'healer' && amount > n) emit(p,'overflow',{t,src,target:dst,amount:Math.max(0,Math.round(amount)-n),ev});
+  if (amount > n) emit(p,'overflow',{t,src,target:dst,amount:Math.max(0,Math.round(amount)-n),ev});
   if(rank(src,'purify')) {const key=Object.keys(dst.status)[0] as keyof typeof dst.status|undefined;if(key)delete dst.status[key];}
   ev.push({ t, type: 'heal', src: src.id, dst: dst.id, amount: n });
   emit(p,'healed',{t,src,target:dst,amount:n,ev});
@@ -25,7 +26,7 @@ export function fireball(p: Party, src: Unit, dst: Unit, t: number, ev: GEvent[]
   }
 }
 export function summon(p: Party, src: Unit, at: Cell, t: number, ev: GEvent[], cap = 2): boolean {
-  if (!alive(p, src) || p.units.filter(x => x.summoner === src.id && alive(p, x)).length >= cap) return false;
+  if (!alive(p, src) || p.units.filter(x => x.summoner === src.id && alive(p, x)).length >= cap + (resonant(p, src, '소환', 1) ? 1 : 0)) return false;
   const spot = DIRS.map(d => ({ x: at.x + d.x, y: at.y + d.y })).find(c => walkable(tileAt(p.s.map, c)) && !occupied(p, c, ''));
   if (!spot) return false;
   const e = spawnFoe(p.s, 'minion', spot, false); e.hp = e.maxHp = 18;
