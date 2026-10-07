@@ -5,10 +5,10 @@ import { emit } from '../../src/sim/party/triggers';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { rollOffer } from '../../src/sim/party/traitPool';
 import { BASE_CLASSES } from '../../src/sim/party/partyDefs';
-it('has exactly 12 common, 40 class (8 each), 8 empty-body, 10 duo and six oath cards: 76', () => {
+it('has exactly 12 common, 40 class (8 each), 12 empty-body, 10 duo and six oath cards: 80', () => {
   const defs=Object.values(TRAITS);
-  expect(defs).toHaveLength(76);
-  expect(defs.filter(d=>d.pool==='shell')).toHaveLength(8);
+  expect(defs).toHaveLength(80);
+  expect(defs.filter(d=>d.pool==='shell')).toHaveLength(12);
   expect(defs.filter(d=>d.pool==='common')).toHaveLength(12);
   for(const cls of BASE_CLASSES) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
   expect(defs.filter(d=>d.pool==='duo')).toHaveLength(10);

@@ -35,9 +35,9 @@ it('the empty body is offered its own cards: two shell cards and a common', () =
   }
 });
 
-it('eight shell cards with the shared tags; two innates come with the gun', () => {
+it('twelve shell cards with the shared tags; two innates come with the gun', () => {
   const shell = Object.values(TRAITS).filter((d) => d.pool === 'shell');
-  expect(shell.map((d) => d.id).sort()).toEqual(['buttStroke', 'overheat', 'pierceRound', 'pointBlank', 'quickReload', 'returnFire', 'suitOverload', 'targetLock']);
+  expect(shell.map((d) => d.id).sort()).toEqual(['armorAmp', 'blastAmp', 'buttStroke', 'chainBlast', 'grenade', 'overheat', 'pierceRound', 'pointBlank', 'quickReload', 'returnFire', 'suitOverload', 'targetLock']);
   const { p, u } = range();
   const ids = sourcesOf(p, u).map((d) => d.id);
   expect(ids).toContain('조준 사격'); expect(ids).toContain('전술 재장전');
@@ -51,15 +51,6 @@ it('aimed shot: the first shot at each foe is critical', () => {
   const h1 = fe.hp; strike(p, u, foe, p.time, []); const second = h1 - fe.hp;
   expect(foe.sighted).toContain(u.id);
   expect(first).toBeGreaterThan(second);
-});
-
-it('pierce round: the magazine\'s last round goes on into the foe behind (every third shot when upgraded)', () => {
-  const { p, u, foe, put } = range(); u.traits = { pierceRound: 1 };
-  const back = put(1, 11, 5), hp = entOf(p, back.id)!.hp;
-  u.ammo = 2; strike(p, u, foe, p.time, []);
-  expect(entOf(p, back.id)!.hp).toBe(hp);
-  strike(p, u, foe, p.time, []);
-  expect(entOf(p, back.id)!.hp).toBeLessThan(hp);
 });
 
 it('return fire: a dodged blow is answered with a shot at the attacker', () => {

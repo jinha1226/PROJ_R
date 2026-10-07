@@ -1,5 +1,5 @@
 import { traitMult, takenMult, shieldBroken, blink, allyFell, martyrHolds, negate } from './traitCombat';
-import { kitMult, proficient } from './classKit';
+import { kitMult, proficient, tagsOf } from './classKit';
 import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
 import { movedStatus, statusMult, type Status, type StatusId } from './status';
@@ -42,6 +42,7 @@ export interface Unit {
   /** the workshop modules this empty body carries (a snapshot taken at the base) */
   sfMods?: string[];
   /** empty-body state: who has already taken an aimed first shot at this foe; a piercing round loaded; hits in a row (by attack count); more forced crits; suit overload spent (floor / fight) */
+  grenadeNext?: boolean; rfTurn?: number; rfCount?: number;
   sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
   /** the souls in this body, the first setting its class (empty: the SF body) */
   souls?: BodySoul[];
@@ -191,6 +192,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if (!e.alive || t < (dst.immuneUntil ?? 0)) return;
   const attacker = unitOf(p, src);
   if(attacker && !alive(p,attacker) && !secondary) return;
+  // blasting mastery (empty body): fire damage grows with every #화염
+  if (attacker && kind === 'fire' && rank(attacker, 'blastAmp')) amount = Math.round(amount * 1.12 ** (tagsOf(attacker).화염 ?? 0));
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
@@ -238,7 +241,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const killer = unitOf(p, src);
     if (killer?.side === 'hero' && dst.side === 'foe') {
 
-      emit(p, 'kill', { t, src: killer, target: dst, amount, over: Math.max(0, amount - prevHp), ev });
+      emit(p, 'kill', { t, src: killer, target: dst, amount, over: Math.max(0, amount - prevHp), kind, ev });
       // mana flow: a kill takes seconds off the killer's skills
 
     }
@@ -307,7 +310,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if(basic)u.fastNext=false;
   blink(p,u,target,t,ev); if(!alive(p,u))return;
   // every attack is an attack (Achra's On attack), whether it lands or not
-  emit(p, 'attack', { t, src: u, target, ev }); if (!alive(p, u) || !alive(p, target)) return;
+  emit(p, 'attack', { t, src: u, target, basic, ev }); if (!alive(p, u) || !alive(p, target)) return;
   if (basic) { u.attackMoved=u.moved; u.nth++; if (!u.moved) u.still++; else u.still = 0; emit(p, 'nth', { t, src: u, target, ev }); if (!u.moved) emit(p, 'still', { t, src: u, target, ev }); u.moved = false; }
   if (!alive(p, u) || !alive(p, target)) return;
   const magic = u.cls ? CLASSES[u.cls].magic : false;
@@ -319,6 +322,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const blocked = odds.block > 0 && p.s.rng.chance(odds.block);
   if (dodge || blocked || !p.s.rng.chance(odds.hit)) {
     ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev });
+    if (basic && isGun(u)) u.hitStreak = 0;
     // target lock (the empty body's convert card): a miss makes the next shot critical
     if (rank(u, 'targetLock') && isGun(u)) { u.nextCrit = true; ev.push({ t, type: 'buff', src: u.id, dst: u.id, text: '표적 분석' }); }
     return;
@@ -343,9 +347,11 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if(!alive(p,u))return;
   const hp = te.hp;
   const flat = u.nextFlat ?? 0; u.nextFlat = 0;
+  // hits in a row with the gun (the empty body's cards read it)
+  if (basic && isGun(u)) u.hitStreak = (u.hitStreak ?? 0) + 1;
   damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m) + flat, ev, false, true, 'physical', true);
   if (t < (u.leechUntil ?? 0)) heal(p,u,u,(hp-te.hp)*0.3,t,ev);
-  emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, ev });
+  emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, basic, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, basic, ev });
   if (!alive(p, u)) return;
   if(!alive(p,u))return;
   const d=weaponDef(u);

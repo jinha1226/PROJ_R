@@ -27,7 +27,7 @@ const CARD: Record<string, Look> = {
   '연소 폭발': L('blast', '#ff7a2a', 'dst', 1.7, 0.12), '번개 사슬': L('shock', '#ffe85a', 'dst', 1.4), '연쇄 반응': L('magic', '#b48aff', 'dst', 1.0),
   '원소 과부하': L('blast', '#c88aff', 'src', 2.6, 0.16), '서리 감옥': L('frost', '#bfe8ff', 'dst', 1.0), '마력 역류': L('shield', '#8ff0ff', 'src'),
   '관통 화살': L(undefined, undefined, 'line'), 관통탄: L(undefined, undefined, 'line'), '반격 사격': L(undefined, undefined, 'line'), '전술 재장전': L(undefined, undefined, 'line'),
-  과열탄: L('blast', '#ff7a2a', 'dst', 1.0), '즉시 재장전': L('magic', '#9fe8ff', 'src'), '개머리판 밀치기': L('hit', '#d8d8d8', 'dst', 0.8, 0.08), '슈트 과부하': L('shield', '#9fe8ff', 'src', 1.4),
+  과열탄: L('blast', '#ff7a2a', 'dst', 1.0), 유탄: L('blast', '#ff9a3a', 'dst', 1.4, 0.1), '연쇄 폭발': L('blast', '#ff7a2a', 'dst', 1.2, 0.08), '즉시 재장전': L('magic', '#9fe8ff', 'src'), '개머리판 밀치기': L('hit', '#d8d8d8', 'dst', 0.8, 0.08), '슈트 과부하': L('shield', '#9fe8ff', 'src', 1.4),
   '조준 사격': L('crit', '#ffd04a', 'dst'), '표적 분석': L('warn', '#ffd04a', 'src'), '산탄 확산': L('hit', '#ffb04a', 'dst'), '연속 사격': L(undefined, undefined, 'line'), '사냥 표식': L('warn', '#ffd23a', 'dst'), '표식 이동': L('warn', '#ffd23a', 'dst'),
   독화살: L('smoke', '#7ad04a', 'dst'), '독 표식': L('smoke', '#7ad04a', 'dst'), '가시 덫': L('dust', '#c8b090', 'src', 1.2), '구르며 쏘기': L('dust', undefined, 'src'),
   '가시 갑옷': L('hit', '#d8d8d8', 'dst'), '땅 울림': L('dust', '#c8b090', 'src', 1.8, 0.14), '도발 함성': L('warn', '#ff8a4a', 'src', 3.0), '도발 응징': L('hit', '#ff8a4a', 'dst'),

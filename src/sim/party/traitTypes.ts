@@ -19,7 +19,11 @@ export interface TraitDef {
   kind?: CardKind; text?: string; up?: string;
   /** a duo card: the two classes it needs alive, and which of them runs its effect */
   duo?: [BaseClass, BaseClass]; who?: BaseClass | 'any';
+  /** the class branch the card belongs to (`line:branch`) and whether it is that branch's signature */
+  branch?: string; sig?: boolean;
 }
+/** Puts a card in a branch (optionally as its signature). */
+export const inBranch = (d: TraitDef, branch: string, sig = false): TraitDef => ({ ...d, branch, ...(sig ? { sig: true } : {}) });
 export const rank = (u: { traits?: Partial<Record<string,number>> }, id: string): number => u.traits?.[id] ?? 0;
 export function trait(id:string,name:string,tags:Tag[],pool:TraitDef['pool'],passive?:TraitDef['passive'],trigger?:TraitDef['trigger']): TraitDef {
   return { id,name,tags,pool,ranks:3,passive,trigger };
