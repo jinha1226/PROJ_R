@@ -2,7 +2,6 @@ import { expect, it } from 'vitest';
 import { partyRoom, tick } from '../../src/sim/party/partySim';
 import { entOf } from '../../src/sim/party/partyCore';
 import { summon } from '../../src/sim/party/kitEffects';
-import { useUltimate } from '../../src/sim/party/ultimate';
 import type { GEvent } from '../../src/sim/grid/types';
 it('expired summons are removed from both simulation arrays during the tick', () => {
   const p = partyRoom(), u = p.units[0]!, ev: GEvent[] = [];
