@@ -98,7 +98,8 @@ export const claimedShare = (p: WorldParty): number => p.claimed.reduce((a, b) =
 /** The clone that would go down: the preferred one if it stands by the drill, else the first that does. */
 export function drillClone(p: WorldParty, prefer?: string): string | undefined {
   if (!p.drill) return undefined;
-  const near = living(p).filter((u) => dist(entOf(p, u.id)!.pos, p.drill!) <= 2);
+  // on the pod's ground (base mode) any clone at home may go, wherever it stands; an injured one rests
+  const near = living(p).filter((u) => !u.injured && (p.pod || dist(entOf(p, u.id)!.pos, p.drill!) <= 2));
   return (near.find((u) => u.id === prefer) ?? near[0])?.id;
 }
 /** One clone by the drill can go down (that one, when `id` is given), out of a fight and with no raid due. */

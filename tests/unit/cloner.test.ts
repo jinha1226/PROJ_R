@@ -14,14 +14,13 @@ it('the pod lands with its lab beside it: a clone printer in the way, a cell of 
   expect(p.s.map.tiles[idx(p.s.map, p.cloner!)]).toBe('chasm');
 });
 
-it('bio-matter alone prints nothing: a body is printed only when the player asks, by the printer', () => {
+it('bio-matter alone prints nothing: a body is printed only when the player asks (from anywhere on the pod’s ground)', () => {
   const p = newSurface(4); calm(p);
   p.bio = 100; p.carried = ['mage'];
   for (let i = 0; i < 40; i++) worldTick(p, 0.1);
   expect(clones(p)).toHaveLength(1);
+  // base mode: the lab is used from anywhere on the pod's ground
   entOf(p, 'hero')!.pos = { x: p.base.x + 30, y: p.base.y };
-  expect(canPrintClone(p)).toBe(false); expect(printClone(p)).toEqual([]);
-  entOf(p, 'hero')!.pos = { x: p.cloner!.x, y: p.cloner!.y + 1 };
   expect(canPrintClone(p)).toBe(true);
   expect(printClone(p).some((e) => e.text === 'print')).toBe(true);
   const fresh = clones(p)[1]!;

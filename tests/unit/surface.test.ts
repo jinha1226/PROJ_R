@@ -27,9 +27,7 @@ it('down the shaft and back up: the clones, souls carried and bio-matter go alon
   const s = newSurface(2);
   entOf(s, 'hero')!.pos = { ...s.souls[0]!.pos }; worldTick(s, 0.1); implantCarried(s, 'hero', 0);
   s.bio = 7;
-  expect(canDrill(s)).toBe(false);
-  entOf(s, 'hero')!.pos = { x: s.drill!.x - 1, y: s.drill!.y };
-  worldTick(s, 0.1);
+  // base mode: a clone at home can go down from wherever it stands
   expect(canDrill(s)).toBe(true);
   const down = newDelve(2, 1, takeParty(s));
   expect(clones(down).map((u) => u.cls)).toEqual(['archer']);

@@ -4,6 +4,11 @@ import { QuickSlots } from './quickSlots';
 import { AutoExplore, exploreWants } from '../delve/explore';
 import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placePrompt';
 import { WorkbenchScreen } from './workbench/workbenchScreen';
+import { BaseCamera } from './baseCamera';
+import { BasePanels, panelAt } from './basePanels';
+import { homeLife } from '../../sim/base/baseLife';
+import { printClone } from '../../sim/base/cloner';
+import { implantCarried } from '../../sim/roam/roam';
 
 /** how near the pod a clone must stand for its build button to show */
 const POD_REACH = 3;
@@ -85,6 +90,8 @@ export class WorldScreen implements Screen {
   private raf = 0;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
   private pinch!: Pinch;
+  private camera!: BaseCamera;
+  private panels!: BasePanels;
 
   private readonly seed: number;
 
@@ -129,6 +136,11 @@ export class WorldScreen implements Screen {
     this.raidBar = new RaidBar(() => this.p, (ev) => this.live(ev), this.el);
     this.el.appendChild(this.raidBar.el);
     this.el.appendChild(this.prompts.el);
+    this.panels = new BasePanels(() => this.p, {
+      send: (id, floor) => this.sendDown(id, floor), print: () => this.live(printClone(this.p)),
+      implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench(),
+    }, () => this.opts.keptFloor);
+    this.el.appendChild(this.panels.el);
     this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
     this.el.appendChild(this.quick.el);
@@ -136,6 +148,7 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
+    this.camera = new BaseCamera(this.stage, () => this.zoom, () => this.p.s.map);
     // a pointer-up that ends a pinch or a drag is not a click
     this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
@@ -153,8 +166,14 @@ export class WorldScreen implements Screen {
       last = now;
       // while the pod falls in the world waits; then the clone steps out
       if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
+      const base = this.baseMode;
+      this.camera.on = base; this.camera.update(dt);
+      if (this.rt) this.rt.freeAim = base ? this.camera.aim : null;
+      this.build.setDocked(base);
+      this.el.classList.toggle('base-mode', base);
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing && !this.p.waiting && !this.still()) {
+      if (base && !this.paused) homeLife(this.p, this.p.time);
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing && !this.p.waiting && (base || !this.still())) {
         const t0 = this.p.time;
         const ev = worldTick(this.p, dt * RATE * this.speed);
         this.movedLast = ev.some((e) => e.type === 'move');
@@ -219,6 +238,7 @@ export class WorldScreen implements Screen {
     this.rt.pixelated = loadDot();
     this.pace();
     this.select(this.p.leader ?? 'hero');
+    this.camera.centerOn(this.p.base);
     this.paused = false;
     this.message('');
     this.log = new WorldLog();
@@ -236,8 +256,18 @@ export class WorldScreen implements Screen {
   /** A hero falling low or falling, or a camp waking, stops the clock so the player can react. */
   /** Turn-based: in a fight the chosen clone's moments wait for the player. */
   private handOver(): void {
+    if (this.baseMode) { this.p.manual = undefined; this.p.waiting = false; return; }
     const hand = this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
+  }
+
+  /** base mode: the pod's ground out of a raid — no clone under the hand, a free camera, buildings clicked to act */
+  private get baseMode(): boolean { return !!this.p?.pod && !this.p.raid && !this.landing; }
+
+  /** The pod panel's send: that clone goes down (to the kept floor when one is waiting, else the chosen start floor). */
+  private sendDown(id: string, floor: number): void {
+    if (!this.opts.onDrill || !canDrill(this.p, id)) return;
+    this.opts.onDrill(takeClone(this.p, id), this.opts.keptFloor ?? floor);
   }
 
   private get myTurn(): boolean { return !!this.p.waiting && this.p.manual === this.sel; }
@@ -275,7 +305,7 @@ export class WorldScreen implements Screen {
 
   /** Buttons over the places the party stands by: the pod (the shaft) when it can go down; the lab: build, print a clone. */
   private placePrompts(): Prompt[] {
-    if (this.landing) return []; const list: Prompt[] = [];
+    if (this.landing || this.baseMode) return []; const list: Prompt[] = [];
     if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: this.opts.keptFloor ? `▼ ${this.opts.keptFloor}층 복귀` : '▼ 지하로', act: () => this.descend() });
     const lab = this.p.cloner ?? this.p.base, nearLab = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, lab) <= POD_REACH; });
     if (this.p.pod && nearLab && !this.p.raid && !this.build.open) list.push({ at: lab, label: '⚒ 건설', act: () => this.build.toggle() });
@@ -298,6 +328,7 @@ export class WorldScreen implements Screen {
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
     if (k === 'escape' && this.bench.open) { this.bench.close(); return; }
+    if (k === 'escape' && this.panels.open) { this.panels.close(); return; }
     if (k === 'escape' && this.build.open) { this.build.close(); return; }
     if (k === 'b' && !this.pip.open && !this.menu.open) { this.build.toggle(); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
@@ -327,7 +358,15 @@ export class WorldScreen implements Screen {
   private click(e: PointerEvent): void {
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
+    if (this.baseMode && this.camera.dragged) { this.camera.dragged = false; return; }
     if (this.build.click(c, coarsePointer())) return;
+    if (this.baseMode) {
+      // base mode: a building opens its panel, a clone its card; the ground does nothing
+      const hit = panelAt(this.p, c), who = this.unitAt(c);
+      if (hit) this.panels.show(hit);
+      else if (who?.side === 'hero') { this.select(who.id); this.togglePip('stat'); }
+      return;
+    }
     const at = this.unitAt(c);
     if (at?.side === 'hero') { this.select(at.id); return; }
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');

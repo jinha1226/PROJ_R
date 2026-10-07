@@ -50,6 +50,8 @@ export class GridRuntime {
   private terrain: GridTerrain | ShipTerrain | WorldTerrain;
   /** the figure the camera follows */
   focusId = 'hero';
+  /** a camera free of the clones (the base's): it aims at this cell instead of following the focus */
+  freeAim: { x: number; y: number } | null = null;
   /** the world map's glow pass */
   private bloom?: Bloom;
   actors: GridActors;
@@ -327,7 +329,8 @@ export class GridRuntime {
     const deck = new THREE.Vector3(((this.sim.s.map.w - 1) / 2) * CELL, 0, ((this.sim.s.map.h - 1) / 2) * CELL);
     const shot = this.intro?.update(dt);
     this.zoomMul = shot?.zoom ?? 1;
-    let aim = shot && this.intro?.pod ? this.intro.pod.clone().lerp(deck, shot.k) : this.stationAt.size ? deck : hero;
+    const free = this.freeAim ? new THREE.Vector3(this.freeAim.x * CELL, 0, this.freeAim.y * CELL) : null;
+    let aim = shot && this.intro?.pod ? this.intro.pod.clone().lerp(deck, shot.k) : this.stationAt.size ? deck : free ?? hero;
     if (shot) { this.center.x = aim.x; this.center.z = aim.z; }
     // a copy: the hero's own position must not be moved by the clamp
     if (this.stayInMap && !this.stationAt.size) aim = this.clampAim(aim.clone());

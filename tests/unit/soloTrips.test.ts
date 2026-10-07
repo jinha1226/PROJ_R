@@ -13,11 +13,11 @@ const twoAtDrill = () => {
   return { p, b };
 };
 
-it('one clone at the drill is enough, and only it goes down', () => {
+it('the chosen clone goes down wherever it stands on the pod’s ground, and only it', () => {
   const { p, b } = twoAtDrill();
   entOf(p, 'hero')!.pos = { x: p.drill!.x + 20, y: p.drill!.y };
   expect(canDrill(p)).toBe(true);
-  expect(drillClone(p, 'hero')).toBe(b.id);
+  expect(drillClone(p, 'hero')).toBe('hero'); expect(drillClone(p, b.id)).toBe(b.id);
   const d = departSurface(p, 3, takeClone(p, b.id))!;
   expect(living(d).map((u) => u.id)).toEqual([b.id]);
   expect(living(p).map((u) => u.id)).toEqual(['hero']);

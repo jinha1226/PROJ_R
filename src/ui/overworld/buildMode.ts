@@ -9,6 +9,8 @@ const INFO: Record<BuildingKind, [string, string]> = {
   watchtower: ['망루', '사거리 6 자동 사격 · 영역 확장'], wall: ['성벽', '길을 막음'], palisade: ['방책', '엄폐'],
   gate: ['성문', '아군만 통과'], infirmary: ['의무실', '귀환하면 완전 회복'], forge: ['대장간', '희생 효율 35%'],
 };
+/** each building's name (the panels and the base share it) */
+export const BUILD_NAMES = Object.fromEntries(Object.entries(INFO).map(([k, v]) => [k, v[0]])) as Record<BuildingKind, string>;
 const ORDER: BuildingKind[] = ['watchtower', 'wall', 'palisade', 'gate', 'infirmary', 'forge'];
 /** wall-like tiles stay picked so a run can be laid tap after tap; the rest are placed once */
 const RUN = new Set<BuildingKind>(['wall', 'palisade']);
@@ -51,21 +53,34 @@ export class BuildMode {
 
   /** the panel and the floor chooser, for the screen to mount */
   get parts(): HTMLElement[] { return [this.el, this.floors]; }
-  get open(): boolean { return !this.el.hidden; }
+  /** open as a window (docked, only while a building is picked: Esc and the game's other keys go on as usual) */
+  get open(): boolean { return !this.el.hidden && (!this.docked || this.kind !== null); }
   get choosing(): boolean { return !this.floors.hidden; }
 
-  toggle(): void { if (this.open) this.close(); else { this.el.hidden = false; this.onToggle(true); this.draw(); } }
-  close(): void { if (!this.open) return; this.el.hidden = true; this.kind = null; this.pending = null; this.onToggle(false); }
+  /** docked (base mode): always shown as a bar along the bottom, without stopping the game */
+  private docked = false;
+  setDocked(on: boolean): void {
+    if (on === this.docked) return;
+    this.docked = on; this.el.classList.toggle('docked', on); this.kind = null; this.pending = null;
+    this.el.hidden = !on; if (on) this.draw();
+  }
+  toggle(): void { if (this.docked) return; if (this.open) this.close(); else { this.el.hidden = false; this.onToggle(true); this.draw(); } }
+  close(): void {
+    if (!this.open) return;
+    this.kind = null; this.pending = null;
+    if (this.docked) { this.draw(); return; }
+    this.el.hidden = true; this.onToggle(false);
+  }
 
   draw(): void {
-    if (!this.open) return;
+    if (this.el.hidden) return;
     const p = this.p(), next = drillCost(p.drillLevel + 1);
     const drill = `<div class="bp-drill"><b>승강기 ${p.drillLevel}단계</b><small>시작 층 ${startFloors(p).join(' · ')}</small>${next ? `<button type="button" data-b="drill" ${canUpgradeDrill(p) ? '' : 'disabled'}>업그레이드 <small>${cost(next.ore, next.crystal)}</small></button>` : '<small>최대</small>'}</div>`;
     const list = ORDER.map((k) => {
       const d = BUILDINGS[k], afford = p.ore >= d.ore && p.bio >= d.bio;
       return `<button type="button" data-b="${k}" class="${this.kind === k ? 'on' : ''}" ${afford ? '' : 'disabled'}><b>${INFO[k][0]}</b><small>${cost(d.ore, 0, d.bio)}</small><em>${INFO[k][1]}</em></button>`;
     }).join('');
-    this.el.innerHTML = `<header><span>건설</span><small>광석 ${p.ore} · 마정석 ${p.crystal} · 재료 ${p.bio}</small><button type="button" data-b="close">✕</button></header>
+    this.el.innerHTML = `<header><span>건설</span><small>광석 ${p.ore} · 마정석 ${p.crystal} · 재료 ${p.bio}</small>${this.docked ? '' : '<button type="button" data-b="close">✕</button>'}</header>
       ${drill}<div class="bp-list">${list}</div><button type="button" data-b="recommend" class="bp-rec">추천 배치</button>
       <p class="bp-hint">${this.kind ? `${INFO[this.kind][0]} · 우리 땅에 놓기` : '건물을 고르세요'}</p>`;
   }

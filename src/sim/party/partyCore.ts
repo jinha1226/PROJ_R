@@ -52,6 +52,8 @@ export interface Unit {
   /** a golem, a shadow clone (copies its owner, takes no turns), a curse (takes 20% more) and who laid it */
   golem?: boolean; mirror?: boolean; cursedUntil?: number; cursedBy?: string;
   /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
+  /** base mode: when an idle clone at home strolls again; a clone hurt in a raid (it skips the next trip) */
+  idleAt?: number; injured?: boolean;
   /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */
   spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
   /** a return shot under way (the empty body's return fire, rank 3) */

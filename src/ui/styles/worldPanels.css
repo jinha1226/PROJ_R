@@ -175,3 +175,15 @@
 .pip-stone-cards { color: #9dffb8; font-size: 11px; }
 .trait-reroll { margin-left: auto; font: inherit; font-size: 11px; color: #ffd76a; background: none; border: 1px solid #8a6a1a; padding: 2px 8px; cursor: pointer; }
 .trait-reroll:hover { background: #ffd76a; color: #021006; }
+
+/* base mode: no hand-controlled clone — no party frames, stick or quick slots; the build panel docks along the bottom */
+.world.base-mode .wh-party, .world.base-mode .tp, .world.base-mode .quick-slots, .world.base-mode .place-prompts { display: none; }
+.build-panel.docked { top: auto; right: 12px; left: 12px; bottom: 10px; width: auto; max-height: 34%; grid-template-columns: auto auto 1fr auto; align-items: center; }
+.build-panel.docked .bp-list { display: flex; gap: 6px; overflow-x: auto; }
+.build-panel.docked .bp-list button { min-width: 108px; }
+.build-panel.docked .bp-hint { grid-column: 1 / -1; margin: 0; }
+.base-panel .base-sub { margin: 0 0 6px; color: #e6ffb0; }
+.base-panel .menu-row button.on { background: #1f7a3e; color: #021006; }
+/* base mode: the selected clone's card goes (a click opens the clone's own window); the log sits above the build bar */
+.world.base-mode .wh-br { display: none; }
+.world.base-mode .wh-bl { bottom: calc(34% + 16px); }
