@@ -34,8 +34,8 @@ function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
     case 'bloodFrenzy': u.leechUntil=t+5; break;
     case 'sanctum': case 'longSanctum': for(const a of allies) if(dist(posOf(p,a),me)<=3) a.immuneUntil=t+(ult==='longSanctum'?5:3); break;
     case 'arrowRain': case 'bleedRain': {
-      const targets=near(at!,1+(u.traits?.arrowShower?1:0));
-      for(let k=0;k<(u.traits?.arrowShower===3?8:5);k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(ult==='bleedRain') applyStatus(p,u,f,'bleed',t,ev);}}
+      const targets=near(at!,1);
+      for(let k=0;k<5;k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(ult==='bleedRain') applyStatus(p,u,f,'bleed',t,ev);}}
       break;
     }
     case 'meteor': case 'elementStorm':

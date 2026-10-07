@@ -13,6 +13,7 @@ import { CLASSES, FOES, WEAPONS, type BaseClass, type ClassId, type FoeId, type 
 import { type TraitId } from './traitDefs';
 import { T } from './traitMods';
 import { resonant, shieldedFury } from './resonance';
+import { markMult } from './cardsRanged';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -25,6 +26,7 @@ export interface Unit {
   /** the initiative card's upgrade: every blow critical until the first kill */
   critUntilKill?: boolean;
   /** card state: rage built from blows taken, damage stored for the next blow, judgment marks, when a foe was last betrayed, chills taken toward a freeze */
+  markFirst?: boolean; cycle?: number;
   rage?: number; nextFlat?: number; judge?: number; betrayedAt?: number; chillHits?: number;
   /** who last struck this foe and when, and everyone who did within the last turn (teamwork laws); the floor a last-stand law was used on */
   lastHitBy?: string; lastHitAt?: number; hitters?: { id: string; t: number }[]; lastStandFloor?: number;
@@ -161,7 +163,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   const attacker = unitOf(p, src);
   if(attacker && !alive(p,attacker) && !secondary) return;
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
-    const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?1.3:1);
+    const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
     dst.lastHitBy = src; dst.lastHitAt = t; dst.hitters = [...(dst.hitters ?? []).filter((h) => t - h.t < 1 && h.id !== src), { id: src, t }];
   }

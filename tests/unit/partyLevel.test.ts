@@ -64,15 +64,15 @@ it('picking a card spends a pick; a law picked again is its upgrade', () => {
   expect(u.traits?.finish).toBe(2); expect(u.picks).toBe(0);
 });
 
-it('an archer shooting again and again from the same spot hits harder with steady aim', () => {
+it('an archer shooting again and again from the same spot builds steady aim up to three', () => {
   const p = withArcher();
   const u = clones(p)[0]!;
-  u.traits = { steady: 3 };
+  u.traits = {};
   const f = p.units.find((x) => x.side === 'foe')!;
   entOf(p, f.id)!.pos = { x: entOf(p, 'hero')!.pos.x + 3, y: entOf(p, 'hero')!.pos.y };
   entOf(p, f.id)!.hp = 9999;
   for (let i = 0; i < 12; i++) strike(p, u, f, p.time, []);
-  expect(u.steady).toBe(12);
+  expect(u.steady).toBe(3);
 });
 
 it('the advanced class waits for level 8 on the roaming maps', () => {

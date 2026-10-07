@@ -5,7 +5,6 @@ import { G } from '../delve/gear';
 import { spawnFoe } from '../grid/foes';
 import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, type Party, type Unit } from './partyCore';
-import { applyStatus } from './status';
 import { resonant } from './resonance';
 export const nearby = (p: Party, u: Unit, radius: number, side = u.side) => p.units.filter(x => x.side === side && alive(p, x) && dist(posOf(p, x), posOf(p, u)) <= radius);
 export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, ev: GEvent[]): void {
@@ -21,7 +20,6 @@ export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, 
 export function fireball(p: Party, src: Unit, dst: Unit, t: number, ev: GEvent[]): void {
   for (const f of nearby(p, dst, 1)) {
     damage(p, t, src.id, f, Math.round(p.s.rng.int(10, 14)*T.amplify(src)), ev);
-    if(rank(src,'current'))applyStatus(p,src,f,'shock',t,ev);
     emit(p,'fireball',{t,src,target:f,ev});
   }
 }

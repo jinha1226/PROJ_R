@@ -5,6 +5,8 @@ import { dist, type GEvent } from '../grid/types';
 import { emit } from './triggers';
 import { resonant } from './resonance';
 import { bleedCap } from './cardsMelee';
+import { markMult } from './cardsRanged';
+import { rank } from './traitTypes';
 export type StatusId = 'burn' | 'chill' | 'freeze' | 'poison' | 'shock' | 'bleed' | 'stun' | 'mark' | 'exposed';
 export interface Status { until: number; stacks?: number; by?: string; next?: number }
 const duration: Record<StatusId, number> = { burn: 3, chill: 3, freeze: 2, poison: 4, shock: Infinity, bleed: 4, stun: 1, mark: 4, exposed: 3 };
@@ -71,15 +73,16 @@ export function statusMult(p: Party, attacker: Unit, target: Unit, heavy: boolea
   let m = 1;
   if ((target.status.freeze?.until ?? 0) > t && heavy) { m *= 2; delete target.status.freeze; react(p, attacker, target, 'freeze', '파쇄', t, ev); }
   else if ((target.status.freeze?.until ?? 0) > t && resonant(p, attacker, '냉기', 2)) m *= 1.5;
-  if ((target.status.mark?.until ?? 0) > t && target.status.mark?.by !== attacker.id) m *= 1.3;
+  if ((target.status.mark?.until ?? 0) > t && target.status.mark?.by !== attacker.id) m *= markMult(attacker);
   if ((target.status.exposed?.until ?? 0) > t) m *= 1.5;
   if ((target.status.shock?.until ?? 0) > t) {
     delete target.status.shock;
     const charged = resonant(p, attacker, '전기', 1), hard = resonant(p, attacker, '전기', 2);
-    for (const f of p.units) if (f !== target && f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, target)) <= 2) {
-      damage(p, t, attacker.id, f, hard ? 9 : 3, ev, true);
-      if (charged) applyStatus(p, attacker, f, 'shock', t, ev);
-    }
+    const near = (at: Unit, skip: Set<Unit>) => p.units.filter((f) => !skip.has(f) && f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, at)) <= 2);
+    const hit = new Set<Unit>([target]), first = near(target, hit);
+    for (const f of first) { hit.add(f); damage(p, t, attacker.id, f, hard ? 9 : 3, ev, true); if (charged) applyStatus(p, attacker, f, 'shock', t, ev); }
+    // the arc chain card: the lightning leaps once more from each foe it reached
+    if (rank(attacker, 'arcChain')) for (const from of first) for (const f of near(from, hit)) { hit.add(f); damage(p, t, attacker.id, f, Math.round((hard ? 9 : 3) * (rank(attacker, 'arcChain') >= 2 ? 1.5 : 1)), ev, true); }
   }
   return m;
 }
