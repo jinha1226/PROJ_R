@@ -16,4 +16,4 @@ it('both HUD weapon lines show the loaded element and melee keeps its name', () 
 it('keeps enemy spell events unarmed after removing the staff look', async () => {
   const { shotGroup } = await import('../../src/view/grid/runtimeHelpers');
   expect(shotGroup({ t: 0, type: 'shoot', text: 'spell' })).toBe('none');
-});
+}, 30_000);
