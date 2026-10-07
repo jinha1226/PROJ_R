@@ -17,6 +17,7 @@ import { Expedition } from './expedition';
 import '../ui/styles/pipTheme.css';
 import { UalLibrary } from '../view/grid/ualActor';
 import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
+import { DungeonKit } from '../view/grid/dungeonKit';
 import { clearRun, loadHall, loadRun } from './save';
 import { BootTitle } from '../ui/grid/bootTitle';
 import { GRID_ASSETS } from './gridAssets';
@@ -95,6 +96,24 @@ async function battle(): Promise<void> {
   }
 }
 
+/** `?demo=chains`: a chain-built party fights a packed room by itself; when it is over, a new room is staged. */
+async function chainsDemo(): Promise<void> {
+  try {
+    const [{ DelveScreen }, { chainArena, arenaOver }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), import('../ui/delve/chainArena'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    let seed = urlSeed || 7;
+    const stage = (): void => {
+      const party = chainArena(seed++);
+      router.go(new DelveScreen(lib, kit, { party, auto: true, restart: stage, quit: stage }));
+      let overFor = 0;
+      const watch = setInterval(() => { overFor = arenaOver(party) ? overFor + 1 : 0; if (overFor >= 3) { clearInterval(watch); stage(); } }, 1000);
+    };
+    stage();
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 /** `?demo=looks`: every class side by side, for looking the figures over. */
 async function looksDemo(): Promise<void> {
   try {
@@ -107,5 +126,6 @@ async function looksDemo(): Promise<void> {
 }
 
 if (params.get('demo') === 'looks') void looksDemo();
+else if (params.get('demo') === 'chains') void chainsDemo();
 else if (params.get('screen') === 'sandbox') sandbox();
 else title();

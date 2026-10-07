@@ -82,8 +82,8 @@ export class DelveScreen implements Screen {
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
   private pinch!: Pinch;
 
-  /** opts.party: the floor the expedition's party came down to; onAscend: the party rides up to the pod (also when nobody is left); restart: the expedition starts over. */
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; restart?: () => void } = {}) {
+  /** opts.party: the floor the expedition's party came down to; onAscend: the party rides up to the pod (also when nobody is left); restart: the expedition starts over; auto: every clone fights by itself (the chain demo). */
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; restart?: () => void; auto?: boolean } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -165,7 +165,7 @@ export class DelveScreen implements Screen {
   /** In a turn-based fight the chosen clone is under the hand; out of a fight (or in real time) nobody is. */
   private handOver(): void {
     // the game is turn-based: in a fight the chosen clone's moments wait for the player
-    const hand = this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
+    const hand = this.p.combat && !this.opts.auto && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
   }
 
