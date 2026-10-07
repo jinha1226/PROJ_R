@@ -6,6 +6,7 @@ import { tagsOf } from './classKit';
 import { beyond } from './cardsRanged';
 import { summon } from './kitEffects';
 import { consume, corpsesNear } from './corpses';
+import { duoFor } from './cardsCombo';
 import { ampBase, card, inBranch, rank, type TraitDef } from './traitTypes';
 import { dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { spawnFoe } from '../grid/foes';
@@ -21,6 +22,10 @@ function spear(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], expose 
   const line = [target, ...beyond(p, u, target)], amount = Math.round(avg(p, u, t) * 1.2), dead: Unit[] = [];
   ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...posOf(p, u) }, to: { ...posOf(p, line[line.length - 1]!) }, text: 'bone' });
   for (const f of line) { freeHit(p, u, f, amount, 'bone', t, ev); if (!alive(p, f)) dead.push(f); else if (expose) applyStatus(p, u, f, 'exposed', t, ev); }
+  // the archer-necromancer combo: a marked foe in the line throws one more spear at the foe nearest it
+  const marked = duoFor(p, u, 'boneArrow') ? line.find((f) => alive(p, f) && (f.status.mark?.until ?? 0) > t) : undefined;
+  const next = marked && foesNear(p, posOf(p, marked), 4).filter((f) => !line.includes(f)).sort((a, b) => dist(posOf(p, a), posOf(p, marked)) - dist(posOf(p, b), posOf(p, marked)))[0];
+  if (next) { ev.push({ t, type: 'shoot', src: u.id, dst: next.id, from: { ...posOf(p, marked!) }, to: { ...posOf(p, next) }, text: 'bone' }); freeHit(p, u, next, amount, 'bone', t, ev); if (!alive(p, next)) dead.push(next); }
   return dead;
 }
 

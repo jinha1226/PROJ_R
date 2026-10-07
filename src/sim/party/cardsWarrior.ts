@@ -23,11 +23,15 @@ export function whirlwind(p: Party, u: Unit, t: number, ev: GEvent[], o: { at?: 
   const at = o.at ?? { ...posOf(p, u) }, reach = o.reach ?? WHIRL_REACH;
   const amp = rank(u, 'bladeAmp') ? ampBase(u, 'bladeAmp', 1.12) ** (tagsOf(u).출혈 ?? 0) : 1, bleeds = bleedCap(u) > 1;
   const amount = Math.max(1, Math.round(avg(p, u, t) * 0.8 * (o.mult ?? 1) * amp));
-  for (const f of foesNear(p, at, reach)) {
-    const fp = posOf(p, f); if (Math.hypot(fp.x - at.x, fp.y - at.y) > reach + 0.5) continue;
-    damage(p, t, u.id, f, amount, ev);
-    if (bleeds && alive(p, f)) applyStatus(p, u, f, 'bleed', t, ev, o.bleed ?? 1);
-  }
+  // a whirlwind under way (the warrior-necromancer combo reads it for the kills it makes)
+  u.whirling = true;
+  try {
+    for (const f of foesNear(p, at, reach)) {
+      const fp = posOf(p, f); if (Math.hypot(fp.x - at.x, fp.y - at.y) > reach + 0.5) continue;
+      damage(p, t, u.id, f, amount, ev);
+      if (bleeds && alive(p, f)) applyStatus(p, u, f, 'bleed', t, ev, o.bleed ?? 1);
+    }
+  } finally { u.whirling = false; }
 }
 
 /** Earth slam (the warrior's aimed ultimate): a leap to a free cell within five, the foes within two stunned and struck, then a whirlwind. */

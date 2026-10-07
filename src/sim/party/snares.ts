@@ -5,6 +5,9 @@ import { tagsOf } from './classKit';
 import { resonant } from './resonance';
 import { ampBase, rank } from './traitTypes';
 import { action } from './triggers';
+import { duoFor } from './cardsCombo';
+import { nextElement } from './cardsMage';
+import { corpsesNear } from './corpses';
 
 /** a rogue's snare: lightning (three go-offs, shocks) or fire (bursts once, burns); fires at most once a turn */
 export interface Snare { at: Cell; by: string; kind: 'bolt' | 'fire'; charges: number; ready: number }
@@ -54,8 +57,12 @@ function fire(p: Party, s: Snare, t: number, ev: GEvent[], done: Set<Snare>, cha
     for (const f of p.units.filter((x) => x.side === 'foe' && alive(p, x) && dist(posOf(p, x), s.at) <= reach)) {
       damage(p, t, u.id, f, amount, ev, true, false, s.kind === 'bolt' ? 'lightning' : 'fire');
       if (alive(p, f)) applyStatus(p, u, f, s.kind === 'bolt' ? 'shock' : 'burn', t, ev);
+      // the mage-rogue combo: the element cycle's next element too
+      if (alive(p, f) && duoFor(p, u, 'elemTrap')) applyStatus(p, u, f, nextElement(u), t, ev);
     }
   }
+  // the rogue-necromancer combo: a snare going off by a body leaves a poison cloud
+  if (duoFor(p, u, 'poisonTrap') && corpsesNear(p, s.at, 1).length) (p.grounds ??= []).push({ at: { ...s.at }, by: u.id, until: t + 2, next: t + 1, kind: 'poison', r: 2 });
   if (rank(u, 'chainDetonate')) for (const o of p.snares ?? []) if (!done.has(o) && o.by === s.by && o.charges > 0 && dist(o.at, s.at) <= 2) fire(p, o, t, ev, done, true);
 }
 

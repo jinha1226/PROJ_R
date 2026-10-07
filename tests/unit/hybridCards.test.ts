@@ -6,7 +6,7 @@ import { rollOffer } from '../../src/sim/party/traitPool';
 import { gainXp, LEVEL_XP } from '../../src/sim/party/partyLevel';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { sourcesOf } from '../../src/sim/party/triggers';
-import { duoTriggers } from '../../src/sim/party/cardsSupport';
+import { duoTriggers } from '../../src/sim/party/cardsCombo';
 
 const body = (...cls: ('warrior' | 'mage' | 'archer')[]) => {
   const p = newDelve(5, 1), u = unitOf(p, 'hero')!;

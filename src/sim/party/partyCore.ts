@@ -60,7 +60,7 @@ export interface Unit {
   /** the archer's volley ending and its piercing build-up */
   volleyUntil?: number; pierceStack?: number;
   /** the cleric's extra hammers (when each ends), where the ring stands, its next step, a hammer blow under way; the aura's build-up; zeal */
-  hammers?: number[]; hammerPhase?: number; hammerNext?: number; hammering?: boolean; auraBoost?: number; zealUntil?: number;
+  whirling?: boolean; hammers?: number[]; hammerPhase?: number; hammerNext?: number; hammering?: boolean; auraBoost?: number; zealUntil?: number;
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;

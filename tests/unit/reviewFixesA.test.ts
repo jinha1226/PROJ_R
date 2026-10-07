@@ -36,7 +36,7 @@ it('hero souls come with real cards', () => {
 });
 
 it('every card module can be the first thing imported', async () => {
-  for (const m of ['cardsCommon', 'cardsWarrior', 'cardsRanged', 'cardsSupport', 'memories', 'resonance']) {
+  for (const m of ['cardsCommon', 'cardsWarrior', 'cardsRanged', 'cardsCombo', 'memories', 'resonance']) {
     vi.resetModules();
     await expect(import(`../../src/sim/party/${m}.ts`), m).resolves.toBeDefined();
   }

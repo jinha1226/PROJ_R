@@ -21,6 +21,7 @@ import { MAGE_INNATE } from './cardsMage';
 import { GOLEM_FALL } from './cardsNecro';
 import { MIRROR_STRIKE } from './cardsRogue';
 import { whirlwind } from './cardsWarrior';
+import { duoFor } from './cardsCombo';
 import { sfTags } from '../base/workshop';
 import { MEMORIES } from './memories';
 import { linesOf, memoriesOf } from './body';
@@ -52,6 +53,8 @@ const necromancer: TriggerDef[] = [
     const body = c.target!, at = posOf(p, body), amount = Math.max(1, Math.round(entOf(p, body.id)!.maxHp * 0.15));
     consume(body);
     for (const f of nearby(p, body, 1, 'foe')) if (dist(posOf(p, f), at) <= 1) damage(p, c.t, c.src.id, f, amount, c.ev, true, false, 'bone');
+    // the cleric-necromancer combo: every burst shields the necromancer
+    if (duoFor(p, c.src, 'lifeCycle')) addShield(c.src, 3, c.src);
   } },
 ];
 const kit = (innate: TriggerDef[], ultimate: UltId, ultCd: number, proficient: WeaponFamily[]): Kit => ({ innate, ultimate, ultCd, proficient });

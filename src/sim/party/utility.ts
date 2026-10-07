@@ -4,7 +4,7 @@ import { alive, ENGAGE, entOf, hitChance, occupied, posOf, stats, targetOf, type
 import { movedStatus, type StatusId } from './status';
 import { mods } from './traitMods';
 import { rank } from './traitTypes';
-import { duoFor } from './cardsSupport';
+import { duoFor } from './cardsCombo';
 import { linesOf } from './body';
 import { emit } from './triggers';
 import { WEAPONS } from './partyDefs';

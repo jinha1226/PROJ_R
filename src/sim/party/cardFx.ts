@@ -2,7 +2,7 @@ import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/ty
 import { alive, entOf, occupied, posOf, strike, type Party, type Unit } from './partyCore';
 import { emit } from './triggers';
 import { resonant } from './resonance';
-import { duoFor } from './cardsSupport';
+import { duoFor } from './cardsCombo';
 
 /** The living units of a side within `r` cells of a cell. */
 /** an awake foe within eight: the clone is fighting (sustained laws wait for a fight) */
