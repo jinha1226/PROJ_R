@@ -2,6 +2,7 @@ import { roomStep, setupRooms } from './delveRooms';
 import type { Item } from './items';
 import { starterGear, nextItemId } from '../delve/gear';
 import { createRng } from '../../core/rng';
+import { rollMemory } from '../party/memories';
 import { generateFloor, type ChestSpot, type DelveRoom, type DelveFloor } from './delveGen';
 import { distanceMap } from '../grid/path';
 import { newState } from '../grid/state';
@@ -31,7 +32,7 @@ function placeSouls(f: DelveFloor, seed: number, floor: number, firstArcher: boo
   if (firstArcher && first.length) spots.push(rng.pick(first));
   for (const r of rng.shuffle(rooms).slice(0, (floor === 1 ? 4 : 3) - spots.length)) { const c = cellsOf(r); if (c.length) spots.push(rng.pick(c)); }
   const order: BaseClass[] = floor === 1 ? ['archer', ...rng.shuffle(BASE_CLASSES.filter((c) => c !== 'archer'))] : rng.shuffle([...BASE_CLASSES]);
-  return spots.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false }));
+  return spots.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false, memory: rollMemory(rng) }));
 }
 
 /** Fills a fresh state with a floor's sleeping bands (a room's band wakes together); deeper floors are tougher. */
@@ -80,6 +81,8 @@ export function descend(p: DelveParty): boolean {
   p.floor = floor; p.units = []; p.souls = placeSouls(generated, p.seed, floor, false); p.base = { ...map.start };
   populate(p);
   placeParty(p, carry);
+  // the pilgrim's memory: a new floor, whole again
+  for (const u of living(p)) if (u.memory === 'pilgrim') { const e = entOf(p, u.id)!; e.hp = e.maxHp; }
   setupRooms(p, generated);
   return true;
 }

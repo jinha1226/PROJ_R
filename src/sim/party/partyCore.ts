@@ -30,6 +30,8 @@ export interface Unit {
   martyrFloor?: number;
   /** the memory the soul in this body carried from its life (a starting rule) */
   memory?: string;
+  /** once-a-fight memories already spent (shield keeper, poisoner) */
+  keeperUsed?: boolean; poisonerUsed?: boolean;
   rage?: number; nextFlat?: number; judge?: number; betrayedAt?: number; chillHits?: number;
   /** who last struck this foe and when, and everyone who did within the last turn (teamwork laws); the floor a last-stand law was used on */
   lastHitBy?: string; lastHitAt?: number; hitters?: { id: string; t: number }[]; lastStandFloor?: number;

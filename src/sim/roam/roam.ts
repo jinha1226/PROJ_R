@@ -1,5 +1,6 @@
 import { emit } from '../party/triggers';
 import { HERO_SOULS, type HeroSoulId, type CarriedSoul } from '../delve/heroSouls';
+import type { MemoryId } from '../party/memories';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
@@ -11,7 +12,7 @@ import { awardXp, refitHp, LEVEL_XP } from '../party/partyLevel';
 import { T } from '../party/traitMods';
 
 /** a fallen native's soul stone lying about */
-export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean; hero?: HeroSoulId }
+export interface Soul { id: number; pos: Cell; cls: BaseClass; taken: boolean; hero?: HeroSoulId; memory?: MemoryId }
 
 /** A party that roams a map (the land above or a dungeon floor): souls to find, clones printed at its base. */
 export interface RoamParty extends Party {
@@ -72,6 +73,7 @@ export function look(p: RoamParty): void {
 /** A soul goes into a body: the clone becomes that class, armed with its first weapon, whole again. */
 export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]): void {
   const hero = typeof soul === 'string' ? undefined : soul.hero;
+  u.memory = typeof soul === 'string' ? undefined : soul.memory;
   if (hero && p.combat) return;
   const cls = hero ? HERO_SOULS[hero].cls : typeof soul === 'string' ? soul : soul.cls;
   const e = entOf(p, u.id)!;
@@ -127,7 +129,7 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
     if (!by) continue;
     soul.taken = true;
     ev.push({ t, type: 'pickup', src: by.id, to: soul.pos, text: 'soul' });
-    const carried: CarriedSoul = soul.hero ? { cls: soul.cls, hero: soul.hero } : soul.cls;
+    const carried: CarriedSoul = soul.hero ? { cls: soul.cls, hero: soul.hero, memory: soul.memory } : soul.memory ? { cls: soul.cls, memory: soul.memory } : soul.cls;
     if (soul.hero && !p.foundHeroes.includes(soul.hero)) p.foundHeroes.push(soul.hero);
     p.carried.push(carried);
   }

@@ -2,6 +2,7 @@ import { createRng, type Rng } from '../../core/rng';
 import { distanceMap } from '../grid/path';
 import { idx, type Cell, type FoeKind, type GridMap, type Tile } from '../grid/types';
 import { BASE_CLASSES, type BaseClass } from '../party/partyDefs';
+import { rollMemory } from '../party/memories';
 
 /** what a cell looks like (the sim only cares about its tile) */
 export type Ground = 'grass' | 'forest' | 'tree' | 'rock' | 'water' | 'ford' | 'dirt' | 'ruin' | 'ruinWall' | 'ship' | 'camp'
@@ -138,7 +139,7 @@ function placeSouls(rng: Rng, map: GridMap, base: Cell, ruins: Cell[], camps: Ca
   where.sort((a, b) => near(a, base) - near(b, base));
   // the first soul is an archer (an empty body can shoot from safety); the rest go round
   const order: BaseClass[] = ['archer', ...rng.shuffle(BASE_CLASSES.filter((c) => c !== 'archer'))];
-  return where.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false }));
+  return where.map((pos, id) => ({ id, pos, cls: order[id % order.length]!, taken: false, memory: rollMemory(rng) }));
 }
 
 /** Cells within a square radius, nearest first. */

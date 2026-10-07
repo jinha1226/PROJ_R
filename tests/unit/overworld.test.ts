@@ -74,7 +74,7 @@ it('an empty clone that reaches a soul carries it; the soul goes in when the pla
   orderTo(p, 'hero', soul.pos);
   for (let i = 0; i < 400 && !soul.taken; i++) worldTick(p, 0.1);
   expect(soul.taken).toBe(true);
-  expect(clones(p)[0]!.cls).toBe('shell'); expect(p.carried).toEqual([soul.cls]);
+  expect(clones(p)[0]!.cls).toBe('shell'); expect(p.carried.map((c) => (typeof c === 'string' ? c : c.cls))).toEqual([soul.cls]);
   expect(implantCarried(p, 'hero', 0).some((e) => e.text === 'soul')).toBe(true);
   expect(clones(p)[0]!.cls).toBe(soul.cls); expect(p.carried).toEqual([]);
   expect(entOf(p, 'hero')!.maxHp).toBeGreaterThan(30);
@@ -92,14 +92,14 @@ it('at the ship nothing is printed by itself; asked, it prints an empty body and
   worldTick(p, 0.1); implantCarried(p, 'hero', 0);
   entOf(p, 'hero')!.pos = { ...b!.pos };
   worldTick(p, 0.1);
-  expect(p.carried).toEqual([b!.cls]);
+  expect(p.carried.map((c) => (typeof c === 'string' ? c : c.cls))).toEqual([b!.cls]);
   orderTo(p, 'hero', p.s.map.start);
   for (let i = 0; i < 600; i++) worldTick(p, 0.1);
   expect(clones(p)).toHaveLength(1);
   expect(printClone(p).some((e) => e.text === 'print')).toBe(true);
   expect(clones(p)).toHaveLength(2);
   const two = clones(p)[1]!;
-  expect(two.cls).toBe('shell'); expect(p.carried).toEqual([b!.cls]);
+  expect(two.cls).toBe('shell'); expect(p.carried.map((c) => (typeof c === 'string' ? c : c.cls))).toEqual([b!.cls]);
   implantCarried(p, two.id, 0);
   expect(two.cls).toBe(b!.cls); expect(p.carried).toEqual([]);
 });

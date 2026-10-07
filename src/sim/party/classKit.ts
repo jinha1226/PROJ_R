@@ -16,6 +16,7 @@ export { proficient } from '../delve/gear';
 import { proficient, worn, weaponDef } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
+import { MEMORIES, type MemoryId } from './memories';
 const warrior: TriggerDef[] = [
   { id: '포위 베기', when: 'hit', cd: 6, test: (p,c) => nearby(p,c.src,1,'foe').length >= 2, run: (p,c) => { for (const f of nearby(p,c.src,1,'foe')) {damage(p,c.t,c.src.id,f,p.s.rng.int(6,9),c.ev);if(rank(c.src,'bloodBlade'))applyStatus(p,c.src,f,'bleed',c.t,c.ev);} } },
   { id: '응수', when: 'block', test: (_p,c) => !!c.target && !c.target.cls && (c.target.foe !== 'archer' && c.target.foe !== 'shaman'), run: (p,c) => { if (c.target) counter(p,c.src,c.target,c.t,c.ev,T.counter(c.src)); } },
@@ -70,6 +71,7 @@ export const PROMOTIONS: Record<BaseClass,PromotionRule[]> = {
 export function tagsOf(u: Unit): Partial<Record<Tag,number>> {
   const tags: Partial<Record<Tag,number>> = {};
   for(const [id,rank] of Object.entries(u.traits ?? {})) for(const tag of TRAITS[id]?.tags ?? []) tags[tag]=(tags[tag]??0)+(rank?1:0);
+  const memory = u.memory && MEMORIES[u.memory as MemoryId]; if(memory) tags[memory.tag]=(tags[memory.tag]??0)+1;
   if(u.gear) {for(const it of worn(u))for(const tag of CATALOG[it.def]!.tags)tags[tag]=(tags[tag]??0)+1;}
   else {if(u.weapon==='crossbow')tags.치명=(tags.치명??0)+1;if(u.weapon&&WEAPONS[u.weapon].shield)tags.방패=(tags.방패??0)+1;}
   return tags;

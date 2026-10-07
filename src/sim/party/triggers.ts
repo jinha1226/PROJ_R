@@ -4,6 +4,7 @@ import { TRAITS } from './traitDefs';
 import { kitOf, proficient } from './classKit';
 import { resonanceTriggers } from './resonance';
 import { duoTriggers } from './cardsSupport';
+import { freshFight, memoryTriggers } from './memories';
 import { alive, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import type { StatusId } from './status';
@@ -11,7 +12,7 @@ export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'cri
 export interface Ctx { t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; reaction?: string; over?: number; depth: number; ev: GEvent[] }
 export interface TriggerDef { id: string; when: Cond; cd?: number; chance?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void; repeat?: boolean }
 export const CHAIN_CAP = 12;
-export function sourcesOf(p: Party, u: Unit): TriggerDef[] { return [...resonanceTriggers(p, u), ...duoTriggers(p, u), ...(proficient(u) ? kitOf(u).innate.map(d=>({...d,cd:d.cd})) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]?[...(TRAITS[id]!.trigger?[TRAITS[id]!.trigger!(r)]:[]),...(TRAITS[id]!.triggers?.(r)??[])]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...(u.triggers ?? [])]; }
+export function sourcesOf(p: Party, u: Unit): TriggerDef[] { return [...resonanceTriggers(p, u), ...duoTriggers(p, u), ...memoryTriggers(u), ...(proficient(u) ? kitOf(u).innate.map(d=>({...d,cd:d.cd})) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]?[...(TRAITS[id]!.trigger?[TRAITS[id]!.trigger!(r)]:[]),...(TRAITS[id]!.triggers?.(r)??[])]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...(u.triggers ?? [])]; }
 // A shared action budget covers siblings as well as recursive calls, including damage callbacks.
 // Within one action an effect fires once (unless it repeats); three or more effects leave a chain event for the screen.
 interface ChainState { count: number; depth: number; fired: Set<string>; ev?: GEvent[]; src?: string; t: number }
@@ -29,6 +30,7 @@ export function action<T>(p:Party,run:()=>T):T {
 export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?: number }): void {
   if (!alive(p, input.src)) return;
   if (cond === 'moved') input.src.steady = 0;
+  if (cond === 'combatStart') freshFight(input.src);
   const root = !actions.has(p), action = actions.get(p) ?? fresh(input.t);
   if (root) actions.set(p, action);
   const c: Ctx = { ...input, depth: action.depth };
