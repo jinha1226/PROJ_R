@@ -3,15 +3,13 @@ import { alive, damage, entOf, posOf, type Party, type Unit } from './partyCore'
 import { foesNear, mostHurt } from './cardFx';
 import { addShield } from './shield';
 import { heal } from './kitEffects';
-import { LINE } from './classKit';
+import { linesOf } from './body';
 import { card, rank, type TraitDef } from './traitTypes';
 import type { BaseClass } from './partyDefs';
 import type { TriggerDef } from './triggers';
 import { dist } from '../grid/types';
 
 const heroes = (p: Party) => p.units.filter((x) => x.side === 'hero' && !x.summoner && alive(p, x));
-/** a clone's base line (an advanced class counts as the class it grew from) */
-export const lineOf = (u: Unit): BaseClass | undefined => (u.cls && u.cls !== 'shell' ? LINE[u.cls] ?? (u.cls as BaseClass) : undefined);
 const on = (u: Unit | undefined, id: 'freeze' | 'stun' | 'mark' | 'bleed', t: number) => !!u && (u.status[id]?.until ?? 0) > t;
 
 /** The cleric's cards (spec §6.5): shields and healing that spill over into harm. */
@@ -52,7 +50,7 @@ const CLERIC: TraitDef[] = [
 const duo = (id: string, name: string, pair: [BaseClass, BaseClass], who: BaseClass | 'any', tags: TraitDef['tags'], text: string, trigger?: TriggerDef): TraitDef =>
   ({ ...card(id, name, 'duo', tags, 'duo', text, trigger ? { trigger: () => trigger } : {}), duo: pair, who });
 
-/** The duo cards (spec §6.7): offered and working only while both classes stand. */
+/** The duo cards (spec §6.7): offered and working only in a body holding both classes. */
 const DUOS: TraitDef[] = [
   duo('bait', '미끼와 사냥꾼', ['warrior', 'archer'], 'warrior', ['협공'], '전사를 친 적 → 표식',
     { id: '미끼와 사냥꾼', when: 'struck', test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => applyStatus(p, c.src, c.target!, 'mark', c.t, c.ev) }),
@@ -81,16 +79,14 @@ const DUOS: TraitDef[] = [
 export const SUPPORT_CARDS: TraitDef[] = [...CLERIC, ...DUOS];
 const DUO_BY_ID = new Map(DUOS.map((d) => [d.id, d]));
 
-/** A duo works while some living clone holds it and both its classes stand. */
-export function duoActive(p: Party, id: string): boolean {
+/** A duo works in a body that holds it and both its classes' souls. */
+export function duoActive(u: Unit, id: string): boolean {
   const d = DUO_BY_ID.get(id);
-  if (!d?.duo) return false;
-  const living = heroes(p), lines = new Set(living.map(lineOf));
-  return living.some((h) => rank(h, id) > 0) && lines.has(d.duo[0]) && lines.has(d.duo[1]);
+  return !!d?.duo && rank(u, id) > 0 && d.duo.every((c) => linesOf(u).includes(c));
 }
-/** Whether a duo is in play for this clone (it is the one that runs it). */
-export const duoFor = (p: Party, u: Unit, id: string): boolean => { const d = DUO_BY_ID.get(id); return !!d && duoActive(p, id) && (d.who === 'any' || d.who === lineOf(u)); };
-/** The triggers of the duos in play that this clone runs. */
+/** Whether a duo is in play for this clone. */
+export const duoFor = (_p: Party, u: Unit, id: string): boolean => duoActive(u, id);
+/** The triggers of the duos in play in this body. */
 export function duoTriggers(p: Party, u: Unit): TriggerDef[] {
   if (u.side !== 'hero' || u.summoner) return [];
   return DUOS.filter((d) => d.trigger && duoFor(p, u, d.id)).map((d) => d.trigger!(1));

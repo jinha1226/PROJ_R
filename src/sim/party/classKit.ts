@@ -16,7 +16,7 @@ import { proficient, worn } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
 import { MEMORIES } from './memories';
-import { memoriesOf } from './body';
+import { linesOf, memoriesOf } from './body';
 /** how far the whirlwind reaches (cells) */
 export const WHIRL_REACH = 4;
 const warrior: TriggerDef[] = [
@@ -62,11 +62,12 @@ export const KITS: Record<ClassId, Kit> = {
 };
 export const LINE: Partial<Record<ClassId, BaseClass>> = { berserker:'warrior', guardian:'warrior', sniper:'archer', hunter:'archer', elementalist:'mage', necromancer:'mage', inquisitor:'cleric', healer:'cleric', assassin:'rogue', toxicologist:'rogue' };
 export function kitOf(u: Unit): Kit { return KITS[u.cls ?? 'shell']; }
+/** the kits of every soul in the body (none for the empty body); a unit given a class directly uses that class's kit */
+export const kitsOf = (u: Unit): Kit[] => (u.souls?.length ? linesOf(u).map((c) => KITS[c]) : [KITS[u.cls ?? 'shell']]);
 export function kitMult(p: Party,u: Unit,target: Unit,t: number): number {
   if (!proficient(u)) return 1;
-  const base = LINE[u.cls!] ?? u.cls;
   let m = 1;
-  if (base === 'archer') m *= 1 + 0.1 * (u.steady ?? 0);
+  if (linesOf(u).includes('archer')) m *= 1 + 0.1 * (u.steady ?? 0);
   void p; void target; void t;
   return m;
 }

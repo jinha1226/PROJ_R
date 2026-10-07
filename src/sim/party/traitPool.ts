@@ -1,18 +1,16 @@
 import type { Party, Unit } from './partyCore';
 import { TRAITS, rank, type TraitDef } from './traitDefs';
 import { tagsOf } from './classKit';
-import { duoActive, lineOf } from './cardsSupport';
-import { alive } from './partyCore';
-import { hasMemory } from './body';
+import { hasMemory, linesOf } from './body';
 
 /**
- * The cards on offer at a level-up (spec §2): two of the clone's own line (an advanced class draws from the class it grew from),
- * one from the commons, the duos its party could open and the upgrades of what it holds. Cards with a tag it already has come
- * twice as often. The first level-up offers only laws of the line; an oath joins as a fourth at levels 10 and 14 until one is
- * held; the scholar's memory adds one more common. Fewer when the pools run dry.
+ * The cards on offer at a level-up (solo spec §5): a card of each soul's line (two when the body has one soul), one common
+ * (two for the scholar's memory), the duos of the lines the body holds and the upgrades of what it holds. Cards with a tag it
+ * already has come twice as often. The first level-up offers only laws of the lines. The empty body draws three commons.
+ * An oath joins as a fourth at levels 10 and 14 until one is held. Fewer when the pools run dry.
  */
 export function rollOffer(p: Party, u: Unit): string[] {
-  const tags = tagsOf(u), line = lineOf(u);
+  const tags = tagsOf(u), lines = linesOf(u);
   const available = Object.values(TRAITS).filter((d) => rank(u, d.id) < d.ranks);
   const draw = (pool: TraitDef[], n: number): string[] => {
     const result: string[] = [];
@@ -25,11 +23,13 @@ export function rollOffer(p: Party, u: Unit): string[] {
     return result;
   };
   const first = (u.level ?? 1) === 2;
-  const own = available.filter((d) => d.pool === line && (!first || d.kind === 'law'));
-  const lines = new Set(p.units.filter((x) => x.side === 'hero' && !x.summoner && alive(p, x)).map(lineOf));
-  const duos = available.filter((d) => d.pool === 'duo' && !!line && d.duo!.includes(line) && d.duo!.every((c) => lines.has(c)) && !duoActive(p, d.id));
-  const extra = hasMemory(u, 'scholar') ? 2 : 1;
-  const cards = [...draw(own, 2), ...draw([...available.filter((d) => d.pool === 'common'), ...duos], extra)];
+  const own: string[] = [];
+  const ofLine = (line: string) => available.filter((d) => d.pool === line && (!first || d.kind === 'law') && !own.includes(d.id));
+  for (const line of lines) own.push(...draw(ofLine(line), 1));
+  if (lines.length === 1) own.push(...draw(ofLine(lines[0]!), 1));
+  const duos = available.filter((d) => d.pool === 'duo' && d.duo!.every((c) => lines.includes(c)));
+  const extra = (hasMemory(u, 'scholar') ? 2 : 1) + (lines.length ? 0 : 2);
+  const cards = [...own, ...draw([...available.filter((d) => d.pool === 'common'), ...duos], extra)];
   const due = u.pendingKeystones ?? ([10, 14].includes(u.level ?? 1) ? 1 : 0);
   if (due > 0 && !Object.keys(u.traits ?? {}).some((id) => TRAITS[id]?.pool === 'keystone')) {
     cards.push(...draw(available.filter((d) => d.pool === 'keystone'), 1));

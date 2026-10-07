@@ -1,7 +1,7 @@
 import { useItem } from './consumables';
 import { alive, entOf, unitOf, type Unit } from '../party/partyCore';
 import { CLASSES, WEAPONS, type ClassId, type WeaponId } from '../party/partyDefs';
-import { FAMILY, kitOf } from '../party/classKit';
+import { FAMILY, kitsOf } from '../party/classKit';
 import { refitHp } from '../party/partyLevel';
 import type { GEvent } from '../grid/types';
 import type { RoamParty } from '../roam/roam';
@@ -16,7 +16,7 @@ export const PACK_SIZE = 16;
 export const nextItemId = (p: RoamParty): string => `item-${p.nextItem++}`;
 export const worn = (u: Unit): GearItem[] => Object.values(u.gear ?? {}).filter((i): i is GearItem => !!i);
 export const weaponDef = (u: Unit): ItemDef | undefined => u.gear?.weapon ? CATALOG[u.gear.weapon.def] : undefined;
-export function proficient(u: Unit): boolean { const f = weaponDef(u)?.family ?? (u.weapon && FAMILY[u.weapon]); return !!u.cls && !!f && kitOf(u).proficient.includes(f); }
+export function proficient(u: Unit): boolean { const f = weaponDef(u)?.family ?? (u.weapon && FAMILY[u.weapon]); return !!f && kitsOf(u).some((k) => k.proficient.includes(f)); }
 export function numbers(it: GearItem): Numbers {
     const d = CATALOG[it.def]!;
     const n: Numbers = { min: d.dmg?.[0] ?? 0, max: d.dmg?.[1] ?? 0, range: d.range ?? 0, atk: d.atk ?? 0, armor: d.armor ?? 0, block: d.block ?? 0, weight: d.weight };

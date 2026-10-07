@@ -1,7 +1,6 @@
 import { expect, it } from 'vitest';
 import { rollOffer } from '../../src/sim/party/traitPool';
 import { TRAITS } from '../../src/sim/party/traitDefs';
-import { entOf } from '../../src/sim/party/partyCore';
 import { scene } from './support/cardScene';
 
 it('the first level-up offers two laws of the class and one more', () => {
@@ -22,16 +21,11 @@ it('an owned law comes back as its upgrade; a card without one does not come bac
   }
 });
 
-it('an advanced class draws from the class it grew from', () => {
-  const { p, u } = scene('warrior'); u.cls = 'guardian'; u.level = 9;
-  expect(rollOffer(p, u).filter((id) => TRAITS[id]!.pool === 'warrior')).toHaveLength(2);
-});
-
-it('duos are offered only with the partner class alive; an exhausted pool still offers what is left', () => {
+it('duos are offered only to a body holding the partner class; an exhausted pool still offers what is left', () => {
   const { p, u } = scene('warrior'); u.level = 5;
   const duoIds = Object.values(TRAITS).filter((d) => d.pool === 'duo').map((d) => d.id);
   for (let i = 0; i < 30; i++) expect(rollOffer(p, u).some((id) => duoIds.includes(id))).toBe(false);
-  const other = p.units.find((x) => x.side === 'hero' && x !== u)!; other.cls = 'archer'; entOf(p, other.id)!.alive = true;
+  u.souls = [...u.souls!, { cls: 'archer', ultReady: 0 }];
   let seen = false; for (let i = 0; i < 80 && !seen; i++) seen = rollOffer(p, u).includes('bait');
   expect(seen).toBe(true);
   u.traits = Object.fromEntries(Object.values(TRAITS).filter((d) => d.pool !== 'keystone').map((d) => [d.id, d.ranks]));

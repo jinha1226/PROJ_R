@@ -11,7 +11,7 @@ import { placeParty, takeParty } from '../../src/sim/roam/carry';
 import { newSurface } from '../../src/sim/overworld/worldSim';
 import type { GEvent } from '../../src/sim/grid/types';
 const quiet = () => {
-  const p = newDelve(2); for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false;
+  const p = newDelve(2); for (const u of p.units) if (u.side === 'foe') { entOf(p, u.id)!.alive = false; u.reaped = true; }
   delveTick(p, 0.1); p.floorItems = []; p.souls = []; p.chests = []; p.shrine = undefined;
   implant(p, unitOf(p, 'hero')!, 'archer', []); return p;
 };
@@ -143,7 +143,7 @@ it('foes entering spikes take damage and a lethal entry prevents subsequent move
 it('crypt pickup and named implantation wait for combat to end for both occupied and empty bodies', () => {
   for (const empty of [false, true]) {
     const p = quiet(), u = unitOf(p, 'hero')!;
-    if (empty) u.cls = 'shell';
+    if (empty) { u.cls = 'shell'; u.souls = []; }
     p.souls = [{ id: 5, cls: 'mage', hero: 'mira', pos: { ...entOf(p, u.id)!.pos }, taken: false }];
     const foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;
     e.alive = true; e.hp = 100; e.pos = { ...entOf(p, u.id)!.pos }; foe.asleep = false; foe.nextAt = p.time + 100;

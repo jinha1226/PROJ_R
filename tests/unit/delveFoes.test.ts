@@ -56,8 +56,10 @@ function bossArena() {
   const p = newDelve(2, 5), w = p.units.find((u) => u.foe === 'warlord')!;
   const we = entOf(p, w.id)!, hero = entOf(p, 'hero')!;
   p.souls.forEach((s) => { s.taken = true; });
-  for (const u of p.units) { u.nextAt = 1000; if (u !== w && u.side === 'foe') entOf(p, u.id)!.alive = false; }
+  for (const u of p.units) { u.nextAt = 1000; if (u !== w && u.side === 'foe') { entOf(p, u.id)!.alive = false; u.reaped = true; } }
   w.asleep = false; w.nextAt = 0;
+  // top level: a kill gives no level-up that would refit the test's huge health
+  p.units.find((u) => u.id === 'hero')!.level = 15;
   hero.pos = { x: we.pos.x + 1, y: we.pos.y }; hero.hp = hero.maxHp = 10000;
   return { p, w, we, hero };
 }

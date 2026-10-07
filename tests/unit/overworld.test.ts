@@ -81,7 +81,7 @@ it('an empty clone that reaches a soul carries it; the soul goes in when the pla
   expect(implantCarried(p, 'hero', 0)).toEqual([]);
 });
 
-const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false; };
+const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (u.side === 'foe') { entOf(p, u.id)!.alive = false; u.reaped = true; } };
 
 it('at the ship nothing is printed by itself; asked, it prints an empty body and the player puts the soul in', () => {
   const p = newWorld(3);

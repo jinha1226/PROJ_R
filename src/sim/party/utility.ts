@@ -5,6 +5,7 @@ import { movedStatus, type StatusId } from './status';
 import { mods } from './traitMods';
 import { rank } from './traitTypes';
 import { duoFor } from './cardsSupport';
+import { linesOf } from './body';
 import { emit } from './triggers';
 import { WEAPONS } from './partyDefs';
 
@@ -38,7 +39,7 @@ export function utility(p: Party, u: Unit, f: Unit, t: number): number {
   s += states(f, t) * (rank(u, 'vitals') ? 2.5 : 0.4);
   if (on(f, 'mark', t)) s += 1 + 3 * ON_MARK.filter((id) => rank(u, id)).length + (duoFor(p, u, 'lightArrow') || duoFor(p, u, 'prey') ? 2 : 0);
   if (on(f, 'burn', t) && rank(u, 'combust')) s += 2 + 2 * crowd;
-  if (on(f, 'freeze', t) && (u.cls === 'mage' || duoFor(p, u, 'shatterDuo'))) s += 4;
+  if (on(f, 'freeze', t) && (linesOf(u).includes('mage') || duoFor(p, u, 'shatterDuo'))) s += 4;
   if (on(f, 'stun', t) && duoFor(p, u, 'gap')) s += 3;
   if (on(f, 'bleed', t) && duoFor(p, u, 'bloodFeast')) s += 1.5;
   const next = nextElement(u);

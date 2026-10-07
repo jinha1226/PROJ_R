@@ -36,11 +36,11 @@ it('experience raises the level: more health and a pick among three traits of th
   expect(u.offer).toHaveLength(3);
 });
 
-it('an empty body gains nothing', () => {
+it('an empty body levels up too', () => {
   const p = newDelve(2);
   const ev: GEvent[] = [];
   gainXp(p, clones(p)[0]!, 999, ev);
-  expect(clones(p)[0]!.level).toBeUndefined();
+  expect(clones(p)[0]!.level).toBeGreaterThan(1);
 });
 
 it('foes that fall near a clone give it experience', () => {

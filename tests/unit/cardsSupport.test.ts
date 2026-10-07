@@ -6,7 +6,7 @@ import { heal } from '../../src/sim/party/kitEffects';
 import { scene, put } from './support/cardScene';
 
 const ally = (p: ReturnType<typeof scene>['p'], u: ReturnType<typeof scene>['u'], cls: 'archer' | 'warrior' | 'cleric' | 'mage' | 'rogue', x = 1, y = 1) => {
-  const o = p.units.find((v) => v.side === 'hero' && v !== u && !entOf(p, v.id)!.alive)!; o.cls = cls; o.traits = {}; entOf(p, o.id)!.alive = true; entOf(p, o.id)!.pos = { x, y }; return o;
+  const o = p.units.find((v) => v.side === 'hero' && v !== u && !entOf(p, v.id)!.alive)!; o.cls = cls; o.souls = [{ cls, ultReady: 0 }]; o.traits = {}; entOf(p, o.id)!.alive = true; entOf(p, o.id)!.pos = { x, y }; return o;
 };
 
 it('eight cleric cards and ten duos, each duo naming two classes and who runs it', () => {
@@ -36,11 +36,12 @@ it('overflow grace: healing past full becomes twice as much shield', () => {
   expect(u.shield).toBe(10);
 });
 
-it('a duo works only while both classes stand', () => {
-  const { p, u } = scene('warrior'); const o = ally(p, u, 'archer');
+it('a duo works only in a body holding both classes', () => {
+  const { u } = scene('warrior');
   u.traits = { bait: 1 };
-  expect(duoActive(p, 'bait')).toBe(true);
-  entOf(p, o.id)!.alive = false; expect(duoActive(p, 'bait')).toBe(false);
+  expect(duoActive(u, 'bait')).toBe(false);
+  u.souls = [...(u.souls ?? []), { cls: 'archer', ultReady: 0 }];
+  expect(duoActive(u, 'bait')).toBe(true);
 });
 
 it('bait: a foe that hits the warrior is marked (archer alive)', () => {
@@ -49,9 +50,10 @@ it('bait: a foe that hits the warrior is marked (archer alive)', () => {
   expect((a!.status.mark?.until ?? 0) > 0).toBe(true);
 });
 
-it('blood feast: hitting a bleeding foe heals the most hurt ally (cleric and rogue together)', () => {
-  const { p, u, foes } = scene('rogue'); const [a] = foes; put(p, a!, 5, 4, 999); const c = ally(p, u, 'cleric');
-  c.traits = { bloodFeast: 1 }; const ce = entOf(p, c.id)!; ce.hp = 10;
+it('blood feast: hitting a bleeding foe heals the most hurt ally (a rogue-cleric body)', () => {
+  const { p, u, foes } = scene('rogue'); const [a] = foes; put(p, a!, 5, 4, 999);
+  u.souls = [...u.souls!, { cls: 'cleric', ultReady: 0 }];
+  u.traits = { bloodFeast: 1 }; const ce = entOf(p, u.id)!; ce.hp = 10;
   a!.status.bleed = { until: 9, by: u.id, stacks: 1 };
   action(p, () => emit(p, 'hit', { t: 0, src: u, target: a, ev: [] }));
   expect(ce.hp).toBe(13);

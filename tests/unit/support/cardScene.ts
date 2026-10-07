@@ -1,12 +1,14 @@
 import { TRAITS } from '../../../src/sim/party/traitDefs';
 import { partyRoom } from '../../../src/sim/party/partySim';
 import { entOf, type Party, type Unit } from '../../../src/sim/party/partyCore';
-import type { ClassId } from '../../../src/sim/party/partyDefs';
+import type { BaseClass, ClassId } from '../../../src/sim/party/partyDefs';
+import { LINE } from '../../../src/sim/party/classKit';
 
 /** A party room with one hero of `cls` at (4,4) and foes parked far away, ready to be placed by a test. */
 export function scene(cls: ClassId = 'warrior'): { p: Party; u: Unit; foes: Unit[] } {
   const p = partyRoom(), u = p.units.find((x) => x.side === 'hero')!;
-  u.cls = cls; u.traits = {}; u.level = 1;
+  const line = cls === 'shell' ? undefined : LINE[cls] ?? (cls as BaseClass);
+  u.cls = cls; u.souls = line ? [{ cls: line, ultReady: 0 }] : []; u.traits = {}; u.level = 1;
   for (const h of p.units) if (h.side === 'hero' && h !== u) entOf(p, h.id)!.alive = false;
   entOf(p, u.id)!.pos = { x: 4, y: 4 };
   const foes = p.units.filter((x) => x.side === 'foe');
