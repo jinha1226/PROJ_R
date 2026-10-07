@@ -100,5 +100,6 @@ if (params.get('demo') === 'looks') void looksDemo();
 else if (params.get('demo') === 'chains') void chainsDemo();
 else if (params.get('demo') === 'deep') void deepDemo();
 else if (params.get('demo') === 'branch') void branchDemo();
+else if (params.get('demo') === 'tune') void Promise.all([import('../ui/demo/tuneDemo'), UalLibrary.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]).then(([{ mountTuneDemo }, lib, weapons]) => { setWeaponKit(weapons); mountTuneDemo(root, lib); }).catch((e) => showFatal(root, e));
 else if (params.get('demo') === 'horde') void import('../ui/demo/hordeDemo').then(({ hordeDemo }) => hordeDemo(root)).catch((e) => showFatal(root, e));
 else title();

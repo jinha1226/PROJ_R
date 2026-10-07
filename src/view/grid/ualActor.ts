@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { weaponMesh, type WeaponLook } from './weaponMeshes';
 import { weaponKit } from './weaponKit';
+import { tuneHolder } from './figureTune';
 import { buildBlockBody, type BlockLook } from './blockBody';
 import { buildSuitArmor, lightSuit } from './suitArmor';
 import { addOutlines, figureLit, figureMat, type FigureMat } from './toon';
@@ -21,7 +22,9 @@ export interface UalLook { body: string; trim: string; scale: number; weapon: We
   /** the dot look's outline colour (a party class line's colour) */
   ring?: string;
   /** a weapon in the left hand too (twin daggers) */
-  off?: WeaponLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species }
+  off?: WeaponLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species;
+  /** hand-tuned height and breadth against the base mannequin (`figureTune.json`) */
+  height?: number; girth?: number }
 
 const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   run: 'Jog_Fwd_Loop', mine: 'Interact', roll: 'Roll', jab: 'Punch_Jab', scratch: 'Zombie_Scratch', weaveL: 'Weave_L', weaveR: 'Weave_R', parry: 'Sword_Block',
@@ -144,10 +147,10 @@ export class UalActor {
   constructor(private readonly lib: UalLibrary, private readonly look: UalLook) {
     this.idleClip = look.idle;
     const model = lib.spawn();
-    const k = lib.scale * look.scale;
+    const k = lib.scale * look.scale, h = look.height ?? 1, g = look.girth ?? 1;
     // a block body is built on the bones in the rest pose; the slim mannequin is widened instead
-    if (look.block) { model.scale.setScalar(k); this.mats.push(...buildBlockBody(model, look.block)); }
-    else model.scale.set(k * BULK, k, k * BULK);
+    if (look.block) { model.scale.set(k * g, k * h, k * g); this.mats.push(...buildBlockBody(model, look.block)); }
+    else model.scale.set(k * BULK * g, k * h, k * BULK * g);
     if (!look.block) model.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -241,25 +244,28 @@ export class UalActor {
       if (!this.busy && !this.dead) this.loopOn(this.loop === 'run', 1.5, 0.15);
     }
     if (kind === this.heldKind || !this.hand) return;
-    this.held?.parent?.remove(this.held);
+    // the held thing hangs in a holder carrying its hand-tuned offset (figureTune.json)
+    this.held?.parent?.parent?.remove(this.held.parent);
     this.held = weaponMesh(kind);
     this.heldKind = kind;
+    const holder = tuneHolder(kind);
+    holder.add(this.held);
     // a bow is held in the left hand (the right one draws the string), standing upright in front when drawn
-    if (kind === 'bow' && this.offHand) { this.held.quaternion.copy(bowGrip(this.lib, false)); this.offHand.add(this.held); }
+    if (kind === 'bow' && this.offHand) { this.held.quaternion.copy(bowGrip(this.lib, false)); this.offHand.add(holder); }
     else {
       // a caster's stick stands upright in the spell stance instead of lying along the forearm
       if (CASTER.has(kind)) this.held.quaternion.copy(uprightGrip(this.lib, 'Spell_Simple_Idle_Loop', 'hand_r', 0.3));
-      this.hand.add(this.held);
+      this.hand.add(holder);
     }
   }
 
   /** The weapon of the other hand, shown in the left hand ('none' clears it). */
   setOffhand(kind: WeaponLook): void {
     if (kind === this.offKind || !this.offHand) return;
-    this.off?.parent?.remove(this.off);
+    this.off?.parent?.parent?.remove(this.off.parent);
     this.offKind = kind;
     this.off = kind === 'none' ? null : weaponKit()?.makeOff(kind) ?? null;
-    if (this.off) this.offHand.add(this.off);
+    if (this.off) { const holder = tuneHolder(kind, true); holder.add(this.off); this.offHand.add(holder); }
   }
 
   /** The one-off action now playing (null while idling or running). */

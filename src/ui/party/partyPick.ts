@@ -1,3 +1,4 @@
+import { bodyTune } from '../../view/grid/figureTune';
 import { KITS } from '../../sim/party/classKit';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { BASE_CLASSES, CLASSES, WEAPONS, type BaseClass, type ClassId, type Pick, type WeaponId } from '../../sim/party/partyDefs';
@@ -33,7 +34,8 @@ export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
   const w = WEAPONS[weapon], outfit = outfitOf(cls), [body, trim] = outfit ? COLORS.shell! : COLORS[cls] ?? COLORS.warrior!;
   const caster = w.look === 'staff' || w.look === 'wand' || w.look === 'symbol';
   const idle = cls === 'shell' ? 'Idle_Loop' : caster || w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
-  return { body, trim, scale: BUILD[cls] ?? 0.95, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[cls as keyof typeof RING] ?? RING.shell };
+  const tuned = bodyTune(cls);
+  return { body, trim, scale: BUILD[cls] ?? 0.95, height: tuned.height, girth: tuned.girth, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[cls as keyof typeof RING] ?? RING.shell };
 }
 
 /** The party chooser: five classes, three to take, each with a weapon. */

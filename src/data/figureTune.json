@@ -1,0 +1,179 @@
+{
+  "weapons": {
+    "axe": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "bow": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "crossbow": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "dagger": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "mace": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "pistol": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "staff": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "sword": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "symbol": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    },
+    "wand": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    }
+  },
+  "offhand": {
+    "dagger": {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ],
+      "scale": 1
+    }
+  },
+  "classes": {
+    "shell": {
+      "height": 1,
+      "girth": 1
+    },
+    "warrior": {
+      "height": 1,
+      "girth": 1
+    },
+    "archer": {
+      "height": 1,
+      "girth": 1
+    },
+    "mage": {
+      "height": 1,
+      "girth": 1
+    },
+    "cleric": {
+      "height": 1,
+      "girth": 1
+    },
+    "rogue": {
+      "height": 1,
+      "girth": 1
+    },
+    "necromancer": {
+      "height": 1,
+      "girth": 1
+    }
+  }
+}
