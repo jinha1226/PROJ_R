@@ -30,7 +30,7 @@ export const COMMON_CARDS: TraitDef[] = [
       for (const f of foesNear(p, posOf(p, c.src), 1)) applyStatus(p, c.src, f, 'exposed', c.t, c.ev);
     } }),
   }, '보호막 50%'),
-  card('morale', '사기', 'law', ['협공'], 'common', '처치 → 2칸 안 아군 치유 8', {
+  card('morale', '사기', 'law', ['협공'], 'common', '처치 → 나와 2칸 안 소환수 치유 8', {
     trigger: (r) => ({ id: '사기', when: 'kill', run: (p, c) => { for (const a of nearby(p, c.src, 2)) { heal(p, c.src, a, 8, c.t, c.ev); if (r >= 2) addShield(a, 12, c.src); } } }),
   }, '보호막 12도 줌'),
   card('leap', '도약', 'law', ['생존'], 'common', '이동 후 첫 공격 → 적 노출', {
@@ -45,8 +45,9 @@ export const COMMON_CARDS: TraitDef[] = [
   card('plunder', '약탈자', 'convert', ['생존'], 'common', '처치 → 생체 +1 (엘리트 +5)', {
     trigger: () => ({ id: '약탈자', when: 'kill', test: (p) => 'bio' in p, run: (p, c) => { (p as unknown as { bio: number }).bio += c.target && entOf(p, c.target.id)?.elite ? 5 : 1; } }),
   }),
-  card('bond', '결속', 'amp', ['협공'], 'common', '2칸 안 아군 1명당 피해 +15%', { passive: () => ({ bond: 0.15 }) }),
-  card('cruel', '잔혹', 'amp', ['치명'], 'common', '#치명 1당 치명 피해 +25%', { passive: (u) => ({ critDmg: 0.25 * (tagsOf(u).치명 ?? 0) }) }),
+  card('bond', '결속', 'amp', ['협공'], 'common', '2칸 안 아군(소환수·분신) 1명당 피해 ×1.15 (곱)', { passive: () => ({ bond: 0.15 }) }),
+  // the critical blow's base is ×1.5: this adds what multiplies it by 1.15 per #치명
+  card('cruel', '잔혹', 'amp', ['치명'], 'common', '#치명 1당 치명 피해 ×1.15 (곱)', { passive: (u) => ({ critDmg: 1.5 * (1.15 ** (tagsOf(u).치명 ?? 0) - 1) }) }),
 ];
 
 const oath = (d: TraitDef, text: string): TraitDef => ({ ...d, kind: 'oath', text, ranks: 1 });

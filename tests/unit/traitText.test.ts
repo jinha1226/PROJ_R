@@ -19,7 +19,7 @@ describe('traitText', () => {
   it('states the numbers the code gives', () => {
     expect(traitText('finish', 1)).toBe('처치 → 다음 공격 피해 2배');
     expect(traitText('finish', 2)).toBe('처치 → 다음 공격 피해 2배 · 강화: 최대 4배까지 쌓임');
-    expect(traitText('bond', 1)).toBe('2칸 안 아군 1명당 피해 +15%');
+    expect(traitText('bond', 1)).toBe('2칸 안 아군(소환수·분신) 1명당 피해 ×1.15 (곱)');
     expect(traitText('immortal', 1)).toBe('죽을 피해 → 3턴 무적 (전투당 1회) · 대가: 체력 -25%');
   });
 });

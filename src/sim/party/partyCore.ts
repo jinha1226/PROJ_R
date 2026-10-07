@@ -1,4 +1,4 @@
-import { traitMult, takenMult, shieldBroken, blink, allyFell, martyrHolds, negate } from './traitCombat';
+import { traitMult, takenMult, shieldBroken, blink, negate } from './traitCombat';
 import { kitMult, tagsOf } from './classKit';
 import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
@@ -248,7 +248,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
       const share = Math.round(amount * 0.3);
       if (share > 0) { amount -= share; damage(p,t,src,link,share,ev,true); }
     }
-    amount = negate(p, dst, attacker, amount, t, ev, secondary);
+    amount = negate(p, dst, amount, t, ev);
     const soak = Math.min(dst.shield, amount);
     dst.shield -= soak; amount -= soak;
     if(soak>0 && dst.shield===0){shieldBroken(p,dst,t,ev,soak);emit(p,'shieldBreak',{t,src:dst,target:attacker,amount:soak,ev});}
@@ -261,7 +261,6 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     ev.push({ t, type: 'buff', src: dst.id, dst: dst.id, text: 'grit' });
   }
   if(dst.traits?.immortal && amount>=e.hp && !dst.immortalUsed) {dst.immortalUsed=true;dst.immuneUntil=t+3;amount=0;}
-  if (dst.side === 'hero' && !dst.summoner && amount >= e.hp && martyrHolds(p, dst)) amount = e.hp - 1;
   const prevHp = e.hp;
   e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
@@ -271,7 +270,6 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     ev.push({ t, type: 'die', src, dst: dst.id, to: { ...e.pos } });
     // the damage is dealt once the foe is down: an on-damage effect cannot strike the dying body again
     if (dealt) emit(p, 'damage', { t, src: dealer!, target: dst, amount, kind, ev });
-    if (dst.side === 'hero' && !dst.summoner) allyFell(p, dst, t, ev);
     const master = dst.summoner ? unitOf(p, dst.summoner) : undefined;
     if (master && alive(p, master)) emit(p, 'summonDied', { t, src: master, target: dst, ev });
     const killer = unitOf(p, src);
@@ -377,9 +375,9 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
       u.empower = !basic && u.echoPending ? 2 : 1; u.hiddenUntil = 0;
       if (basic) u.echoPending = false;
     }
-    // bond: each ally close by; steady aim: shots in a row from the same spot; a critical blow
-    const near = p.units.filter((x) => x.side === 'hero' && !x.summoner && x !== u && alive(p, x) && dist(posOf(p, x), e.pos) <= 2).length;
-    m *= 1 + T.bond(u) * near;
+    // bond: each ally close by (a lone body's own minions and clones), multiplied
+    const near = p.units.filter((x) => x.side === 'hero' && x !== u && alive(p, x) && dist(posOf(p, x), e.pos) <= 2).length;
+    m *= (1 + T.bond(u)) ** near;
   }
   if (target.side === 'hero' && st.range > 1 && behindCover(p, e.pos, te.pos)) m *= T.coverTaken(target);
   if(!alive(p,u))return;

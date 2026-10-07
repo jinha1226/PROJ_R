@@ -47,8 +47,4 @@ it('a negating effect stops a killing blow too', () => {
   u.souls = [{ cls: 'warrior', memory: 'shieldKeeper', ultReady: 0 }]; u.keeperUsed = false; const e = entOf(p, u.id)!;
   damage(p, 0, a!.id, u, 9999, []);
   expect(e.alive).toBe(true); expect(e.hp).toBe(e.maxHp);
-  const q = scene('warrior'); const [f] = q.foes; put(q.p, f!, 5, 4, 999);
-  q.u.traits = { lastStand: 2 }; const qe = entOf(q.p, q.u.id)!; qe.hp = 10; q.p.s.rng.chance = () => true;
-  damage(q.p, 0, f!.id, q.u, 9999, []);
-  expect(qe.alive).toBe(true); expect(qe.hp).toBe(10);
 });

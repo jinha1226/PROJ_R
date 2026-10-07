@@ -11,9 +11,6 @@ import { whirlwind } from '../../src/sim/party/cardsWarrior';
 import { laySnare, tickSnares } from '../../src/sim/party/snares';
 import { BASE_CLASSES, type BaseClass } from '../../src/sim/party/partyDefs';
 
-const ally = (p: ReturnType<typeof scene>['p'], u: ReturnType<typeof scene>['u'], cls: 'archer' | 'warrior' | 'cleric' | 'mage' | 'rogue', x = 1, y = 1) => {
-  const o = p.units.find((v) => v.side === 'hero' && v !== u && !entOf(p, v.id)!.alive)!; o.cls = cls; o.souls = [{ cls, ultReady: 0 }]; o.traits = {}; entOf(p, o.id)!.alive = true; entOf(p, o.id)!.pos = { x, y }; return o;
-};
 
 it('a duo works only in a body holding both classes', () => {
   const { u } = scene('warrior');
@@ -38,12 +35,6 @@ it('blood feast: hitting a bleeding foe heals the most hurt ally (a rogue-cleric
   expect(ce.hp).toBe(13);
 });
 
-it('martyr: when a clone falls the rest heal and hit harder', () => {
-  const { p, u, foes } = scene('cleric'); const [a] = foes; put(p, a!, 5, 4); const o = ally(p, u, 'warrior');
-  u.traits = { martyr: 1 }; const e = entOf(p, u.id)!; e.hp = 10;
-  damage(p, 0, a!.id, o, 9999, []);
-  expect(e.hp).toBe(10 + Math.round(e.maxHp * 0.3)); expect(u.damageBuff).toBe(1.3);
-});
 
 const both = (a: BaseClass, b: BaseClass, traits: Record<string, number>) => {
   const sc = classScene(a); sc.u.souls = [...(sc.u.souls ?? []), { cls: b, ultReady: 0 }]; sc.u.traits = traits; return sc;

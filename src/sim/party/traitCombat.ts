@@ -7,7 +7,6 @@ import { ampBase } from './traitTypes';
 import { mods } from './traitMods';
 import { tagsOf } from './classKit';
 import { applyStatus } from './status';
-import { counter } from './cardFx';
 import { hasMemory } from './body';
 export function traitMult(p:Party,u:Unit,target:Unit,t:number):number {
   let m=1;
@@ -32,16 +31,6 @@ export function takenMult(p:Party,u:Unit,t:number):number {
 export function shieldBroken(p:Party,u:Unit,t:number,ev:GEvent[],amount=0):void {
   for(const c of p.units) if(c.side==='hero'&&alive(p,c)&&rank(c,'shieldBurst')) for(const f of nearby(p,u,rank(c,'shieldBurst')>=3?2:1,'foe')) { damage(p,t,c.id,f,amount,ev,true); if(rank(c,'shieldBurst')>=2) applyStatus(p,c,f,'stun',t,ev); }
 }
-/** A clone fell: a martyr's party heals a third and hits harder for two turns. */
-export function allyFell(p:Party,u:Unit,t:number,ev:GEvent[]):void {
-  for(const c of p.units) if(c!==u&&c.side==='hero'&&alive(p,c)&&rank(c,'martyr')) for(const a of p.units) if(a.side==='hero'&&!a.summoner&&alive(p,a)) { heal(p,c,a,entOf(p,a.id)!.maxHp*.3,t,ev); a.damageBuff=1.3; a.damageBuffUntil=t+2; }
-}
-/** A martyr's upgrade: once a floor a clone's killing blow leaves it one point of health. */
-export function martyrHolds(p:Party,u:Unit):boolean {
-  const floor=(p as {floor?:number}).floor??0, c=p.units.find(x=>x!==u&&x.side==='hero'&&alive(p,x)&&rank(x,'martyr')>=2);
-  if(!c||c.martyrFloor===floor)return false;
-  c.martyrFloor=floor;return true;
-}
 export function blink(p:Party,u:Unit,target:Unit,t:number,ev:GEvent[]):void {
   if(!u.blinkNext)return;u.blinkNext=false;
   const tp=posOf(p,target),spot=DIRS.map(d=>({x:tp.x+d.x,y:tp.y+d.y})).find(c=>walkable(tileAt(p.s.map,c))&&!occupied(p,c,u.id));
@@ -56,15 +45,9 @@ export function tickTraitRegen(p:Party,from:number,to:number,ev:GEvent[]):void {
   }
 }
 
-/** Effects that stop a blow before it lands (so a killing blow too): the shield keeper's memory once a fight, last stand in a crisis. Returns what gets through. */
-export function negate(p:Party,u:Unit,attacker:Unit|undefined,amount:number,t:number,ev:GEvent[],secondary:boolean):number {
+/** Effects that stop a blow before it lands (so a killing blow too): the shield keeper's memory once a fight. Returns what gets through. */
+export function negate(p:Party,u:Unit,amount:number,t:number,ev:GEvent[]):number {
   if(amount<=0)return amount;
   if(hasMemory(u,'shieldKeeper')&&!u.keeperUsed){u.keeperUsed=true;ev.push({t,type:'buff',src:u.id,dst:u.id,text:'방패지기'});return 0;}
-  const e=entOf(p,u.id)!, r=rank(u,'lastStand');
-  if(r&&e.hp<e.maxHp/2&&p.s.rng.chance(r>=2?.35:.2)){
-    ev.push({t,type:'buff',src:u.id,dst:u.id,text:'최후의 버팀'});
-    if(attacker&&!secondary&&alive(p,attacker))counter(p,u,attacker,t,ev);
-    return 0;
-  }
   return amount;
 }

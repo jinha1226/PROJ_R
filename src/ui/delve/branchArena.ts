@@ -24,13 +24,12 @@ export function branchArena(seed: number, key: string): DelveParty {
   return p;
 }
 
-/** The branches to choose from, by line (lines without branches listed whole). */
+/** The branches to choose from, by class: seven lines of three. */
 export function branchMenuHtml(): string {
   const lines = ['shell', 'warrior', 'mage', 'archer', 'cleric', 'rogue', 'necromancer'];
   const name: Record<string, string> = { shell: '빈 몸', warrior: '전사', mage: '마법사', archer: '궁수', cleric: '성직자', rogue: '도적', necromancer: '강령술사' };
   return `<div class="branch-menu"><h2>갈래 데모</h2>${lines.map((l) => {
-    const bs = BRANCHES.filter((b) => b.line === l && Object.values(TRAITS).some((d) => d.branch === b.id));
-    const links = bs.length ? bs.map((b) => `<a href="?demo=branch&b=${b.id}">${b.name}</a>`).join('') : Object.values(TRAITS).some((d) => d.pool === l) ? `<a href="?demo=branch&b=${l}">카드 전체</a>` : '<span>준비 중</span>';
+    const links = BRANCHES.filter((b) => b.line === l).map((b) => `<a href="?demo=branch&b=${b.id}">${b.name}</a>`).join('');
     return `<div class="branch-line"><b>${name[l]}</b>${links}</div>`;
   }).join('')}</div>`;
 }
