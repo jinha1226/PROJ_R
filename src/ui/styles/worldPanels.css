@@ -173,3 +173,5 @@
 .pip-stone-mem, .pip-stone-cards { grid-column: 2; margin: 0; font-size: 12px; }
 .pip-stone-mem small { color: #34a85c; margin-left: 6px; }
 .pip-stone-cards { color: #9dffb8; font-size: 11px; }
+.trait-reroll { margin-left: auto; font: inherit; font-size: 11px; color: #ffd76a; background: none; border: 1px solid #8a6a1a; padding: 2px 8px; cursor: pointer; }
+.trait-reroll:hover { background: #ffd76a; color: #021006; }

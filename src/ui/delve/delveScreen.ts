@@ -28,7 +28,7 @@ import { lookOf } from '../party/partyPick';
 import { PipWindow, type PipTab } from '../overworld/pipWindow';
 import { TraitPicker } from '../overworld/traitPicker';
 import { OptionsMenu } from '../overworld/optionsMenu';
-import { pickTrait } from '../../sim/party/partyLevel';
+import { pickTrait, rerollOffer } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/traitDefs';
 import { WorldHud, statusLine } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
@@ -110,7 +110,7 @@ export class DelveScreen implements Screen {
     this.el.appendChild(this.prompts.el);
     this.el.appendChild(this.quick.el);
     this.el.appendChild(this.pip.el);
-    this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
+    this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; }, (id) => this.live(rerollOffer(this.p, id)));
     this.el.appendChild(this.picker.el);
     this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동·공격 · R T 궁극기 · B 신호기 · Space 대기 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },

@@ -30,7 +30,7 @@ import { PipWindow, type PipTab } from './pipWindow';
 import { TraitPicker } from './traitPicker';
 import { OptionsMenu } from './optionsMenu';
 import { TouchPad } from './touchPad';
-import { pickTrait } from '../../sim/party/partyLevel';
+import { pickTrait, rerollOffer } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/traitDefs';
 import { WorldHud, statusLine } from './worldHud';
 import { WorldLog } from './worldLog';
@@ -111,7 +111,7 @@ export class WorldScreen implements Screen {
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.pip.el);
-    this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
+    this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; }, (id) => this.live(rerollOffer(this.p, id)));
     this.el.appendChild(this.picker.el);
     this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동 · 적 클릭 공격 · Q W 기술 · Space 정지 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },

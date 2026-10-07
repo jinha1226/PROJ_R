@@ -13,13 +13,14 @@ export class TraitPicker {
   readonly el = document.createElement('div');
   private who = '';
 
-  constructor(private readonly p: () => Party, private readonly pick: (id: string, trait: string) => void, private readonly onClose: () => void) {
+  constructor(private readonly p: () => Party, private readonly pick: (id: string, trait: string) => void, private readonly onClose: () => void, private readonly reroll?: (id: string) => void) {
     this.el.className = 'pip-win trait-win';
     this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
       const card = t.closest<HTMLElement>('[data-trait]');
       if (card) { this.pick(this.who, card.dataset.trait!); if (unitOf(this.p(), this.who)?.picks) this.draw(); else this.close(); return; }
+      if (t.closest('[data-reroll]') && this.reroll) { this.reroll(this.who); this.draw(); return; }
       if (t.closest('[data-close]') || t === this.el) this.close();
     });
   }
@@ -36,7 +37,7 @@ export class TraitPicker {
       return `<button type="button" class="trait-card${own ? ' own' : ''}${d.kind === 'duo' ? ' duo' : ''}" data-trait="${id}"><b>${d.name}</b><span class="kind">${kind}</span>`
         + `<p class="trait-text">${achraLine(r > 0 && d.up ? d.up : traitText(id, 1))}</p><em>${d.tags.map((t) => `#${t}`).join(' ')}</em>${r === 0 ? lights(this.p(), u, d) : ''}</button>`;
     }).join('');
-    this.el.innerHTML = `<div class="pip-frame trait-frame"><header><span class="trait-who" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${CLASSES[u.cls!].name} · 레벨 ${levelOf(u)}</span><span class="pip-title">특성 선택${(u.picks ?? 0) > 1 ? ` · 남은 선택 ${u.picks}` : ''}</span><button type="button" data-close>✕</button></header>
+    this.el.innerHTML = `<div class="pip-frame trait-frame"><header><span class="trait-who" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${CLASSES[u.cls!].name} · 레벨 ${levelOf(u)}</span><span class="pip-title">특성 선택${(u.picks ?? 0) > 1 ? ` · 남은 선택 ${u.picks}` : ''}</span>${this.reroll && (u.rerolls ?? 0) > 0 ? `<button type="button" class="trait-reroll" data-reroll>다시 뽑기 ${u.rerolls}</button>` : ''}<button type="button" data-close>✕</button></header>
       <div class="trait-cards">${cards}</div><footer>Esc 닫기</footer></div>`;
   }
 }

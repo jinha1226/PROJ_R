@@ -51,6 +51,20 @@ export function awardXp(p: Party, fallen: Unit, ev: GEvent[]): void {
   }
 }
 
+/** rerolls a clone carries into each run */
+export const REROLLS_PER_RUN = 2;
+
+/** The player rerolls the offer on screen: a fresh draw for the same pick, while rerolls last. */
+export function rerollOffer(p: Party, id: string): GEvent[] {
+  const u = p.units.find((x) => x.id === id);
+  if (!u || !u.picks || !u.offer?.length || (u.rerolls ?? 0) <= 0) return [];
+  // an oath on the old offer is owed again
+  if (u.offer.some((c) => TRAITS[c]?.pool === 'keystone')) u.pendingKeystones = (u.pendingKeystones ?? 0) + 1;
+  u.rerolls = (u.rerolls ?? 0) - 1;
+  u.offer = rollOffer(p, u);
+  return [{ t: p.time, type: 'buff', src: id, dst: id, text: 'reroll' }];
+}
+
 /** Rolls the next offer; with nothing left to offer, the remaining picks are spent rather than left waiting. */
 function offerNext(p: Party, u: Unit): void {
   u.offer = rollOffer(p, u);
