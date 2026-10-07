@@ -120,7 +120,7 @@ it('when a band notices the party every walk stops where it is', () => {
 
 it('a carried soul gets no body by itself, bio-matter or not; foes leave bio-matter when they fall', () => {
   const p = newDelve(2);
-  p.printHere = true;
+  p.printHere = true; p.soulSlots = 1;
   take(p, 0); take(p, 1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start };
   for (const u of p.units) if (u.side === 'foe') u.asleep = true;

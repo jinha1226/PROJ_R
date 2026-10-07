@@ -1,6 +1,7 @@
 import type { Rng } from '../../core/rng';
 import { applyStatus } from './status';
 import { alive, entOf, occupied, posOf, type Party, type Unit } from './partyCore';
+import { memoriesOf } from './body';
 import { foesNear } from './cardFx';
 import { addShield } from './shield';
 import { DIRS, dist, tileAt, walkable, type GEvent } from '../grid/types';
@@ -48,7 +49,7 @@ export const MEMORIES: Record<MemoryId, Memory> = {
 };
 export const MEMORY_IDS = Object.keys(MEMORIES) as MemoryId[];
 export const rollMemory = (rng: Rng): MemoryId => rng.pick(MEMORY_IDS);
-/** The memory trigger of a clone's soul, if it has one. */
-export const memoryTriggers = (u: Unit): TriggerDef[] => { const m = u.memory && MEMORIES[u.memory as MemoryId]?.trigger; return m ? [m] : []; };
+/** The memory triggers of the souls in a body. */
+export const memoryTriggers = (u: Unit): TriggerDef[] => memoriesOf(u).flatMap((m) => (MEMORIES[m].trigger ? [MEMORIES[m].trigger!] : []));
 /** Once-a-fight memories start over when a fight starts. */
 export function freshFight(u: Unit): void { u.keeperUsed = false; u.poisonerUsed = false; }

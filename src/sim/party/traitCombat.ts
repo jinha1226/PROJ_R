@@ -6,6 +6,7 @@ import { mods } from './traitMods';
 import { tagsOf } from './classKit';
 import { applyStatus } from './status';
 import { counter } from './cardFx';
+import { hasMemory } from './body';
 export function traitMult(p:Party,u:Unit,target:Unit,t:number):number {
   let m=1;
   if(u.retreatShot)m*=1+(mods(u).retreat??0);
@@ -53,7 +54,7 @@ export function tickTraitRegen(p:Party,from:number,to:number,ev:GEvent[]):void {
 /** Effects that stop a blow before it lands (so a killing blow too): the shield keeper's memory once a fight, last stand in a crisis. Returns what gets through. */
 export function negate(p:Party,u:Unit,attacker:Unit|undefined,amount:number,t:number,ev:GEvent[],secondary:boolean):number {
   if(amount<=0)return amount;
-  if(u.memory==='shieldKeeper'&&!u.keeperUsed){u.keeperUsed=true;ev.push({t,type:'buff',src:u.id,dst:u.id,text:'방패지기'});return 0;}
+  if(hasMemory(u,'shieldKeeper')&&!u.keeperUsed){u.keeperUsed=true;ev.push({t,type:'buff',src:u.id,dst:u.id,text:'방패지기'});return 0;}
   const e=entOf(p,u.id)!, r=rank(u,'lastStand');
   if(r&&e.hp<e.maxHp/2&&p.s.rng.chance(r>=2?.35:.2)){
     ev.push({t,type:'buff',src:u.id,dst:u.id,text:'최후의 버팀'});

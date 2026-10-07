@@ -3,6 +3,7 @@ import { TRAITS, rank, type TraitDef } from './traitDefs';
 import { tagsOf } from './classKit';
 import { duoActive, lineOf } from './cardsSupport';
 import { alive } from './partyCore';
+import { hasMemory } from './body';
 
 /**
  * The cards on offer at a level-up (spec §2): two of the clone's own line (an advanced class draws from the class it grew from),
@@ -27,7 +28,7 @@ export function rollOffer(p: Party, u: Unit): string[] {
   const own = available.filter((d) => d.pool === line && (!first || d.kind === 'law'));
   const lines = new Set(p.units.filter((x) => x.side === 'hero' && !x.summoner && alive(p, x)).map(lineOf));
   const duos = available.filter((d) => d.pool === 'duo' && !!line && d.duo!.includes(line) && d.duo!.every((c) => lines.has(c)) && !duoActive(p, d.id));
-  const extra = u.memory === 'scholar' ? 2 : 1;
+  const extra = hasMemory(u, 'scholar') ? 2 : 1;
   const cards = [...draw(own, 2), ...draw([...available.filter((d) => d.pool === 'common'), ...duos], extra)];
   const due = u.pendingKeystones ?? ([10, 14].includes(u.level ?? 1) ? 1 : 0);
   if (due > 0 && !Object.keys(u.traits ?? {}).some((id) => TRAITS[id]?.pool === 'keystone')) {

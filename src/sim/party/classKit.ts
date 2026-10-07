@@ -15,7 +15,8 @@ export { proficient } from '../delve/gear';
 import { proficient, worn } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
-import { MEMORIES, type MemoryId } from './memories';
+import { MEMORIES } from './memories';
+import { memoriesOf } from './body';
 /** how far the whirlwind reaches (cells) */
 export const WHIRL_REACH = 4;
 const warrior: TriggerDef[] = [
@@ -72,7 +73,7 @@ export function kitMult(p: Party,u: Unit,target: Unit,t: number): number {
 export function tagsOf(u: Unit): Partial<Record<Tag,number>> {
   const tags: Partial<Record<Tag,number>> = {};
   for(const [id,rank] of Object.entries(u.traits ?? {})) for(const tag of TRAITS[id]?.tags ?? []) tags[tag]=(tags[tag]??0)+(rank?1:0);
-  const memory = u.memory && MEMORIES[u.memory as MemoryId]; if(memory) tags[memory.tag]=(tags[memory.tag]??0)+1;
+  for (const m of memoriesOf(u)) tags[MEMORIES[m].tag] = (tags[MEMORIES[m].tag] ?? 0) + 1;
   if(u.gear) {for(const it of worn(u))for(const tag of CATALOG[it.def]!.tags)tags[tag]=(tags[tag]??0)+1;}
   else {if(u.weapon==='crossbow')tags.치명=(tags.치명??0)+1;if(u.weapon&&WEAPONS[u.weapon].shield)tags.방패=(tags.방패??0)+1;}
   return tags;

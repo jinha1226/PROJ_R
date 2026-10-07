@@ -44,7 +44,7 @@ it('every card module can be the first thing imported', async () => {
 
 it('a negating effect stops a killing blow too', () => {
   const { p, u, foes } = scene('warrior'); const [a] = foes; put(p, a!, 5, 4);
-  u.memory = 'shieldKeeper'; u.keeperUsed = false; const e = entOf(p, u.id)!;
+  u.souls = [{ cls: 'warrior', memory: 'shieldKeeper', ultReady: 0 }]; u.keeperUsed = false; const e = entOf(p, u.id)!;
   damage(p, 0, a!.id, u, 9999, []);
   expect(e.alive).toBe(true); expect(e.hp).toBe(e.maxHp);
   const q = scene('warrior'); const [f] = q.foes; put(q.p, f!, 5, 4, 999);

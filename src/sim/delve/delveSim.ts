@@ -8,6 +8,7 @@ import { distanceMap } from '../grid/path';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent, type GridMap } from '../grid/types';
 import { entOf } from '../party/partyCore';
+import { hasMemory } from '../party/body';
 import { BASE_CLASSES, CLASSES, FOES, type BaseClass, type FoeId } from '../party/partyDefs';
 import { tick } from '../party/partySim';
 import { blank, hpNow, living, look, roamStep, type RoamParty, type Soul } from '../roam/roam';
@@ -82,7 +83,7 @@ export function descend(p: DelveParty): boolean {
   populate(p);
   placeParty(p, carry);
   // the pilgrim's memory: a new floor, whole again
-  for (const u of living(p)) if (u.memory === 'pilgrim') { const e = entOf(p, u.id)!; e.hp = e.maxHp; }
+  for (const u of living(p)) if (hasMemory(u, 'pilgrim')) { const e = entOf(p, u.id)!; e.hp = e.maxHp; }
   setupRooms(p, generated);
   return true;
 }

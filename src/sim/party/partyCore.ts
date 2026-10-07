@@ -4,12 +4,13 @@ import { heal } from './kitEffects';
 import { action, emit, type TriggerDef } from './triggers';
 import { movedStatus, statusMult, type Status, type StatusId } from './status';
 import type { HeroSoulId } from '../delve/heroSouls';
+import type { BodySoul } from './body';
 import { G, weaponDef, weaponStats, type Loadout } from '../delve/gear';
 import { gearTaken } from '../delve/catalogEffects';
 import { shotClear } from '../grid/combat';
 import { findPath } from '../grid/path';
 import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type GridState } from '../grid/types';
-import { CLASSES, FOES, WEAPONS, type BaseClass, type ClassId, type FoeId, type WeaponId } from './partyDefs';
+import { CLASSES, FOES, WEAPONS, type ClassId, type FoeId, type WeaponId } from './partyDefs';
 import { type TraitId } from './traitDefs';
 import { T } from './traitMods';
 import { resonant, shieldedFury } from './resonance';
@@ -32,8 +33,10 @@ export interface Unit {
   aiTarget?: string;
   /** when this clone was struck within the last turn (the whirlwind counts them) */
   struckTimes?: number[];
-  /** the memory the soul in this body carried from its life (a starting rule) */
-  memory?: string;
+  /** the souls in this body, the first setting its class (empty: the SF body) */
+  souls?: BodySoul[];
+  /** this body has been down a shaft (it takes no more souls) */
+  wentDown?: boolean;
   /** once-a-fight memories already spent (shield keeper, poisoner) */
   keeperUsed?: boolean; poisonerUsed?: boolean;
   rage?: number; nextFlat?: number; judge?: number; betrayedAt?: number; chillHits?: number;
@@ -62,8 +65,6 @@ export interface Unit {
   asleep?: boolean; alertUntil?: number;
   /** the camp a foe belongs to (they wake together) */
   group?: number;
-  /** the soul a hero carries (what drops where it falls) */
-  soul?: BaseClass;
   /** a fallen foe whose bio-matter has been gathered */
   reaped?: boolean; raised?: boolean;
   /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */

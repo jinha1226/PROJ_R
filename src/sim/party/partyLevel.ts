@@ -5,6 +5,7 @@ import { alive, entOf, type Party, type Unit } from './partyCore';
 import { CLASSES } from './partyDefs';
 import { TRAITS, rank, type TraitId } from './traitDefs';
 import { T } from './traitMods';
+import { linesOf } from './body';
 
 /** experience needed to reach each level (index 0 = level 1) */
 export const LEVEL_XP = [0, 10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820];
@@ -16,7 +17,8 @@ export const levelOf = (u: Unit): number => u.level ?? 1;
 export function refitHp(p: Party, u: Unit): void {
   const e = entOf(p, u.id);
   if (!e || !u.cls) return;
-  const max = Math.round((CLASSES[u.cls].hp * (1 + 0.08 * (levelOf(u) - 1))) * T.hp(u)) + G.hp(u);
+  const base = Math.max(CLASSES[u.cls].hp, ...linesOf(u).map((c) => CLASSES[c].hp));
+  const max = Math.round((base * (1 + 0.08 * (levelOf(u) - 1))) * T.hp(u)) + G.hp(u);
   e.hp = Math.max(e.alive ? 1 : 0, e.hp + (max - e.maxHp));
   e.maxHp = max;
 }

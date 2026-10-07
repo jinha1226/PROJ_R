@@ -157,7 +157,7 @@ it('crypt pickup and named implantation wait for combat to end for both occupied
 });
 it('a lethal backstab landing trap resolves before the rogue can strike', () => {
   const p = arena(), u = unitOf(p, 'hero')!, me = entOf(p, u.id)!;
-  implant(p, u, 'rogue', []); me.hp = 1;
+  u.souls = []; implant(p, u, 'rogue', []); me.hp = 1;
   const foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;
   e.alive = true; e.hp = 100; e.pos = { x: 10, y: 7 }; foe.asleep = false;
   for (let y = 6; y <= 8; y++) for (let x = 9; x <= 11; x++) p.s.traps.push({ pos: { x, y }, kind: 'spike', found: false });

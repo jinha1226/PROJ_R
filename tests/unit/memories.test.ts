@@ -22,7 +22,7 @@ it('the memory goes along when the soul is picked up and into the body when impl
   const { p, s } = withSoul();
   expect(typeof p.carried[0] === 'object' && p.carried[0].memory).toBe(s.memory);
   implantCarried(p, 'hero', 0);
-  const u = clones(p)[0]!; expect(u.memory).toBe(s.memory); expect(u.cls).toBe(s.cls);
+  const u = clones(p)[0]!; expect(u.souls![0]!.memory).toBe(s.memory); expect(u.cls).toBe(s.cls);
   expect(tagsOf(u)[MEMORIES[s.memory!].tag]).toBeGreaterThanOrEqual(1);
 });
 
@@ -33,7 +33,7 @@ it('twelve memories, each with a tag and a line', () => {
 
 it('frost grave: whoever hits the clone is chilled', () => {
   const { p } = withSoul(); implantCarried(p, 'hero', 0);
-  const u = clones(p)[0]!; u.memory = 'frostGrave';
+  const u = clones(p)[0]!; u.souls![0]!.memory = 'frostGrave';
   const f = p.units.find((x) => x.side === 'foe')!; entOf(p, f.id)!.alive = true;
   damage(p, p.time, f.id, u, 3, []);
   expect((f.status.chill?.until ?? 0) > 0).toBe(true);
@@ -41,7 +41,7 @@ it('frost grave: whoever hits the clone is chilled', () => {
 
 it('scholar: one more card on offer', () => {
   const { p } = withSoul(); implantCarried(p, 'hero', 0);
-  const u = clones(p)[0]!; u.level = 4; u.memory = undefined;
-  const plain = rollOffer(p, u).length; u.memory = 'scholar';
+  const u = clones(p)[0]!; u.level = 4; u.souls![0]!.memory = undefined;
+  const plain = rollOffer(p, u).length; u.souls![0]!.memory = 'scholar';
   expect(rollOffer(p, u).length).toBe(plain + 1);
 });

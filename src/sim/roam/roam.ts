@@ -8,7 +8,9 @@ import { computeFov } from '../grid/fov';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
 import { alive, ENGAGE, entOf, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, type BaseClass } from '../party/partyDefs';
-import { awardXp, refitHp, LEVEL_XP } from '../party/partyLevel';
+import { awardXp, levelOf, refitHp, LEVEL_XP } from '../party/partyLevel';
+import { BASE_SOUL_SLOTS, soulsOf } from '../party/body';
+import { rank } from '../party/traitTypes';
 import { T } from '../party/traitMods';
 
 /** a fallen native's soul stone lying about */
@@ -38,6 +40,8 @@ export interface RoamParty extends Party {
   regenAt?: number;
   /** how far the clones see */
   sight: number;
+  /** souls one body may hold (the lab raises it) */
+  soulSlots?: number;
 }
 
 /** how far a sleeping band notices the party */
@@ -55,6 +59,8 @@ export const BODY_COST = 25;
 /** bio-matter a fallen foe leaves (elites twice as much) */
 const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8, ghoul: 3, shaman: 4, warlord: 30 };
 
+export const slotsOf = (p: RoamParty): number => p.soulSlots ?? BASE_SOUL_SLOTS;
+
 export const blank = (): Omit<Unit, 'id' | 'side'> => ({ status: {}, trig: {}, nth: 0, still: 0, crisisUsed: false, ultReady: 0, nextAt: 0, order: null, ready: [0, 0], tauntUntil: 0, shield: 0, hiddenUntil: 0, hasteUntil: 0, frozenUntil: 0, empower: 1, guardReady: 0, progress: 0 });
 
 /** The clones (living or not) in the order they were made. */
@@ -70,29 +76,34 @@ export function look(p: RoamParty): void {
   for (const k of s.visible) s.seen[k] = 1;
 }
 
-/** A soul goes into a body: the clone becomes that class, armed with its first weapon, whole again. */
+/** Souls go only into a fresh body: level 1, never been down, a slot free. */
+export const canTakeSoul = (p: RoamParty, u: Unit): boolean => levelOf(u) === 1 && !u.wentDown && soulsOf(u).length < slotsOf(p);
+
+/** A soul goes into a body: the first sets its class, weapon and kit; any soul adds its line, memory and ultimate. Named heroes bring their level and cards. */
 export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]): void {
-  const hero = typeof soul === 'string' ? undefined : soul.hero;
-  u.memory = typeof soul === 'string' ? undefined : soul.memory;
-  if (hero && p.combat) return;
-  const cls = hero ? HERO_SOULS[hero].cls : typeof soul === 'string' ? soul : soul.cls;
-  const e = entOf(p, u.id)!;
-  u.cls = cls; u.soul = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
-  u.gear = starterGear(cls, () => nextItemId(p));
-  e.hp = e.maxHp = CLASSES[cls].hp;
-  if (hero) {
-    const h = HERO_SOULS[hero];
-    u.hero = hero; u.name = h.name; u.level = h.level; u.xp = LEVEL_XP[h.level - 1]!; u.traits = { ...h.traits };
-    u.picks = 0; u.offer = []; refitHp(p, u); e.hp = e.maxHp;
-    if (!p.foundHeroes.includes(hero)) p.foundHeroes.push(hero);
+  const s = typeof soul === 'string' ? { cls: soul } : soul;
+  if (s.hero && p.combat) return;
+  const cls = s.hero ? HERO_SOULS[s.hero].cls : s.cls, e = entOf(p, u.id)!, first = !soulsOf(u).length;
+  u.souls = [...soulsOf(u), { cls, hero: s.hero, memory: s.memory, ultReady: p.time }];
+  if (first) {
+    u.cls = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
+    u.gear = starterGear(cls, () => nextItemId(p));
   }
+  if (s.hero) {
+    const h = HERO_SOULS[s.hero];
+    if (levelOf(u) < h.level) { u.level = h.level; u.xp = LEVEL_XP[h.level - 1]!; }
+    for (const [id, r] of Object.entries(h.traits)) u.traits = { ...u.traits, [id]: Math.max(rank(u, id), r ?? 0) };
+    u.hero ??= s.hero; u.name ??= h.name;
+    if (!p.foundHeroes.includes(s.hero)) p.foundHeroes.push(s.hero);
+  }
+  refitHp(p, u); e.hp = e.maxHp;
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'soul' });
 }
 
-/** The player puts a carried soul into a living empty clone; no events when it cannot go in (not empty, no such soul, a hero soul mid-fight). */
+/** The player puts a carried soul into a fresh clone; no events when it cannot go in (not fresh, full, no such soul, a hero soul mid-fight). */
 export function implantCarried(p: RoamParty, id: string, at: number): GEvent[] {
   const u = living(p).find((v) => v.id === id), soul = p.carried[at], ev: GEvent[] = [];
-  if (!u || u.cls !== 'shell' || soul === undefined || (typeof soul !== 'string' && soul.hero && p.combat)) return ev;
+  if (!u || !canTakeSoul(p, u) || soul === undefined || (typeof soul !== 'string' && soul.hero && p.combat)) return ev;
   p.carried.splice(at, 1);
   implant(p, u, soul, ev);
   return ev;
@@ -122,7 +133,7 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
   if (named && p.combat) return;
   const t = p.time;
   // a clone that falls is gone, soul and all (no stone is left to recover)
-  for (const u of clones(p)) if (!named && !alive(p, u) && u.soul) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.soul = undefined; }
+  for (const u of clones(p)) if (!named && !alive(p, u) && soulsOf(u).length) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.souls = []; }
   for (const soul of p.souls) {
     if (soul.taken || Boolean(soul.hero) !== named) continue;
     const by = living(p).find((u) => dist(entOf(p, u.id)!.pos, soul.pos) <= 1);

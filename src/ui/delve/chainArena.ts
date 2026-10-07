@@ -6,13 +6,14 @@ import { spawnFoe } from '../../sim/grid/foes';
 import { dist, idx, walkable, tileAt, type Cell } from '../../sim/grid/types';
 import { distanceMap } from '../../sim/grid/path';
 import type { BaseClass } from '../../sim/party/partyDefs';
+import type { MemoryId } from '../../sim/party/memories';
 
 /** how many foes the arena packs in, and the health of the weak ones (a blow or two) */
 const HORDE = 28;
 const FODDER_HP = 10;
 
 /** The three clones of the chain demo, each with cards that set each other off (fire and lightning mage, marking archer, hit-back warrior). */
-const BUILDS: { cls: BaseClass; traits: Record<string, number>; memory: string }[] = [
+const BUILDS: { cls: BaseClass; traits: Record<string, number>; memory: MemoryId }[] = [
   { cls: 'warrior', memory: 'frostGrave', traits: { battleCry: 2, thorns: 2, quake: 2, rage: 2, combo: 1, steadfast: 1 } },
   { cls: 'mage', memory: 'burnt', traits: { elemCycle: 2, chainReact: 2, combust: 2, reactAmp: 1, arcChain: 2, overload: 1 } },
   { cls: 'archer', memory: 'lightning', traits: { huntMark: 2, pierce: 2, rapidFire: 2, poisonArrow: 2, cruel: 1, finish: 2 } },
@@ -25,8 +26,8 @@ const BUILDS: { cls: BaseClass; traits: Record<string, number>; memory: string }
 export function chainArena(seed: number): DelveParty {
   const p = newDelve(seed, 3);
   const first = clones(p)[0]!;
-  implant(p, first, { cls: BUILDS[0]!.cls }, []);
-  for (const b of BUILDS.slice(1)) print(p, { cls: b.cls }, []);
+  implant(p, first, { cls: BUILDS[0]!.cls, memory: BUILDS[0]!.memory }, []);
+  for (const b of BUILDS.slice(1)) print(p, { cls: b.cls, memory: b.memory }, []);
   clones(p).forEach((u, i) => dress(p, u, BUILDS[i]!));
   // every foe on the floor gathers in a crowd near the party, awake
   const m = p.s.map, d = distanceMap(m, m.start), taken = new Set(clones(p).map((u) => idx(m, entOf(p, u.id)!.pos)));
@@ -55,7 +56,7 @@ export function chainArena(seed: number): DelveParty {
 
 function dress(p: DelveParty, u: Unit, b: (typeof BUILDS)[number]): void {
   u.level = 1; u.xp = 0; gainXp(p, u, LEVEL_XP[7]!, []);
-  u.traits = { ...b.traits }; u.picks = 0; u.offer = undefined; u.memory = b.memory;
+  u.traits = { ...b.traits }; u.picks = 0; u.offer = undefined;
   const e = entOf(p, u.id)!; e.hp = e.maxHp;
 }
 

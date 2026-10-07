@@ -53,4 +53,5 @@ export function shiftUnitTimes(unit: Unit, shift: number): void {
     status.until += shift;
     if (status.next !== undefined) status.next += shift;
   }
+  for (const s of unit.souls ?? []) s.ultReady += shift;
 }

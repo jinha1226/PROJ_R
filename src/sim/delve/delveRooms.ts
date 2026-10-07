@@ -1,6 +1,7 @@
 import { createRng } from '../../core/rng';
 import { damage, entOf, alive, unitOf, type Unit } from '../party/partyCore';
 import { living } from '../roam/roam';
+import { linesOf } from '../party/body';
 import { dist, idx, same, type Cell, type GEvent } from '../grid/types';
 import { PACK_SIZE, nextItemId } from './gear';
 import { itemName, rollItem, rollConsumable, type Item } from './items';
@@ -29,7 +30,7 @@ export function setupRooms(p: DelveParty, f: DelveFloor): void {
 }
 
 function spotTraps(p: DelveParty, u: Unit, t: number, ev: GEvent[]): void {
-  if (!alive(p, u) || u.side !== 'hero' || (u.soul !== 'rogue' && u.cls !== 'rogue')) return;
+  if (!alive(p, u) || u.side !== 'hero' || !linesOf(u).includes('rogue')) return;
   for (const trap of p.s.traps) if (!trap.found && dist(entOf(p, u.id)!.pos, trap.pos) <= 3) {
     trap.found = true; ev.push({ t, type: 'trapFound', src: u.id, to: { ...trap.pos } });
   }
