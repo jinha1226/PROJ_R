@@ -2,7 +2,7 @@ import type * as THREE from 'three';
 import type { GEvent } from '../../sim/grid/types';
 import type { VfxKind } from '../fx/vfx';
 import type { CueKit } from './comboCues';
-import { CELL } from './gridTerrain';
+import { CELL, toWorld } from './gridTerrain';
 import { WHIRL_REACH } from '../../sim/party/classKit';
 
 /** How one effect looks: a particle burst (tinted), where it lands (on the target, on the one who set it off, or a streak from one to the other), a ground flash and a shake. */
@@ -64,6 +64,12 @@ export function effectCue(k: CueKit, e: GEvent): boolean {
     const at = k.at(e.src);
     if (!at) return false;
     k.actors.spin(e.src); k.fx.sweep.play(at, WHIRL_REACH * CELL); k.particles.vfx.fire('dust', at); k.fx.shake(0.14, 0.2);
+    return true;
+  }
+  // the gravity well collapsing: a dark implosion on the cell, then a burst and a shake
+  if (e.type === 'buff' && e.text === '중력 붕괴' && e.to) {
+    const at = toWorld(e.to.x, e.to.y);
+    k.particles.vfx.fire('magic', at, '#7a4aff'); k.fx.transient.burst(at.x, at.z, '#b48aff', 1.2, 0.35); k.fx.flash(at, '#b48aff', 40, 0.3, 8); k.fx.shake(0.16, 0.22);
     return true;
   }
   const look = lookOf(e);

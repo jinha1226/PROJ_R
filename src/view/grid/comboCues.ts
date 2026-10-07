@@ -30,7 +30,9 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
   const a = k.actors;
   switch (e.type) {
     case 'move':
-      if (!e.to || (e.text !== 'dash' && e.text !== 'leap' && e.text !== 'roll' && e.text !== 'kite')) return false;
+      if (!e.to || (e.text !== 'dash' && e.text !== 'leap' && e.text !== 'roll' && e.text !== 'kite' && e.text !== 'pull')) return false;
+      // dragged by a gravity well: a quick slide with a short trail
+      if (e.text === 'pull') { a.dash(e.src, e.to.x, e.to.y); k.trail(e.src, 0.18); return true; }
       // shooting and falling back is a back roll
       if (e.text === 'roll' || e.text === 'kite') { a.roll(e.src, e.to.x, e.to.y); k.trail(e.src, 0.25); const p = k.at(e.src); if (p) k.particles.vfx.fire('dust', p); }
       else if (e.text === 'dash') { a.dash(e.src, e.to.x, e.to.y); k.trail(e.src, 0.22); const p = k.at(e.src); if (p) k.particles.vfx.fire('dust', p); }

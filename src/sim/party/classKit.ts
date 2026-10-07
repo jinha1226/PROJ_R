@@ -8,7 +8,7 @@ import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
 import { heal, nearby, fireball, summon } from './kitEffects';
 import { applyStatus } from './status';
-export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog';
+export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog' | 'gravity';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, pistol: 'gun', swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
 export { proficient } from '../delve/gear';
@@ -49,7 +49,7 @@ const kit = (innate: TriggerDef[], ultimate: UltId, ultCd: number, proficient: W
 const extra = (base: TriggerDef[], def: TriggerDef) => [...base,def];
 export const KITS: Record<ClassId, Kit> = {
   // the innates are read on use: the card module and this one import each other
-  shell: { get innate() { return SHELL_INNATE; }, ultimate: null, ultCd: 0, proficient: ['gun'] },
+  shell: { get innate() { return SHELL_INNATE; }, ultimate: 'gravity', ultCd: 35, proficient: ['gun'] },
   warrior: kit(warrior,'warcry',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: kit(mage,'meteor',45,['staff']), cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: kit(rogue,'shadowDance',35,['dagger']),
   berserker: kit(extra(warrior,{ id: '광분', when: 'struck', test: (p,c) => entOf(p,c.src.id)!.hp < entOf(p,c.src.id)!.maxHp/2, run: (p,c) => { const e = entOf(p,c.src.id)!; c.src.lowHp = e.hp < e.maxHp/2; } }),'bloodFrenzy',35,['sword','great','mace']),
   guardian: kit(extra(warrior,{ id: '수호', when: 'guard', run: (p,c) => { c.src.guardIntercepted = true; damage(p,c.t,c.target?.id ?? '',c.src,c.amount ?? 0,c.ev,true); } }),'bastion',35,['sword','mace']),

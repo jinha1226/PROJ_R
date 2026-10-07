@@ -14,7 +14,8 @@ const hybrid = () => {
 it('each soul brings its own ultimate', () => {
   const { u } = hybrid();
   expect(ultSlots(u).map((s) => s.ult)).toEqual(['warcry', 'arrowRain']);
-  expect(ultSlots(unitOf(newDelve(8, 1), 'hero')!)).toEqual([]);
+  // the empty body has its own one: the gravity grenade
+  expect(ultSlots(unitOf(newDelve(8, 1), 'hero')!).map((s) => s.ult)).toEqual(['gravity']);
 });
 
 it('casting one soul ultimate leaves the other ready, at the cell the player chose', () => {
