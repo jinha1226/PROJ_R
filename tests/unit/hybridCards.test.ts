@@ -44,10 +44,11 @@ it('the innates of every soul in the body are live', () => {
   expect(ids).toContain('연쇄 주문');
 });
 
-it('the empty body levels up and is offered three common cards', () => {
+it('the empty body levels up and is offered its own cards like a class: two shell cards and a common', () => {
   const p = newDelve(5, 1), u = unitOf(p, 'hero')!;
   gainXp(p, u, LEVEL_XP[1]!, []);
   expect(u.level).toBe(2);
   expect(u.offer).toHaveLength(3);
-  expect(u.offer!.every((id) => TRAITS[id]!.pool === 'common')).toBe(true);
+  expect(u.offer!.filter((id) => TRAITS[id]!.pool === 'shell')).toHaveLength(2);
+  expect(u.offer!.filter((id) => TRAITS[id]!.pool === 'common')).toHaveLength(1);
 });

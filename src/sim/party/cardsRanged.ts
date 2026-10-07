@@ -17,7 +17,7 @@ const ELEMENTS: StatusId[] = ['burn', 'chill', 'shock'];
 export const markMult = (attacker: Unit | undefined): number => 1.3 + (attacker && rank(attacker, 'hunterEye') ? 0.1 * (tagsOf(attacker).원거리 ?? 0) : 0);
 
 /** The foes on the straight line from the shooter on past the target, nearest first (within the bow's reach). */
-function beyond(p: Party, u: Unit, target: Unit): Unit[] {
+export function beyond(p: Party, u: Unit, target: Unit): Unit[] {
   const from = posOf(p, u), to = posOf(p, target), dx = to.x - from.x, dy = to.y - from.y, n = Math.max(Math.abs(dx), Math.abs(dy)) || 1, reach = stats(u, 0, p).range;
   const out: Unit[] = [];
   for (let k = n + 1; k <= reach + n; k++) {

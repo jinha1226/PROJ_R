@@ -15,6 +15,7 @@ export { proficient } from '../delve/gear';
 import { proficient, worn } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
+import { SHELL_INNATE } from './cardsShell';
 import { MEMORIES } from './memories';
 import { linesOf, memoriesOf } from './body';
 /** how far the whirlwind reaches (cells) */
@@ -47,7 +48,8 @@ const rogue: TriggerDef[] = [
 const kit = (innate: TriggerDef[], ultimate: UltId, ultCd: number, proficient: WeaponFamily[]): Kit => ({ innate, ultimate, ultCd, proficient });
 const extra = (base: TriggerDef[], def: TriggerDef) => [...base,def];
 export const KITS: Record<ClassId, Kit> = {
-  shell: { innate: [], ultimate: null, ultCd: 0, proficient: ['gun'] },
+  // the innates are read on use: the card module and this one import each other
+  shell: { get innate() { return SHELL_INNATE; }, ultimate: null, ultCd: 0, proficient: ['gun'] },
   warrior: kit(warrior,'warcry',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: kit(mage,'meteor',45,['staff']), cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: kit(rogue,'shadowDance',35,['dagger']),
   berserker: kit(extra(warrior,{ id: '광분', when: 'struck', test: (p,c) => entOf(p,c.src.id)!.hp < entOf(p,c.src.id)!.maxHp/2, run: (p,c) => { const e = entOf(p,c.src.id)!; c.src.lowHp = e.hp < e.maxHp/2; } }),'bloodFrenzy',35,['sword','great','mace']),
   guardian: kit(extra(warrior,{ id: '수호', when: 'guard', run: (p,c) => { c.src.guardIntercepted = true; damage(p,c.t,c.target?.id ?? '',c.src,c.amount ?? 0,c.ev,true); } }),'bastion',35,['sword','mace']),

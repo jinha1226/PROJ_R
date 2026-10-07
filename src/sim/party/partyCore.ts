@@ -13,6 +13,7 @@ import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type
 import { CLASSES, FOES, WEAPONS, type ClassId, type FoeId, type WeaponId } from './partyDefs';
 import { type TraitId } from './traitDefs';
 import { T } from './traitMods';
+import { rank } from './traitTypes';
 import { resonant, shieldedFury } from './resonance';
 import { markMult } from './cardsRanged';
 import { isGun, magOf } from './ammo';
@@ -36,6 +37,8 @@ export interface Unit {
   struckTimes?: number[];
   /** rounds left in a gun's magazine (unset: full) */
   ammo?: number;
+  /** empty-body state: who has already taken an aimed first shot at this foe; a piercing round loaded; hits in a row (by attack count); more forced crits; suit overload spent (floor / fight) */
+  sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
   /** the souls in this body, the first setting its class (empty: the SF body) */
   souls?: BodySoul[];
   /** this body has been down a shaft (it takes no more souls) */
@@ -262,7 +265,7 @@ export const levelDmg = (u: Unit): number => 1 + 0.06 * ((u.level ?? 1) - 1);
 
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   // an empty magazine: this attack is a reload instead
-  if (basic && isGun(u) && (u.ammo ?? magOf(p, u)) <= 0) { u.ammo = magOf(p, u); ev.push({ t, type: 'reload', src: u.id }); return; }
+  if (basic && isGun(u) && (u.ammo ?? magOf(p, u)) <= 0) { u.ammo = magOf(p, u); ev.push({ t, type: 'reload', src: u.id }); action(p, () => emit(p, 'reload', { t, src: u, ev })); return; }
   action(p,()=>strikeAction(p,u,target,t,ev,mult,basic));
 }
 function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
@@ -279,9 +282,15 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   const odds = hitOdds(p, u, target, t);
   const dodge = target.dodgeNext; target.dodgeNext=false;
   const blocked = odds.block > 0 && p.s.rng.chance(odds.block);
-  if (dodge || blocked || !p.s.rng.chance(odds.hit)) { ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev }); return; }
+  if (dodge || blocked || !p.s.rng.chance(odds.hit)) {
+    ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev });
+    // target lock (the empty body's convert card): a miss makes the next shot critical
+    if (rank(u, 'targetLock') && isGun(u)) { u.nextCrit = true; ev.push({ t, type: 'buff', src: u.id, dst: u.id, text: '표적 분석' }); }
+    return;
+  }
   u.attackMult = 1; emit(p,'beforeHit',{t,src:u,target,ev});
-  const crit = !u.traits?.avatar && (u.nextCrit || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
+  let forced = !!u.nextCrit; if (!forced && (u.critShots ?? 0) > 0) { forced = true; u.critShots!--; }
+  const crit = !u.traits?.avatar && (forced || p.s.rng.chance(0.05 + T.crit(u) + (weaponDef(u)?.family==='dagger'?.05:0))); u.nextCrit=false;
   let m = mult * (u.attackMult ?? 1) * (crit ? T.critDmg(u) : 1) * traitMult(p,u,target,t) * statusMult(p, u, target, !!weaponDef(u)?.twoHand || u.weapon === 'greataxe' || u.weapon === 'crossbow', t, ev);
   if (u.side === 'hero') {
     m *= levelDmg(u) * (u.shield > 0 && shieldedFury(p) ? 1.2 : 1);
