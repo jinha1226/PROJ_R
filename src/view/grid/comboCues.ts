@@ -7,6 +7,7 @@ import type { GridParticles } from './gridParticles';
 import type { EngravePops } from './engravePops';
 import { feel } from './feel';
 import type { VfxKind } from '../fx/vfx';
+import { effectCue } from './effectCues';
 
 export interface CueKit { actors: GridActors; fx: GridFx; particles: GridParticles; pops: EngravePops; at(id?: string): THREE.Vector3 | undefined; punch(): void; trail(id: string | undefined, sec: number): void }
 
@@ -59,7 +60,7 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'react': {
       const r = REACT[e.text ?? ''];
       // the party's reactions carry their Korean name and the foe they happened on
-      if (!r && e.text && /[가-힣]/.test(e.text)) { const q = k.at(e.dst); if (q) { k.fx.number(e.text, 'crit', q, 2.4); k.fx.flash(q, '#ffb04a', 26, 0.35, 6); } return true; }
+      if (!r && e.text && /[가-힣]/.test(e.text)) { const q = k.at(e.dst); effectCue(k, e); if (q) k.fx.number(e.text, 'crit', q, 2.4); return true; }
       if (!r || !e.to) return true;
       const cell = new THREE.Vector3(e.to.x * CELL, 0, e.to.y * CELL);
       k.particles.vfx.fire(r.vfx, cell, r.vfx === 'smoke' ? r.color : undefined);
@@ -101,9 +102,12 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'buff': {
       // three or more effects in one action: a chain, counted over the clone that set it off
       if (e.text === 'chain') { const q = k.at(e.src); if (q) { k.fx.number(`연쇄 ×${e.amount ?? 3}`, 'crit', q, 2.8); if ((e.amount ?? 0) >= 6) k.fx.shake(0.12, 0.16); } return true; }
-      // a trigger, an ultimate or a promotion carries its own Korean name (on its source unit): show it as it fires
-      const p = k.at(e.dst) ?? k.at(e.src);
-      const label = BUFF_LABEL[e.text ?? ''] ?? (e.text && /[가-힣]/.test(e.text) ? e.text : undefined), fx = BUFF_VFX[e.text ?? ''];
+      // a trigger, an ultimate or a promotion carries its own Korean name: its effect lands where it lands, its name over whoever set it off
+      const named = !BUFF_LABEL[e.text ?? ''] && !!e.text && /[가-힣]/.test(e.text);
+      const fired = !BUFF_VFX[e.text ?? ''] && effectCue(k, e);
+      const p = named ? k.at(e.src) ?? k.at(e.dst) : k.at(e.dst) ?? k.at(e.src);
+      // card and trigger names go to the log, not the field: the field shows what they do (the effect), the chain count and reactions
+      const label = BUFF_LABEL[e.text ?? ''], fx = fired ? undefined : BUFF_VFX[e.text ?? ''];
       if (p && label) k.fx.number(label, 'combo', p); if (p && fx) k.particles.vfx.fire(fx[0], p, fx[1]); if (p && e.text === 'soul') k.fx.flash(p, '#ffd76a', 30, 1.0, 6); return true; }
     default:
       return false;

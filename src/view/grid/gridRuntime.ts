@@ -15,7 +15,7 @@ import type { GridSim } from '../../sim/grid/gridSim';
 import { archerCanShoot } from '../../sim/grid/ai';
 import { activeWeapon } from '../../sim/grid/gear';
 import { idx, type Cell, type GEvent } from '../../sim/grid/types';
-import type { UalLibrary } from './ualActor';
+import { setActionPace, type UalLibrary } from './ualActor';
 import type { DungeonKit } from './dungeonKit';
 import { createScene, type SceneHandle } from '../scene/renderer';
 import { chase } from './chase';
@@ -185,7 +185,7 @@ export class GridRuntime {
     this.playback.hurry();
   }
   /** The party screens' pacing: attacks play out and chains show one effect at a time (the screen waits for the show in a fight). */
-  partyShow(): void { this.partyPace = true; this.playback = new Playback(true); }
+  partyShow(): void { this.partyPace = true; this.playback = new Playback(true); setActionPace(1.5); }
   get busy(): boolean {
     return this.playback.busy;
   }

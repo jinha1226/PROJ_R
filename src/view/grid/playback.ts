@@ -10,12 +10,14 @@ export const CATCHUP = 3;
 
 interface Cue { at: number; ev: GEvent }
 
-/** party fights: a swing or a shot holds until its blow lands, so the attack plays out before what it caused */
-const SWING_HOLD = 0.26;
-/** party fights: each effect of a chain shows this long after the one before... */
-const CHAIN_GAP = 0.1;
-/** ...but a whole chain never holds the show longer than this */
-const CHAIN_MAX = 1.0;
+/** party fights: a swing or a shot holds that clone's next cues until its (quickened) blow lands */
+const SWING_HOLD = 0.15;
+/** party fights: each effect of a clone's chain shows this long after the one before... */
+const CHAIN_GAP = 0.06;
+/** ...but one clone's chain never holds its show longer than this */
+const CHAIN_MAX = 0.45;
+/** party fights: when the show falls this far behind, it plays faster until it catches up */
+const BEHIND = 0.9;
 const korean = (s?: string) => !!s && /[가-힣]/.test(s);
 /** In a party fight, how long the rest of the show waits after this event (an attack's wind-up, a chain's beat, a fall). */
 function partyHold(ev: GEvent): number {
@@ -44,9 +46,8 @@ export class Playback {
   private cues: Cue[] = [];
   private now = 0;
   private rate = 1;
-  /** the moment (sim time) whose chain is being spaced out, and how much it has held so far */
-  private chainAt = NaN;
-  private chainHeld = 0;
+  /** per clone: the moment (sim time) whose chain is being spaced out, and how much it has held so far */
+  private chains = new Map<string, { at: number; held: number }>();
 
   /** party: the party screens' pacing (attacks play out, chains in sequence); otherwise the grid game's quick overlapping show */
   constructor(private readonly party = false) {}
@@ -59,10 +60,20 @@ export class Playback {
       const src = ev.src ?? '';
       if (!list.includes(src)) list.push(src);
       order.set(ev.t, list);
-      const at = base + Math.max(0, ev.t - startTime) * TURN_SEC + list.indexOf(src) * STAGGER;
+      const at = this.party
+        // a party fight: at its own moment, only after what is still to show of the same clone
+        ? Math.max(this.now + Math.max(0, ev.t - startTime) * TURN_SEC, this.tail(src))
+        : base + Math.max(0, ev.t - startTime) * TURN_SEC + list.indexOf(src) * STAGGER;
       this.cues.push({ at, ev });
     }
     this.cues.sort((a, b) => a.at - b.at);
+  }
+
+  /** when the last cue still waiting for this clone shows (now if none) */
+  private tail(src: string): number {
+    let t = this.now;
+    for (const c of this.cues) if ((c.ev.src ?? '') === src && c.at > t) t = c.at;
+    return t;
   }
 
   hurry(): void {
@@ -76,9 +87,16 @@ export class Playback {
     while (this.cues.length && this.cues[0]!.at <= this.now + 1e-9) {
       const ev = this.cues.shift()!.ev;
       out.push(ev);
-      const hold = this.party ? this.partyHold(ev) : holdAfter(ev);
+      if (this.party) {
+        // only this clone's later cues wait: the others go on acting at the same time
+        const hold = this.partyHold(ev), who = ev.src ?? '';
+        if (hold) { for (const c of this.cues) if ((c.ev.src ?? '') === who) c.at += hold; this.cues.sort((a, b) => a.at - b.at); }
+        continue;
+      }
+      const hold = holdAfter(ev);
       if (hold) { for (const c of this.cues) c.at += hold; break; }
     }
+    if (this.party && this.cues.length && this.cues[this.cues.length - 1]!.at - this.now > BEHIND) this.rate = CATCHUP;
     if (!this.cues.length) this.rate = 1;
     return out;
   }
@@ -86,10 +104,11 @@ export class Playback {
   private partyHold(ev: GEvent): number {
     const h = partyHold(ev);
     if (h !== CHAIN_GAP) return h;
-    if (ev.t !== this.chainAt) { this.chainAt = ev.t; this.chainHeld = 0; }
-    const left = Math.max(0, CHAIN_MAX - this.chainHeld);
-    this.chainHeld += Math.min(h, left);
-    return Math.min(h, left);
+    const who = ev.src ?? '', c = this.chains.get(who);
+    const chain = c && c.at === ev.t ? c : { at: ev.t, held: 0 };
+    const step = Math.min(h, Math.max(0, CHAIN_MAX - chain.held));
+    chain.held += step; this.chains.set(who, chain);
+    return step;
   }
 
   get busy(): boolean {

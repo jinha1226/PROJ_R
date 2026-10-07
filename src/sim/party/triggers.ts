@@ -51,7 +51,7 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
       try { def.run(p, { ...c, depth: action.depth }); } finally { action.depth--; }
       if (effectState(p) !== before) {
         action.ev ??= c.ev; action.src ??= c.src.id; action.t = c.t;
-        c.ev.splice(eventAt, 0, { t: c.t, type: 'buff', src: c.src.id, text: def.id });
+        c.ev.splice(eventAt, 0, { t: c.t, type: 'buff', src: c.src.id, dst: c.target?.id, text: def.id });
       } else {
         if (!had) action.fired.delete(key);
         action.count--;

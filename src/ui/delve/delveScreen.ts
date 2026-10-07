@@ -137,7 +137,7 @@ export class DelveScreen implements Screen {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still() && !(this.p.combat && this.rt?.busy)) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still()) {
         const t0 = this.p.time;
         const ev = delveTick(this.p, dt * RATE * this.speed);
         this.movedLast = ev.some((e) => e.type === 'move');

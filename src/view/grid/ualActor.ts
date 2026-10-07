@@ -104,6 +104,13 @@ const bone = (root: THREE.Object3D, name: string): THREE.Object3D | undefined =>
 };
 
 /** One animated mannequin: tinted per kind, a block weapon in hand, Quaternius clips for every action. */
+/** one-off moves played this much faster (the party screens set it; the grid game keeps 1) */
+let actionPace = 1;
+export const setActionPace = (k: number): void => { actionPace = k; };
+/** the moves that are blows, and how much quicker a blow that follows another under way plays */
+const ATTACKS = new Set<UalAnim>(['swing', 'jab', 'bash', 'scratch', 'shoot', 'shootBow', 'cast', 'throw', 'finisher', 'dash']);
+const FOLLOW_UP = 1.6;
+
 export class UalActor {
   readonly root = new THREE.Group();
   private readonly mixer: THREE.AnimationMixer;
@@ -260,6 +267,9 @@ export class UalActor {
 
   play(anim: UalAnim, speed = 1.4): void {
     if (this.dead) return;
+    // the party screens quicken one-off moves; a blow that follows one still under way (a chain's extra strike) comes quicker still
+    const attack = ATTACKS.has(anim);
+    if (anim !== 'idle' && anim !== 'run') speed *= actionPace * (attack && this.busyKind && ATTACKS.has(this.busyKind) ? FOLLOW_UP : 1);
     // a flinch never cuts off a swing or a shot already under way (the flash still shows the hit)
     if ((anim === 'hit' || anim === 'knockback') && this.busyKind && this.busyKind !== 'hit' && this.busyKind !== 'knockback') return;
     const name = anim === 'hit' ? (Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head')
