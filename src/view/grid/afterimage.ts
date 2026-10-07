@@ -24,7 +24,7 @@ export class Afterimages {
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: OPACITY, blending: THREE.AdditiveBlending, depthWrite: false });
     const drop: THREE.Object3D[] = [];
     obj.traverse((o) => {
-      if (o.userData.ring || o.userData.outline || (o as THREE.Sprite).isSprite) drop.push(o);
+      if (o.userData.groundRing || o.userData.outline || (o as THREE.Sprite).isSprite) drop.push(o);
       else if ((o as THREE.Mesh).isMesh) { (o as THREE.Mesh).material = mat; o.castShadow = false; o.receiveShadow = false; }
     });
     for (const o of drop) o.removeFromParent();

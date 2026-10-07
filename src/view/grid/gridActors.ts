@@ -7,7 +7,7 @@ import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActo
 import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
 import { markFigure, RING } from './pixelPass';
-import { ABSORB_SEC, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, type View } from './gridActorBits';
+import { ABSORB_SEC, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, type View } from './gridActorBits';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
@@ -267,8 +267,16 @@ export class GridActors {
     v.deadFor = 0;
     v.actor.setDead();
     if (from) this.nudge(v, from, -SHOVE * 2.4);
+    if (this.isAlly(id)) return;
+    // a foe is thrown up as it drops, and a pool of blood spreads where it lies (a small body still reads as a kill)
+    v.air = LEAP_SEC;
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(0.3, 14), new THREE.MeshBasicMaterial({ color: '#4a0808', transparent: true, opacity: 0.75, depthWrite: false }));
+    pool.rotation.x = -Math.PI / 2; pool.position.y = 0.02 - BODY_LIFT; pool.scale.setScalar(0.01); pool.userData.pool = true;
+    v.actor.root.add(pool);
     // the ring under a figure marks it as a living threat: the fallen lose it
-    for (const c of v.actor.root.children) if (c.userData.ring) c.visible = false;
+    for (const c of v.actor.root.children) if (c.userData.groundRing) c.visible = false;
+    // the dot look's outline goes dark on a body, so the fallen don't read as foes still standing
+    v.actor.root.traverse((o) => { if (typeof o.userData.ring === 'string') o.userData.ring = DEAD_OUTLINE; });
   }
 
   /** Foes are shown only on tiles the hero can see (the dead stay where they fell once seen). */
@@ -311,10 +319,13 @@ export class GridActors {
         v.actor.root.position.y = Math.sin((1 - v.air / LEAP_SEC) * Math.PI) * LEAP_HEIGHT;
         if (v.air === 0) v.actor.play('leapLand', 2);
       }
+      // a body lying flat sits a little above the floor tiles (flat on the ground it would sink inside them and vanish)
+      if (v.dead && v.air <= 0) v.actor.root.position.y = Math.max(v.actor.root.position.y, BODY_LIFT);
       if (v.deadFor !== undefined && !v.gone && !this.isAlly(vid)) {
         v.deadFor += step;
+        for (const c of v.actor.root.children) if (c.userData.pool) c.scale.setScalar(Math.min(1, 0.01 + v.deadFor / 0.5));
         const k = Math.min(1, Math.max(0, (v.deadFor - SINK_AT) / SINK_SEC));
-        if (k > 0) v.actor.root.position.y = -0.7 * k;
+        if (k > 0) v.actor.root.position.y = BODY_LIFT - 0.8 * k;
         if (k >= 1) { v.gone = true; v.actor.root.visible = false; }
       }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;

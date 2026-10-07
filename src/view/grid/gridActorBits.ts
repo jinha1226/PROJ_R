@@ -23,7 +23,8 @@ export function ring(color: string, scale: number): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.RingGeometry(0.32 * scale, 0.4 * scale, 28), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, depthWrite: false }));
   m.rotation.x = -Math.PI / 2;
   m.position.y = 0.03;
-  m.userData.ring = true;
+  // its own tag: `userData.ring` is the dot look's outline colour, set on every part of a figure
+  m.userData.groundRing = true;
   return m;
 }
 export const LUNGE_SEC = 0.12;
@@ -58,6 +59,10 @@ export interface View {
   deadFor?: number; gone?: boolean;
 }
 
-/** a fallen foe lies this long, then sinks into the floor over this long and is gone (its blood stays) */
-export const SINK_AT = 1.3;
+/** a fallen foe lies this long (the fallen of a fight pile up), then sinks into the floor over this long and is gone (its blood stays) */
+export const SINK_AT = 6;
 export const SINK_SEC = 0.8;
+/** how high a fallen body lies above the ground (the floor tiles' tops stand a little above zero) */
+export const BODY_LIFT = 0.12;
+/** the outline a body keeps (dark, not the living foe's red) */
+export const DEAD_OUTLINE = '#3a1418';
