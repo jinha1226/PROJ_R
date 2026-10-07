@@ -14,7 +14,7 @@ test('the title drops a pod: an empty clone steps out beside it, the lab unfolds
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');
   await expect(page.locator('.pip-main')).toBeVisible();
-  await expect(page.locator('.pip-rec')).toContainText('맨주먹');
+  await expect(page.locator('.pip-rec')).toContainText('권총');
   await page.keyboard.press('Escape');
   await expect(page.locator('.pip-main')).toBeHidden();
   expect(errors).toEqual([]);
