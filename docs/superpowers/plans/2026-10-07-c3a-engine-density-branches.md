@@ -23,7 +23,7 @@
 ## Review Focus
 
 1. A card that deals damage triggering an `on damage` card of the same source in a loop (e.g. a fire-damage card that deals fire damage): must stop (once per action, cap 30), never hang. → test in Task 1.
-2. The fingerprint missing a real change (an effect that only sets a flag on another unit) and re-firing it in the same action. → test in Task 2.
+2. Cards that read 피격 (회오리 베기, 분노 축적, 가시 갑옷, 반격 사격, the frost-grave memory) now ignore damage over time, traps and explosions — check none relied on those as 'struck'. The fingerprint missing a real change (an effect that only sets a flag on another unit) and re-firing it in the same action. → test in Task 2.
 3. Generating a floor whose room cannot hold its band (small rooms on deep floors): spawns must not crash or overlap. → test in Task 3.
 4. A clone walking into a far, never-seen part of a big floor: its figures must appear before they act on screen (lazy creation keyed to sight). → manual check in Task 4.
 5. A body with two lines where one line has no branch cards yet (fantasy classes before C3b/C3c): the first offer must still give that line's cards, not an empty offer. → test in Task 6.
@@ -33,14 +33,14 @@
 ### Task 1: Achra event tiers (attack / hit / damage)
 
 **Files:**
-- Modify: `src/sim/party/triggers.ts` (`Cond` + `'attack' | 'damage' | 'teleport' | 'summon'`; `Ctx.kind?: DamageKind`; `CHAIN_CAP = 30`)
-- Modify: `src/sim/party/partyCore.ts` (`DamageKind`; `damage(..., kind = 'physical')` emits `damage` for a hero attacker hitting a foe; `strikeAction` emits `attack` before the hit roll; `freeHit`)
+- Modify: `src/sim/party/triggers.ts` (`Cond` + `'attack' | 'damage' | 'damaged' | 'teleport' | 'summon'`; `Ctx.kind?: DamageKind`; `CHAIN_CAP = 30`)
+- Modify: `src/sim/party/partyCore.ts` (`DamageKind`; `damage(..., kind = 'physical', hit = false)` emits `damage` for a hero attacker hurting a foe and `damaged` on a hurt hero; `struck` (피격) only when `hit` — an attack or a free hit landed; `strikeAction` emits `attack` before the hit roll; `freeHit`)
 - Modify: `src/sim/party/status.ts` (DoT ticks pass their kind: burn fire, chill/freeze cold, shock lightning, poison poison, bleed physical)
 - Modify teleport sites to emit `teleport`: `src/sim/party/cardFx.ts:23`, `src/sim/party/traitCombat.ts:45`, `src/sim/party/memories.ts:20`, `src/sim/party/ultimate.ts:78`; `src/sim/party/kitEffects.ts` `summon` emits `summon`
 - Test: `tests/unit/achraEvents.test.ts`
 
 **Interfaces:**
-- Produces: `type DamageKind = 'physical' | 'fire' | 'cold' | 'lightning' | 'poison' | 'holy' | 'bone'`; `damage(p, t, src, dst, amount, ev, secondary?, statusScaled?, kind?: DamageKind)`; `freeHit(p: Party, u: Unit, target: Unit, amount: number, kind: DamageKind, t: number, ev: GEvent[]): void`; conds `attack`, `damage` (ctx `kind`, `amount`, `target`), `teleport`, `summon` (ctx `target` = the summoned unit).
+- Produces: `type DamageKind = 'physical' | 'fire' | 'cold' | 'lightning' | 'poison' | 'holy' | 'bone'`; `damage(p, t, src, dst, amount, ev, secondary?, statusScaled?, kind?: DamageKind)`; `freeHit(p: Party, u: Unit, target: Unit, amount: number, kind: DamageKind, t: number, ev: GEvent[]): void`; conds `attack`, `damage` (dealt; ctx `kind`, `amount`, `target`), `damaged` (taken from any source; ctx `kind`, `amount`, `target` = the source if any), `teleport`, `summon` (ctx `target` = the summoned unit); `struck` now means *being hit* (Achra 'On being hit'): emitted only for damage that came with a landed attack or a free hit (`damage(..., hit = true)`, passed by `strikeAction` and `freeHit`).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -114,6 +114,20 @@ it('a fire-damage effect that deals fire damage does not feed itself forever; ch
   expect(CHAIN_CAP).toBe(30);
 });
 
+it('being hit is only an attack landing on the clone; any damage taken is damage taken, typed', () => {
+  const { p, u, foe } = scene();
+  const seen: string[] = [];
+  u.triggers = (['struck', 'damaged'] as Cond[]).map((when): TriggerDef => ({ id: `spy-${when}`, when, repeat: true, run: (_p, c) => { seen.push(c.kind ? `${when}:${c.kind}` : when); } }));
+  // a burn tick on the clone: damage taken, not a hit
+  applyStatus(p, foe, u, 'burn', p.time, []);
+  tickStatuses(p, p.time, p.time + 1.5, []);
+  expect(seen).toContain('damaged:fire'); expect(seen).not.toContain('struck');
+  // the foe's blow lands: a hit and damage taken
+  seen.length = 0; p.s.rng.chance = () => true; foe.nextAt = 0;
+  strike(p, foe, u, p.time, []);
+  expect(seen).toEqual(['struck', 'damaged:physical']);
+});
+
 it('teleports and summons are events', () => {
   const { p, u } = scene(), seen = spy(u, ['teleport', 'summon']);
   action(p, () => emit(p, 'teleport', { t: p.time, src: u, ev: [] }));
@@ -126,8 +140,8 @@ it('teleports and summons are events', () => {
   1. `triggers.ts`: extend `Cond`, add `kind?: DamageKind` to `Ctx` (`import type { DamageKind } from './partyCore'`), `CHAIN_CAP = 30`.
   2. `partyCore.ts`:
      - `export type DamageKind = …`;
-     - `damage(..., statusScaled = false, kind: DamageKind = 'physical')`: after the hp is taken, when `attacker?.side === 'hero' && dst.side === 'foe' && amount > 0`, `emit(p, 'damage', { t, src: attacker, target: dst, amount, kind, ev })`;
-     - `strikeAction`: right after the `blink` and alive checks, `emit(p, 'attack', { t, src: u, target, ev })`;
+     - `damage(..., statusScaled = false, kind: DamageKind = 'physical', hit = false)`: after the hp is taken, when `attacker?.side === 'hero' && dst.side === 'foe' && amount > 0`, `emit(p, 'damage', { t, src: attacker, target: dst, amount, kind, ev })`; on a hurt hero, `struck` (existing branch, with `struckTimes`) only when `hit`, then `emit(p, 'damaged', { t, src: dst, target: attacker, amount, kind, ev })` always;
+     - `strikeAction`: right after the `blink` and alive checks, `emit(p, 'attack', { t, src: u, target, ev })`; its landed damage calls `damage(..., hit = true)`;
      - `freeHit(p, u, target, amount, kind, t, ev)`: `action(p, () => { if (!alive(p, u) || !alive(p, target)) return; const hp = entOf(p, target.id)!.hp; ev.push({ t, type: 'hit', src: u.id, dst: target.id, amount }); damage(p, t, u.id, target, amount, ev, true, false, kind); emit(p, 'hit', { t, src: u, target, amount: hp - entOf(p, target.id)!.hp, ev }); })` (no dodge/block/armour roll; the `hit` event is pushed by `damage` already — check and push only once).
   3. `status.ts`: pass the element to `damage` in the DoT ticks (burn `fire`, poison `poison`, bleed `physical`, the chill-on-move tick `cold`).
   4. Teleport sites: after the `teleport` GEvent is pushed, `emit(p, 'teleport', { t, src: u, ev })`. `kitEffects.summon`: after the unit is pushed, `emit(p, 'summon', { t, src, target: summoned, ev })`.
