@@ -56,7 +56,7 @@ export const SHELL_CARDS: TraitDef[] = [
     trigger: (r) => ({ id: '개머리판 밀치기', when: 'hit', test: (p, c) => !!c.target && isGun(c.src) && alive(p, c.target) && dist(posOf(p, c.src), posOf(p, c.target)) === 1, run: (p, c) => {
       const me = posOf(p, c.src), at = posOf(p, c.target!), to = { x: at.x + Math.sign(at.x - me.x), y: at.y + Math.sign(at.y - me.y) };
       if (walkable(tileAt(p.s.map, to)) && !occupied(p, to, c.target!.id)) {
-        c.ev.push({ t: c.t, type: 'push', src: c.src.id, dst: c.target!.id, from: { ...at }, to: { ...to } });
+        c.ev.push({ t: c.t, type: 'push', src: c.target!.id, from: { ...at }, to: { ...to } });
         entOf(p, c.target!.id)!.pos = { ...to };
       } else if (r >= 2) damage(p, c.t, c.src.id, c.target!, 6, c.ev, true);
       applyStatus(p, c.src, c.target!, 'stun', c.t, c.ev);

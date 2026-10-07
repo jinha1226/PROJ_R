@@ -58,7 +58,10 @@ export function starterGear(cls: ClassId, nextId: () => string): Loadout {
     const base = CLASSES[cls].weapons[0]!, def = base === 'greataxe' ? 'greataxe' : base;
     return { weapon: { id: nextId(), def, power: 0 }, armor: { id: nextId(), def: ['warrior', 'cleric', 'guardian', 'inquisitor'].includes(cls) ? 'leather' : 'cloth', power: 0 }, accessory: null };
 }
-export const canEquip = (u: Unit, it: Item): boolean => u.side === 'hero' && !!u.cls && 'def' in it && !!CATALOG[it.def];
+/** the empty body's own pistol and suit: never sacrificed into, taken off or worn by anyone else (the workshop grows them) */
+export const KIT_ITEMS = new Set(['pistol', 'agentSuit']);
+export const canEquip = (u: Unit, it: Item): boolean => u.side === 'hero' && !!u.cls && 'def' in it && !!CATALOG[it.def] && !KIT_ITEMS.has(it.def)
+    && !(u.cls === 'shell' && (CATALOG[it.def]!.slot === 'weapon' || CATALOG[it.def]!.slot === 'armor'));
 function refitGear(p: RoamParty, u: Unit): void { const e = entOf(p, u.id)!, hp = e.hp; refitHp(p, u); e.hp = Math.max(1, Math.min(hp, e.maxHp)); }
 export function equip(p: RoamParty, heroId: string, itemId: string): boolean {
     const u = unitOf(p, heroId), i = p.pack.findIndex(it => it.id === itemId), it = p.pack[i];
@@ -79,7 +82,7 @@ export function unequip(p: RoamParty, heroId: string, slot: ItemDef['slot']): bo
     if (!u?.gear || !alive(p, u) || p.pack.length >= PACK_SIZE)
         return false;
     const it = u.gear[slot];
-    if (!it)
+    if (!it || KIT_ITEMS.has(it.def))
         return false;
     p.pack.push(it);
     u.gear[slot] = null;
@@ -97,7 +100,7 @@ export function sacrifice(p: RoamParty, heroId: string, itemId: string): GEvent[
     if (!u?.gear || !alive(p, u) || !it || !('def' in it))
         return [];
     const slot = CATALOG[it.def]?.slot, to = slot && u.gear[slot];
-    if (!to)
+    if (!to || KIT_ITEMS.has(to.def) || KIT_ITEMS.has(it.def))
         return [];
     const rate = sacrificeRate(p);
     const n = numbers(it), base = numbers({ ...to, power: 0, bonus: undefined }), gain = (1 + it.power) * rate;

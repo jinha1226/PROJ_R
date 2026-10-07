@@ -8,7 +8,7 @@ import { slotsOf, type RoamParty } from '../../../sim/roam/roam';
 
 export type BenchSlot = 'gun0' | 'gun1' | 'suit0';
 export interface WorkbenchSlot { slot: BenchSlot; part: SfPart; label: string; fitted: { name: string } | null }
-export interface ModuleRow { id: string; name: string; line: string; tags: string; state: 'fitted' | 'owned' | 'craftable' | 'short'; cost: string }
+export interface ModuleRow { id: string; name: string; line: string; tags: string; state: 'fitted' | 'owned' | 'craftable' | 'short'; cost: string; at?: number }
 export interface DismantleRow { itemId: string; name: string; gives: string; known: boolean }
 export interface BenchModel {
   slots: WorkbenchSlot[]; modules(part: SfPart): ModuleRow[]; dismantle(part: SfPart): DismantleRow[];
@@ -29,6 +29,7 @@ export function benchModel(p: RoamParty): BenchModel {
     slots: [slot('gun', 0), slot('gun', 1), slot('suit', 0)],
     modules: (part) => sfModules().filter((m) => m.part === part && sf.blueprints.includes(m.id)).map((m) => ({
       id: m.id, name: m.name, line: m.triggers.map((t) => triggerText(t.id) || t.id).join(' · '), tags: m.tags.map((t) => `#${t}`).join(' '), cost: costText(m.cost),
+      at: sf.fitted[part].indexOf(m.id) >= 0 ? sf.fitted[part].indexOf(m.id) : undefined,
       state: [...sf.fitted.gun, ...sf.fitted.suit].includes(m.id) ? 'fitted' : sf.owned.includes(m.id) ? 'owned' : canCraft(p, m.id) ? 'craftable' : 'short',
     })),
     dismantle: (part) => p.pack.flatMap((it) => {

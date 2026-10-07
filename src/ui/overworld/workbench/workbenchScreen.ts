@@ -38,7 +38,7 @@ export class WorkbenchScreen {
     if (kind === 'dismantle') this.onEvents?.(dismantle(p, id));
     if (kind === 'craft') craft(p, id);
     if (kind === 'fit') fit(p, this.view.part, index, id);
-    if (kind === 'unfit') fit(p, this.view.part, index, null);
+    if (kind === 'unfit') fit(p, this.view.part, Number(act.getAttribute('data-index') ?? index), null);
     if (kind === 'soul') buySoulSlot(p);
     this.render();
   }

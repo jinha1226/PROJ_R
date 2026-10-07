@@ -6,7 +6,7 @@ export interface BenchView { part: SfPart; slot: BenchSlot }
 
 function moduleRow(r: ModuleRow, view: BenchView): string {
   const index = Number(view.slot.slice(-1));
-  const btn = r.state === 'fitted' ? `<button type="button" class="btn" data-act="unfit" data-id="${r.id}">해제</button>`
+  const btn = r.state === 'fitted' ? `<button type="button" class="btn" data-act="unfit" data-id="${r.id}" data-index="${r.at ?? index}">해제</button>`
     : r.state === 'owned' ? `<button type="button" class="btn primary" data-act="fit" data-id="${r.id}" data-index="${index}">장착</button>`
     : `<button type="button" class="btn" data-act="craft" data-id="${r.id}" ${r.state === 'craftable' ? '' : 'disabled'}>제작</button>`;
   const state = r.state === 'fitted' ? '<em>장착됨</em>' : r.state === 'owned' ? '<em class="own">보유</em>' : '';

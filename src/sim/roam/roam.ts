@@ -11,7 +11,7 @@ import { CLASSES, type BaseClass } from '../party/partyDefs';
 import { awardXp, levelOf, refitHp, LEVEL_XP } from '../party/partyLevel';
 import { BASE_SOUL_SLOTS, soulsOf } from '../party/body';
 import { rank } from '../party/traitTypes';
-import type { SfState } from '../base/workshop';
+import { applySf, type SfState } from '../base/workshop';
 import { T } from '../party/traitMods';
 
 /** a fallen native's soul stone lying about */
@@ -98,7 +98,8 @@ export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]):
   if (first) {
     u.ammo = undefined; u.sfMods = undefined;
     u.cls = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
-    u.gear = starterGear(cls, () => nextItemId(p));
+    const accessory = u.gear?.accessory ?? null;
+    u.gear = { ...starterGear(cls, () => nextItemId(p)), accessory };
   }
   if (s.hero) {
     const h = HERO_SOULS[s.hero];
@@ -135,6 +136,8 @@ export function print(p: RoamParty, cls: CarriedSoul | undefined, ev: GEvent[], 
   e.hp = e.maxHp = CLASSES.shell.hp;
   p.units.push(u);
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'print' });
+  // a new empty body comes out with the workshop's gun and suit
+  applySf(p, u);
   if (cls) implant(p, u, cls, ev);
   return u;
 }
