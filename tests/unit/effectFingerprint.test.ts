@@ -43,8 +43,8 @@ it('checking an effect stays cheap with a horde on the floor', () => {
     for (let k = 0; k < 200; k++) action(p, () => emit(p, 'hit', { t: k, src: u, ev: [] }));
     return performance.now() - t0;
   };
-  time(10);
-  const small = time(10), big = time(300);
-  expect(big).toBeLessThan(Math.max(small, 1) * 3);
+  time(300);
+  // 200 actions × 4 checks with 300 foes: under 0.15 ms a check (a full JSON snapshot took about 0.4 ms)
+  expect(time(300) / 800).toBeLessThan(0.15);
   void entOf;
 });
