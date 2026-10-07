@@ -93,6 +93,7 @@ export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]):
   const cls = s.hero ? HERO_SOULS[s.hero].cls : s.cls, e = entOf(p, u.id)!, first = !soulsOf(u).length;
   u.souls = [...soulsOf(u), { cls, hero: s.hero, memory: s.memory, ultReady: p.time }];
   if (first) {
+    u.ammo = undefined;
     u.cls = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
     u.gear = starterGear(cls, () => nextItemId(p));
   }
@@ -127,7 +128,7 @@ export function print(p: RoamParty, cls: CarriedSoul | undefined, ev: GEvent[], 
   if (!at) return undefined;
   const e = spawnFoe(p.s, 'minion', at, false);
   e.id = `c${p.nextClone++}`;
-  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)), nextAt: p.time };
+  const u: Unit = { ...blank(), id: e.id, side: 'hero', cls: 'shell', weapon: 'pistol', gear: starterGear('shell', () => nextItemId(p)), nextAt: p.time };
   e.hp = e.maxHp = CLASSES.shell.hp;
   p.units.push(u);
   ev.push({ t: p.time, type: 'buff', src: u.id, dst: u.id, text: 'print' });

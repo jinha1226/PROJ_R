@@ -167,7 +167,7 @@ it('in a fight a fighter told to hold a spot steps out to meet a foe that comes 
   const p = newWorld(3);
   for (const u of p.units) if (u.side === 'foe') entOf(p, u.id)!.alive = false;
   const w = clones(p)[0]!;
-  w.cls = 'warrior'; w.weapon = 'swordShield';
+  w.cls = 'warrior'; w.weapon = 'swordShield'; w.gear!.weapon = { id: 'sw', def: 'swordShield', power: 0 };
   const spot = { ...entOf(p, 'hero')!.pos };
   w.order = { kind: 'hold', cell: spot };
   const [f, far] = p.units.filter((u) => u.side === 'foe');

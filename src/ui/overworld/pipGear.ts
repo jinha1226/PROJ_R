@@ -11,7 +11,7 @@ import { richText } from './richText';
 import type { RoamParty } from '../../sim/roam/roam';
 
 const SLOT: Record<ItemDef['slot'], string> = { weapon: '무기', armor: '방어구', accessory: '장신구' };
-export const FAMILY_NAME: Record<WeaponFamily, string> = { sword: '한손검', great: '양손 무기', mace: '철퇴', dagger: '단검', bow: '활', crossbow: '석궁', staff: '지팡이', relic: '성물' };
+export const FAMILY_NAME: Record<WeaponFamily, string> = { sword: '한손검', gun: '권총', great: '양손 무기', mace: '철퇴', dagger: '단검', bow: '활', crossbow: '석궁', staff: '지팡이', relic: '성물' };
 export const WHEN: Partial<Record<Cond, string>> = { hit: '적중', crit: '치명', kill: '처치', struck: '피격', block: '막기', dodge: '회피', crisis: '위기', nth: 'n번째 공격', still: '제자리', moved: '이동 후', allyHit: '아군 피격', allyCrisis: '아군 위기', combatStart: '전투 시작', statusApplied: '상태 부여', ultimate: '궁극기', healed: '치유받음', taunt: '도발', allyUltimate: '아군 궁극기', beforeHit: '적중 직전', guard: '대신 맞기', overflow: '넘친 치유', fireball: '화염구' };
 
 const num = (x: number): string => String(Math.round(x * 10) / 10);

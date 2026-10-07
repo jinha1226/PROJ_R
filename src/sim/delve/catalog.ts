@@ -57,6 +57,9 @@ const weapon = (id: string, name: string, family: WeaponFamily, dmg: [
 const armor = (id: string, name: string, reduce: number, weight: number, tags: Tag[], triggers: TriggerDef[], floor = 1): ItemDef => ({ id, name, slot: 'armor', armor: reduce, weight, tags, triggers, floors: [floor, Infinity] });
 const accessory = (id: string, name: string, tags: Tag[], triggers: TriggerDef[], floor = 1): ItemDef => ({ id, name, slot: 'accessory', weight: 0, tags, triggers, floors: [floor, Infinity] });
 const defs: ItemDef[] = [
+    // the empty body's own kit: never dropped (floors past the deepest)
+    weapon('pistol', '권총', 'gun', [5, 8], 6, 1, 1, ['원거리'], [], 99),
+    armor('agentSuit', '요원 슈트', .1, 1, [], [], 99),
     weapon('swordShield', '방벽 방패와 검', 'sword', [7, 10], 1, 1, 3, ['근접', '방패'], [ward], 1, { shield: true, block: .1 }),
     weapon('sword', '수호검', 'sword', [8, 11], 1, .9, 2, ['근접'], [status('수호 베기', 'exposed', 'crit')]),
     weapon('flameSword', '화염검', 'sword', [10, 14], 1, 1, 2, ['근접', '화염'], [status('불꽃 칼날', 'burn')], 3),

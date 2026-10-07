@@ -15,6 +15,7 @@ import { type TraitId } from './traitDefs';
 import { T } from './traitMods';
 import { resonant, shieldedFury } from './resonance';
 import { markMult } from './cardsRanged';
+import { isGun, magOf } from './ammo';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -33,6 +34,8 @@ export interface Unit {
   aiTarget?: string;
   /** when this clone was struck within the last turn (the whirlwind counts them) */
   struckTimes?: number[];
+  /** rounds left in a gun's magazine (unset: full) */
+  ammo?: number;
   /** the souls in this body, the first setting its class (empty: the SF body) */
   souls?: BodySoul[];
   /** this body has been down a shaft (it takes no more souls) */
@@ -258,6 +261,8 @@ const WARRIORS = new Set<ClassId>(['warrior', 'berserker', 'guardian']);
 export const levelDmg = (u: Unit): number => 1 + 0.06 * ((u.level ?? 1) - 1);
 
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
+  // an empty magazine: this attack is a reload instead
+  if (basic && isGun(u) && (u.ammo ?? magOf(p, u)) <= 0) { u.ammo = magOf(p, u); ev.push({ t, type: 'reload', src: u.id }); return; }
   action(p,()=>strikeAction(p,u,target,t,ev,mult,basic));
 }
 function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
@@ -269,7 +274,8 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if (!alive(p, u) || !alive(p, target)) return;
   const magic = u.cls ? CLASSES[u.cls].magic : false;
   if (st.range <= 1) ev.push({ t, type: 'bump', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos } });
-  else ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos }, text: magic ? 'spell' : 'bow' });
+  else ev.push({ t, type: 'shoot', src: u.id, dst: target.id, from: { ...e.pos }, to: { ...te.pos }, text: magic ? 'spell' : isGun(u) ? 'gun' : 'bow' });
+  if (basic && isGun(u)) u.ammo = (u.ammo ?? magOf(p, u)) - 1;
   const odds = hitOdds(p, u, target, t);
   const dodge = target.dodgeNext; target.dodgeNext=false;
   const blocked = odds.block > 0 && p.s.rng.chance(odds.block);

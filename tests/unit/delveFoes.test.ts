@@ -60,6 +60,8 @@ function bossArena() {
   w.asleep = false; w.nextAt = 0;
   // top level: a kill gives no level-up that would refit the test's huge health
   p.units.find((u) => u.id === 'hero')!.level = 15;
+  // no suit: the slam's raw damage is measured
+  p.units.find((u) => u.id === 'hero')!.gear!.armor = null;
   hero.pos = { x: we.pos.x + 1, y: we.pos.y }; hero.hp = hero.maxHp = 10000;
   return { p, w, we, hero };
 }
@@ -124,7 +126,7 @@ it('new foe kinds yield their bio and XP exactly once', () => {
     // Other bodies were removed only to isolate combat, so exclude their rewards.
     for (const u of p.units) if (u !== w && u.side === 'foe') u.reaped = true;
     const h = p.units.find((u) => u.id === 'hero')!;
-    h.cls = 'archer'; h.weapon = CLASSES.archer.weapons[0]; w.foe = kind; we.elite = false;
+    h.cls = 'archer'; h.weapon = CLASSES.archer.weapons[0]; h.gear!.weapon = { id: 'bw', def: 'longbow', power: 0 }; w.foe = kind; we.elite = false;
     damage(p, 0, 'hero', w, we.hp, []);
     delveTick(p, 0.01);
     expect(p.bio).toBe(bio); expect(h.xp).toBe(xp);

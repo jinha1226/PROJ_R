@@ -51,10 +51,10 @@ export const G = {
     hp: (u: Unit): number => { void u; return 0; }, cd: (u: Unit): number => { void u; return 1; },
     healTaken: (u: Unit): number => u.traits?.bloodPact ? .7 : 1,
 };
-export function visualWeapon(d: ItemDef): WeaponId { return ({ sword: 'swordShield', great: 'greataxe', mace: 'mace', dagger: 'daggers', bow: 'longbow', crossbow: 'crossbow', staff: 'staff', relic: 'symbol' } as const)[d.family!]; }
+export function visualWeapon(d: ItemDef): WeaponId { return ({ sword: 'swordShield', great: 'greataxe', mace: 'mace', dagger: 'daggers', bow: 'longbow', crossbow: 'crossbow', staff: 'staff', relic: 'symbol', gun: 'pistol' } as const)[d.family!]; }
 export function starterGear(cls: ClassId, nextId: () => string): Loadout {
     if (cls === 'shell')
-        return { weapon: null, armor: null, accessory: null };
+        return { weapon: { id: nextId(), def: 'pistol', power: 0 }, armor: { id: nextId(), def: 'agentSuit', power: 0 }, accessory: null };
     const base = CLASSES[cls].weapons[0]!, def = base === 'greataxe' ? 'greataxe' : base;
     return { weapon: { id: nextId(), def, power: 0 }, armor: { id: nextId(), def: ['warrior', 'cleric', 'guardian', 'inquisitor'].includes(cls) ? 'leather' : 'cloth', power: 0 }, accessory: null };
 }

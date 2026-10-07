@@ -10,11 +10,12 @@ import { sourcesOf } from '../../src/sim/party/triggers';
 import { refitHp } from '../../src/sim/party/partyLevel';
 export const setup = () => { const p = newDelve(2), u = living(p)[0]!; implant(p, u, 'warrior', []); return { p, u }; };
 export const give = (p: ReturnType<typeof newDelve>, def: string) => { const id = `test-${p.nextItem++}`; p.pack.push({ id, def, power: 0 }); return id; };
-it('has 18 weapons, 8 armours, 10 accessories and eight families; every item has tags and triggers', () => {
+it('has 18 weapons, 8 armours, 10 accessories and eight families, plus the empty body pistol and suit; every item has tags and triggers', () => {
     const defs = Object.values(CATALOG);
-    expect(['weapon', 'armor', 'accessory'].map(s => defs.filter(d => d.slot === s).length)).toEqual([18, 8, 10]);
-    expect(new Set(defs.flatMap(d => d.family ? [d.family] : [])).size).toBe(8);
-    for (const d of defs) {
+    expect(['weapon', 'armor', 'accessory'].map(s => defs.filter(d => d.slot === s).length)).toEqual([19, 9, 10]);
+    expect(new Set(defs.flatMap(d => d.family ? [d.family] : [])).size).toBe(9);
+    // the empty body's pistol and suit are its bare kit (never dropped): effects come from the workshop
+    for (const d of defs.filter(d => d.floors[0] < 99)) {
         expect(d.tags.length).toBeGreaterThan(0);
         expect(d.triggers.length).toBeGreaterThanOrEqual(1);
     }

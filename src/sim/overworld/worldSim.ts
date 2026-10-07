@@ -39,7 +39,7 @@ function fromWorld(w: World, seed: number): WorldParty {
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
   const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, raidClock: null, raidsDone: 0, deepest: 1, podHp: 200, raid: null, raidReady: null, away: false, baseEvents: [], buildings: [], nextBuilding: 1, drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
-  p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
+  p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'pistol', gear: starterGear('shell', () => nextItemId(p)) });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
     const kind = FOE_OF[e.kind] ?? 'goblin';

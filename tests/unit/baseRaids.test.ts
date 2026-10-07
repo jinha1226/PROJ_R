@@ -83,6 +83,8 @@ describe('raids', () => {
     const p = setup(); place(p, 'watchtower', { x: 50, y: 45 }); startRaid(p);
     const u = p.units.find(u => u.group === p.raid!.group)!; const e = entOf(p, u.id)!;
     e.pos = { x: 51, y: 45 }; u.nextAt = 100;
+    // the clone (now with a pistol) holds its fire so only the tower's shots count
+    for (const h of p.units) if (h.side === 'hero') h.nextAt = 100;
     const hp = e.hp; const ev = worldTick(p, .1);
     expect(ev.some(e => e.type === 'shoot' && e.src === p.buildings[0]!.id)).toBe(true);
     expect(hp - e.hp).toBeGreaterThanOrEqual(6); expect(hp - e.hp).toBeLessThanOrEqual(9);
