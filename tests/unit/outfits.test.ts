@@ -20,7 +20,7 @@ describe('outfits', () => {
   it('every soul is dressed; the empty clone stays bare and keeps its grey', () => {
     expect(outfitOf('shell')).toBeUndefined();
     expect(lookOf('shell', 'fists').outfit).toBeUndefined();
-    for (const cls of ['warrior', 'berserker', 'guardian', 'archer', 'sniper', 'hunter', 'mage', 'elementalist', 'necromancer', 'cleric', 'healer', 'inquisitor', 'rogue', 'assassin', 'toxicologist', 'veteran'] as const) expect(outfitOf(cls)).toBeDefined();
+    for (const cls of ['warrior', 'berserker', 'guardian', 'archer', 'sniper', 'hunter', 'mage', 'elementalist', 'necromancer', 'cleric', 'healer', 'inquisitor', 'rogue', 'assassin', 'toxicologist'] as const) expect(outfitOf(cls)).toBeDefined();
     expect(outfitOf('hunter')).toBe(outfitOf('archer'));
     expect(lookOf('archer', 'longbow').body).toBe(lookOf('mage', 'staff').body);
   });

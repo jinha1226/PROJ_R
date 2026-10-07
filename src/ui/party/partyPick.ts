@@ -1,5 +1,5 @@
 import { LINE } from '../../sim/party/classKit';
-import { KITS, PROMOTIONS } from '../../sim/party/classKit';
+import { KITS } from '../../sim/party/classKit';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { BASE_CLASSES, CLASSES, WEAPONS, type BaseClass, type ClassId, type Pick, type WeaponId } from '../../sim/party/partyDefs';
 import type { OutfitLook } from '../../view/grid/outfitKit';
@@ -29,7 +29,6 @@ export const OUTFITS: Partial<Record<ClassId, OutfitLook>> = {
   necromancer: { set: 'Peasant', tint: '#22c8a0', extra: ['hood'] },
   inquisitor: { set: 'Peasant', tint: '#ffa21a', extra: ['pauldron'] },
   assassin: { set: 'Ranger', tint: '#c01848', extra: ['hood', 'pauldron'] },
-  veteran: { set: 'Ranger', tint: '#c8c8c8', extra: ['pauldron'] },
 };
 
 /** The outfit a class shows: its own, else its line's. */
@@ -40,8 +39,8 @@ export function lookOf(cls: ClassId, weapon: WeaponId): UalLook {
   const w = WEAPONS[weapon], outfit = outfitOf(cls), [body, trim] = outfit ? COLORS.shell! : COLORS[cls] ?? COLORS[LINE[cls] ?? 'warrior']!;
   const caster = w.look === 'staff' || w.look === 'wand' || w.look === 'symbol';
   const idle = cls === 'shell' ? 'Idle_Loop' : caster || w.look === 'none' ? 'Spell_Simple_Idle_Loop' : w.range > 1 ? 'Idle_Loop' : 'Sword_Idle';
-  const line = cls === 'shell' || cls === 'veteran' ? 'shell' : LINE[cls] ?? cls;
-  return { body, trim, scale: (BUILD[cls] ?? BUILD[line as ClassId]) ?? 0.95, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[(cls === 'shell' || cls === 'veteran' ? 'shell' : (LINE[cls] ?? cls)) as keyof typeof RING] ?? RING.shell };
+  const line = cls === 'shell' ? 'shell' : LINE[cls] ?? cls;
+  return { body, trim, scale: (BUILD[cls] ?? BUILD[line as ClassId]) ?? 0.95, weapon: w.look, off: weapon === 'daggers' ? 'dagger' : undefined, shield: w.shield, idle, fullRun: true, outfit, ring: RING[(cls === 'shell' ? 'shell' : (LINE[cls] ?? cls)) as keyof typeof RING] ?? RING.shell };
 }
 
 /** The party chooser: five classes, three to take, each with a weapon. */
@@ -74,13 +73,12 @@ export class PartyPick {
 
   private draw(): void {
     const cards = BASE_CLASSES.map((cls) => {
-      const c = CLASSES[cls], slot = this.chosen.indexOf(cls), promo = PROMOTIONS[cls];
+      const c = CLASSES[cls], slot = this.chosen.indexOf(cls);
       const weapons = c.weapons.map((w) => `<button type="button" data-weapon="${w}" class="${this.weapon.get(cls) === w ? 'on' : ''}">${WEAPONS[w].name}<small>${WEAPONS[w].note}</small></button>`).join('');
       return `<div class="pd-class${slot >= 0 ? ' on' : ''}" data-cls="${cls}">
         <b>${slot >= 0 ? `${slot + 1} ` : ''}${c.name}</b><span class="hp">체력 ${c.hp}</span>
         <p>${ULT_NAMES[KITS[cls].ultimate!]}</p><p class="pas">${c.passiveName}</p>
         <div class="wpn">${weapons}</div>
-        ${promo.map(o=>`<p class="promo">${CLASSES[o.to].name} · ${Object.entries(o.need).map(([tag,n])=>`${tag} ${n}`).join(' · ')}</p>`).join('')}
       </div>`;
     }).join('');
     this.el.innerHTML = `<h2>파티 편성 <small>${this.chosen.length}/3</small></h2><div class="pd-classes">${cards}</div><button type="button" data-go ${this.chosen.length === 3 ? '' : 'disabled'}>출발</button>`;

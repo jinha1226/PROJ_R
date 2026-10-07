@@ -35,7 +35,6 @@
 .dt-pas { font-size: 11px; color: #ffc94a; }
 .dt-pas.dim { color: #4a6a55; }
 .dt-skills { display: grid; gap: 4px; }
-.pf-promote { font: 12px 'GalmuriMono', monospace; background: #ffc94a; color: #021006; border: 0; padding: 6px; cursor: pointer; animation: wh-blink 1s steps(2) infinite; }
 /* party frames */
 .wh-party { position: absolute; z-index: 6; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; gap: 8px; }
 .pf { position: relative; display: grid; grid-template-columns: 48px 150px; gap: 8px; padding: 6px; cursor: pointer; clip-path: var(--pix); }

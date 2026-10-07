@@ -5,7 +5,7 @@ import { SUPPORT_CARDS } from './cardsSupport';
 import type { TraitDef } from './traitTypes';
 export { rank, type Mods, type Tag, type TraitDef } from './traitTypes';
 export type TraitId = string;
-export const MAX_RANK=3, PROMOTE_LEVEL=8;
+export const MAX_RANK=3;
 
 // The card files import combat code that imports this table back, so the table is built on first use, not while modules load.
 let table: Record<string, TraitDef> | undefined;

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
-import { nextWave, partyRoom, promote, tick } from '../../src/sim/party/partySim';
+import { nextWave, partyRoom, tick } from '../../src/sim/party/partySim';
 import { queueUltimate, useUltimate } from '../../src/sim/party/ultimate';
 
 type P = ReturnType<typeof partyRoom>;
@@ -45,11 +45,6 @@ it('the shield of a sword-and-board warrior takes a quarter off each blow', () =
   const e = entOf(p, 'hero')!;
   damage(p, 0, foesAlive(p)[0]!.id, unitOf(p, 'hero')!, 8, []);
   expect(e.maxHp - e.hp).toBe(6);
-});
-
-it('kill counters cannot unlock a promotion', () => {
-  const p=partyRoom(),u=unitOf(p,'hero')!;u.progress=999;u.level=8;
-  expect(promote(p,'hero')).toEqual([]);
 });
 
 it('the next band comes only once the field is clear, and there are three', () => {

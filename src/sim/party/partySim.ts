@@ -9,11 +9,10 @@ import { spawnFoe } from '../grid/foes';
 import { makeWeapon } from '../grid/items';
 import { newState } from '../grid/state';
 import { DIRS, canStep, dist, same, tileAt, walkable, type Cell, type Ent, type GEvent, type GridMap } from '../grid/types';
-import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
+import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targetOf, type Party, type Unit } from './partyCore';
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useUltimate, aiUltimate } from './ultimate';
 import { bestTarget, charge } from './utility';
-import { promote as promoteTo, promotionOptions } from './classKit';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -70,10 +69,6 @@ export function nextWave(p: Party, ev: GEvent[] = []): boolean {
 }
 
 /** A hero who has met its advanced class's condition takes it: new skills and engraving, more health. */
-export function promote(p: Party, id: string): GEvent[] {
-  const u = unitOf(p,id); const to = u && promotionOptions(p,u).find(o=>o.met)?.to;
-  return to ? promoteTo(p,id,to) : [];
-}
 
 /** A unit's own moment: follow a move order (then hold there), else fight — close in, or keep range and shoot. */
 function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
@@ -162,7 +157,6 @@ export function tick(p: Party, dt: number): GEvent[] {
   const ev: GEvent[] = [];
   if (p.waiting || (p as { over?: boolean }).over) return ev;
   expireSummons(p, p.time);
-  for (const u of p.units) u.promoteReady=promotionOptions(p,u).some(o=>o.met);
   if (p.combat === false) for (const u of p.units) {u.crisisUsed = false;u.immortalUsed=false;u.steady=0;u.still=0;}
   let statusTime = p.time;
   const end = p.time + dt;

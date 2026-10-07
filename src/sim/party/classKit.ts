@@ -1,19 +1,18 @@
 import { addShield } from './shield';
 import { TRAITS } from './traitDefs';
 import { T } from './traitMods';
-import { dist, type GEvent } from '../grid/types';
-import { alive, damage, entOf, levelDmg, posOf, stats, targetOf, unitOf, type Party, type Unit } from './partyCore';
-import { CLASSES, BASE_CLASSES, WEAPONS, type BaseClass, type ClassId, type WeaponId } from './partyDefs';
+import { dist } from '../grid/types';
+import { alive, damage, entOf, levelDmg, posOf, stats, targetOf, type Party, type Unit } from './partyCore';
+import { WEAPONS, type BaseClass, type ClassId, type WeaponId } from './partyDefs';
 import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
 import { heal, nearby, fireball, summon } from './kitEffects';
 import { applyStatus } from './status';
-import { refitHp } from './partyLevel';
 export type UltId = 'warcry' | 'arrowRain' | 'meteor' | 'sanctum' | 'shadowDance' | 'bloodFrenzy' | 'bastion' | 'pierceShot' | 'bleedRain' | 'elementStorm' | 'deadHost' | 'judgement' | 'longSanctum' | 'deathDance' | 'toxicFog';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
 export { proficient } from '../delve/gear';
-import { proficient, worn, weaponDef } from '../delve/gear';
+import { proficient, worn } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
 import { MEMORIES, type MemoryId } from './memories';
@@ -59,22 +58,17 @@ export const KITS: Record<ClassId, Kit> = {
   healer: kit(extra(cleric,{ id: '넘치는 빛', when: 'overflow', run: (_p,c) => { if(c.target) addShield(c.target,c.amount ?? 0); } }),'longSanctum',45,['mace','relic']),
   assassin: kit(extra(rogue,{ id: '처형술', when: 'beforeHit', test: (p,c) => !!c.target && entOf(p,c.target.id)!.hp < entOf(p,c.target.id)!.maxHp * .35, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'deathDance',35,['dagger']),
   toxicologist: kit(extra(rogue,{ id: '독술', when: 'hit', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'poison',c.t,c.ev); } }),'toxicFog',35,['dagger']),
-  veteran: { innate: [], ultimate: null, ultCd: 0, proficient: ['sword','great','mace','bow','crossbow','staff','relic','dagger'] },
 };
 export const LINE: Partial<Record<ClassId, BaseClass>> = { berserker:'warrior', guardian:'warrior', sniper:'archer', hunter:'archer', elementalist:'mage', necromancer:'mage', inquisitor:'cleric', healer:'cleric', assassin:'rogue', toxicologist:'rogue' };
-export function kitOf(u: Unit): Kit { return u.cls === 'veteran' && u.soul ? { ...KITS[u.soul], ultCd: KITS[u.soul].ultCd * 0.8 } : KITS[u.cls ?? 'shell']; }
+export function kitOf(u: Unit): Kit { return KITS[u.cls ?? 'shell']; }
 export function kitMult(p: Party,u: Unit,target: Unit,t: number): number {
-  if (!proficient(u)) return u.cls === 'veteran' ? 1.1 : 1;
-  const base = u.cls === 'veteran' ? u.soul : LINE[u.cls!] ?? u.cls;
-  let m = u.cls === 'veteran' ? 1.1 : 1;
+  if (!proficient(u)) return 1;
+  const base = LINE[u.cls!] ?? u.cls;
+  let m = 1;
   if (base === 'archer') m *= 1 + 0.1 * (u.steady ?? 0);
   void p; void target; void t;
   return m;
 }
-export interface PromotionRule { to: ClassId; need: Partial<Record<Tag,number>>; wear?: WeaponFamily | 'shield'; anyElements?: number }
-export const PROMOTIONS: Record<BaseClass,PromotionRule[]> = {
-  warrior:[{to:'berserker',need:{근접:4,출혈:2}},{to:'guardian',need:{방패:4},wear:'shield'}], archer:[{to:'sniper',need:{치명:4},wear:'crossbow'},{to:'hunter',need:{출혈:2,독:2}}], mage:[{to:'elementalist',need:{화염:1,냉기:1,전기:1},anyElements:3},{to:'necromancer',need:{소환:3}}], cleric:[{to:'inquisitor',need:{방패:2,근접:2},wear:'mace'},{to:'healer',need:{치유:4}}], rogue:[{to:'assassin',need:{은신:2,치명:3}},{to:'toxicologist',need:{독:4}}],
-};
 export function tagsOf(u: Unit): Partial<Record<Tag,number>> {
   const tags: Partial<Record<Tag,number>> = {};
   for(const [id,rank] of Object.entries(u.traits ?? {})) for(const tag of TRAITS[id]?.tags ?? []) tags[tag]=(tags[tag]??0)+(rank?1:0);
@@ -82,15 +76,4 @@ export function tagsOf(u: Unit): Partial<Record<Tag,number>> {
   if(u.gear) {for(const it of worn(u))for(const tag of CATALOG[it.def]!.tags)tags[tag]=(tags[tag]??0)+1;}
   else {if(u.weapon==='crossbow')tags.치명=(tags.치명??0)+1;if(u.weapon&&WEAPONS[u.weapon].shield)tags.방패=(tags.방패??0)+1;}
   return tags;
-}
-export function promotionOptions(_p: Party,u: Unit): {to:ClassId;met:boolean;have:Partial<Record<Tag,number>>}[] {
-  if(!BASE_CLASSES.includes(u.cls as BaseClass)) return [];
-  const have=tagsOf(u), rules=PROMOTIONS[u.cls as BaseClass];
-  const options=rules.map(r=>({to:r.to,have,met:(u.level??1)>=8 && Object.entries(r.need).every(([tag,n])=>(have[tag as Tag]??0)>=n) && (!r.wear || (r.wear==='shield' ? !!(u.gear?weaponDef(u)?.shield:WEAPONS[u.weapon??'fists'].shield) : (weaponDef(u)?.family??FAMILY[u.weapon??'fists'])===r.wear))}));
-  return [...options,{to:'veteran',have,met:(u.level??1)>=10 && !options.some(o=>o.met)}];
-}
-export function promote(p: Party,id: string,to: ClassId): GEvent[] {
-  const u=unitOf(p,id); if(!u || !alive(p,u) || !promotionOptions(p,u).some(o=>o.to===to&&o.met)) return [];
-  u.soul ??= u.cls as BaseClass; u.cls=to; u.promoteReady=false; refitHp(p,u);
-  return [{t:p.time,type:'buff',src:id,dst:id,text:CLASSES[to].name}];
 }

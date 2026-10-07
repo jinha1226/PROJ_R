@@ -4,18 +4,16 @@ import { floorPower, partyPower, unitPower } from '../../src/sim/base/power';
 import { starterGear } from '../../src/sim/delve/gear';
 
 describe('base power', () => {
-  it('rates shells near ten and grows with level, gear, traits and promotion', () => {
+  it('rates shells near ten and grows with level, gear and traits', () => {
     const p = newSurface(1), u = p.units[0]!;
     expect(unitPower(p, u)).toBe(10);
     u.level = 8;
     const plain = unitPower(p, u);
-    u.cls = 'guardian'; u.gear = starterGear('guardian', () => 'gear');
+    u.cls = 'warrior'; u.gear = starterGear('warrior', () => 'gear');
     u.traits = { toughness: 3, seasoned: 2 };
     expect(unitPower(p, u)).toBeGreaterThan(plain);
-    expect(unitPower(p, u)).toBeGreaterThanOrEqual(60);
+    expect(unitPower(p, u)).toBeGreaterThanOrEqual(48);
     expect(unitPower(p, u)).toBeLessThanOrEqual(80);
-    const promoted = unitPower(p, u); u.cls = 'warrior';
-    expect(unitPower(p, u)).toBeLessThan(promoted);
   });
   it('ignores dead clones and recommends monotonically harder floors', () => {
     const p = newSurface();

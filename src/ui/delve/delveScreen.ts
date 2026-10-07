@@ -12,7 +12,7 @@ import { MiningCue } from './miningCue';
 import { AutoExplore, exploreWants } from './explore';
 import { QuickSlots } from '../overworld/quickSlots';
 import { PlacePrompts, soulPrompt, type Prompt } from '../overworld/placePrompt';
-import { command, promote } from '../../sim/party/partySim';
+import { command } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { clones, orderTo } from '../../sim/roam/roam';
 import { canAscend, canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
@@ -99,7 +99,6 @@ export class DelveScreen implements Screen {
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
       select: (id) => this.select(id),
       skill: (id) => this.skill(id || this.sel),
-      promote: () => this.live(promote(this.p, this.sel)),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });

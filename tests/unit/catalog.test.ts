@@ -1,4 +1,3 @@
-import { cardsOf } from './support/cardScene';
 import { expect, it } from 'vitest';
 import { createRng } from '../../src/core/rng';
 import { CATALOG } from '../../src/sim/delve/catalog';
@@ -9,7 +8,6 @@ import { implant, living } from '../../src/sim/roam/roam';
 import { takeParty, placeParty } from '../../src/sim/roam/carry';
 import { sourcesOf } from '../../src/sim/party/triggers';
 import { refitHp } from '../../src/sim/party/partyLevel';
-import { promotionOptions, promote } from '../../src/sim/party/classKit';
 export const setup = () => { const p = newDelve(2), u = living(p)[0]!; implant(p, u, 'warrior', []); return { p, u }; };
 export const give = (p: ReturnType<typeof newDelve>, def: string) => { const id = `test-${p.nextItem++}`; p.pack.push({ id, def, power: 0 }); return id; };
 it('has 18 weapons, 8 armours, 10 accessories and eight families; every item has tags and triggers', () => {
@@ -55,19 +53,9 @@ it('sacrifice removes the donor and adds exactly 25% of its numbers, power numbe
     const empty = give(p, 'longbow');
     expect(sacrifice(p, u.id, empty)).toEqual([]);
 });
-it('worn tags and shield requirements are recounted on equip and unequip', () => {
-    const { p, u } = setup();
-    u.level = 8;
-    u.traits = cardsOf('방패', 3);
-    equip(p, u.id, give(p, 'swordShield'));
-    expect(promotionOptions(p, u).find(o => o.to === 'guardian')?.met).toBe(true);
-    unequip(p, u.id, 'weapon');
-    expect(promotionOptions(p, u).find(o => o.to === 'guardian')?.met).toBe(false);
-});
-it('power, cooldowns, traits, consumables and promotion survive a shaft round trip independently', () => {
+it('power, cooldowns, traits and consumables survive a shaft round trip independently', () => {
     const { p, u } = setup();
     sacrifice(p, u.id, give(p, 'bloodGreat'));
-    u.level=8;u.traits=cardsOf('방패',3);promote(p,u.id,'guardian');
     u.ultReady = 42;u.trig['방벽']=17;
     u.traits = { vital: 2 };refitHp(p,u);
     p.pack.push({ id: 'wand', consumable: 'boltWand', charges: 2 });
@@ -75,7 +63,7 @@ it('power, cooldowns, traits, consumables and promotion survive a shaft round tr
     placeParty(q, c);
     const v = living(q)[0]!;
     expect(v.gear).toEqual(u.gear);
-    expect(v.ultReady).toBe(42);expect(v.cls).toBe('guardian');expect(v.soul).toBe('warrior');expect(v.trig['방벽']).toBe(17);
+    expect(v.ultReady).toBe(42);expect(v.trig['방벽']).toBe(17);
     expect(v.traits).toEqual(u.traits);
     expect(q.pack).toEqual(p.pack);
     v.gear!.weapon = null;

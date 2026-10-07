@@ -1,12 +1,9 @@
-import { promote } from '../../sim/party/classKit';
 import type { GEvent } from '../../sim/grid/types';
-import type { ClassId } from '../../sim/party/partyDefs';
 import { traitText } from '../../sim/party/traitText';
 import { KIND_NAME } from '../../sim/party/traitTypes';
 import { MEMORIES, type MemoryId } from '../../sim/party/memories';
 import { resonanceHtml } from './resonanceHtml';
 import { dmgText, gearHtml, packHtml } from './pipGear';
-import { promotionHtml } from './pipClasses';
 import { rosterHtml } from './pipRoster';
 import { useConsumable } from './quickSlots';
 import { skillsHtml } from './pipSkills';
@@ -43,8 +40,6 @@ export class PipWindow {
       if (who) this.who = who;
       const act=t.closest<HTMLElement>('[data-item]');
       if(act){const p=this.p(),id=act.dataset.item!,u=unitOf(p,this.who)||clones(p).find(u=>entOf(p,u.id)?.alive);if(u){if(act.dataset.action==='equip')equip(p,u.id,id);if(act.dataset.action==='sacrifice')sacrifice(p,u.id,id);if(act.dataset.action==='use')this.onEvents?.(useConsumable(p,u.id,id));}}
-      const to = t.closest<HTMLElement>('[data-promote-to]')?.dataset.promoteTo as ClassId | undefined;
-      if (to) this.onEvents?.(promote(this.p(), this.who, to));
       const soul = t.closest<HTMLElement>('[data-soul]')?.dataset.soul, body = soul !== undefined && this.shell(this.p());
       if (body) this.onEvents?.(implantCarried(this.p(), body.id, Number(soul)));
       const slot=t.closest<HTMLElement>('[data-off]')?.dataset.off as 'weapon'|'armor'|'accessory'|undefined;
@@ -95,7 +90,7 @@ export class PipWindow {
       <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
       <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
       <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${u.gear?.weapon ? dmgText(u.gear.weapon) : `${w.dmg[0]}-${w.dmg[1]}`} · ${(1 / w.atk).toFixed(1)}회/턴 · 사거리 ${w.range}</dd>
-      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${memory ? `<dt>기억</dt><dd>${memory.name} <small>${memory.text}</small></dd>` : ''}</dl>${promotionHtml(p, u)}
+      <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${memory ? `<dt>기억</dt><dd>${memory.name} <small>${memory.text}</small></dd>` : ''}</dl>
       <h4>특성</h4><ul class="pip-skills">${traits}</ul>${resonanceHtml(p, u)}</section>`;
   }
 

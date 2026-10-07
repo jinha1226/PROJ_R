@@ -24,8 +24,6 @@
 .pd-skills button.queued { background: #e6ffb0; color: #021006; border-color: #e6ffb0; }
 .pd-wave { color: #9dffb8; margin-left: 6px; }
 .pd-card b small, .pd-adv { color: #6fbf88; font-size: 10px; }
-.pd-promote { font: 11px 'GalmuriMono', monospace; color: #021006; background: #ffc94a; border: 1px solid #ffc94a; padding: 3px 6px; cursor: pointer; }
-.pd-promote:hover { background: #fff0b0; }
 /* the party chooser */
 .pd-pick { position: absolute; inset: 0; z-index: 8; display: grid; place-content: center; justify-items: center; gap: 14px; background: #000000c8; font: 12px 'GalmuriMono', monospace; color: #9dffb8; padding: 16px; overflow: auto; }
 .pd-pick h2 { margin: 0; font: 16px 'GalmuriMono', monospace; color: #e6ffb0; letter-spacing: 0.2em; }
@@ -34,7 +32,7 @@
 .pd-class { width: 180px; padding: 8px; background: #021407e0; border: 1px solid #1f7a3e; cursor: pointer; display: grid; gap: 4px; align-content: start; }
 .pd-class.on { border-color: #e6ffb0; box-shadow: 0 0 0 1px #e6ffb0; }
 .pd-class b { font-weight: normal; color: #e6ffb0; font-size: 14px; }
-.pd-class .hp, .pd-class .promo { color: #6fbf88; font-size: 11px; }
+.pd-class .hp { color: #6fbf88; font-size: 11px; }
 .pd-class p { margin: 0; }
 .pd-class .pas { color: #ffc94a; font-size: 11px; }
 .pd-class .wpn { display: grid; gap: 3px; }

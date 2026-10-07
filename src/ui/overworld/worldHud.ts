@@ -3,7 +3,7 @@ import { detailHtml, partyFramesHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
 import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
 
-export interface HudActions { menu(): void; stat(): void; bag(): void; select(id: string): void; skill(id: string, slot: 0 | 1): void; promote(): void;
+export interface HudActions { menu(): void; stat(): void; bag(): void; select(id: string): void; skill(id: string, slot: 0 | 1): void;
   /** down the stairs or the shaft (shown when given; enabled by draw) */
   descend?: () => void;
   descendLabel?: string;
@@ -53,7 +53,6 @@ export class WorldHud {
     el.querySelector('.wh-br')!.addEventListener('click', (e) => {
       const t = e.target as HTMLElement, skill = t.closest<HTMLElement>('[data-skill]');
       if (skill) a.skill('', Number(skill.dataset.skill) as 0 | 1);
-      if (t.closest('[data-promote]')) a.promote();
       if (t.closest('[data-traits]')) a.traits?.('');
     });
   }

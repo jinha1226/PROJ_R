@@ -1,9 +1,8 @@
-import { TRAITS } from '../../src/sim/party/traitDefs';
 import { it, expect } from 'vitest';
 import { partyRoom, tick } from '../../src/sim/party/partySim';
 import { damage, entOf } from '../../src/sim/party/partyCore';
 import { emit, sourcesOf } from '../../src/sim/party/triggers';
-import { KITS, promotionOptions, promote } from '../../src/sim/party/classKit';
+import { KITS } from '../../src/sim/party/classKit';
 import { aiUltimate, useUltimate } from '../../src/sim/party/ultimate';
 import { BASE_CLASSES, type ClassId } from '../../src/sim/party/partyDefs';
 import type { GEvent } from '../../src/sim/grid/types';
@@ -40,17 +39,6 @@ it.each(['warrior','archer','mage','cleric','rogue','berserker','guardian','snip
   entOf(p, f.id)!.pos = { x: 4, y: 4 };
   expect(useUltimate(p, u.id, { x: 4, y: 4 }).length).toBeGreaterThan(0);
   expect(u.ultReady).toBe(KITS[cls].ultCd); expect(useUltimate(p, u.id)).toEqual([]);
-});
-it('recounts shield gear and cards before promoting', () => {
-  const p = partyRoom(), u = p.units[0]!; u.level = 8; u.traits = Object.fromEntries(Object.values(TRAITS).filter((d) => d.tags.includes('방패')).slice(0, 3).map((d) => [d.id, 1]));
-  expect(promotionOptions(p, u).find(o=>o.to==='guardian')?.met).toBe(true);
-  u.weapon = 'greataxe'; expect(promotionOptions(p, u).find(o=>o.to==='guardian')?.met).toBe(false);
-  expect(promote(p, u.id, 'guardian')).toEqual([]); u.weapon = 'swordShield'; expect(promote(p, u.id, 'guardian').length).toBe(1);
-});
-it('offers veteran at ten only when no other rule is met', () => {
-  const p = partyRoom(), u = p.units[0]!; u.weapon = 'greataxe'; u.level = 9;
-  expect(promotionOptions(p, u).find(o=>o.to==='veteran')?.met).toBe(false);
-  u.level = 10; expect(promotionOptions(p, u).find(o=>o.to==='veteran')?.met).toBe(true);
 });
 it('AI casts sanctuary on its moment and prevents damage until expiry', () => {
   const p=partyRoom(),u=p.units[2]!;u.cls='cleric';u.weapon='symbol';

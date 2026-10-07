@@ -1,4 +1,4 @@
-import { kitOf, promotionOptions } from '../../sim/party/classKit';
+import { kitOf } from '../../sim/party/classKit';
 import { ULT_NAMES } from '../../sim/party/ultimate';
 import { entOf, unitOf, type Party, type Unit } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
@@ -41,14 +41,13 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
   }).join('');
 }
 
-/** The chosen clone in full at the bottom right: emblem, weapon and engraving, big skill buttons, the way to its advanced class. */
+/** The chosen clone in full at the bottom right: emblem, weapon and engraving, big skill buttons. */
 export function detailHtml(p: Party, id: string): string {
   const u = unitOf(p, id), e = entOf(p, id);
   if (!u || !e?.alive) return '';
-  const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!], promo = promotionOptions(p,u);
-  const adv = promo.map(o=>`<div class="pd-adv">${CLASSES[o.to].name} ${o.met?'가능':'미달'}</div>`).join('') + (promo.some(o=>o.met)?'<button type="button" class="pf-promote" data-promote>전직</button>':'');
+  const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!];
   const skills = skillTile(u,p.time,true,true);
   return `<div class="dt-head" style="--tint:${CLASS_TINT[u.cls!]}"><div class="pf-face big">${classIcon(u.cls!)}</div>
     <div><b>${cls.name}</b>${unitChips(u, p.time)}<div class="dt-sub">${w.name} · 피해 ${w.dmg[0]}–${w.dmg[1]} · 사거리 ${w.range}</div>${cls.passiveName ? `<div class="dt-pas">◆ ${cls.passiveName}</div>` : '<div class="dt-pas dim">영혼 없음</div>'}</div></div>
-    ${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}<div class="dt-skills">${skills}</div>${adv}`;
+    ${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}<div class="dt-skills">${skills}</div>`;
 }

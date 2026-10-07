@@ -11,7 +11,7 @@ import { dist } from '../grid/types';
 
 const heroes = (p: Party) => p.units.filter((x) => x.side === 'hero' && !x.summoner && alive(p, x));
 /** a clone's base line (an advanced class counts as the class it grew from) */
-export const lineOf = (u: Unit): BaseClass | undefined => (u.cls === 'veteran' ? u.soul : u.cls && u.cls !== 'shell' ? LINE[u.cls] ?? (u.cls as BaseClass) : undefined);
+export const lineOf = (u: Unit): BaseClass | undefined => (u.cls && u.cls !== 'shell' ? LINE[u.cls] ?? (u.cls as BaseClass) : undefined);
 const on = (u: Unit | undefined, id: 'freeze' | 'stun' | 'mark' | 'bleed', t: number) => !!u && (u.status[id]?.until ?? 0) > t;
 
 /** The cleric's cards (spec §6.5): shields and healing that spill over into harm. */

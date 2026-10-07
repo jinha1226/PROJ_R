@@ -16,7 +16,7 @@ import { dist, idx, same, walkable, tileAt, type GEvent } from '../../sim/grid/t
 import { entOf, unitOf } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from './targetCard';
-import { command, promote } from '../../sim/party/partySim';
+import { command } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
 import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
@@ -105,7 +105,6 @@ export class WorldScreen implements Screen {
       build: () => this.build.toggle(),
       select: (id) => this.select(id),
       skill: (id) => queueUltimate(this.p, id || this.sel),
-      promote: () => this.live(promote(this.p, this.sel)),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
@@ -254,14 +253,13 @@ export class WorldScreen implements Screen {
       const e = entOf(this.p, id)!;
       // danger stops the game only in a fight: walking about hurt (say, just up from below) is no emergency
       if (this.p.combat && e.hp < e.maxHp * 0.35) this.alert(`${id}:low${this.p.combat ? Math.floor(this.p.time / 60) : ''}`, `${this.name(id)} 위험`);
-      else if (unitOf(this.p, id)!.promoteReady) this.alert(`${id}:promo`, `${this.name(id)} 전직 가능`);
     }
   }
 
   private alert(key: string, text: string): void {
     if (this.warned.has(key)) return;
     this.warned.add(key);
-    // a notice only stops the game in a fight; out of one (say, a promotion ready) it is just said
+    // a notice only stops the game in a fight; out of one (say, a level-up) it is just said
     if (this.p.combat) this.paused = true;
     this.message(text);
   }

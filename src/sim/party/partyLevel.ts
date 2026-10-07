@@ -1,12 +1,10 @@
 import { rollOffer } from './traitPool';
-import { promotionOptions } from './classKit';
 import { G } from '../delve/gear';
 import type { GEvent } from '../grid/types';
 import { alive, entOf, type Party, type Unit } from './partyCore';
 import { CLASSES } from './partyDefs';
-import { PROMOTE_LEVEL, TRAITS, rank, type TraitId } from './traitDefs';
+import { TRAITS, rank, type TraitId } from './traitDefs';
 import { T } from './traitMods';
-export { PROMOTE_LEVEL };
 
 /** experience needed to reach each level (index 0 = level 1) */
 export const LEVEL_XP = [0, 10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820];
@@ -18,7 +16,7 @@ export const levelOf = (u: Unit): number => u.level ?? 1;
 export function refitHp(p: Party, u: Unit): void {
   const e = entOf(p, u.id);
   if (!e || !u.cls) return;
-  const max = Math.round(((u.cls === 'veteran' && u.soul ? CLASSES[u.soul].hp : CLASSES[u.cls].hp) * (1 + 0.08 * (levelOf(u) - 1))) * T.hp(u) * (u.cls==='veteran'?1.15:1)) + G.hp(u);
+  const max = Math.round((CLASSES[u.cls].hp * (1 + 0.08 * (levelOf(u) - 1))) * T.hp(u)) + G.hp(u);
   e.hp = Math.max(e.alive ? 1 : 0, e.hp + (max - e.maxHp));
   e.maxHp = max;
 }
@@ -37,7 +35,6 @@ export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
     ev.push({ t: p.time, type: 'levelUp', src: u.id, dst: u.id, amount: u.level });
   }
   if (u.picks && !u.offer?.length) offerNext(p, u);
-  u.promoteReady = promotionOptions(p,u).some(o=>o.met);
 }
 
 /** Fallen foes give experience to the clones fighting near them. */

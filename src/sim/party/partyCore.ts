@@ -57,7 +57,7 @@ export interface Unit {
   /** when a cleric's guardian ward may fire again */
   guardReady: number;
   /** kills that count toward this hero's advanced class */
-  progress: number; promoteReady?: boolean;
+  progress: number;
   /** a camp foe that has not noticed the party yet (takes no turns) */
   asleep?: boolean; alertUntil?: number;
   /** the camp a foe belongs to (they wake together) */
@@ -119,7 +119,7 @@ export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range
   const lowHp = e ? e.hp < e.maxHp / 2 : u.lowHp;
   const w = weaponStats(u);
   const range = (w.range > 1 && passive(u) === 'farShot' ? w.range + 2 : w.range) + (w.range > 1 ? T.range(u) + (p && resonant(p, u, '원거리', 1) ? 1 : 0) : 0);
-  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls==='veteran'&&u.soul?u.soul:u.cls].move * T.move(u) * G.move(u) };
+  return { dmg: w.dmg, range, atk: w.atk * (u.cls === 'berserker' && proficient(u) && lowHp ? 0.5 : 1) * G.atk(u) * (u.fastNext?.5:1) * (t < u.hasteUntil ? 0.5 : 1) * T.atk(u), move: CLASSES[u.cls].move * T.move(u) * G.move(u) };
 }
 
 export function canHit(p: Party, u: Unit, target: Unit, range = stats(u, 0, p).range): boolean {

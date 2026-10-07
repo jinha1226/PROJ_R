@@ -1,9 +1,8 @@
-import { cardsOf } from './support/cardScene';
 import { implantCarried } from '../../src/sim/roam/roam';
 import { expect, it } from 'vitest';
 import { tileAt, type GEvent } from '../../src/sim/grid/types';
-import { damage, entOf, strike, unitOf } from '../../src/sim/party/partyCore';
-import { gainXp, LEVEL_XP, pickTrait, PROMOTE_LEVEL } from '../../src/sim/party/partyLevel';
+import { damage, entOf, strike } from '../../src/sim/party/partyCore';
+import { gainXp, LEVEL_XP, pickTrait } from '../../src/sim/party/partyLevel';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { delveTick, newDelve } from '../../src/sim/delve/delveSim';
 import { clones } from '../../src/sim/roam/roam';
@@ -75,17 +74,3 @@ it('an archer shooting again and again from the same spot builds steady aim up t
   expect(u.steady).toBe(3);
 });
 
-it('the advanced class waits for level 8 on the roaming maps', () => {
-  const p = withArcher();
-  const u = clones(p)[0]!;
-  u.progress = 99; u.traits = cardsOf('치명', 3); u.weapon = 'crossbow'; u.gear!.weapon={id:'bow',def:'crossbow',power:0};
-  for (const f of p.units.filter((x) => x.side === 'foe').slice(0, 2)) {
-    entOf(p, f.id)!.pos = { x: entOf(p, 'hero')!.pos.x + 6, y: entOf(p, 'hero')!.pos.y };
-    damage(p, p.time, 'hero', f, 999, []);
-  }
-  expect(u.promoteReady).toBeFalsy();
-  gainXp(p, u, LEVEL_XP[PROMOTE_LEVEL - 1]!, []);
-  expect(u.level).toBeGreaterThanOrEqual(PROMOTE_LEVEL);
-  expect(u.promoteReady).toBe(true);
-  expect(unitOf(p, u.id)).toBe(u);
-});
