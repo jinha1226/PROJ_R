@@ -18,8 +18,8 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from './targetCard';
 import { command } from '../../sim/party/partySim';
 import { queueUltimate } from '../../sim/party/ultimate';
-import { canDrill, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
-import { takeParty, type Carry } from '../../sim/roam/carry';
+import { canDrill, drillClone, claimedShare, clones, newWorld, orderTo, worldTick, type WorldParty } from '../../sim/overworld/worldSim';
+import { takeClone, type Carry } from '../../sim/roam/carry';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import type { NatureKit } from '../../view/overworld/natureKit';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
@@ -90,7 +90,7 @@ export class WorldScreen implements Screen {
    * opts.party: an expedition's surface (kept between trips); landing: the pod falls in first; onDrill: the party goes down the shaft;
    * restart: the expedition starts over (else the demo makes a new world).
    */
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry, floor?: number) => void; restart?: () => void; nature?: NatureKit } = {}) {
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: WorldParty; landing?: boolean; onDrill?: (c: Carry, floor?: number) => void; restart?: () => void; nature?: NatureKit; keptFloor?: number } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -104,7 +104,7 @@ export class WorldScreen implements Screen {
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
       build: () => this.build.toggle(),
       select: (id) => this.select(id),
-      skill: (id) => queueUltimate(this.p, id || this.sel),
+      skill: (id, slot) => queueUltimate(this.p, id || this.sel, undefined, slot),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
     });
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
@@ -272,17 +272,19 @@ export class WorldScreen implements Screen {
   /** Buttons over the places the party stands by: the pod (the shaft) when it can go down; the lab: build, print a clone. */
   private placePrompts(): Prompt[] {
     if (this.landing) return []; const list: Prompt[] = [];
-    if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: '▼ 지하로', act: () => this.descend() });
+    if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: this.opts.keptFloor ? `▼ ${this.opts.keptFloor}층 복귀` : '▼ 지하로', act: () => this.descend() });
     const lab = this.p.cloner ?? this.p.base, nearLab = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, lab) <= POD_REACH; });
     if (this.p.pod && nearLab && !this.p.raid && !this.build.open) list.push({ at: lab, label: '⚒ 건설', act: () => this.build.toggle() });
     return [...list, ...clonerPrompt(this.p, (ev) => this.live(ev)), ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })];
   }
 
-  /** Down the shaft: with deeper starts open, first ask which floor. */
+  /** Down the shaft, one clone (the chosen one if it stands by the drill): back to a kept floor, or, with deeper starts open, first ask which floor. */
   private descend(): void {
-    if (!canDrill(this.p) || !this.opts.onDrill) return;
-    const floors = startFloors(this.p), go = (f: number) => { if (canDrill(this.p)) this.opts.onDrill!(takeParty(this.p), f); };
-    if (floors.length > 1) this.build.chooseFloor(floors, go); else go(1);
+    const id = drillClone(this.p, this.sel);
+    if (!id || !canDrill(this.p, id) || !this.opts.onDrill) return;
+    const floors = startFloors(this.p), go = (f: number) => { if (canDrill(this.p, id)) this.opts.onDrill!(takeClone(this.p, id), f); };
+    if (this.opts.keptFloor) go(this.opts.keptFloor);
+    else if (floors.length > 1) this.build.chooseFloor(floors, go); else go(1);
   }
 
   private key(e: KeyboardEvent): void {

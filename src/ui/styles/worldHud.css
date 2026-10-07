@@ -25,6 +25,7 @@
 .wh-btns { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .wh-btns button, .pip-frame header button, .pip-side button { font: 12px 'GalmuriMono', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 4px 8px; cursor: pointer; }
 .wh-btns button:hover { background: #5dff8a; color: #021006; }
+.wh-btns button:disabled { color: #1f7a3e; border-color: #0e3a1c; cursor: default; background: #021006; }
 .wh-btns kbd, .pf kbd, .pf-skill kbd { font: inherit; font-size: 9px; color: #34a85c; }
 .wh-keys { font-size: 10px; color: #2f7a4a; text-align: right; }
 .wh-br { position: absolute; z-index: 6; right: 12px; bottom: 12px; width: 300px; padding: 10px; display: grid; gap: 8px; }

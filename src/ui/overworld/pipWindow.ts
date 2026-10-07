@@ -2,7 +2,7 @@ import type { GEvent } from '../../sim/grid/types';
 import { traitText } from '../../sim/party/traitText';
 import { KIND_NAME } from '../../sim/party/traitTypes';
 import { MEMORIES } from '../../sim/party/memories';
-import { memoriesOf } from '../../sim/party/body';
+import { linesOf, memoriesOf, soulsOf } from '../../sim/party/body';
 import { resonanceHtml } from './resonanceHtml';
 import { dmgText, gearHtml, packHtml } from './pipGear';
 import { rosterHtml } from './pipRoster';
@@ -14,7 +14,7 @@ import { CATALOG } from '../../sim/delve/catalog';
 import { PACK_SIZE } from '../../sim/delve/gear';
 import { entOf, unitOf, type Unit } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
-import { BODY_COST, clones, implantCarried, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
+import { BODY_COST, canTakeSoul, clones, implantCarried, MAX_CLONES, slotsOf, type RoamParty } from '../../sim/roam/roam';
 import { CLASS_TINT, classIcon } from './classIcons';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
@@ -52,9 +52,9 @@ export class PipWindow {
 
   get open(): boolean { return !this.el.hidden; }
 
-  /** the empty body a soul goes into: the chosen clone if it is one, else the first living one */
+  /** the fresh body a soul goes into: the chosen clone if it can take one, else the first that can */
   private shell(p: RoamParty): Unit | undefined {
-    const empty = clones(p).filter((u) => u.cls === 'shell' && entOf(p, u.id)?.alive);
+    const empty = clones(p).filter((u) => entOf(p, u.id)?.alive && canTakeSoul(p, u));
     return empty.find((u) => u.id === this.who) ?? empty[0];
   }
 
@@ -85,11 +85,11 @@ export class PipWindow {
     if (!u || !e) return `<nav class="pip-side">${side}</nav>`;
     const cls = CLASSES[u.cls!], w = {...WEAPONS[u.weapon!],...weaponStats(u),name:u.gear?.weapon?itemName(u.gear.weapon):WEAPONS[u.weapon!].name,note:u.gear?.weapon?CATALOG[u.gear.weapon.def]!.tags.join(' · '):WEAPONS[u.weapon!].note};
     const mems = memoriesOf(u).map((m) => MEMORIES[m]);
-    const lv = u.cls === 'shell' ? '' : `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
+    const lv = `<dt>레벨</dt><dd>${levelOf(u)} <small>경험 ${u.xp ?? 0}${levelOf(u) < MAX_LEVEL ? ` / ${LEVEL_XP[levelOf(u)]}` : ''}</small></dd>`;
     const traits = (Object.keys(u.traits ?? {}) as TraitId[]).filter((id) => TRAITS[id]).map((id) => `<li><b>${TRAITS[id]!.name}${rank(u, id) >= 2 ? ' +' : ''} <small>${TRAITS[id]!.kind ? KIND_NAME[TRAITS[id]!.kind!] : ''}</small></b><span>${traitText(id, rank(u, id))}</span><em>${TRAITS[id]!.tags.map((g) => `#${g}`).join(' ')}</em></li>`).join('') || '<li class="dim">없음</li>';
     return `<nav class="pip-side">${side}</nav><section class="pip-rec">
-      <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${cls.name}</h3>
-      <dl>${lv}<dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
+      <h3 style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${linesOf(u).length > 1 ? linesOf(u).map((c) => CLASSES[c].name).join(' + ') : cls.name}</h3>
+      <dl>${lv}<dt>영혼</dt><dd>${soulsOf(u).length} / ${slotsOf(p)}</dd><dt>체력</dt><dd>${e.hp} / ${e.maxHp}</dd><dt>보호막</dt><dd>${u.shield}</dd><dt>이동</dt><dd>${(1 / cls.move).toFixed(1)} 칸/턴</dd>
       <dt>무기</dt><dd>${w.name} <small>${w.note}</small></dd><dt>피해</dt><dd>${u.gear?.weapon ? dmgText(u.gear.weapon) : `${w.dmg[0]}-${w.dmg[1]}`} · ${(1 / w.atk).toFixed(1)}회/턴 · 사거리 ${w.range}</dd>
       <dt>각인</dt><dd>${cls.passiveName || '—'}</dd>${mems.length ? `<dt>기억</dt><dd>${mems.map((m) => `${m.name} <small>${m.text}</small>`).join('<br>')}</dd>` : ''}</dl>
       <h4>특성</h4><ul class="pip-skills">${traits}</ul>${resonanceHtml(p, u)}</section>`;

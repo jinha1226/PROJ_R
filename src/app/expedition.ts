@@ -1,6 +1,7 @@
-import { departSurface, returnToSurface } from '../sim/base/trips';
+import { beaconReturn, departSurface, returnToSurface } from '../sim/base/trips';
 import { newSurface, type WorldParty } from '../sim/overworld/worldSim';
-import type { Carry } from '../sim/roam/carry';
+import { rejoin, type Carry } from '../sim/roam/carry';
+import { reenter, type DelveParty } from '../sim/delve/delveSim';
 import { LoadingScreen } from '../ui/screens/loadingScreen';
 import type { DungeonKit } from '../view/grid/dungeonKit';
 import type { UalLibrary } from '../view/grid/ualActor';
@@ -16,6 +17,8 @@ import type { Router } from './router';
  */
 export class Expedition {
   private surface!: WorldParty;
+  /** the floor a return beacon kept, waiting for a clone to come back down */
+  private kept?: DelveParty;
   private trips = 0;
   private assets!: { lib: UalLibrary; kit: DungeonKit; nature?: NatureKit };
 
@@ -28,7 +31,7 @@ export class Expedition {
       setWeaponKit(weapons);
       this.assets = { lib, kit, nature };
       this.surface = newSurface(this.seed);
-      this.trips = 0;
+      this.trips = 0; this.kept = undefined;
       await this.up(true);
     } catch (e) { showFatal(this.root, e); }
   }
@@ -38,15 +41,23 @@ export class Expedition {
   /** On the surface by the pod (landing: the pod falls in first). */
   private async up(landing = false): Promise<void> {
     const { WorldScreen } = await import('../ui/overworld/worldScreen');
-    this.router.go(new WorldScreen(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party: this.surface, landing, restart: this.restart, nature: this.assets.nature, onDrill: (c, floor) => void this.down(c, floor) }));
+    this.router.go(new WorldScreen(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party: this.surface, landing, restart: this.restart, nature: this.assets.nature, keptFloor: this.kept?.floor, onDrill: (c, floor) => void this.down(c, floor) }));
   }
 
-  /** Down the shaft: a fresh chosen start floor each trip. */
+  /**
+   * Down the shaft with one clone: back to the floor a beacon kept, or a fresh chosen start floor. A refused start puts the
+   * clone back at the drill. Riding the lift up ends the floor; the beacon keeps it; a death ends it too.
+   */
   private async down(c: Carry, floor = 1): Promise<void> {
     const { DelveScreen } = await import('../ui/delve/delveScreen');
-    const party = departSurface(this.surface, this.seed * 131 + this.trips + 1, { ...c, foundHeroes: [] }, floor);
-    if (!party) return;
+    let party = this.kept;
+    if (party) { reenter(party, c); this.surface.away = true; this.kept = undefined; }
+    else party = departSurface(this.surface, this.seed * 131 + this.trips + 1, { ...c, foundHeroes: [] }, floor) ?? undefined;
+    if (!party) { rejoin(this.surface, c, this.surface.drill ?? this.surface.base); return; }
     this.trips++;
-    this.router.go(new DelveScreen(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart, onAscend: (back) => { returnToSurface(this.surface, back); void this.up(); } }));
+    const kept = party;
+    this.router.go(new DelveScreen(this.assets.lib, this.assets.kit, { seed: this.seed, quit: this.toTitle, party, restart: this.restart,
+      onAscend: (back) => { this.kept = undefined; returnToSurface(this.surface, back); void this.up(); },
+      onBeacon: (back) => { this.kept = kept; beaconReturn(this.surface, back); void this.up(); } }));
   }
 }

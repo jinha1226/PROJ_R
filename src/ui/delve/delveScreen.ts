@@ -11,9 +11,12 @@ import { tapCell } from './tapCell';
 import { MiningCue } from './miningCue';
 import { AutoExplore, exploreWants } from './explore';
 import { QuickSlots } from '../overworld/quickSlots';
-import { PlacePrompts, soulPrompt, type Prompt } from '../overworld/placePrompt';
+import { PlacePrompts, type Prompt } from '../overworld/placePrompt';
 import { command } from '../../sim/party/partySim';
-import { queueUltimate } from '../../sim/party/ultimate';
+import { queueUltimate, ultSlots } from '../../sim/party/ultimate';
+import { canBeacon, startBeacon } from '../../sim/delve/beacon';
+import { aimNeeded } from './aim';
+import { ULT_KEYS } from '../overworld/partyFrames';
 import { clones, orderTo } from '../../sim/roam/roam';
 import { canAscend, canDescend, delveTick, descend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { takeParty, type Carry } from '../../sim/roam/carry';
@@ -85,7 +88,7 @@ export class DelveScreen implements Screen {
   private pinch!: Pinch;
 
   /** opts.party: the floor the expedition's party came down to; onAscend: the party rides up to the pod (also when nobody is left); restart: the expedition starts over; auto: every clone fights by itself (the chain demo); stepped: the game stops at each turn's end until the next is asked for. */
-  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; restart?: () => void; auto?: boolean; stepped?: boolean } = {}) {
+  constructor(private readonly lib: UalLibrary, private readonly kit: DungeonKit, private readonly opts: { seed?: number; quit?: () => void; party?: DelveParty; onAscend?: (c: Carry) => void; onBeacon?: (c: Carry) => void; restart?: () => void; auto?: boolean; stepped?: boolean } = {}) {
     this.seed = opts.seed ?? (Number(new URLSearchParams(location.search).get('seed')) || 1);
   }
 
@@ -98,7 +101,8 @@ export class DelveScreen implements Screen {
       menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
       select: (id) => this.select(id),
-      skill: (id) => this.skill(id || this.sel),
+      skill: (id, slot) => this.skill(id || this.sel, slot),
+      beacon: () => this.beacon(),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
@@ -108,7 +112,7 @@ export class DelveScreen implements Screen {
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; });
     this.el.appendChild(this.picker.el);
-    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동·공격 · Q W 기술 · Space 대기 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
+    this.menu = new OptionsMenu(() => ({ speed: this.speed, speeds: SPEEDS, dot: this.rt?.pixelated ?? loadDot(), keys: '클릭 이동·공격 · R T 궁극기 · B 신호기 · Space 대기 · 1 2 3 조종 · C 상태 · I 가방 · 휠 확대' }), {
       speed: (v) => { this.speed = v; this.pace(); },
       dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
       pip: (tab) => this.togglePip(tab),
@@ -132,7 +136,7 @@ export class DelveScreen implements Screen {
     this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
     this.stage.addEventListener('pointerleave', () => { this.hover = null; });
-    this.stage.addEventListener('contextmenu', (e) => e.preventDefault());
+    this.stage.addEventListener('contextmenu', (e) => { e.preventDefault(); this.aiming = null; });
     this.stage.addEventListener('wheel', (e) => { e.preventDefault(); this.zoom = Math.min(20, Math.max(7, this.zoom * (e.deltaY > 0 ? 1.1 : 0.9))); this.rt?.setZoom(this.zoom); }, { passive: false });
     addEventListener('keydown', this.onKey);
     // tests and screenshots reach in through this handle
@@ -178,6 +182,8 @@ export class DelveScreen implements Screen {
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
   }
 
+  /** the soul slot whose aimed ultimate waits for a cell */
+  private aiming: number | null = null;
   private get myTurn(): boolean { return !!this.p.waiting && this.p.manual === this.sel; }
 
   private live(ev: GEvent[], t0 = this.p.time): void {
@@ -199,9 +205,11 @@ export class DelveScreen implements Screen {
       if (e.type === 'buff' && e.text === 'soul') this.hud.toast(`${this.name(e.dst!)} 영혼 깃듦`);
       if (e.type === 'buff' && e.text === 'print') { this.hud.toast(unitOf(this.p, e.dst!)!.cls === 'shell' ? '새 몸이 깨어남' : '클론 출력'); if (!entOf(this.p, this.sel)?.alive) this.select(e.dst!); }
       if (e.type === 'drop') this.hud.toast('영혼 소멸');
+      if (e.type === 'buff' && e.text === 'beaconOpen' && this.opts.onBeacon) setTimeout(() => this.opts.onBeacon!(takeParty(this.p)), 900);
+      if (e.type === 'buff' && e.text === 'beaconCut') this.hud.toast('신호기 끊김');
       if (e.type === 'dead') {
-        this.hud.toast('전멸');
-        this.log.add(e.t, e.text === 'lost' ? '전멸 · 영혼은 지하에 남음' : '전멸 · 재료 부족', 'warn');
+        this.hud.toast('사망');
+        this.log.add(e.t, e.text === 'lost' ? '사망 · 영혼 소멸' : '사망 · 재료 부족', 'warn');
         // below ground nobody comes back on their own: the pod takes it from here
         if (e.text === 'lost' && this.opts.onAscend) setTimeout(() => this.opts.onAscend!(takeParty(this.p)), 2200);
       }
@@ -266,14 +274,21 @@ export class DelveScreen implements Screen {
     this.pip.toggle(tab, this.sel);
   }
 
-  /** On the chosen clone's own turn a skill is its action now; otherwise it is queued for the clone's next moment. */
-  private skill(id: string): void {
-    if (this.myTurn && id === this.sel) this.live(command(this.p, { kind: 'ultimate' }));
-    else queueUltimate(this.p, id);
+  /** A soul's ultimate: an aimed one waits for a cell to be picked; otherwise it is the clone's action on its turn, or queued for its next moment. */
+  private skill(id: string, slot = 0): void {
+    const u = unitOf(this.p, id);
+    if (!u) return;
+    if (aimNeeded(u, slot)) { this.select(id); this.aiming = slot; this.hud.toast('위치 선택'); return; }
+    if (this.myTurn && id === this.sel) this.live(command(this.p, { kind: 'ultimate', slot }));
+    else queueUltimate(this.p, id, undefined, slot);
   }
+
+  /** The return beacon: the portal starts opening where the clone stands. */
+  private beacon(): void { if (canBeacon(this.p)) this.live(startBeacon(this.p)); }
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
+    if (k === 'escape' && this.aiming !== null) { this.aiming = null; return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
@@ -282,9 +297,10 @@ export class DelveScreen implements Screen {
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];
     if ((k === '1' || k === '2' || k === '3') && pick) this.select(pick);
-    if (k === 'r') this.skill(this.sel);
+    const ult = ULT_KEYS.indexOf(k), sel = unitOf(this.p, this.sel), slot = ult >= 0 && sel ? ultSlots(sel)[ult]?.slot : undefined;
+    if (slot !== undefined) this.skill(this.sel, slot);
+    if (k === 'b') this.beacon();
     if (k === '>' || k === '.') this.down();
-    if (k === 'r') this.restart();
   }
 
   /** The stick: one step that way (on the clone's turn a step is its action; otherwise a short walk the party follows). */
@@ -341,6 +357,11 @@ export class DelveScreen implements Screen {
     if (this.opts.stepped) { this.paused = false; return; }
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
+    if (this.aiming !== null) {
+      const slot = this.aiming; this.aiming = null; this.paused = false;
+      if (this.myTurn) this.live(command(this.p, { kind: 'ultimate', cell: c, slot })); else queueUltimate(this.p, this.sel, c, slot);
+      return;
+    }
     const at = this.unitAt(c);
     if (at?.side === 'hero') { this.select(at.id); return; }
     if (!entOf(this.p, this.sel)?.alive) this.select(this.p.leader ?? 'hero');
@@ -373,7 +394,7 @@ export class DelveScreen implements Screen {
     const list: Prompt[] = [];
     if (this.p.s.map.stairs && canDescend(this.p)) list.push({ at: this.p.s.map.stairs, label: '▼ 계단', act: () => this.down() });
     if (this.opts.onAscend && canAscend(this.p)) list.push({ at: this.p.base, label: '▲ 지상으로', act: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } });
-    this.prompts.update(this.rt, [...list, ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })]);
+    this.prompts.update(this.rt, list);
   }
 
   private labels(): void {
@@ -391,6 +412,7 @@ export class DelveScreen implements Screen {
     const mode = '';
     const status = statusLine(`지하 <b>${p.floor}층</b>`, p);
     const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
-    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target });
+    const beacon = p.beacon ? { label: `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
+    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon });
   }
 }

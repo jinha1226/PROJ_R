@@ -3,7 +3,9 @@ import { detailHtml, partyFramesHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
 import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
 
-export interface HudActions { menu(): void; stat(): void; bag(): void; select(id: string): void; skill(id: string, slot: 0 | 1): void;
+export interface HudActions { menu(): void; stat(): void; bag(): void; select(id: string): void; skill(id: string, slot: number): void;
+  /** the return beacon (the dungeon only) */
+  beacon?: () => void;
   /** down the stairs or the shaft (shown when given; enabled by draw) */
   descend?: () => void;
   descendLabel?: string;
@@ -29,7 +31,7 @@ export class WorldHud {
       <aside class="wh-tl"><div class="wh-mini"></div></aside>
       <aside class="wh-bl"><div class="wh-cap">기록</div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
-        ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}
+        ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}${a.beacon ? '<button type="button" data-k="beacon">신호기</button>' : ''}
         <button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
       <aside class="wh-br"></aside>
       <div class="wh-party"></div>`);
@@ -42,17 +44,18 @@ export class WorldHud {
       if (k === 'descend') a.descend?.();
       if (k === 'ascend') a.ascend?.();
       if (k === 'wait') a.wait?.();
+      if (k === 'beacon') a.beacon?.();
     });
     const party = (e: Event) => {
       const t = e.target as HTMLElement, frame = t.closest<HTMLElement>('[data-hero]'), skill = t.closest<HTMLElement>('[data-skill]');
       if (frame) a.select(frame.dataset.hero!);
-      if (skill && frame) a.skill(frame.dataset.hero!, Number(skill.dataset.skill) as 0 | 1);
+      if (skill && frame) a.skill(frame.dataset.hero!, Number(skill.dataset.skill));
       if (t.closest('[data-traits]') && frame) a.traits?.(frame.dataset.hero!);
     };
     el.querySelector('.wh-party')!.addEventListener('click', party);
     el.querySelector('.wh-br')!.addEventListener('click', (e) => {
       const t = e.target as HTMLElement, skill = t.closest<HTMLElement>('[data-skill]');
-      if (skill) a.skill('', Number(skill.dataset.skill) as 0 | 1);
+      if (skill) a.skill('', Number(skill.dataset.skill));
       if (t.closest('[data-traits]')) a.traits?.('');
     });
   }
@@ -75,7 +78,7 @@ export class WorldHud {
   }
 
   /** status: the top-centre line (floor, turn, bio); mode: the fight banner; and whether the stairs, the lift or a turn is waiting. */
-  draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean; target?: string }): void {
+  draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean; target?: string; beacon?: { label: string; on: boolean } }): void {
     if (performance.now() > this.toastUntil) this.el.querySelector('.wh-toast')!.classList.remove('on');
     this.put('.wh-top', view.status);
     this.put('.wh-mode', view.mode);
@@ -84,6 +87,8 @@ export class WorldHud {
     show('descend', view.stairs);
     show('ascend', view.lift);
     show('wait', view.myTurn);
+    const bc = this.el.querySelector<HTMLButtonElement>('[data-k="beacon"]');
+    if (bc && view.beacon) { if (bc.textContent !== view.beacon.label) bc.textContent = view.beacon.label; bc.disabled = !view.beacon.on; }
     this.put('.wh-log', view.log.html());
     if (this.put('.wh-party', partyFramesHtml(p, ids, sel))) {
       // on an upright phone the log sits just above the portraits, however tall they come out

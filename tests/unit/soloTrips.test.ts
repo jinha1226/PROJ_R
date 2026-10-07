@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { newSurface, canDrill, drillClone } from '../../src/sim/overworld/worldSim';
-import { departSurface, returnToSurface } from '../../src/sim/base/trips';
+import { beaconReturn, departSurface, returnToSurface } from '../../src/sim/base/trips';
 import { takeClone, takeParty } from '../../src/sim/roam/carry';
 import { clones, living, print } from '../../src/sim/roam/roam';
 import { entOf } from '../../src/sim/party/partyCore';
@@ -57,4 +57,13 @@ it('a run that dies brings back no souls; the body that died had its souls lost'
   expect(p.carried).toEqual([]);
   expect(living(p).map((u) => u.id)).toEqual(['hero']);
   expect(soulsOf(clones(p).find((u) => u.id === 'hero')!)).toEqual([]);
+});
+
+it('riding up by beacon does not move the raid schedule', () => {
+  const { p, b } = twoAtDrill();
+  p.raidClock = 0;
+  const d = departSurface(p, 3, takeClone(p, b.id))!;
+  expect(beaconReturn(p, takeParty(d))).toEqual([]);
+  expect(p.raidClock).toBe(0); expect(p.trips).toBe(0); expect(p.away).toBe(false);
+  expect(living(p).map((u) => u.id).sort()).toEqual([b.id, 'hero'].sort());
 });

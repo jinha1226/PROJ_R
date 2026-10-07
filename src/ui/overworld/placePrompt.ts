@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Cell, GEvent } from '../../sim/grid/types';
 import { entOf } from '../../sim/party/partyCore';
-import { BODY_COST, clones, implantCarried, living, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
+import { BODY_COST, canTakeSoul, clones, implantCarried, living, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { canPrintClone, CLONER_REACH, printClone } from '../../sim/base/cloner';
 import type { WorldParty } from '../../sim/overworld/worldSim';
 import { dist } from '../../sim/grid/types';
@@ -42,9 +42,9 @@ export class PlacePrompts {
   }
 }
 
-/** '영혼 주입' over an empty body while souls are carried: one soul goes straight in, more open the bag to choose. */
+/** '영혼 주입' over a fresh body (level 1, never down, a slot free) while souls are stored: one soul goes straight in, more open the bag to choose. */
 export function soulPrompt(p: RoamParty, live: (ev: GEvent[]) => void, choose: (id: string) => void): Prompt[] {
-  const u = clones(p).find((v) => v.cls === 'shell' && entOf(p, v.id)?.alive);
+  const u = clones(p).find((v) => entOf(p, v.id)?.alive && canTakeSoul(p, v));
   if (!u || !p.carried.length || p.combat) return [];
   const at = entOf(p, u.id)!.pos;
   return [{ at, label: '영혼 주입', act: () => (p.carried.length === 1 ? live(implantCarried(p, u.id, 0)) : choose(u.id)) }];

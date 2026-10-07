@@ -4,6 +4,7 @@ import type { WorldParty } from '../overworld/worldSim';
 import { rejoin, type Carry } from '../roam/carry';
 import { startDelve } from './drill';
 import { onRaidReturn } from './raids';
+import { onReturn } from './buildings';
 
 /** The surface freezes until return; a live raid must be resolved before departure. */
 export function departSurface(p: WorldParty, seed: number, carry: Carry, floor = 1): DelveParty | null {
@@ -19,4 +20,11 @@ export function returnToSurface(p: WorldParty, carry: Carry): GEvent[] {
   const ev = onRaidReturn(p, carry.deepest ?? 1);
   p.baseEvents.push(...ev);
   return ev;
+}
+/** Up by the return beacon: the clone and its souls come home, but the trip is not over (the raid schedule waits). */
+export function beaconReturn(p: WorldParty, carry: Carry): GEvent[] {
+  rejoin(p, carry, p.drill ?? p.base);
+  p.away = false; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
+  onReturn(p);
+  return [];
 }
