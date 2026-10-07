@@ -17,10 +17,10 @@ export interface DelveFloor {
 export const DELVE_SIZE = 64;
 /** Floors widen and fill as they go deeper (spec §1.6): size, room count, a normal room's band, the fodder and elite shares. */
 export const DENSITY: { upTo: number; size: number; rooms: [number, number]; band: [number, number]; fodder: number; elite: number }[] = [
-  { upTo: 2, size: 64, rooms: [16, 22], band: [3, 5], fodder: 0.8, elite: 0 },
-  { upTo: 5, size: 72, rooms: [18, 24], band: [4, 6], fodder: 0.7, elite: 0.05 },
-  { upTo: 9, size: 80, rooms: [20, 26], band: [5, 7], fodder: 0.65, elite: 0.1 },
-  { upTo: Infinity, size: 88, rooms: [22, 28], band: [6, 8], fodder: 0.6, elite: 0.12 },
+  { upTo: 2, size: 64, rooms: [14, 18], band: [3, 4], fodder: 0.8, elite: 0 },
+  { upTo: 5, size: 64, rooms: [14, 18], band: [3, 5], fodder: 0.7, elite: 0.05 },
+  { upTo: 9, size: 72, rooms: [16, 20], band: [3, 5], fodder: 0.65, elite: 0.1 },
+  { upTo: Infinity, size: 72, rooms: [16, 20], band: [4, 6], fodder: 0.6, elite: 0.12 },
 ];
 export const densityOf = (floor: number) => DENSITY.find((d) => floor <= d.upTo)!;
 export const delveSize = (floor: number): number => densityOf(floor).size;

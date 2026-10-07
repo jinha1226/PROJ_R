@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { findPath } from '../../src/sim/grid/path';
 import { dist } from '../../src/sim/grid/types';
 import { damage, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { command } from '../../src/sim/party/partySim';
@@ -110,9 +111,11 @@ it('when a band notices the party every walk stops where it is', () => {
   const p = newDelve(1);
   take(p, 0);
   const hero = clones(p)[0]!;
-  hero.order = { kind: 'move', cell: { x: 12, y: 25 } }; p.leader = 'hero';
+  // walk toward the nearest sleeping band it can reach (the layout changes with the floor tables)
+  const me = entOf(p, 'hero')!.pos, paths = p.units.filter((u) => u.side === 'foe' && u.asleep).map((u) => findPath(p.s.map, me, entOf(p, u.id)!.pos)).filter((w): w is NonNullable<typeof w> => !!w && w.length > 1).sort((a, b) => a.length - b.length);
+  hero.order = { kind: 'move', cell: paths[0]![paths[0]!.length - 2]! }; p.leader = 'hero';
   let woke = false;
-  for (let i = 0; i < 400 && !woke; i++) woke = delveTick(p, 0.05).some((e) => e.type === 'wake');
+  for (let i = 0; i < 1600 && !woke; i++) woke = delveTick(p, 0.05).some((e) => e.type === 'wake');
   expect(woke).toBe(true);
   expect(p.combat).toBe(true);
   expect(hero.order).toBeNull();

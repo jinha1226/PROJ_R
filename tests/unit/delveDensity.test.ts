@@ -3,8 +3,8 @@ import { delveSize, generateFloor } from '../../src/sim/delve/delveGen';
 import { newDelve } from '../../src/sim/delve/delveSim';
 import { entOf } from '../../src/sim/party/partyCore';
 
-it('floors grow with depth: 64, 72, 80, 88 cells across', () => {
-  expect([1, 2, 3, 5, 6, 9, 10, 15].map(delveSize)).toEqual([64, 64, 72, 72, 80, 80, 88, 88]);
+it('floors grow a little with depth: 64 cells across, 72 from floor 6', () => {
+  expect([1, 2, 3, 5, 6, 9, 10, 15].map(delveSize)).toEqual([64, 64, 64, 64, 72, 72, 72, 72]);
   for (const f of [1, 4, 7, 12]) expect(generateFloor(3, f).map.w).toBe(delveSize(f));
 });
 
@@ -17,7 +17,7 @@ it('normal rooms hold bigger bands deeper down, mostly fodder', () => {
     return { min: Math.min(...sizes), max: Math.max(...sizes), share: fodder / sizes.reduce((a, b) => a + b, 0) };
   };
   const shallow = band(1), mid = band(4), deep = band(12);
-  expect(shallow.max).toBeLessThanOrEqual(5); expect(mid.min).toBeGreaterThanOrEqual(3); expect(deep.min).toBeGreaterThanOrEqual(5);
+  expect(shallow.max).toBeLessThanOrEqual(4); expect(mid.max).toBeLessThanOrEqual(5); expect(deep.min).toBeGreaterThanOrEqual(3); expect(deep.max).toBeLessThanOrEqual(6);
   expect(deep.share).toBeGreaterThan(0.45); expect(deep.share).toBeLessThan(0.75);
 });
 
