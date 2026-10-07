@@ -1,6 +1,5 @@
 import { emit } from './triggers';
 import { T } from './traitMods';
-import { rank } from './traitDefs';
 import { G } from '../delve/gear';
 import { spawnFoe } from '../grid/foes';
 import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
@@ -13,7 +12,6 @@ export function heal(p: Party, src: Unit, dst: Unit, amount: number, t: number, 
   const e = entOf(p, dst.id)!, n = Math.min(e.maxHp - e.hp, Math.round(amount));
   if (n > 0) { e.hp += n; dst.lowHp=e.hp<e.maxHp/2; }
   if (amount > n) emit(p,'overflow',{t,src,target:dst,amount:Math.max(0,Math.round(amount)-n),ev});
-  if(rank(src,'purify')) {const key=Object.keys(dst.status)[0] as keyof typeof dst.status|undefined;if(key)delete dst.status[key];}
   ev.push({ t, type: 'heal', src: src.id, dst: dst.id, amount: n });
   emit(p,'healed',{t,src,target:dst,amount:n,ev});
 }

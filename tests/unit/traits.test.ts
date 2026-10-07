@@ -5,11 +5,12 @@ import { emit } from '../../src/sim/party/triggers';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { rollOffer } from '../../src/sim/party/traitPool';
 import { BASE_CLASSES } from '../../src/sim/party/partyDefs';
-it('has exactly 12 common, 37 base, 20 advanced and six keystones', () => {
+it('has exactly 12 common, 40 class (8 each), 10 duo and six oath cards: 68', () => {
   const defs=Object.values(TRAITS);
+  expect(defs).toHaveLength(68);
   expect(defs.filter(d=>d.pool==='common')).toHaveLength(12);
-  expect(defs.filter(d=>BASE_CLASSES.includes(d.pool as typeof BASE_CLASSES[number]))).toHaveLength(37);
-  expect(defs.filter(d=>d.pool!=='common'&&d.pool!=='keystone'&&!BASE_CLASSES.includes(d.pool as typeof BASE_CLASSES[number]))).toHaveLength(20);
+  for(const cls of BASE_CLASSES) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
+  expect(defs.filter(d=>d.pool==='duo')).toHaveLength(10);
   expect(defs.filter(d=>d.pool==='keystone')).toHaveLength(6);
   expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||!!d.kind))).toBe(true);
 });

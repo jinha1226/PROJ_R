@@ -2,6 +2,7 @@ import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/ty
 import { alive, entOf, occupied, posOf, strike, type Party, type Unit } from './partyCore';
 import { emit } from './triggers';
 import { resonant } from './resonance';
+import { duoFor } from './cardsSupport';
 
 /** The living units of a side within `r` cells of a cell. */
 export const foesNear = (p: Party, at: Cell, r: number, side: 'foe' | 'hero' = 'foe'): Unit[] =>
@@ -10,7 +11,7 @@ export const foesNear = (p: Party, at: Cell, r: number, side: 'foe' | 'hero' = '
 /** A counter blow: a strike that is not the clone's own attack, doubled with the second shield law; others can hang on it. */
 export function counter(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1): void {
   if (!alive(p, u) || !alive(p, target)) return;
-  strike(p, u, target, t, ev, mult * (resonant(p, u, '방패', 2) ? 2 : 1), false);
+  strike(p, u, target, t, ev, mult * (resonant(p, u, '방패', 2) ? 2 : 1) * (u.shield > 0 && duoFor(p, u, 'holyShield') ? 2 : 1), false);
   emit(p, 'counter', { t, src: u, target, ev });
 }
 

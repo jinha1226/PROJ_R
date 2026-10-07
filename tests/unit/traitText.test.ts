@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { TRAITS } from '../../src/sim/party/traitDefs';
-import { TRAIT_TEXT, traitText } from '../../src/sim/party/traitText';
+import { traitText } from '../../src/sim/party/traitText';
 
 describe('traitText', () => {
   it('covers every trait at every rank', () => {
     for (const d of Object.values(TRAITS)) {
-      expect(!!d.text || typeof TRAIT_TEXT[d.id] === 'function', d.id).toBe(true);
+      expect(!!d.text, d.id).toBe(true);
       for (let r = 1; r <= d.ranks; r++) {
         const text = traitText(d.id, r);
         expect(text.length, `${d.id} r${r}`).toBeGreaterThan(0);

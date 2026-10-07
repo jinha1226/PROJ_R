@@ -2,6 +2,7 @@ import { applyStatus, type StatusId } from './status';
 import { alive, damage, entOf, posOf, stats, strike, targetOf } from './partyCore';
 import { counter, foesNear, restore, stepBehind } from './cardFx';
 import { tagsOf } from './classKit';
+import { duoFor } from './cardsSupport';
 import { card, rank, type TraitDef } from './traitTypes';
 import { dist } from '../grid/types';
 import type { TriggerDef as TriggerDef_ } from './triggers';
@@ -80,7 +81,7 @@ const ROGUE: TraitDef[] = [
     trigger: () => ({ id: '독 폭발', when: 'statusApplied', test: (_p, c) => c.status === 'poison' && (c.target?.status.poison?.stacks ?? 0) >= 5, run: (p, c) => {
       const t = c.target!, n = t.status.poison!.stacks ?? 5; delete t.status.poison;
       damage(p, c.t, c.src.id, t, 6 * n, c.ev, true);
-      for (const f of foesNear(p, posOf(p, t), 1)) if (f !== t) applyStatus(p, c.src, f, 'poison', c.t, c.ev, 2, true);
+      for (const f of foesNear(p, posOf(p, t), 1)) if (f !== t) { applyStatus(p, c.src, f, 'poison', c.t, c.ev, 2, true); if (duoFor(p, c.src, 'toxicSmoke')) applyStatus(p, c.src, f, 'burn', c.t, c.ev); }
     } }),
   }),
   card('ambushArt', '기습', 'amp', ['은신'], 'rogue', '은신 중 공격 피해 × (1 + #은신 × 0.5)', {}),
