@@ -187,3 +187,20 @@
 /* base mode: the selected clone's card goes (a click opens the clone's own window); the log sits above the build bar */
 .world.base-mode .wh-br { display: none; }
 .world.base-mode .wh-bl { bottom: calc(34% + 16px); }
+
+/* raid mode: the ultimate bar along the bottom, the selection box */
+.world.raid-mode .tp, .world.raid-mode .place-prompts { display: none; }
+.ult-bar { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); bottom: 10px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; font: 12px 'GalmuriMono', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; }
+.ult-bar[hidden] { display: none; }
+.ult-bar .ub-slots { display: flex; gap: 6px; }
+.ult-bar button { position: relative; display: grid; min-width: 82px; padding: 4px 6px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; }
+.ult-bar button b { color: #e6ffb0; font-weight: normal; }
+.ult-bar button.on { background: #1f7a3e; color: #021006; }
+.ult-bar button:disabled { opacity: 0.5; cursor: default; }
+.ult-bar button em { position: absolute; right: 4px; top: 2px; font-style: normal; color: #ffd23a; }
+.ult-bar .ub-side { display: flex; gap: 4px; align-items: center; }
+.ult-bar .ub-side button { min-width: 0; }
+.sel-box { position: fixed; z-index: 8; pointer-events: none; border: 1px solid #5dff8a; background: #5dff8a22; }
+.sel-box[hidden] { display: none; }
+.world.raid-mode .quick-slots, .world.raid-mode .wh-br { display: none; }
+.world.raid-mode .ult-bar { bottom: 96px; }

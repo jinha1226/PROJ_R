@@ -24,6 +24,8 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   trips: number; raidClock: number | null; raidsDone: number; deepest: number; podHp: number; raid: Raid | null;
   /** a raid night that has come but waits for the player to start it: its size and the edges it will come from (0 W, 1 E, 2 N, 3 S) */
   raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
+  /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
+  lastRaid?: { won: boolean; injured: string[]; buildings: string[] };
   pod?: boolean }
 
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', archer: 'archer', brute: 'brute' };
@@ -99,7 +101,9 @@ export const claimedShare = (p: WorldParty): number => p.claimed.reduce((a, b) =
 export function drillClone(p: WorldParty, prefer?: string): string | undefined {
   if (!p.drill) return undefined;
   // on the pod's ground (base mode) any clone at home may go, wherever it stands; an injured one rests
-  const near = living(p).filter((u) => !u.injured && (p.pod || dist(entOf(p, u.id)!.pos, p.drill!) <= 2));
+  // with nobody sound at home the injured may go after all (no dead end)
+  const sound = living(p).some((u) => !u.injured);
+  const near = living(p).filter((u) => (!u.injured || !sound) && (p.pod || dist(entOf(p, u.id)!.pos, p.drill!) <= 2));
   return (near.find((u) => u.id === prefer) ?? near[0])?.id;
 }
 /** One clone by the drill can go down (that one, when `id` is given), out of a fight and with no raid due. */

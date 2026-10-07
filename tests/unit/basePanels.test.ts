@@ -3,13 +3,13 @@ import { newSurface } from '../../src/sim/overworld/worldSim';
 import { podPanelHtml, labPanelHtml, defencePanelHtml, panelAt } from '../../src/ui/overworld/basePanels';
 import { unitOf } from '../../src/sim/party/partyCore';
 import { place } from '../../src/sim/base/buildings';
-import { BODY_COST } from '../../src/sim/roam/roam';
+import { BODY_COST, print } from '../../src/sim/roam/roam';
 
 it('the pod panel lists the clones at the base with a send button (greyed for the injured) and the start floors', () => {
   const p = newSurface(4); p.drillLevel = 1;
   let html = podPanelHtml(p, 1);
   expect(html).toContain('data-send="hero"'); expect(html).toContain('data-floor="3"'); expect(html).toContain('▼ 지하로');
-  unitOf(p, 'hero')!.injured = true;
+  print(p, undefined, [], p.s.map.start); unitOf(p, 'hero')!.injured = true;
   html = podPanelHtml(p, 1);
   expect(html).toMatch(/data-send="hero"[^>]*disabled/); expect(html).toContain('부상');
 });

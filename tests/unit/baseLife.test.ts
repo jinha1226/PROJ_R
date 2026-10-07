@@ -4,7 +4,7 @@ import { homeLife, HOME_RANGE } from '../../src/sim/base/baseLife';
 import { canPrintClone } from '../../src/sim/base/cloner';
 import { entOf, unitOf } from '../../src/sim/party/partyCore';
 import { dist, idx } from '../../src/sim/grid/types';
-import { BODY_COST } from '../../src/sim/roam/roam';
+import { BODY_COST, print } from '../../src/sim/roam/roam';
 
 it('idle clones at the base walk off to a claimed cell near the pod now and then', () => {
   const p = newSurface(4), u = unitOf(p, 'hero')!;
@@ -29,7 +29,8 @@ it('on the pod’s ground any clone at the base can be sent down or print a body
   const p = newSurface(4), u = unitOf(p, 'hero')!;
   entOf(p, 'hero')!.pos = { x: p.base.x + 5, y: p.base.y };
   expect(drillClone(p, 'hero')).toBe('hero'); expect(canDrill(p, 'hero')).toBe(true);
-  u.injured = true;
-  expect(drillClone(p, 'hero')).toBeUndefined(); expect(canDrill(p, 'hero')).toBe(false);
+  // another clone is sound, so the injured one stays home
+  print(p, undefined, [], p.s.map.start); u.injured = true;
+  expect(drillClone(p, 'hero')).not.toBe('hero'); expect(canDrill(p, 'hero')).toBe(false);
   p.bio = BODY_COST; expect(canPrintClone(p)).toBe(true);
 });

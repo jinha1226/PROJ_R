@@ -73,11 +73,11 @@ describe('raids', () => {
     expect(e.pos).toEqual({ x: 49, y: 45 });
     expect(ev.some(e => e.type === 'hit' && e.dst?.startsWith('building'))).toBe(true);
   });
-  it('does not emit a premature wiped event while towers and raiders still fight', () => {
+  it('every clone down ends the raid lost without a wiped event (spec 2026-10-08 §5)', () => {
     const p = setup(); startRaid(p); p.s.hero.alive = false;
     const ev = worldTick(p, 1);
-    expect(p.raid).not.toBeNull(); expect(p.over).toBe(false);
-    expect(ev.some(e => e.text === 'wiped')).toBe(false);
+    expect(p.raid).toBeNull(); expect(p.over).toBe(false);
+    expect(ev.some(e => e.text === 'wiped')).toBe(false); expect(ev.some(e => e.text === 'raidLost')).toBe(true);
   });
   it('towers shoot the nearest raider and use 1.5-turn cooldowns', () => {
     const p = setup(); place(p, 'watchtower', { x: 50, y: 45 }); startRaid(p);

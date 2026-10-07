@@ -4,6 +4,7 @@ import type { GEvent } from '../../sim/grid/types';
 import type { WorldParty } from '../../sim/overworld/worldSim';
 import { implant } from '../../sim/roam/roam';
 import { gainXp, LEVEL_XP } from '../../sim/party/partyLevel';
+import { CLASSES } from '../../sim/party/partyDefs';
 
 const SIDE = ['서쪽', '동쪽', '북쪽', '남쪽'];
 /** auto-defence wins outright when the base outweighs the wave by this much (as the simulation rules) */
@@ -46,6 +47,16 @@ export class RaidBar {
     this.el.innerHTML = html;
     this.el.hidden = !html;
   }
+}
+
+/** The result window's body after a raid: won or lost, the injured clones, the buildings lost. */
+export function raidResultHtml(p: WorldParty): string {
+  const r = p.lastRaid;
+  if (!r) return '';
+  const name = (id: string) => { const u = p.units.find((x) => x.id === id); return u?.cls ? CLASSES[u.cls].name : id; };
+  const rows = [r.injured.length ? `<div class="menu-row"><span>부상</span><span>${r.injured.map(name).join(' · ')}</span></div>` : '',
+    r.buildings.length ? `<div class="menu-row"><span>잃은 건물</span><span>${r.buildings.length}</span></div>` : ''].join('');
+  return `<div class="pip-frame menu-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : '포드 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
 }
 
 /** The log/toast line for a raid event, or undefined for other events. */

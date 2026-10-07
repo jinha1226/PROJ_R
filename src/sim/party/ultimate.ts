@@ -14,6 +14,8 @@ import { applyStatus } from './status';
 import { action, emit } from './triggers';
 import { T } from './traitMods';
 export const ULT_NAMES: Record<UltId,string> = { earthSlam:'대지 강타',arrowRain:'화살비',teleport:'순간이동',sanctum:'신성 결계',shadowClone:'그림자 분신',golem:'골렘',gravity:'중력탄' };
+/** how far from its caster each ultimate may be aimed (a farther cell: the caster walks closer first) */
+export const ULT_REACH: Record<UltId, number> = { earthSlam: 5, arrowRain: 10, teleport: 8, sanctum: 6, shadowClone: 10, golem: 10, gravity: 10 };
 export interface UltSlot { slot: number; ult: UltId; ready: number; cd: number }
 /** the ultimates that need a cell picked by the player (every soul's and the empty body's) */
 export const AIMED: UltId[] = ['earthSlam', 'arrowRain', 'teleport', 'sanctum', 'shadowClone', 'golem', 'gravity'];

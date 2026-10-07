@@ -16,6 +16,7 @@ import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targe
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useUltimate, aiUltimate } from './ultimate';
 import { bestTarget, charge } from './utility';
+import { approachUltimate, driveTurn } from './handDrive';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -150,11 +151,14 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
   if (!alive(p, u)) return;
   if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
   if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
+  if(u.ultQueued && approachUltimate(p,u,ev)) { p.onMovement?.(ev.slice(start),ev); return; }
   if(u.ultQueued) {
     const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; }
     // a companion lets a refused skill go (it picks again when it is worth it); the player's own queued skill waits for a target
     if(u.id!==p.manual) u.ultQueued=false;
   }
+  // a raid's driven clone: its push or the nearest blow, never a wait
+  if (driveTurn(p, u, ev)) { p.onMovement?.(ev.slice(start), ev); return; }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);
 }
@@ -178,7 +182,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     tickGrounds(p,p.time,ev); tickWells(p,p.time,ev); tickSnares(p,p.time,ev); tickHammers(p,p.time,ev); tickZones(p,p.time,ev);
     tickStatuses(p, statusTime, p.time, ev); statusTime = p.time;
     if (!p.units.includes(next) || !alive(p, next)) continue;
-    if (next.id === p.manual) {
+    if (next.id === p.manual && p.drive?.id !== next.id) {
       // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
       const o = next.order, at = entOf(p, next.id)!.pos;
       if (o?.kind === 'move' && same(at, o.cell)) next.order = null;

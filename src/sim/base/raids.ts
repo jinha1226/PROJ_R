@@ -1,6 +1,6 @@
 import { spawnFoe } from '../grid/foes';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
-import { alive, entOf, posOf } from '../party/partyCore';
+import { alive, entOf, occupied, posOf } from '../party/partyCore';
 import { FOES, type FoeId } from '../party/partyDefs';
 import { blank, living } from '../roam/roam';
 import { connect } from '../overworld/worldGen';
@@ -19,6 +19,8 @@ export const defencePower = (p: WorldParty): number => living(p).filter(u => dis
 /** Count completed trips, heal, and advance the return-only raid clock. */
 export function onRaidReturn(p: WorldParty, deepest = p.deepest): GEvent[] {
   p.away = false; p.trips++; p.deepest = Math.max(p.deepest, deepest); onReturn(p);
+  // a trip has gone by: the raid's injured are well again
+  for (const u of p.units) if (u.injured) u.injured = false;
   if (p.raid) return [];
   if (p.raidClock === null) { if (p.trips >= 4 || p.drillLevel > 0) p.raidClock = 0; return []; }
   p.raidClock++;
@@ -55,6 +57,25 @@ export function startRaid(p: WorldParty): GEvent[] {
   p.combat = true; p.over = false;
   return ev;
 }
+/** The clones downed in the raid rise by the pod at half health, soul and level kept; injured (they skip the next trip) unless an infirmary stands. Returns the injured. */
+function raise(p: WorldParty): string[] {
+  const ward = p.buildings.some((b) => b.kind === 'infirmary' && b.hp > 0), hurt: string[] = [];
+  for (const u of p.units.filter((x) => x.side === 'hero' && !x.summoner)) {
+    const e = entOf(p, u.id);
+    if (!e || e.alive) continue;
+    e.alive = true; e.hp = Math.ceil(e.maxHp / 2);
+    e.pos = freeNear(p, p.base) ?? e.pos;
+    if (!ward) { u.injured = true; hurt.push(u.id); }
+  }
+  return hurt;
+}
+function freeNear(p: WorldParty, at: Cell): Cell | undefined {
+  for (let r = 1; r <= 6; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const c = { x: at.x + dx, y: at.y + dy };
+    if (Math.max(Math.abs(dx), Math.abs(dy)) === r && walkable(tileAt(p.s.map, c)) && !occupied(p, c, '')) return c;
+  }
+  return undefined;
+}
 function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   const losses: RaidLosses = { ore: 0, crystal: 0, buildings: [] };
   if (!won) {
@@ -65,13 +86,15 @@ function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
     p.podHp = 100;
   }
   for (const u of p.units) if (u.side === 'foe' && u.group === p.raid?.group) { const e = entOf(p, u.id)!; if (e.alive) u.reaped = true; e.alive = false; e.hp = 0; }
-  p.raid = null; p.raidsDone++; p.combat = false;
+  p.lastRaid = { won, injured: raise(p), buildings: [...losses.buildings] };
+  p.raid = null; p.raidsDone++; p.combat = false; p.over = false;
   ev.push({ t: p.time, type: won ? 'buff' : 'dead', text: won ? 'raidWon' : 'raidLost' });
   return losses;
 }
 export function resolveRaid(p: WorldParty, ev: GEvent[]): void {
   if (!p.raid) return;
-  if (p.podHp <= 0) finish(p, false, ev);
+  // the pod falls, or every clone at the base is down: the raid is lost (never the run)
+  if (p.podHp <= 0 || !living(p).length) finish(p, false, ev);
   else if (!p.units.some(u => u.side === 'foe' && u.group === p.raid!.group && alive(p, u))) finish(p, true, ev);
 }
 export function autoDefend(p: WorldParty, ev: GEvent[] = []): { won: boolean; losses: RaidLosses } | null {

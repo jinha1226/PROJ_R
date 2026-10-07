@@ -147,6 +147,8 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
   if (named && p.combat) return;
   const t = p.time;
   // a clone that falls is gone, soul and all (no stone is left to recover)
+  // a raid at the base takes no souls: the downed rise when it ends (raids.finish)
+  if (!named && (p as { raid?: unknown }).raid) return;
   for (const u of clones(p)) if (!named && !alive(p, u) && soulsOf(u).length) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.souls = []; }
   for (const soul of p.souls) {
     if (soul.taken || Boolean(soul.hero) !== named) continue;

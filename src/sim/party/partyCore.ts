@@ -54,6 +54,8 @@ export interface Unit {
   /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
   /** base mode: when an idle clone at home strolls again; a clone hurt in a raid (it skips the next trip) */
   idleAt?: number; injured?: boolean;
+  /** a raid's fodder: moved by the horde (free coordinates sx, sy; its cell is where they fall), never by its own turns */
+  swarm?: boolean; sx?: number; sy?: number;
   /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */
   spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
   /** a return shot under way (the empty body's return fire, rank 3) */
@@ -118,6 +120,8 @@ export interface Party {
   wells?: {at:Cell;by:string;until:number;next:number}[];
   /** the rogue's snares on the floor */
   snares?: import('./snares').Snare[];
+  /** raid mode: the clone the player drives and the way it is pushed (null: strike what is in reach) */
+  drive?: { id: string; dir: Cell | null };
   /** sanctuaries on the floor (the cleric's ultimate) */
   zones?: { at: Cell; by: string; until: number; next: number; r: number }[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
