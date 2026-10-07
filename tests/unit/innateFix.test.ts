@@ -48,7 +48,7 @@ it('iron plate trigger activates its actual reduction', () => {
   CATALOG.ironPlate!.triggers[0]!.run(p,{t:0,src:u,depth:0,ev:[]});expect(JSON.stringify(u)).not.toBe(before);
 });
 it('no-op effects consume neither popup nor budget and crit bleed still fires in a poison chain', () => {
-  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1};u.triggers=[wound];
+  const {p,u,f}=setup('assassin','daggers');u.traits={envenom:1};u.triggers=[wound];
   u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
   u.triggers=[...Array.from({length:6},(_,i)=>({id:`noop${i}`,when:'hit' as const,run:()=>{}})),wound];
   const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,amount:8,ev});});
@@ -87,19 +87,19 @@ it('guardian redirects thirty percent only when its effect executes', () => {
   expect(run(false)).toEqual([28,9]);expect(run(true)).toEqual([40,0]);
 });
 it('full-health leech is a no-op even before lowHp bookkeeping is initialized', () => {
-  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1};u.triggers=[wound];delete u.lowHp;
+  const {p,u,f}=setup('assassin','daggers');u.traits={envenom:1};u.triggers=[wound];delete u.lowHp;
   u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
   u.triggers=[...[0,1].map(i=>({id:`actual${i}`,when:'hit' as const,run:()=>{u.progress++;}})),wound];
   const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,ev});});
   expect(f.status.bleed).toBeDefined();expect(ev.some(e=>e.text==='흡혈')).toBe(false);
 });
 it('a real assassin critical attack preserves poison, leech and critical bleeding in one chain', () => {
-  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1};u.triggers=[wound];u.nextCrit=true;
+  const {p,u,f}=setup('assassin','daggers');u.traits={envenom:1};u.triggers=[wound];u.nextCrit=true;
   u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
   f.order={kind:'attack',target:p.units[1]!.id};entOf(p,u.id)!.hp=40;
   const ev:GEvent[]=[];strike(p,u,f,0,ev);
   expect(f.status.poison?.stacks).toBe(2);expect(f.status.bleed).toBeDefined();expect(entOf(p,u.id)!.hp).toBeGreaterThan(40);
-  expect(ev.filter(e=>['배후 급소','독 묻힌 칼','독니','흡혈','상처 벌리기'].includes(e.text??''))).toHaveLength(5);
+  expect(ev.filter(e=>['배후 급소','독 바르기','독니','흡혈','상처 벌리기'].includes(e.text??''))).toHaveLength(5);
 });
 it('guard oath still redirects damage when a guardian wears an off-proficiency weapon', () => {
   const {p,u}=setup('guardian','staff'),ally=p.units[1]!;u.shield=0;ally.shield=0;

@@ -24,6 +24,8 @@ export interface Unit {
   blindUntil?: number;
   /** the initiative card's upgrade: every blow critical until the first kill */
   critUntilKill?: boolean;
+  /** card state: rage built from blows taken, damage stored for the next blow, judgment marks, when a foe was last betrayed, chills taken toward a freeze */
+  rage?: number; nextFlat?: number; judge?: number; betrayedAt?: number; chillHits?: number;
   /** who last struck this foe and when, and everyone who did within the last turn (teamwork laws); the floor a last-stand law was used on */
   lastHitBy?: string; lastHitAt?: number; hitters?: { id: string; t: number }[]; lastStandFloor?: number;
   lowHp?: boolean;
@@ -117,6 +119,12 @@ export function canHit(p: Party, u: Unit, target: Unit, range = stats(u, 0, p).r
 /** Who a unit goes for: a taunt, its order, else the nearest unhidden foe of the other side. */
 export function targetOf(p: Party, u: Unit, t: number): Unit | undefined {
   if (u.side === 'foe' && u.tauntBy && t < u.tauntUntil) { const by = p.units.find((x) => x.id === u.tauntBy && alive(p, x)); if (by) return by; }
+  if (u.side === 'foe' && !u.order) {
+    // a warrior close by draws the foe onto itself (the warrior's core: it is the one that gets hit)
+    const me = posOf(p, u), threat = p.units.filter((x) => x.side === 'hero' && x.cls && WARRIORS.has(x.cls) && alive(p, x) && t >= x.hiddenUntil && dist(posOf(p, x), me) <= 2)
+      .sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+    if (threat) return threat;
+  }
   if (u.order?.kind === 'attack') { const id = u.order.target; const o = p.units.find((x) => x.id === id && alive(p, x)); if (o) return o; u.order = null; }
   const me = posOf(p, u);
   return p.units.filter((x) => x.side !== u.side && alive(p, x) && !(x.side === 'hero' && t < x.hiddenUntil) && !(p.roam && (x.asleep || dist(posOf(p, x), me) > ENGAGE))).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
@@ -229,6 +237,8 @@ export const hitChance = (p: Party, u: Unit, target: Unit, t: number): number =>
   return Math.max(0, Math.min(1, o.hit * (1 - Math.min(1, o.block))));
 };
 
+/** the warrior line: foes close by go for them */
+const WARRIORS = new Set<ClassId>(['warrior', 'berserker', 'guardian']);
 /** Each level adds 6% to a clone's blows. */
 export const levelDmg = (u: Unit): number => 1 + 0.06 * ((u.level ?? 1) - 1);
 
@@ -267,7 +277,8 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if (target.side === 'hero' && st.range > 1 && behindCover(p, e.pos, te.pos)) m *= T.coverTaken(target);
   if(!alive(p,u))return;
   const hp = te.hp;
-  damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m), ev, false, true);
+  const flat = u.nextFlat ?? 0; u.nextFlat = 0;
+  damage(p, t, u.id, target, Math.round(roll(p, st.dmg) * m) + flat, ev, false, true);
   if (t < (u.leechUntil ?? 0)) heal(p,u,u,(hp-te.hp)*0.3,t,ev);
   emit(p, 'hit', { t, src: u, target, amount: hp - te.hp, ev }); if (crit) emit(p, 'crit', { t, src: u, target, amount: hp - te.hp, ev });
   if (!alive(p, u)) return;

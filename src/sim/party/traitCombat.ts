@@ -3,6 +3,7 @@ import { alive, damage, entOf, occupied, posOf, type Party, type Unit } from './
 import { heal, nearby } from './kitEffects';
 import { rank } from './traitDefs';
 import { mods } from './traitMods';
+import { tagsOf } from './classKit';
 export function traitMult(p:Party,u:Unit,target:Unit,t:number):number {
   let m=1;
   if(u.retreatShot)m*=1+(mods(u).retreat??0);
@@ -10,7 +11,7 @@ export function traitMult(p:Party,u:Unit,target:Unit,t:number):number {
   if(t<(u.furyUntil??0))m*=1+(u.furyPower??0)*(u.furyStacks??0);
   if(t<(u.damageBuffUntil??0))m*=u.damageBuff??1;
   if(t<u.hiddenUntil) {
-    if(rank(u,'shadowOath'))m*=3;else if(rank(u,'ambush'))m*=2;
+    if(rank(u,'shadowOath'))m*=3;else if(rank(u,'ambush'))m*=2;else if(rank(u,'ambushArt'))m*=1+.5*(tagsOf(u).은신??0);
   }
   if(rank(u,'divinePunish')&&(target.status.stun?.until??0)>t)m*=2;
   if(rank(u,'loneWolf')&&nearby(p,u,2).filter(x=>x!==u&&!x.summoner).length===0)m*=1.6;

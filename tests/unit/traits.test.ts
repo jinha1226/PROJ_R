@@ -5,13 +5,13 @@ import { emit } from '../../src/sim/party/triggers';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { rollOffer } from '../../src/sim/party/traitPool';
 import { BASE_CLASSES } from '../../src/sim/party/partyDefs';
-it('has exactly 12 common, 30 base, 20 advanced and six keystones', () => {
+it('has exactly 12 common, 33 base, 20 advanced and six keystones', () => {
   const defs=Object.values(TRAITS);
   expect(defs.filter(d=>d.pool==='common')).toHaveLength(12);
-  expect(defs.filter(d=>BASE_CLASSES.includes(d.pool as typeof BASE_CLASSES[number]))).toHaveLength(30);
+  expect(defs.filter(d=>BASE_CLASSES.includes(d.pool as typeof BASE_CLASSES[number]))).toHaveLength(33);
   expect(defs.filter(d=>d.pool!=='common'&&d.pool!=='keystone'&&!BASE_CLASSES.includes(d.pool as typeof BASE_CLASSES[number]))).toHaveLength(20);
   expect(defs.filter(d=>d.pool==='keystone')).toHaveLength(6);
-  expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||d.kind==='oath'))).toBe(true);
+  expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||!!d.kind))).toBe(true);
 });
 it('offers two class cards and one common, excluding maxed traits', () => {
   const p=partyRoom(),u=p.units[0]!;u.traits={shieldPro:3};
@@ -41,9 +41,9 @@ it('finish, morale and combo work end to end', () => {
 it.each([[9,11],[13,15]])('keystone due at a milestone survives a jump from %i to %i', async (from, to) => {
   const {gainXp, LEVEL_XP, pickTrait} = await import('../../src/sim/party/partyLevel');
   const p=partyRoom(),u=p.units[0]!;u.level=from;u.xp=LEVEL_XP[from-1]!;
-  u.picks=1;u.offer=['vital'];
+  u.picks=1;u.offer=['finish'];
   gainXp(p,u,LEVEL_XP[to-1]!-u.xp,[]);expect(u.level).toBe(to);
-  pickTrait(p,u.id,'vital'); expect(u.offer).toHaveLength(4);expect(TRAITS[u.offer![3]!]!.pool).toBe('keystone');
+  pickTrait(p,u.id,'finish'); expect(u.offer).toHaveLength(4);expect(TRAITS[u.offer![3]!]!.pool).toBe('keystone');
   const stone=u.offer![3]!;pickTrait(p,u.id,stone);expect(u.offer?.length??3).toBe(3);
 });
 
