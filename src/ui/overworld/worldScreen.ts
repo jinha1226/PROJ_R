@@ -3,6 +3,7 @@ import { RaidBar, overPanel, raidNote, tryOutState } from './raidBar';
 import { QuickSlots } from './quickSlots';
 import { AutoExplore, exploreWants } from '../delve/explore';
 import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placePrompt';
+import { WorkbenchScreen } from './workbench/workbenchScreen';
 
 /** how near the pod a clone must stand for its build button to show */
 const POD_REACH = 3;
@@ -77,6 +78,7 @@ export class WorldScreen implements Screen {
   private menu!: OptionsMenu;
   private pad!: TouchPad;
   private pausedBeforePip = false;
+  private bench!: WorkbenchScreen;
   private hover: { x: number; y: number } | null = null;
   private landing = false;
   private log = new WorldLog();
@@ -122,6 +124,8 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.menu.el);
     this.build = new BuildMode(() => this.p, (ev) => this.live(ev), import.meta.env.BASE_URL, (open) => { if (open) { this.pausedBeforePip = this.paused; this.paused = true; } else this.paused = this.pausedBeforePip; });
     for (const part of this.build.parts) this.el.appendChild(part);
+    this.bench = new WorkbenchScreen(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
+    this.el.appendChild(this.bench.el);
     this.raidBar = new RaidBar(() => this.p, (ev) => this.live(ev), this.el);
     this.el.appendChild(this.raidBar.el);
     this.el.appendChild(this.prompts.el);
@@ -166,7 +170,7 @@ export class WorldScreen implements Screen {
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
-      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.build.open);
+      this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.build.open && !this.bench.open);
       this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
@@ -275,8 +279,12 @@ export class WorldScreen implements Screen {
     if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: this.opts.keptFloor ? `▼ ${this.opts.keptFloor}층 복귀` : '▼ 지하로', act: () => this.descend() });
     const lab = this.p.cloner ?? this.p.base, nearLab = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, lab) <= POD_REACH; });
     if (this.p.pod && nearLab && !this.p.raid && !this.build.open) list.push({ at: lab, label: '⚒ 건설', act: () => this.build.toggle() });
+    if (this.p.pod && nearLab && !this.p.raid && !this.bench.open) list.push({ at: { x: lab.x, y: lab.y + 1 }, label: '⚙ 작업장', act: () => this.openBench() });
     return [...list, ...clonerPrompt(this.p, (ev) => this.live(ev)), ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })];
   }
+
+  /** The workshop opens and the game waits. */
+  private openBench(): void { if (this.bench.open) return; this.pausedBeforePip = this.paused; this.paused = true; this.bench.show(); }
 
   /** Down the shaft, one clone (the chosen one if it stands by the drill): back to a kept floor, or, with deeper starts open, first ask which floor. */
   private descend(): void {
@@ -289,6 +297,7 @@ export class WorldScreen implements Screen {
 
   private key(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
+    if (k === 'escape' && this.bench.open) { this.bench.close(); return; }
     if (k === 'escape' && this.build.open) { this.build.close(); return; }
     if (k === 'b' && !this.pip.open && !this.menu.open) { this.build.toggle(); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }

@@ -71,11 +71,12 @@ export function overPanel(restart: () => void, quit?: () => void): HTMLElement {
   return el;
 }
 
-/** Address-bar switches for trying the base out: `?rich` stocks it, `?raid` sets a raid night waiting at the pod, `?lvl` makes the first clone a level-4 mage-archer with picks waiting. */
+/** Address-bar switches for trying the base out: `?rich` stocks it, `?raid` sets a raid night waiting at the pod, `?lvl` makes the first clone a level-4 mage-archer with picks waiting, `?gear` puts fantasy gear in the pack (for the workshop). */
 export function tryOutState(p: WorldParty): void {
   const q = new URLSearchParams(location.search);
   const first = p.units.find((u) => u.side === 'hero');
   if (q.has('lvl') && first?.cls === 'shell') { implant(p, first, { cls: 'mage', memory: 'burnt' }, []); implant(p, first, 'archer', []); gainXp(p, first, LEVEL_XP[3]!, []); }
   if (q.has('rich') && p.ore < 200) { p.ore = 300; p.crystal = 40; p.bio = 60; }
+  if (q.has('gear') && !p.pack.some((it) => 'def' in it)) for (const def of ['flameSword', 'viper', 'ironPlate']) p.pack.push({ id: `item-${p.nextItem++}`, def, power: 0 });
   if (q.has('raid') && !p.raid && !p.raidReady) p.raidReady = { size: 40, sides: [0, 2] };
 }
