@@ -20,7 +20,7 @@ export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: C
 
 export interface Unit {
   fastNext?: boolean; attackMult?: number; ironGuard?: boolean; guardIntercepted?: boolean;
-  ultReady: number; ultQueued?: boolean; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
+  ultReady: number; ultQueued?: boolean; ultSlot?: number; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   nextCrit?: boolean; dodgeNext?: boolean; furyStacks?: number; furyUntil?: number; furyPower?: number; damageBuff?: number; damageBuffUntil?: number; blinkNext?: boolean; extraAttack?: boolean; attackMoved?: boolean; retreatShot?: boolean; immortalUsed?: boolean;
   blindUntil?: number;

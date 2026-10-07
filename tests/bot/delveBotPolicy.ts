@@ -25,8 +25,8 @@ export function supplies(p: DelveParty): void {
     for (const it of [...p.pack]) {
       if('def' in it && u.gear?.[CATALOG[it.def]!.slot]?.def===it.def) sacrifice(p,u.id,it.id);
     }
-    const at=aiUltimate(p,u);
-    if(at!==null){u.ultQueued=true;u.ultCell=at;}
+    const pick=aiUltimate(p,u);
+    if(pick){u.ultQueued=true;u.ultSlot=pick.slot;u.ultCell=pick.cell;}
   }
 }
 

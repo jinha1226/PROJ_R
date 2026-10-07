@@ -143,8 +143,8 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
 function moment(p: Party, u: Unit, ev: GEvent[]): void {
   const start = ev.length;
   if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
-  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const at = aiUltimate(p,u); if(at !== null) { u.ultQueued=true; u.ultCell=at; } }
-  if(u.ultQueued) { const cast=useUltimate(p,u.id,u.ultCell); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; } }
+  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
+  if(u.ultQueued) { const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; } }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);
 }
@@ -185,7 +185,7 @@ export function tick(p: Party, dt: number): GEvent[] {
   return ev;
 }
 
-export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'ultimate'; cell?: Cell } | { kind: 'wait' } | {kind:'use';itemId:string;cell?:Cell};
+export type Command = { kind: 'move'; cell: Cell } | { kind: 'attack'; target: string } | { kind: 'ultimate'; cell?: Cell; slot?: number } | { kind: 'wait' } | {kind:'use';itemId:string;cell?:Cell};
 
 /** The manual clone's turn: one action (a walk goes on by itself until something new happens). Time then runs again. */
 export function command(p: Party, c: Command): GEvent[] {
@@ -194,7 +194,7 @@ export function command(p: Party, c: Command): GEvent[] {
   const ev: GEvent[] = [];
   if(c.kind==='use'){if(!('pack'in p))return[];const used=useItem(p as RoamParty,u.id,c.itemId,c.cell);if(!used.length)return[];ev.push(...used);}
   else if (c.kind === 'ultimate') {
-    const cast = useUltimate(p, u.id, c.cell);
+    const cast = useUltimate(p, u.id, c.cell, c.slot ?? 0);
     if (!cast.length) return [];
     ev.push(...cast);
   } else if (c.kind === 'wait') {

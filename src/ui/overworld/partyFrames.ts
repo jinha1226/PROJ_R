@@ -1,5 +1,4 @@
-import { kitOf } from '../../sim/party/classKit';
-import { ULT_NAMES } from '../../sim/party/ultimate';
+import { ULT_NAMES, ultSlots } from '../../sim/party/ultimate';
 import { entOf, unitOf, type Party, type Unit } from '../../sim/party/partyCore';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
@@ -8,8 +7,8 @@ import { unitChips } from './unitChips';
 
 /** A skill as a square with its key and a dark sweep for the time left (or lit when queued). */
 function skillTile(u: Unit, t: number, alive: boolean, big: boolean): string {
-  const kit=kitOf(u), id=kit.ultimate; if(!id) return '';
-  const left=Math.max(0,u.ultReady-t), q=u.ultQueued, sweep=left>0?`background:conic-gradient(#000a ${(left/kit.ultCd)*360}deg, transparent 0)`:'';
+  const s=ultSlots(u)[0]; if(!s) return '';
+  const id=s.ult, left=Math.max(0,s.ready-t), q=u.ultQueued, sweep=left>0?`background:conic-gradient(#000a ${(left/s.cd)*360}deg, transparent 0)`:'';
   const label=big?`<span class="nm">${ULT_NAMES[id]}</span>`:`<span class="sn">${ULT_NAMES[id]}</span>`;
   return `<button type="button" class="pf-skill${q?' queued':''}${left>0||!alive?' wait':''}${big?' big':''}" data-skill="0" title="${ULT_NAMES[id]}"><i style="${sweep}"></i><kbd>R</kbd>${left>0?`<em>${Math.ceil(left)}</em>`:''}${label}</button>`;
 }

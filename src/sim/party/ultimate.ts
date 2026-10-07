@@ -2,27 +2,37 @@ import { addShield } from './shield';
 import { G } from '../delve/gear';
 import { DIRS, dist, same, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, strike, targetOf, unitOf, type Party, type Unit } from './partyCore';
-import { kitOf, type UltId } from './classKit';
+import { KITS, type UltId } from './classKit';
+import { soulsOf } from './body';
 import { summon } from './kitEffects';
 import { applyStatus } from './status';
 import { action, emit } from './triggers';
 import { T } from './traitMods';
 export const ULT_NAMES: Record<UltId,string> = { warcry:'전장의 함성',arrowRain:'화살비',meteor:'운석',sanctum:'신성 결계',shadowDance:'그림자 난무',bloodFrenzy:'피의 광란',bastion:'방벽',pierceShot:'관통탄',bleedRain:'피의 화살비',elementStorm:'원소 폭풍',deadHost:'망자의 군세',judgement:'심판의 빛',longSanctum:'빛의 결계',deathDance:'죽음의 난무',toxicFog:'독안개' };
-export function queueUltimate(p: Party,id: string,cell?: Cell): void {
-  const u=unitOf(p,id); if(!u || !alive(p,u) || !kitOf(u).ultimate || p.time < u.ultReady) return;
-  u.ultQueued = !u.ultQueued; u.ultCell=cell;
+export interface UltSlot { slot: number; ult: UltId; ready: number; cd: number }
+/** the ultimates that need a cell picked by the player */
+export const AIMED: UltId[] = ['arrowRain', 'bleedRain', 'meteor', 'elementStorm', 'pierceShot', 'judgement', 'toxicFog'];
+/** One ultimate per soul in the body, each with its own cooldown (a unit given a class directly has its class's one). */
+export function ultSlots(u: Unit): UltSlot[] {
+  if (!soulsOf(u).length) { const k = KITS[u.cls ?? 'shell']; return k.ultimate ? [{ slot: 0, ult: k.ultimate, ready: u.ultReady, cd: k.ultCd }] : []; }
+  return soulsOf(u).flatMap((s, slot) => { const k = KITS[s.cls]; return k.ultimate ? [{ slot, ult: k.ultimate, ready: s.ultReady, cd: k.ultCd }] : []; });
 }
-export function useUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
-  return action(p,()=>castUltimate(p,id,cell));
+const slotOf = (u: Unit, slot: number): UltSlot | undefined => ultSlots(u).find((s) => s.slot === slot);
+export function queueUltimate(p: Party,id: string,cell?: Cell,slot = 0): void {
+  const u=unitOf(p,id), s=u && slotOf(u,slot); if(!u || !s || !alive(p,u) || p.time < s.ready) return;
+  u.ultQueued = !(u.ultQueued && u.ultSlot === slot); u.ultSlot = slot; u.ultCell=cell;
 }
-function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
-  const u=unitOf(p,id); if(!u || u.side!=='hero' || !alive(p,u) || (p.time < u.ultReady && !u.traits?.bloodPact)) return [];
-  const kit=kitOf(u), ult=kit.ultimate; if(!ult) return [];
+export function useUltimate(p: Party,id: string,cell?: Cell,slot = 0): GEvent[] {
+  return action(p,()=>castUltimate(p,id,cell,slot));
+}
+function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): GEvent[] {
+  const u=unitOf(p,id), s=u && slotOf(u,slot); if(!u || !s || u.side!=='hero' || !alive(p,u) || (p.time < s.ready && !u.traits?.bloodPact)) return [];
+  const ult=s.ult;
   const t=p.time, ev:GEvent[]=[], me=posOf(p,u), target=targetOf(p,u,t), at=cell??(target && posOf(p,target));
   const foes=p.units.filter(x=>x.side==='foe' && alive(p,x) && !x.asleep);
   const near=(center:Cell,r:number)=>foes.filter(f=>dist(posOf(p,f),center)<=r);
   const allies=p.units.filter(x=>x.side==='hero' && alive(p,x));
-  const aimed=['arrowRain','bleedRain','meteor','elementStorm','pierceShot','judgement','toxicFog'].includes(ult);
+  const aimed=AIMED.includes(ult);
   if(aimed && (!at || !walkable(tileAt(p.s.map,at)) || dist(me,at)>10 || !near(at,ult==='meteor'||ult==='elementStorm'?2:1).length)) return [];
   if(['shadowDance','deathDance','bloodFrenzy'].includes(ult) && !near(me,4).length) return [];
   if(u.traits?.bloodPact){const e=entOf(p,id)!,cost=Math.round(e.maxHp*.3);if(e.hp<=cost)return [];e.hp-=cost;}
@@ -66,12 +76,23 @@ function castUltimate(p: Party,id: string,cell?: Cell): GEvent[] {
       } break;
   }
   ev.push({t,type:'buff',src:id,dst:id,text:ULT_NAMES[ult]});
-  u.ultReady=u.traits?.bloodPact?t:t+kit.ultCd*T.cd(u)*G.cd(u);u.ultQueued=false;u.nextAt=Math.max(u.nextAt,t+0.6);
+  const next=u.traits?.bloodPact?t:t+s.cd*T.cd(u)*G.cd(u);
+  if (soulsOf(u).length) soulsOf(u)[slot]!.ultReady=next; else u.ultReady=next;
+  u.ultQueued=false;u.nextAt=Math.max(u.nextAt,t+0.6);
   emit(p,'ultimate',{t,src:u,ev});return ev;
 }
-export function aiUltimate(p: Party,u: Unit): Cell | undefined | null {
-  if(!alive(p,u)||p.time<u.ultReady||!kitOf(u).ultimate) return null;
-  const ult=kitOf(u).ultimate!, me=posOf(p,u), foes=p.units.filter(x=>x.side==='foe'&&alive(p,x)&&!x.asleep&&dist(posOf(p,x),me)<=10);
+/** The first ready soul ultimate a companion would use now, and where (null when none). */
+export function aiUltimate(p: Party,u: Unit): { slot: number; cell?: Cell } | null {
+  if(!alive(p,u)) return null;
+  for(const s of ultSlots(u)) {
+    if(p.time<s.ready) continue;
+    const cell=aiUse(p,u,s.ult);
+    if(cell!==null) return { slot:s.slot, cell };
+  }
+  return null;
+}
+function aiUse(p: Party,u: Unit,ult: UltId): Cell | undefined | null {
+  const me=posOf(p,u), foes=p.units.filter(x=>x.side==='foe'&&alive(p,x)&&!x.asleep&&dist(posOf(p,x),me)<=10);
   if(!foes.length) return null;
   if(['sanctum','longSanctum','warcry','bastion'].includes(ult)) return p.units.some(x=>x.side==='hero'&&alive(p,x)&&entOf(p,x.id)!.hp<entOf(p,x.id)!.maxHp/2)||foes.length>=3 ? undefined:null;
   if(['bloodFrenzy','shadowDance','deathDance'].includes(ult)) return foes.some(x=>dist(posOf(p,x),me)<=4)?undefined:null;
