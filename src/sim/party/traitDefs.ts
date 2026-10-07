@@ -1,8 +1,8 @@
-import { COMMON } from './traitCommon';
+import { COMMON_CARDS, KEYSTONE_CARDS } from './cardsCommon';
 import { CLASS_TRAITS } from './traitClasses';
-import { ADVANCED_TRAITS, KEYSTONES } from './traitAdvanced';
+import { ADVANCED_TRAITS } from './traitAdvanced';
 import type { TraitDef } from './traitTypes';
 export { rank, type Mods, type Tag, type TraitDef } from './traitTypes';
 export type TraitId = string;
 export const MAX_RANK=3, PROMOTE_LEVEL=8;
-export const TRAITS: Record<string,TraitDef> = Object.fromEntries([...COMMON,...CLASS_TRAITS,...ADVANCED_TRAITS,...KEYSTONES].map(d=>[d.id,d]));
+export const TRAITS: Record<string,TraitDef> = Object.fromEntries([...COMMON_CARDS,...CLASS_TRAITS,...ADVANCED_TRAITS,...KEYSTONE_CARDS].map(d=>[d.id,d]));

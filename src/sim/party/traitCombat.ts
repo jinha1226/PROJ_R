@@ -5,7 +5,6 @@ import { rank } from './traitDefs';
 import { mods } from './traitMods';
 export function traitMult(p:Party,u:Unit,target:Unit,t:number):number {
   let m=1;
-  if(u.attackMoved)m*=1+.15*rank(u,'pursuit');
   if(u.retreatShot)m*=1+(mods(u).retreat??0);
   u.retreatShot=false;
   if(t<(u.furyUntil??0))m*=1+(u.furyPower??0)*(u.furyStacks??0);

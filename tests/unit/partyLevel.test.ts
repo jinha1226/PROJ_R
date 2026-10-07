@@ -4,8 +4,6 @@ import { expect, it } from 'vitest';
 import { tileAt, type GEvent } from '../../src/sim/grid/types';
 import { damage, entOf, strike, unitOf } from '../../src/sim/party/partyCore';
 import { gainXp, LEVEL_XP, pickTrait, PROMOTE_LEVEL } from '../../src/sim/party/partyLevel';
-import { useUltimate } from '../../src/sim/party/ultimate';
-import { KITS } from '../../src/sim/party/classKit';
 import { TRAITS } from '../../src/sim/party/traitDefs';
 import { delveTick, newDelve } from '../../src/sim/delve/delveSim';
 import { clones } from '../../src/sim/roam/roam';
@@ -55,26 +53,15 @@ it('foes that fall near a clone give it experience', () => {
   expect(clones(p)[0]!.xp).toBeGreaterThan(0);
 });
 
-it('toughness adds health at once; resonance shortens cooldowns; grit holds a killing blow once', () => {
+it('picking a card spends a pick; a law picked again is its upgrade', () => {
   const p = withArcher();
-  const u = clones(p)[0]!, e = entOf(p, u.id)!;
-  u.picks = 3; u.offer = ['tough', 'resonance', 'grit'];
-  pickTrait(p, u.id, 'tough');
-  expect(e.maxHp).toBe(46);
-  u.offer = ['resonance', 'grit', 'eagle'];
-  pickTrait(p, u.id, 'resonance');
-  const f = p.units.find((x) => x.side === 'foe')!;
-  entOf(p, f.id)!.pos = { x: e.pos.x + 3, y: e.pos.y };
-  f.asleep = false;
-  useUltimate(p, u.id);
-  expect(u.ultReady).toBeCloseTo(p.time + KITS.archer.ultCd * 0.9);
-  u.offer = ['grit', 'eagle', 'sprint'];
-  pickTrait(p, u.id, 'grit');
-  damage(p, p.time, 'trap', u, 999, []);
-  expect(e.alive).toBe(true);
-  expect(e.hp).toBe(1);
-  damage(p, p.time, 'trap', u, 999, []);
-  expect(e.alive).toBe(false);
+  const u = clones(p)[0]!;
+  u.picks = 2; u.offer = ['finish', 'bond', 'cruel'];
+  pickTrait(p, u.id, 'finish');
+  expect(u.traits?.finish).toBe(1); expect(u.picks).toBe(1);
+  u.offer = ['finish', 'bond', 'cruel'];
+  pickTrait(p, u.id, 'finish');
+  expect(u.traits?.finish).toBe(2); expect(u.picks).toBe(0);
 });
 
 it('an archer shooting again and again from the same spot hits harder with steady aim', () => {

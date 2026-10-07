@@ -1,9 +1,8 @@
 import { addShield } from './shield';
-import { entOf, damage } from './partyCore';
+import { alive, entOf, damage } from './partyCore';
 import { heal, nearby, summon } from './kitEffects';
 import { applyStatus } from './status';
 import { trait, type TraitDef } from './traitTypes';
-import { splash } from './traitCommon';
 export const ADVANCED_TRAITS: TraitDef[] = [
   trait('bloodHunger','피의 굶주림',['근접','치유'],'berserker',undefined,r=>({id:'피의 굶주림',when:'kill',run:(p,c)=>heal(p,c.src,c.src,entOf(p,c.src.id)!.maxHp*.1*r,c.t,c.ev)})),
   trait('redFury','붉은 분노',['근접','출혈'],'berserker',undefined,r=>({id:'붉은 분노',when:'crisis',run:(_p,c)=>{c.src.damageBuff=1+.2*r;c.src.damageBuffUntil=c.t+5;}})),
@@ -26,11 +25,5 @@ export const ADVANCED_TRAITS: TraitDef[] = [
   trait('poisonEssence','독의 정수',['독'],'toxicologist',(_u,r)=>({poisonCap:3*r})),
   trait('poisonSpread','독의 파문',['독'],'toxicologist',undefined,r=>({id:'독의 파문',when:'kill',run:(p,c)=>{if(c.target)for(const f of nearby(p,c.target,1))applyStatus(p,c.src,f,'poison',c.t,c.ev,r);}})),
 ];
-export const KEYSTONES: TraitDef[] = [
-  { ...trait('bloodPact','피의 계약',['치유'],'keystone',()=>({})),ranks:1,cost:'회복 -30%' },
-  { ...trait('shadowOath','그림자 서약',['은신'],'keystone',()=>({})),ranks:1,cost:'비은신 피해 +25%' },
-  { ...trait('immortal','불사',['생존'],'keystone',()=>({hp:-.25})),ranks:1,cost:'체력 -25%' },
-  { ...trait('fanatic','광신',['생존'],'keystone',()=>({move:-.2})),ranks:1,cost:'이동 -20%' },
-  { ...trait('avatar','원소의 화신',['화염','냉기','전기'],'keystone',()=>({}),()=>({id:'원소의 화신',when:'hit',run:(p,c)=>{if(c.target)applyStatus(p,c.src,c.target,p.s.rng.pick(['burn','chill','shock']),c.t,c.ev);}})),ranks:1,cost:'치명 불가' },
-  { ...trait('loneWolf','고독한 늑대',['근접'],'keystone',()=>({})),ranks:1,cost:'협공 무효' },
-];
+
+function splash(id:string,name:string,tags:TraitDef['tags'],pool:TraitDef['pool']): TraitDef { return trait(id,name,tags,pool,undefined,r=>({id:name,when:'kill',run:(p,c)=>{if(c.target)for(const f of nearby(p,c.target,1))if(alive(p,f))damage(p,c.t,c.src.id,f,4*r,c.ev);}})); }

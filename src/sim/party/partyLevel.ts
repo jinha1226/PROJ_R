@@ -27,7 +27,7 @@ export { rollOffer } from './traitPool';
 /** Experience for a clone: each level adds health and a trait to pick; the advanced class opens at its level. */
 export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
   if (!u.cls || u.cls === 'shell') return;
-  u.xp = (u.xp ?? 0) + Math.round(n*(1+(u.traits?.seasoned??0)*.1));
+  u.xp = (u.xp ?? 0) + Math.round(n);
   u.pendingKeystones ??= 0;
   while (levelOf(u) < MAX_LEVEL && u.xp >= LEVEL_XP[levelOf(u)]!) {
     u.level = levelOf(u) + 1;

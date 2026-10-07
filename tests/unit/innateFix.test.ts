@@ -1,9 +1,10 @@
+import { applyStatus } from '../../src/sim/party/status';
 import { SHIELD_CAP } from '../../src/sim/party/shield';
 import { expect, it } from 'vitest';
 import { partyRoom } from '../../src/sim/party/partySim';
 import { damage, entOf, stats, strike } from '../../src/sim/party/partyCore';
 import { KITS } from '../../src/sim/party/classKit';
-import { action, emit, CHAIN_CAP } from '../../src/sim/party/triggers';
+import { action, emit, CHAIN_CAP, type TriggerDef } from '../../src/sim/party/triggers';
 import { heal, fireball } from '../../src/sim/party/kitEffects';
 import { CATALOG } from '../../src/sim/delve/catalog';
 import type { ClassId } from '../../src/sim/party/partyDefs';
@@ -22,6 +23,8 @@ it.each(['archer','mage','rogue','sniper','assassin'] as const)('%s damage innat
   const def=KITS[cls].innate.find(d=>d.id===id)!, before=JSON.stringify([u,f]);
   def.run(p,{t:0,src:u,target:f,depth:0,ev:[]}); expect(JSON.stringify([u,f])).not.toBe(before);
 });
+/** a critical blow opens a bleeding wound (the old common trait, kept here for these chain checks) */
+const wound:TriggerDef={id:'상처 벌리기',when:'crit',run:(p,c)=>{if(c.target)applyStatus(p,c.src,c.target,'bleed',c.t,c.ev);}};
 it('sniper doubles damage at five tiles but not four', () => {
   const hit = (distance: number) => {const {p,u,f}=setup('sniper','crossbow');entOf(p,f.id)!.pos={x:3+distance,y:4};entOf(p,f.id)!.hp=900;strike(p,u,f,0,[]);return 900-entOf(p,f.id)!.hp;};
   expect(hit(5)).toBe(hit(4)*2);
@@ -45,9 +48,9 @@ it('iron plate trigger activates its actual reduction', () => {
   CATALOG.ironPlate!.triggers[0]!.run(p,{t:0,src:u,depth:0,ev:[]});expect(JSON.stringify(u)).not.toBe(before);
 });
 it('no-op effects consume neither popup nor budget and crit bleed still fires in a poison chain', () => {
-  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1,openWound:1};
+  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1};u.triggers=[wound];
   u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
-  u.triggers=Array.from({length:6},(_,i)=>({id:`noop${i}`,when:'hit' as const,run:()=>{}}));
+  u.triggers=[...Array.from({length:6},(_,i)=>({id:`noop${i}`,when:'hit' as const,run:()=>{}})),wound];
   const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,amount:8,ev});});
   expect(f.status.bleed).toBeDefined(); expect(ev.some(e=>e.text?.startsWith('noop'))).toBe(false);
 });
@@ -84,14 +87,14 @@ it('guardian redirects thirty percent only when its effect executes', () => {
   expect(run(false)).toEqual([28,9]);expect(run(true)).toEqual([40,0]);
 });
 it('full-health leech is a no-op even before lowHp bookkeeping is initialized', () => {
-  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1,openWound:1};delete u.lowHp;
+  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1};u.triggers=[wound];delete u.lowHp;
   u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
-  u.triggers=[0,1].map(i=>({id:`actual${i}`,when:'hit' as const,run:()=>{u.progress++;}}));
+  u.triggers=[...[0,1].map(i=>({id:`actual${i}`,when:'hit' as const,run:()=>{u.progress++;}})),wound];
   const ev:GEvent[]=[];action(p,()=>{emit(p,'hit',{t:0,src:u,target:f,amount:8,ev});emit(p,'crit',{t:0,src:u,target:f,ev});});
   expect(f.status.bleed).toBeDefined();expect(ev.some(e=>e.text==='흡혈')).toBe(false);
 });
 it('a real assassin critical attack preserves poison, leech and critical bleeding in one chain', () => {
-  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1,openWound:1};u.nextCrit=true;
+  const {p,u,f}=setup('assassin','daggers');u.traits={poisonBlade:1};u.triggers=[wound];u.nextCrit=true;
   u.gear={weapon:{id:'v',def:'viper',power:0},armor:null,accessory:{id:'r',def:'vampireRing',power:0}};
   f.order={kind:'attack',target:p.units[1]!.id};entOf(p,u.id)!.hp=40;
   const ev:GEvent[]=[];strike(p,u,f,0,ev);

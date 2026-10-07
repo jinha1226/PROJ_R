@@ -3,7 +3,6 @@ import { dist } from '../grid/types';
 import { heal, nearby } from './kitEffects';
 import { applyStatus } from './status';
 import { trait, type TraitDef } from './traitTypes';
-import { teleportStrike } from './traitCommon';
 export const CLASS_TRAITS: TraitDef[] = [
   trait('whirlwind','회오리',['근접','방패'],'warrior',(_u,r)=>({whirlCd:-r,whirlRange:r===3?1:0})),
   trait('bloodBlade','피의 칼날',['근접','출혈'],'warrior',()=>({})),
@@ -36,3 +35,5 @@ export const CLASS_TRAITS: TraitDef[] = [
   trait('smokescreen','연막',['은신'],'rogue',undefined,()=>({id:'연막',when:'crisis',run:(p,c)=>{c.src.hiddenUntil=c.t+1;for(const f of nearby(p,c.src,1,'foe'))f.blindUntil=c.t+1;}})),
   trait('bladeDance','칼춤',['은신','근접'],'rogue',undefined,teleportStrike),
 ];
+
+function teleportStrike(r:number): ReturnType<NonNullable<TraitDef['trigger']>> { return {id:'칼춤',when:'kill',run:(p,c)=>{const f=nearby(p,c.src,2,'foe')[0];if(f&&entOf(p,f.id)!.alive){c.src.empower=Math.max(c.src.empower,1+.25*r);c.src.blinkNext=true;}}}; }

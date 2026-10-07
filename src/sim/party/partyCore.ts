@@ -22,6 +22,8 @@ export interface Unit {
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
   nextCrit?: boolean; dodgeNext?: boolean; furyStacks?: number; furyUntil?: number; furyPower?: number; damageBuff?: number; damageBuffUntil?: number; blinkNext?: boolean; extraAttack?: boolean; attackMoved?: boolean; retreatShot?: boolean; immortalUsed?: boolean;
   blindUntil?: number;
+  /** the initiative card's upgrade: every blow critical until the first kill */
+  critUntilKill?: boolean;
   /** who last struck this foe and when, and everyone who did within the last turn (teamwork laws); the floor a last-stand law was used on */
   lastHitBy?: string; lastHitAt?: number; hitters?: { id: string; t: number }[]; lastStandFloor?: number;
   lowHp?: boolean;
