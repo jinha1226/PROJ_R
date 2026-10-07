@@ -37,6 +37,8 @@ it('once per floor; a new floor charges it again', () => {
   const p = calm();
   startBeacon(p); run(p, BEACON_TURNS + 1);
   expect(canBeacon(p)).toBe(false);
+  // back down on the kept floor (as reenter does), the clone takes the stairs
+  p.left = false;
   entOf(p, 'hero')!.pos = { ...p.s.map.stairs! };
   expect(descend(p)).toBe(true);
   expect(canBeacon(p)).toBe(true);

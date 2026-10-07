@@ -3,7 +3,7 @@ import { spawnFoe } from '../grid/foes';
 import { same, tileAt, walkable, type Cell } from '../grid/types';
 import { alive, entOf, type Unit } from '../party/partyCore';
 import type { CarriedSoul, HeroSoulId } from '../delve/heroSouls';
-import { living, look, type RoamParty } from './roam';
+import { heldHeroes, living, look, type RoamParty } from './roam';
 
 /** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the bio-matter, the next clone's number. */
 export interface Carry { deepest?: number; time: number; pack: Item[]; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
@@ -38,7 +38,7 @@ export function placeParty(p: RoamParty, c: Carry): void {
 
 /** One clone leaves for the dungeon: it alone goes in the carry (souls stay stored at the base); it is taken off this map. */
 export function takeClone(p: RoamParty, id: string): Carry {
-  const all = takeParty(p), c = { ...all, clones: all.clones.filter((k) => k.unit.id === id).map((k) => ({ ...k, unit: { ...k.unit, wentDown: true } })), carried: [] };
+  const all = takeParty(p), c = { ...all, clones: all.clones.filter((k) => k.unit.id === id).map((k) => ({ ...k, unit: { ...k.unit, wentDown: true } })), carried: [], foundHeroes: heldHeroes(p) };
   const e = entOf(p, id);
   if (e) { e.alive = false; e.pos = { x: -50, y: -50 }; }
   if (id !== 'hero') p.s.foes = p.s.foes.filter((f) => f.id !== id);

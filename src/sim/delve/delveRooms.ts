@@ -1,7 +1,7 @@
 import { createRng } from '../../core/rng';
 import { damage, entOf, alive, unitOf, type Unit } from '../party/partyCore';
 import { living } from '../roam/roam';
-import { linesOf } from '../party/body';
+import { linesOf, soulsOf } from '../party/body';
 import { dist, idx, same, type Cell, type GEvent } from '../grid/types';
 import { PACK_SIZE, nextItemId } from './gear';
 import { itemName, rollItem, rollConsumable, type Item } from './items';
@@ -17,7 +17,7 @@ export function setupRooms(p: DelveParty, f: DelveFloor): void {
   p.s.map.ore = f.ore.map((c) => ({ ...c }));
   p.shrine = f.shrine ? { pos: f.shrine, used: false } : undefined;
   p.floorItems = []; p.boss = f.boss; p.roomTime = p.time; p.lootReaped = new Set(); p.handledMoves = new WeakSet();
-  for (const u of living(p)) if (u.hero && !p.foundHeroes.includes(u.hero)) p.foundHeroes.push(u.hero);
+  for (const u of living(p)) for (const s of soulsOf(u)) if (s.hero && !p.foundHeroes.includes(s.hero)) p.foundHeroes.push(s.hero);
   for (const s of p.carried) if (typeof s !== 'string' && s.hero && !p.foundHeroes.includes(s.hero)) p.foundHeroes.push(s.hero);
   const choices = (Object.keys(HERO_SOULS) as HeroSoulId[]).filter((id) => !p.foundHeroes.includes(id));
   if (f.crypt && choices.length) {

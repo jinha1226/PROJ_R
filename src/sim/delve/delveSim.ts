@@ -21,7 +21,9 @@ const FOE_OF: Record<string, FoeId> = { minion: 'goblin', ghoul: 'ghoul', archer
 
 export interface DelveParty extends RoamParty { floor: number; deepest: number; seed: number; rooms: DelveRoom[]; chests: (ChestSpot & { opened: boolean })[]; oreNodes: { pos: Cell; left: number; progress: number }[]; shrine?: { pos: Cell; used: boolean }; floorItems: { pos: Cell; item: Item }[]; boss: boolean; roomTime: number; lootReaped: Set<string>; handledMoves: WeakSet<GEvent>;
   /** the return beacon: a portal opening, whether this floor's use is spent, where a clone comes back down to */
-  beacon?: Beacon; beaconUsed: boolean; beaconAt?: Cell }
+  beacon?: Beacon; beaconUsed: boolean; beaconAt?: Cell;
+  /** the portal opened and the clone is on its way up: the floor waits as it is */
+  left?: boolean }
 
 /** Ordinary souls belong to normal rooms; an unclassed first arrival gets an archer by the lift. */
 function placeSouls(f: DelveFloor, seed: number, floor: number, firstArcher: boolean): Soul[] {
@@ -65,6 +67,7 @@ export function newDelve(seed = 1, floor = 1, carry?: Carry): DelveParty {
 
 /** Time runs on a dungeon floor: the clones act, then the roaming rules. */
 export function delveTick(p: DelveParty, dt: number): GEvent[] {
+  if (p.left) return [];
   const before = new Map(p.units.map((u) => [u.id, { ...entOf(p, u.id)!.pos }]));
   const hp = hpNow(p);
   const ev = tick(p, dt);
@@ -75,7 +78,7 @@ export function delveTick(p: DelveParty, dt: number): GEvent[] {
 }
 
 /** The whole living party is by the stairs and nothing is hunting it. */
-export const canDescend = (p: DelveParty): boolean => !(p.boss && p.units.some((u) => u.foe === 'warlord' && entOf(p, u.id)?.alive)) && !p.combat && !!p.s.map.stairs && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.s.map.stairs!) <= 1);
+export const canDescend = (p: DelveParty): boolean => !p.left && !(p.boss && p.units.some((u) => u.foe === 'warlord' && entOf(p, u.id)?.alive)) && !p.combat && !!p.s.map.stairs && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.s.map.stairs!) <= 1);
 
 /** Down the stairs: a new floor; the living clones come along as they are (the fallen and their unrecovered souls stay behind). */
 export function descend(p: DelveParty): boolean {
@@ -94,11 +97,12 @@ export function descend(p: DelveParty): boolean {
 }
 
 /** The whole living party is back at the lift and nothing hunts it: they can ride up to the pod. */
-export const canAscend = (p: DelveParty): boolean => !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.base) <= 2);
+export const canAscend = (p: DelveParty): boolean => !p.left && !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.base) <= 2);
 
 /** A clone comes back down to the kept floor, at the beacon spot (the floor's state is as it was left). */
 export function reenter(p: DelveParty, c: Carry): void {
   placeParty(p, c);
+  p.left = false;
   const at = p.beaconAt ?? p.base;
   for (const u of living(p)) entOf(p, u.id)!.pos = { ...at };
   look(p);

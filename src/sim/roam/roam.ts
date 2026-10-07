@@ -76,8 +76,15 @@ export function look(p: RoamParty): void {
   for (const k of s.visible) s.seen[k] = 1;
 }
 
-/** Souls go only into a fresh body: level 1, never been down, a slot free. */
-export const canTakeSoul = (p: RoamParty, u: Unit): boolean => levelOf(u) === 1 && !u.wentDown && soulsOf(u).length < slotsOf(p);
+/** Souls go only into a fresh body: never been down, not grown past the level its hero souls brought (1 without one), a slot free. */
+export const canTakeSoul = (p: RoamParty, u: Unit): boolean => !u.wentDown && soulsOf(u).length < slotsOf(p)
+  && levelOf(u) <= Math.max(1, ...soulsOf(u).map((s) => (s.hero ? HERO_SOULS[s.hero].level : 1)));
+
+/** The named heroes held at the base or in a body here (they are not rolled again below). */
+export const heldHeroes = (p: RoamParty): HeroSoulId[] => [...new Set([
+  ...p.carried.flatMap((s) => (typeof s !== 'string' && s.hero ? [s.hero] : [])),
+  ...living(p).flatMap((u) => soulsOf(u).flatMap((s) => (s.hero ? [s.hero] : []))),
+])];
 
 /** A soul goes into a body: the first sets its class, weapon and kit; any soul adds its line, memory and ultimate. Named heroes bring their level and cards. */
 export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]): void {

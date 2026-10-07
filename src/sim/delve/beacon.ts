@@ -23,6 +23,6 @@ export function beaconStep(p: DelveParty, ev: GEvent[]): void {
   if (!p.beacon) return;
   if (p.combat) { p.beacon = undefined; ev.push({ t: p.time, type: 'buff', text: 'beaconCut' }); return; }
   if (p.time < p.beacon.openAt) return;
-  p.beaconAt = p.beacon.at; p.beacon = undefined; p.beaconUsed = true;
+  p.beaconAt = p.beacon.at; p.beacon = undefined; p.beaconUsed = true; p.left = true;
   ev.push({ t: p.time, type: 'buff', text: 'beaconOpen', to: p.beaconAt });
 }
