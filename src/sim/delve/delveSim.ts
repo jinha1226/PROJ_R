@@ -13,12 +13,15 @@ import { BASE_CLASSES, CLASSES, FOES, type BaseClass, type FoeId } from '../part
 import { tick } from '../party/partySim';
 import { blank, hpNow, living, look, roamStep, type RoamParty, type Soul } from '../roam/roam';
 import { placeParty, takeParty, type Carry } from '../roam/carry';
+import { beaconStep, type Beacon } from './beacon';
 
 export const DELVE_SIGHT = 8;
 /** the dungeon's kinds, as the party knows them */
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', ghoul: 'ghoul', archer: 'archer', mage: 'shaman', brute: 'brute', champion: 'warlord' };
 
-export interface DelveParty extends RoamParty { floor: number; deepest: number; seed: number; rooms: DelveRoom[]; chests: (ChestSpot & { opened: boolean })[]; oreNodes: { pos: Cell; left: number; progress: number }[]; shrine?: { pos: Cell; used: boolean }; floorItems: { pos: Cell; item: Item }[]; boss: boolean; roomTime: number; lootReaped: Set<string>; handledMoves: WeakSet<GEvent> }
+export interface DelveParty extends RoamParty { floor: number; deepest: number; seed: number; rooms: DelveRoom[]; chests: (ChestSpot & { opened: boolean })[]; oreNodes: { pos: Cell; left: number; progress: number }[]; shrine?: { pos: Cell; used: boolean }; floorItems: { pos: Cell; item: Item }[]; boss: boolean; roomTime: number; lootReaped: Set<string>; handledMoves: WeakSet<GEvent>;
+  /** the return beacon: a portal opening, whether this floor's use is spent, where a clone comes back down to */
+  beacon?: Beacon; beaconUsed: boolean; beaconAt?: Cell }
 
 /** Ordinary souls belong to normal rooms; an unclassed first arrival gets an archer by the lift. */
 function placeSouls(f: DelveFloor, seed: number, floor: number, firstArcher: boolean): Soul[] {
@@ -51,7 +54,7 @@ export function newDelve(seed = 1, floor = 1, carry?: Carry): DelveParty {
   const generated = generateFloor(seed, floor), map = generated.map;
   const s = newState(map, seed + floor * 31, 'pistol', floor);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(generated, seed, floor, floor === 1 && !carry?.clones.some((c) => c.unit.cls && c.unit.cls !== 'shell')), rooms: [], chests: [], oreNodes: [], floorItems: [], boss: false, roomTime: 0, lootReaped: new Set(), handledMoves: new WeakSet(), ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, deepest: Math.max(floor, carry?.deepest ?? floor), floor, seed };
+  const p: DelveParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: DELVE_SIGHT, souls: placeSouls(generated, seed, floor, floor === 1 && !carry?.clones.some((c) => c.unit.cls && c.unit.cls !== 'shell')), rooms: [], chests: [], oreNodes: [], floorItems: [], boss: false, roomTime: 0, lootReaped: new Set(), handledMoves: new WeakSet(), beaconUsed: false, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: false, base: { ...map.start }, deepest: Math.max(floor, carry?.deepest ?? floor), floor, seed };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'fists', gear: starterGear('shell', () => nextItemId(p)) });
   populate(p);
   if (carry) placeParty(p, carry);
@@ -67,6 +70,7 @@ export function delveTick(p: DelveParty, dt: number): GEvent[] {
   const ev = tick(p, dt);
   roamStep(p, hp, ev);
   roomStep(p, before, ev);
+  beaconStep(p, ev);
   return ev;
 }
 
@@ -79,6 +83,7 @@ export function descend(p: DelveParty): boolean {
   const carry = takeParty(p), floor = p.floor + 1, generated = generateFloor(p.seed, floor), map = generated.map;
   p.s = newState(map, p.seed + floor * 31, 'pistol', floor);
   p.deepest = Math.max(p.deepest, floor);
+  p.beacon = undefined; p.beaconUsed = false; p.beaconAt = undefined;
   p.floor = floor; p.units = []; p.souls = placeSouls(generated, p.seed, floor, false); p.base = { ...map.start };
   populate(p);
   placeParty(p, carry);
@@ -90,3 +95,11 @@ export function descend(p: DelveParty): boolean {
 
 /** The whole living party is back at the lift and nothing hunts it: they can ride up to the pod. */
 export const canAscend = (p: DelveParty): boolean => !p.combat && living(p).length > 0 && living(p).every((u) => dist(entOf(p, u.id)!.pos, p.base) <= 2);
+
+/** A clone comes back down to the kept floor, at the beacon spot (the floor's state is as it was left). */
+export function reenter(p: DelveParty, c: Carry): void {
+  placeParty(p, c);
+  const at = p.beaconAt ?? p.base;
+  for (const u of living(p)) entOf(p, u.id)!.pos = { ...at };
+  look(p);
+}
