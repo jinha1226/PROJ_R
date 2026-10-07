@@ -3,12 +3,12 @@ import { distanceMap } from '../../src/sim/grid/path';
 import { idx } from '../../src/sim/grid/types';
 import { delveSize, generateFloor } from '../../src/sim/delve/delveGen';
 
-it('floor three is 80 wide with 24–32 rooms, all reachable, with one vault, a den and ore', () => {
+it('floor three is 72 wide with 18–24 rooms, all reachable, with one vault, a den and ore', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
     const f = generateFloor(seed, 3);
     expect(f.map.w).toBe(delveSize(3));
-    expect(f.rooms.length).toBeGreaterThanOrEqual(24);
-    expect(f.rooms.length).toBeLessThanOrEqual(32);
+    expect(f.rooms.length).toBeGreaterThanOrEqual(18);
+    expect(f.rooms.length).toBeLessThanOrEqual(24);
     const d = distanceMap(f.map, f.map.start);
     for (const r of f.rooms) expect(d[idx(f.map, { x: r.rect.x + (r.rect.w >> 1), y: r.rect.y + (r.rect.h >> 1) })]).toBeGreaterThanOrEqual(0);
     expect(f.rooms.filter((r) => r.kind === 'vault')).toHaveLength(1);

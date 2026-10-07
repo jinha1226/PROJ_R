@@ -21,6 +21,9 @@ export const LOOK_BY_ID = new Map<string, UalLook>();
 
 /** One model per entity: chases its cell, faces where it goes, lunges, recoils and flinches on cue. */
 
+/** within this many cells of the camera a figure is built even before its cell is seen; beyond this many it stops animating */
+const NEAR_BUILD = 14, FAR_ANIM = 18;
+
 export class GridActors {
   private readonly bars = new HpBars();
   readonly root = new THREE.Group();
@@ -32,6 +35,9 @@ export class GridActors {
 
   /** walking pace in cells per second (a live game slows it to match how often its units step) */
   walkSpeed?: number;
+  /** the cell the camera looks at: figures are built near it or on seen cells, and far ones stop animating */
+  focus: { x: number; y: number } | null = null;
+  private resync = 0;
 
   constructor(private readonly lib: UalLibrary) {}
 
@@ -42,6 +48,8 @@ export class GridActors {
       const existing = this.views.get(e.id);
       const hideBar = e.kind === 'hero' && !LOOK_BY_ID.has(e.id);
       if (existing) { this.bars.update(existing.bar, hideBar ? { ...e, alive: false } : e); continue; }
+      // a horde floor: a figure is built once its cell has been seen or it is near the camera (clones always)
+      if (this.focus && !LOOK_BY_ID.has(e.id) && e.kind !== 'hero' && !s.seen?.[e.pos.y * s.map.w + e.pos.x] && Math.max(Math.abs(e.pos.x - this.focus.x), Math.abs(e.pos.y - this.focus.y)) > NEAR_BUILD) continue;
       this.kinds.set(e.id, e.kind);
       const byId = LOOK_BY_ID.get(e.id);
       const base = byId ?? (e.kind === 'hero' ? LOOK.hero : foeLook(LOOK[e.kind], e.kind, speciesOf(s.run.floor)));
@@ -307,8 +315,12 @@ export class GridActors {
       if (v) v.actor.root.scale.setScalar(1 - 0.3 * (t / POP_SEC) ** 2);
       if (t <= 0) this.popIn.delete(id); else this.popIn.set(id, t);
     }
+    // newly seen cells get their figures a few times a second
+    this.resync -= dt;
+    if (this.resync <= 0 && this.lastState) { this.resync = 0.25; this.sync(this.lastState); }
     for (const [vid, v] of this.views) {
       const step = frozen ? 0 : dt;
+      const far = !!this.focus && Math.max(Math.abs(v.x / CELL - this.focus.x), Math.abs(v.z / CELL - this.focus.y)) > FAR_ANIM;
       const px = v.x;
       const pz = v.z;
       const g = glide({ x: v.x / CELL, z: v.z / CELL }, { x: v.tx / CELL, z: v.tz / CELL }, step, this.walkSpeed);
@@ -339,6 +351,9 @@ export class GridActors {
       }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
       if (!v.dead) v.actor.setLocomotion(v.runHold > 0);
+      // far from the camera a figure keeps its place but stops animating (and a far body is not drawn)
+      if (far) { if (v.dead) v.actor.root.visible = false; continue; }
+      if (v.dead && !v.gone) v.actor.root.visible = true;
       v.actor.update(step);
     }
   }

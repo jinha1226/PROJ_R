@@ -308,6 +308,7 @@ export class GridRuntime {
     this.pops.update(dt);
     if (this.terrain instanceof ShipTerrain) this.terrain.update(dt);
     if (this.terrain instanceof WorldTerrain) this.terrain.update(dt, this.center);
+    this.actors.focus = { x: this.center.x / CELL, y: this.center.z / CELL };
     this.actors.update(scaled, this.fx.frozen);
     this.torches.update(dt);
     this.items.update(dt);

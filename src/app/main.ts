@@ -50,6 +50,20 @@ async function chainsDemo(): Promise<void> {
   }
 }
 
+/** `?demo=deep&floor=N`: a deep floor with a level-10 empty body fighting by itself, for checking how a horde runs on screen. */
+async function deepDemo(): Promise<void> {
+  try {
+    const [{ DelveScreen }, { newDelve }, { gainXp, LEVEL_XP }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), import('../sim/delve/delveSim'), import('../sim/party/partyLevel'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    const floor = Math.max(1, Math.min(15, Number(params.get('floor')) || 12));
+    const party = newDelve(urlSeed || 3, floor), hero = party.units.find((u) => u.id === 'hero')!;
+    gainXp(party, hero, LEVEL_XP[9]!, []); hero.picks = 0; hero.offer = undefined;
+    router.go(new DelveScreen(lib, kit, { party, auto: true, quit: title }));
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 /** `?demo=looks`: every class side by side, for looking the figures over. */
 async function looksDemo(): Promise<void> {
   try {
@@ -63,4 +77,5 @@ async function looksDemo(): Promise<void> {
 
 if (params.get('demo') === 'looks') void looksDemo();
 else if (params.get('demo') === 'chains') void chainsDemo();
+else if (params.get('demo') === 'deep') void deepDemo();
 else title();
