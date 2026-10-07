@@ -35,7 +35,6 @@ export interface Unit {
   critUntilKill?: boolean;
   /** card state: rage built from blows taken, damage stored for the next blow, judgment marks, when a foe was last betrayed, chills taken toward a freeze */
   markFirst?: boolean; cycle?: number;
-  martyrFloor?: number;
   /** the foe a companion's utility AI last chose (it sticks with it unless another is clearly better) */
   aiTarget?: string;
   /** when this clone was struck within the last turn (the whirlwind counts them) */

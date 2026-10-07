@@ -56,7 +56,7 @@ export function starterGear(cls: ClassId, nextId: () => string): Loadout {
     if (cls === 'shell')
         return { weapon: { id: nextId(), def: 'pistol', power: 0 }, armor: { id: nextId(), def: 'agentSuit', power: 0 }, accessory: null };
     const base = CLASSES[cls].weapons[0]!, def = base === 'greataxe' ? 'greataxe' : base;
-    return { weapon: { id: nextId(), def, power: 0 }, armor: { id: nextId(), def: ['warrior', 'cleric', 'guardian', 'inquisitor'].includes(cls) ? 'leather' : 'cloth', power: 0 }, accessory: null };
+    return { weapon: { id: nextId(), def, power: 0 }, armor: { id: nextId(), def: ['warrior', 'cleric'].includes(cls) ? 'leather' : 'cloth', power: 0 }, accessory: null };
 }
 /** the empty body's own pistol and suit: never sacrificed into, taken off or worn by anyone else (the workshop grows them) */
 export const KIT_ITEMS = new Set(['pistol', 'agentSuit']);

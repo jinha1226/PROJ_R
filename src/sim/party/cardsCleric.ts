@@ -1,5 +1,5 @@
 import { applyStatus } from './status';
-import { alive, damage, levelDmg, posOf, stats, strike, type Party, type Unit } from './partyCore';
+import { alive, damage, freeHit, levelDmg, posOf, stats, strike, type Party, type Unit } from './partyCore';
 import { fighting, foesNear } from './cardFx';
 import { addShield } from './shield';
 import { tagsOf } from './classKit';
@@ -31,7 +31,8 @@ function addHammer(p: Party, u: Unit, t: number): void {
 export function tickHammers(p: Party, t: number, ev: GEvent[]): void {
   for (const u of p.units) {
     if (u.side !== 'hero' || !rank(u, 'hammer') || !alive(p, u)) continue;
-    if (!fighting(p, u)) { u.hammerNext = undefined; continue; }
+    // out of a fight the ring stops and the extra hammers go (they never carry into the next one)
+    if (!fighting(p, u)) { u.hammerNext = undefined; u.hammers = []; continue; }
     u.hammerNext ??= t;
     while (u.hammerNext <= t) {
       const at = u.hammerNext, cells = hammerCells(p, u, at), amount = Math.max(1, Math.round(avg(p, u, at) * 0.5));
@@ -40,7 +41,7 @@ export function tickHammers(p: Party, t: number, ev: GEvent[]): void {
         try {
           for (const c of cells) {
             ev.push({ t: at, type: 'buff', src: u.id, to: { ...c }, text: '축복의 망치' });
-            for (const f of p.units.filter((x) => x.side === 'foe' && alive(p, x) && posOf(p, x).x === c.x && posOf(p, x).y === c.y)) damage(p, at, u.id, f, amount, ev, true, false, 'holy');
+            for (const f of p.units.filter((x) => x.side === 'foe' && alive(p, x) && posOf(p, x).x === c.x && posOf(p, x).y === c.y)) freeHit(p, u, f, amount, 'holy', at, ev);
           }
         } finally { u.hammering = false; }
       });
@@ -59,14 +60,16 @@ export function sanctuary(p: Party, u: Unit, cell: Cell, t: number): boolean {
 export function tickZones(p: Party, t: number, ev: GEvent[]): void {
   for (const z of p.zones ?? []) {
     const src = p.units.find((x) => x.id === z.by);
-    while (z.next <= Math.min(t, z.until)) {
+    // the sanctuary ends with its cleric
+    if (!src || !alive(p, src)) { z.until = -1; continue; }
+    while (z.next < z.until && z.next <= t) {
       const at = z.next;
       for (const a of p.units.filter((x) => x.side === 'hero' && alive(p, x) && dist(posOf(p, x), z.at) <= z.r)) a.immuneUntil = Math.max(a.immuneUntil ?? 0, at + 1);
       if (src) action(p, () => { for (const f of foesNear(p, z.at, z.r)) damage(p, at, src.id, f, Math.max(1, Math.round(avg(p, src, at) * 0.5)), ev, true, false, 'holy'); });
       z.next += 1;
     }
   }
-  p.zones = p.zones?.filter((z) => z.until > t);
+  p.zones = p.zones?.filter((z) => z.until > t && z.next < z.until);
 }
 
 /** how far the purifying aura reaches */
@@ -137,7 +140,7 @@ export const CLERIC_CARDS: TraitDef[] = [
   inBranch(card('zealAura', '광신의 오라', 'law', ['오라'], 'cleric', '오라 안에서 처치 → 2턴 공격 속도 +30%', {
     triggers: (r) => [
       { id: '광신의 오라', when: 'kill', repeat: true, test: (p, c) => !!c.target && inAura(p, c.src, c.target), run: (_p, c) => {
-        c.src.zealUntil = r >= 2 ? Math.max(c.src.zealUntil ?? 0, c.t) + 2 : c.t + 2;
+        c.src.zealUntil = r >= 2 ? Math.min(Math.max(c.src.zealUntil ?? 0, c.t) + 2, c.t + 6) : c.t + 2;
       } },
       ...(r >= 3 ? [{ id: '광신 연타', when: 'hit', chance: 0.25, test: (p, c) => !!c.basic && c.t < (c.src.zealUntil ?? 0) && !!c.target && alive(p, c.target), run: (p, c) => strike(p, c.src, c.target!, c.t, c.ev, 1, false) } satisfies TriggerDef] : []),
     ],

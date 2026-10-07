@@ -24,7 +24,7 @@ it('a foe farther than the charge is walked toward, not leapt at', () => {
 
 it('an archer with marking cards goes for the marked foe over a nearer plain one', () => {
   const { p, u, foes } = scene('archer'); u.weapon = 'longbow'; u.gear = undefined; const [a, b] = foes; put(p, a!, 6, 4, 200); put(p, b!, 9, 4, 200);
-  u.traits = { rapidFire: 1, poisonArrow: 1 }; applyStatus(p, u, b!, 'mark', 0, []);
+  u.traits = { multiShot: 1, hunterInstinct: 1 }; applyStatus(p, u, b!, 'mark', 0, []);
   expect(bestTarget(p, u, 0)?.id).toBe(b!.id);
 });
 

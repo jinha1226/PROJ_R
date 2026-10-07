@@ -1,6 +1,6 @@
 import { applyStatus } from './status';
-import { alive, damage, entOf, posOf, type Party, type Unit } from './partyCore';
-import { foesNear, mostHurt } from './cardFx';
+import { alive, damage, entOf, posOf, stats, type Party, type Unit } from './partyCore';
+import { foesNear } from './cardFx';
 import { heal } from './kitEffects';
 import { linesOf } from './body';
 import { consume, isCorpse } from './corpses';
@@ -16,7 +16,7 @@ const duo = (id: string, name: string, pair: [BaseClass, BaseClass], who: BaseCl
 /** The combo cards (spec §4): one for each pair of the six soul classes, offered and working only in a body holding both. */
 const COMBOS: TraitDef[] = [
   duo('shatterDuo', '산산조각', ['warrior', 'mage'], 'warrior', ['냉기'], '빙결된 적을 근접으로 침 → 파쇄, 곁에 냉기',
-    { id: '산산조각', when: 'beforeHit', test: (_p, c) => on(c.target, 'freeze', c.t), run: (p, c) => {
+    { id: '산산조각', when: 'beforeHit', test: (p, c) => on(c.target, 'freeze', c.t) && stats(c.src, c.t, p).range <= 1, run: (p, c) => {
       c.src.attackMult = (c.src.attackMult ?? 1) * 2; delete c.target!.status.freeze;
       for (const f of foesNear(p, posOf(p, c.target!), 1)) if (f !== c.target) applyStatus(p, c.src, f, 'chill', c.t, c.ev, 1, true);
     } }),
@@ -44,13 +44,13 @@ const COMBOS: TraitDef[] = [
       for (const f of foesNear(p, posOf(p, c.target!), 1)) applyStatus(p, c.src, f, 'freeze', c.t, c.ev);
     } }),
   duo('lightArrow', '빛의 화살', ['archer', 'cleric'], 'any', ['신성'], '표식된 적 적중 → 체력 4 회복',
-    { id: '빛의 화살', when: 'hit', test: (_p, c) => on(c.target, 'mark', c.t), run: (p, c) => { const a = mostHurt(p); if (a) heal(p, c.src, a, 4, c.t, c.ev); } }),
+    { id: '빛의 화살', when: 'hit', test: (_p, c) => on(c.target, 'mark', c.t), run: (p, c) => heal(p, c.src, c.src, 4, c.t, c.ev) }),
   duo('prey', '사냥감', ['archer', 'rogue'], 'any', ['치명'], '표식된 체력 40% 미만 적 → 피해 2배',
     { id: '사냥감', when: 'beforeHit', test: (p, c) => on(c.target, 'mark', c.t) && entOf(p, c.target!.id)!.hp < entOf(p, c.target!.id)!.maxHp * 0.4, run: (_p, c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),
   // the second spear itself is thrown in cardsNecro.spear
   duo('boneArrow', '뼈 화살', ['archer', 'necromancer'], 'any', ['뼈'], '뼈 창이 표식된 적을 지남 → 그 적에게서 뼈 창 하나 더'),
   duo('bloodFeast', '피의 성찬', ['cleric', 'rogue'], 'any', ['출혈'], '출혈 중인 적 적중 → 체력 3 회복',
-    { id: '피의 성찬', when: 'hit', test: (_p, c) => on(c.target, 'bleed', c.t), run: (p, c) => { const a = mostHurt(p); if (a) heal(p, c.src, a, 3, c.t, c.ev); } }),
+    { id: '피의 성찬', when: 'hit', test: (_p, c) => on(c.target, 'bleed', c.t), run: (p, c) => heal(p, c.src, c.src, 3, c.t, c.ev) }),
   // the shield itself is given by the corpse explosion (classKit, the necromancer's innate)
   duo('lifeCycle', '생명의 순환', ['cleric', 'necromancer'], 'any', ['방패', '뼈'], '시체 폭발마다 보호막 3'),
   // the poison cloud itself is left where the snare goes off (snares.ts)

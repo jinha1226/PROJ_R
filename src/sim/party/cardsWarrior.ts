@@ -28,7 +28,8 @@ export function whirlwind(p: Party, u: Unit, t: number, ev: GEvent[], o: { at?: 
   try {
     for (const f of foesNear(p, at, reach)) {
       const fp = posOf(p, f); if (Math.hypot(fp.x - at.x, fp.y - at.y) > reach + 0.5) continue;
-      damage(p, t, u.id, f, amount, ev);
+      // the whirlwind's blades are hits (spec §1.5)
+      freeHit(p, u, f, amount, 'physical', t, ev);
       if (bleeds && alive(p, f)) applyStatus(p, u, f, 'bleed', t, ev, o.bleed ?? 1);
     }
   } finally { u.whirling = false; }

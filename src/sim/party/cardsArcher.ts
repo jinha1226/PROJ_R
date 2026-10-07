@@ -1,5 +1,5 @@
 import { applyStatus } from './status';
-import { alive, damage, freeHit, levelDmg, posOf, stats, type Party, type Unit } from './partyCore';
+import { alive, canHit, damage, freeHit, levelDmg, posOf, stats, type Party, type Unit } from './partyCore';
 import { foesNear } from './cardFx';
 import { tagsOf } from './classKit';
 import { beyond } from './cardsRanged';
@@ -39,7 +39,8 @@ export const ARCHER_CARDS: TraitDef[] = [
         if (next) arrow(p, c.src, next, 0.6, c.t, c.ev);
       } },
       { id: '다중 사격', when: 'hit', test: (p, c) => !!c.basic && (c.src.volleyUntil ?? 0) > c.t && ranged(p, c.src), run: (p, c) => {
-        for (const f of foesNear(p, posOf(p, c.src), r >= 2 ? 6 : 4)) if (f !== c.target) arrow(p, c.src, f, 0.6, c.t, c.ev, true);
+        // only what the archer can see and shoot: no sleeping camps, nothing behind walls
+        for (const f of foesNear(p, posOf(p, c.src), r >= 2 ? 6 : 4)) if (f !== c.target && !f.asleep && canHit(p, c.src, f, r >= 2 ? 6 : 4)) arrow(p, c.src, f, 0.6, c.t, c.ev, true);
       } },
     ],
   }, '6칸', '난사 중 처치 → 가장 가까운 적에게 화살 한 발 더'), VOLLEY, true),

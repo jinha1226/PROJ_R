@@ -2,7 +2,7 @@ export type ClassId = 'shell' | BaseClass;
 export type BaseClass = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue' | 'necromancer';
 export type WeaponId = 'fists' | 'pistol' | 'swordShield' | 'greataxe' | 'longbow' | 'crossbow' | 'staff' | 'wand' | 'mace' | 'symbol' | 'daggers' | 'knives';
 /** a class's own rule, always on (the class engraving) */
-export type Passive = 'none' | 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank' | 'rage' | 'farShot';
+export type Passive = 'none' | 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank';
 
 export interface WeaponDef { name: string; dmg: [number, number]; range: number; atk: number; look: 'sword' | 'axe' | 'bow' | 'crossbow' | 'mace' | 'dagger' | 'staff' | 'wand' | 'symbol' | 'pistol' | 'none'; shield?: boolean; note: string; guard?: number; cleave?: boolean; splash?: boolean; stun?: number }
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
