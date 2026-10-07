@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { newSurface } from '../../src/sim/overworld/worldSim';
 import { newDelve, delveTick, canAscend, canDescend } from '../../src/sim/delve/delveSim';
-import { BEACON_TURNS, startBeacon } from '../../src/sim/delve/beacon';
+import { BEACON_TURNS, enterPortal, startBeacon } from '../../src/sim/delve/beacon';
 import { blank, canTakeSoul, implant, implantCarried, print } from '../../src/sim/roam/roam';
 import { spawnFoe } from '../../src/sim/grid/foes';
 import { takeClone } from '../../src/sim/roam/carry';
@@ -34,13 +34,14 @@ it('a hero held at the base is not rolled again below', () => {
   expect(c.foundHeroes).toEqual(expect.arrayContaining(['aren', 'seraphine']));
 });
 
-it('once the portal opens the floor stops: no lift, no stairs, no more time', () => {
+it('once the clone goes into the portal the floor stops: no lift, no stairs, no more time', () => {
   const p = newDelve(11, 1);
   for (const u of p.units) if (u.side === 'foe') { entOf(p, u.id)!.alive = false; u.reaped = true; }
   startBeacon(p);
   const ev: GEvent[] = [];
   for (let i = 0; i < (BEACON_TURNS + 1) * 10; i++) ev.push(...delveTick(p, 0.1));
   expect(ev.some((e) => e.text === 'beaconOpen')).toBe(true);
+  enterPortal(p);
   entOf(p, 'hero')!.pos = { ...p.base };
   expect(canAscend(p)).toBe(false); expect(canDescend(p)).toBe(false);
   const t = p.time;

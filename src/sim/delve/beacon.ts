@@ -21,18 +21,24 @@ export function startBeacon(p: DelveParty): GEvent[] {
 }
 
 /**
- * While opening, a fight cuts it (the use stays). Once open it stays open, fight or not, until the clone steps onto it
- * (the floor is kept and left) or its time runs out (the use is spent). Stepping in on the last moment wins over closing.
+ * While opening, a fight cuts it (the use stays). Once open it stays open, fight or not, until the player sends the clone in
+ * (`enterPortal`) or its time runs out (the use is spent).
  */
 export function beaconStep(p: DelveParty, ev: GEvent[]): void {
   const b = p.beacon;
   if (!b) return;
   if (p.time < b.openAt) { if (p.combat) { p.beacon = undefined; ev.push({ t: p.time, type: 'buff', text: 'beaconCut' }); } return; }
   if (!b.shown) { b.shown = true; ev.push({ t: p.time, type: 'buff', text: 'beaconOpen', to: b.at }); }
-  if (living(p).some((u) => same(entOf(p, u.id)!.pos, b.at))) {
-    p.beaconAt = b.at; p.beacon = undefined; p.beaconUsed = true; p.left = true;
-    ev.push({ t: p.time, type: 'buff', text: 'beaconEnter', to: b.at });
-    return;
-  }
   if (p.time >= b.closeAt) { p.beacon = undefined; p.beaconUsed = true; ev.push({ t: p.time, type: 'buff', text: 'beaconClosed', to: b.at }); }
+}
+
+/** A clone stands on the open portal: the 들어가기 button can send it up (standing there alone does nothing). */
+export const canEnterPortal = (p: DelveParty): boolean => portalOpen(p) && living(p).some((u) => same(entOf(p, u.id)!.pos, p.beacon!.at));
+
+/** The player presses 들어가기: the floor is kept (left as it is, re-entered at this spot) and the clone rides up. */
+export function enterPortal(p: DelveParty): GEvent[] {
+  if (!canEnterPortal(p)) return [];
+  const at = p.beacon!.at;
+  p.beaconAt = at; p.beacon = undefined; p.beaconUsed = true; p.left = true;
+  return [{ t: p.time, type: 'buff', text: 'beaconEnter', to: at }];
 }

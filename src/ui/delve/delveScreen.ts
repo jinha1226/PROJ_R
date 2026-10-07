@@ -14,7 +14,7 @@ import { QuickSlots } from '../overworld/quickSlots';
 import { PlacePrompts, type Prompt } from '../overworld/placePrompt';
 import { command } from '../../sim/party/partySim';
 import { queueUltimate, ultSlots } from '../../sim/party/ultimate';
-import { canBeacon, portalOpen, startBeacon } from '../../sim/delve/beacon';
+import { canBeacon, canEnterPortal, enterPortal, portalOpen, startBeacon } from '../../sim/delve/beacon';
 import { aimNeeded } from './aim';
 import { ULT_KEYS } from '../overworld/partyFrames';
 import { clones, orderTo } from '../../sim/roam/roam';
@@ -396,7 +396,8 @@ export class DelveScreen implements Screen {
     const list: Prompt[] = [];
     if (this.p.s.map.stairs && canDescend(this.p)) list.push({ at: this.p.s.map.stairs, label: '▼ 계단', act: () => this.down() });
     const b = this.p.beacon;
-    if (b && portalOpen(this.p)) list.push({ at: b.at, label: `◎ 포탈 ${Math.max(0, Math.ceil(b.closeAt - this.p.time))}`, act: () => { this.paused = false; if (this.myTurn) { const to = b.at; this.live(command(this.p, { kind: 'move', cell: to })); } else orderTo(this.p, this.sel, b.at); } });
+    if (b && canEnterPortal(this.p)) list.push({ at: b.at, label: `◎ 들어가기 ${Math.max(0, Math.ceil(b.closeAt - this.p.time))}`, act: () => this.live(enterPortal(this.p)) });
+    else if (b && portalOpen(this.p)) list.push({ at: b.at, label: `◎ 포탈 ${Math.max(0, Math.ceil(b.closeAt - this.p.time))}`, act: () => { this.paused = false; if (this.myTurn) { const to = b.at; this.live(command(this.p, { kind: 'move', cell: to })); } else orderTo(this.p, this.sel, b.at); } });
     if (this.opts.onAscend && canAscend(this.p)) list.push({ at: this.p.base, label: '▲ 지상으로', act: () => { if (canAscend(this.p)) this.opts.onAscend!(takeParty(this.p)); } });
     this.prompts.update(this.rt, list);
   }
