@@ -7,7 +7,7 @@ import { navigate, supplies } from './delveBotPolicy';
 
 export const compositions: BaseClass[][] = [['warrior', 'archer', 'cleric'], ['warrior', 'mage', 'rogue'], ['archer', 'cleric', 'mage']];
 interface FloorStats { floor: number; common: number; fine: number; rare: number; trinkets: number; consumables: number; ore: number; crystal: number; bio: number; seconds: number }
-export interface Run { seed: number; comp: string; floor: number; general: boolean; lost: number; end: 'wipe' | 'general' | 'floor5' | 'timeout'; seconds: number; lastPolicy: string; idleSeconds: number; floors: FloorStats[] }
+export interface Run { seed: number; comp: string; floor: number; general: boolean; lost: number; end: 'wipe' | 'general' | 'floor5' | 'timeout'; seconds: number; lastPolicy: string; idleSeconds: number; fights?: number; fightsDeep?: number; chains?: number; chainsDeep?: number; floors: FloorStats[] }
 const floorStats = (floor: number): FloorStats => ({ floor, common: 0, fine: 0, rare: 0, trinkets: 0, consumables: 0, ore: 0, crystal: 0, bio: 0, seconds: 0 });
 const inventory = (p: DelveParty): Item[] => [...p.pack, ...living(p).flatMap((u) => u.gear ? Object.values(u.gear).filter((it):it is NonNullable<typeof it>=>!!it) : [])];
 export function runDelveBot(seed: number, comp: BaseClass[]): Run {
@@ -17,8 +17,8 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
   for (const cls of comp.slice(1)) { if (!print(p, cls, [])) throw Error('starting print failed'); p.bio -= BODY_COST; }
   for (const u of living(p)) { u.level = 1; u.xp = 0; }
   const seen = new Set(inventory(p).map((it) => it.id));
-  const result: Run = { seed, comp: comp.join('/'), floor: 1, general: false, lost: 0, end: 'timeout', seconds: 0, lastPolicy: '', idleSeconds: 0, floors: [floorStats(1)] };
-  let lastActivity = 0;
+  const result: Run = { seed, comp: comp.join('/'), floor: 1, general: false, lost: 0, end: 'timeout', seconds: 0, lastPolicy: '', idleSeconds: 0, fights: 0, fightsDeep: 0, chains: 0, chainsDeep: 0, floors: [floorStats(1)] };
+  let lastActivity = 0, fighting = false, deepThisFight = false;
   while (p.time < 3600) {
     const f = result.floors[result.floors.length - 1]!;
     supplies(p);
@@ -26,7 +26,11 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
     const ev = delveTick(p, 0.5);
     f.seconds += 0.5;
     if (ev.some((e) => ['move', 'die', 'loot', 'pickup', 'open', 'hit'].includes(e.type))) lastActivity = p.time;
+    // fights, and whether a chain of three or more effects happened in each (floors 4 and deeper count toward the deep share)
+    if (p.combat && !fighting) { result.fights!++; if (p.floor >= 4) result.fightsDeep!++; deepThisFight = false; }
+    fighting = !!p.combat;
     for (const e of ev) {
+      if (e.text === 'chain' && e.type === 'buff') { result.chains!++; if (p.floor >= 4 && !deepThisFight) { deepThisFight = true; result.chainsDeep!++; } }
       if (e.type === 'loot' && (e.text === 'bio' || e.text === 'ore' || e.text === 'crystal')) f[e.text] += e.amount ?? 0;
       if (e.type === 'die' && ['hero', 'c1', 'c2'].includes(e.dst ?? '')) result.lost++;
       if (e.type === 'victory') result.general = true;
