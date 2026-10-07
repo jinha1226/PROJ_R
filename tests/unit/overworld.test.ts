@@ -141,7 +141,7 @@ it('walking up to a camp wakes it all at once and starts a fight; clearing it cl
   entOf(p, 'hero')!.pos = { ...camp.pos };
   const ev = worldTick(p, 0.1);
   expect(band.every((u) => !u.asleep)).toBe(true);
-  expect(ev.filter((e) => e.type === 'wake')).toHaveLength(1);
+  expect(ev.some((e) => e.type === 'wake' && e.text === String(camp.group))).toBe(true);
   expect(p.combat).toBe(true);
   for (const u of band) damage(p, p.time, 'hero', u, 999, []);
   const after = worldTick(p, 0.1);

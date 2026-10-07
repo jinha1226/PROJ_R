@@ -10,7 +10,8 @@ it('has exactly 12 common, 40 class (8 each), 12 empty-body, 10 duo and six oath
   expect(defs).toHaveLength(80);
   expect(defs.filter(d=>d.pool==='shell')).toHaveLength(12);
   expect(defs.filter(d=>d.pool==='common')).toHaveLength(12);
-  for(const cls of BASE_CLASSES) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
+  // the necromancer's cards arrive with plan C3b task 3
+  for(const cls of BASE_CLASSES.filter((c)=>c!=='necromancer')) expect(defs.filter(d=>d.pool===cls),cls).toHaveLength(8);
   expect(defs.filter(d=>d.pool==='duo')).toHaveLength(10);
   expect(defs.filter(d=>d.pool==='keystone')).toHaveLength(6);
   expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||!!d.kind))).toBe(true);

@@ -1,6 +1,6 @@
-export type AdvancedClass = 'berserker' | 'guardian' | 'sniper' | 'hunter' | 'elementalist' | 'necromancer' | 'inquisitor' | 'healer' | 'assassin' | 'toxicologist';
+export type AdvancedClass = 'berserker' | 'guardian' | 'sniper' | 'hunter' | 'elementalist' | 'inquisitor' | 'healer' | 'assassin' | 'toxicologist';
 export type ClassId = 'shell' | BaseClass | AdvancedClass;
-export type BaseClass = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue';
+export type BaseClass = 'warrior' | 'archer' | 'mage' | 'cleric' | 'rogue' | 'necromancer';
 export type WeaponId = 'fists' | 'pistol' | 'swordShield' | 'greataxe' | 'longbow' | 'crossbow' | 'staff' | 'wand' | 'mace' | 'symbol' | 'daggers' | 'knives';
 /** a class's own rule, always on (the class engraving) */
 export type Passive = 'none' | 'counter' | 'firstShot' | 'shatter' | 'guardian' | 'flank' | 'rage' | 'farShot';
@@ -40,7 +40,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   assassin: { name: '암살자', hp: 55, move: 0.75, weapons: ['daggers'], passive: 'none', passiveName: '암살자' },
   toxicologist: { name: '독술사', hp: 55, move: 0.75, weapons: ['daggers'], passive: 'none', passiveName: '독술사' },
 };
-export const BASE_CLASSES: BaseClass[] = ['warrior', 'archer', 'mage', 'cleric', 'rogue'];
+export const BASE_CLASSES: BaseClass[] = ['warrior', 'archer', 'mage', 'cleric', 'rogue', 'necromancer'];
 
 export type FoeId = 'goblin' | 'archer' | 'brute' | 'ghoul' | 'shaman' | 'warlord';
 export const FOES: Record<FoeId, { hp: number; dmg: [number, number]; range: number; atk: number; move: number }> = {

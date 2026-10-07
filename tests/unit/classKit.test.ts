@@ -8,7 +8,7 @@ import { BASE_CLASSES, type ClassId } from '../../src/sim/party/partyDefs';
 import type { GEvent } from '../../src/sim/grid/types';
 it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, ally = p.units[1]!, ev: GEvent[] = [];
-  u.cls = cls; u.weapon = { warrior: 'swordShield', archer: 'longbow', mage: 'staff', cleric: 'mace', rogue: 'daggers' }[cls] as typeof u.weapon;
+  u.cls = cls; u.weapon = { warrior: 'swordShield', archer: 'longbow', mage: 'staff', cleric: 'mace', rogue: 'daggers', necromancer: 'staff' }[cls] as typeof u.weapon;
   expect(sourcesOf(p,u)).toHaveLength(2);
   entOf(p,f.id)!.pos={x:4,y:4};entOf(p,p.units[4]!.id)!.pos={x:3,y:5};
   entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
@@ -25,6 +25,11 @@ it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (
   } else if(cls==='cleric') {
     emit(p,'allyCrisis',{t:0,src:u,target:ally,ev});expect(entOf(p,ally.id)!.hp).toBe(23);
     emit(p,'combatStart',{t:0,src:u,ev});expect(p.units.filter(x=>x.side==='hero').map(x=>x.shield)).toEqual([10,10,10]);
+  } else if(cls==='necromancer') {
+    // a kill: either a skeleton rises from the body or the body bursts on the foes beside it
+    const near=p.units[4]!; entOf(p,near.id)!.hp=entOf(p,near.id)!.maxHp=1000; entOf(p,f.id)!.alive=false;
+    emit(p,'kill',{t:0,src:u,target:f,ev});
+    expect(f.raised).toBe(true);
   } else {
     f.order={kind:'attack',target:ally.id};emit(p,'beforeHit',{t:0,src:u,target:f,ev});expect(u.attackMult).toBe(1.6);
     emit(p,'kill',{t:0,src:u,target:f,ev});expect(u.hiddenUntil).toBe(1);

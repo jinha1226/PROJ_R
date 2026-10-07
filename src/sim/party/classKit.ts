@@ -15,6 +15,7 @@ export { proficient } from '../delve/gear';
 import { proficient, worn } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
+import { consume, isCorpse } from './corpses';
 import { SHELL_INNATE } from './cardsShell';
 import { sfTags } from '../base/workshop';
 import { MEMORIES } from './memories';
@@ -46,6 +47,15 @@ const rogue: TriggerDef[] = [
   { id: '배후 급소', when: 'beforeHit', test: (p,c) => !!c.target && targetOf(p,c.target,c.t)?.id !== c.src.id, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 1.6; } },
   { id: '잠행', when: 'kill', run: (_p,c) => { c.src.hiddenUntil = c.t + 1+T.stealth(c.src); } },
 ];
+/** the necromancer's innates (C3 spec §3.6): a fifth of kills raise a skeleton from the body; every other body bursts (bone damage, repeat) */
+const necromancer: TriggerDef[] = [
+  { id: '망자의 부름', when: 'kill', chance: 0.2, test: (p,c) => !!c.target && isCorpse(p,c.target), run: (p,c) => { if (summon(p,c.src,posOf(p,c.target!),c.t,c.ev)) consume(c.target!); } },
+  { id: '시체 폭발', when: 'kill', repeat: true, test: (p,c) => !!c.target && isCorpse(p,c.target), run: (p,c) => {
+    const body = c.target!, at = posOf(p, body), amount = Math.max(1, Math.round(entOf(p, body.id)!.maxHp * 0.15));
+    consume(body);
+    for (const f of nearby(p, body, 1, 'foe')) if (dist(posOf(p, f), at) <= 1) damage(p, c.t, c.src.id, f, amount, c.ev, true, false, 'bone');
+  } },
+];
 const kit = (innate: TriggerDef[], ultimate: UltId, ultCd: number, proficient: WeaponFamily[]): Kit => ({ innate, ultimate, ultCd, proficient });
 const extra = (base: TriggerDef[], def: TriggerDef) => [...base,def];
 export const KITS: Record<ClassId, Kit> = {
@@ -57,13 +67,13 @@ export const KITS: Record<ClassId, Kit> = {
   sniper: kit(extra(archer,{ id: '저격', when: 'beforeHit', test: (p,c) => !!c.target && dist(posOf(p,c.src),posOf(p,c.target)) >= 5, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'pierceShot',35,['bow','crossbow']),
   hunter: kit(extra(archer,{ id: '속박', when: 'hit', chance: 0.25, run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'freeze',c.t,c.ev); } }),'bleedRain',35,['bow','crossbow','dagger']),
   elementalist: kit(extra(mage,{ id: '원소 연쇄', when: 'fireball', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,p.s.rng.pick(['chill','shock']),c.t,c.ev); } }),'elementStorm',45,['staff']),
-  necromancer: kit(extra(mage,{ id: '해골', when: 'kill', run: (p,c) => { if(c.target && !c.target.raised && summon(p,c.src,posOf(p,c.target),c.t,c.ev)) c.target.raised = true; } }),'deadHost',45,['staff']),
+  necromancer: kit(necromancer,'deadHost',45,['staff']),
   inquisitor: kit(extra(cleric,{ id: '심판', when: 'hit', run: (p,c) => { const a = p.units.filter(x=>x.side==='hero' && alive(p,x)).sort((a,b)=>entOf(p,a.id)!.hp/entOf(p,a.id)!.maxHp-entOf(p,b.id)!.hp/entOf(p,b.id)!.maxHp)[0]; if(a) heal(p,c.src,a,2,c.t,c.ev); } }),'judgement',45,['mace','relic']),
   healer: kit(extra(cleric,{ id: '넘치는 빛', when: 'overflow', run: (_p,c) => { if(c.target) addShield(c.target,c.amount ?? 0); } }),'longSanctum',45,['mace','relic']),
   assassin: kit(extra(rogue,{ id: '처형술', when: 'beforeHit', test: (p,c) => !!c.target && entOf(p,c.target.id)!.hp < entOf(p,c.target.id)!.maxHp * .35, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'deathDance',35,['dagger']),
   toxicologist: kit(extra(rogue,{ id: '독술', when: 'hit', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'poison',c.t,c.ev); } }),'toxicFog',35,['dagger']),
 };
-export const LINE: Partial<Record<ClassId, BaseClass>> = { berserker:'warrior', guardian:'warrior', sniper:'archer', hunter:'archer', elementalist:'mage', necromancer:'mage', inquisitor:'cleric', healer:'cleric', assassin:'rogue', toxicologist:'rogue' };
+export const LINE: Partial<Record<ClassId, BaseClass>> = { berserker:'warrior', guardian:'warrior', sniper:'archer', hunter:'archer', elementalist:'mage', inquisitor:'cleric', healer:'cleric', assassin:'rogue', toxicologist:'rogue' };
 export function kitOf(u: Unit): Kit { return KITS[u.cls ?? 'shell']; }
 /** the kits of every soul in the body (none for the empty body); a unit given a class directly uses that class's kit */
 export const kitsOf = (u: Unit): Kit[] => (u.souls?.length ? linesOf(u).map((c) => KITS[c]) : [KITS[u.cls ?? 'shell']]);

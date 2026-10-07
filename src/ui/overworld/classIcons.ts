@@ -11,6 +11,7 @@ const PATH: Partial<Record<ClassId, string>> = {
   mage: '<path d="M12 3 L14 10 L21 12 L14 14 L12 21 L10 14 L3 12 L10 10 Z"/>',
   cleric: '<path d="M12 4 V20 M6 9 H18"/><circle cx="12" cy="9" r="7" fill="none" stroke-opacity="0.5"/>',
   rogue: '<path d="M6 18 L15 9 L18 4 L13 7 L4 16 Z M5 15 L9 19"/>',
+  necromancer: '<path d="M7 11 a5 5 0 0 1 10 0 v4 h-2 v3 h-6 v-3 h-2 z"/><circle cx="10" cy="11" r="1.2"/><circle cx="14" cy="11" r="1.2"/>',
 };
 
 export function classIcon(cls: ClassId): string {
@@ -20,7 +21,7 @@ export function classIcon(cls: ClassId): string {
 /** the colour that marks each class on the frames */
 export const CLASS_TINT: Partial<Record<ClassId, string>> = {
   shell: '#9aa4b0', warrior: '#7aa8ff', berserker: '#ff7a5a', archer: '#8fdc6a', sniper: '#c8d070',
-  mage: '#c890ff', cleric: '#ffd76a', rogue: '#ff6a8a',
+  mage: '#c890ff', cleric: '#ffd76a', rogue: '#ff6a8a', necromancer: '#22c8a0',
 };
 
 export const FOE_NAME: Record<FoeId, string> = { ghoul: '구울', shaman: '주술사', warlord: '마왕군 장군', goblin: '고블린', archer: '고블린 궁수', brute: '오우거' };
