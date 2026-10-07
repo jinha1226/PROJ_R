@@ -14,9 +14,9 @@ it('has exactly 12 common, 40 class (8 each), 10 duo and six oath cards: 68', ()
   expect(defs.filter(d=>d.pool==='keystone')).toHaveLength(6);
   expect(defs.every(d=>d.tags.length>0 && (!!d.passive||!!d.trigger||!!d.triggers||!!d.kind))).toBe(true);
 });
-it('offers two class cards and one common, excluding maxed traits', () => {
-  const p=partyRoom(),u=p.units[0]!;u.traits={shieldPro:3};
-  for(let k=0;k<100;k++) {const cards=rollOffer(p,u);expect(cards.filter(id=>TRAITS[id]!.pool==='warrior')).toHaveLength(2);expect(cards.filter(id=>TRAITS[id]!.pool==='common')).toHaveLength(1);expect(cards).not.toContain('shieldPro');}
+it('offers two class cards and one common or duo, excluding maxed cards', () => {
+  const p=partyRoom(),u=p.units[0]!;u.traits={thorns:2};u.level=4;
+  for(let k=0;k<100;k++) {const cards=rollOffer(p,u);expect(cards.filter(id=>TRAITS[id]!.pool==='warrior')).toHaveLength(2);expect(cards.filter(id=>TRAITS[id]!.pool==='common'||TRAITS[id]!.pool==='duo')).toHaveLength(1);expect(cards).not.toContain('thorns');}
 });
 it('doubles matching tag weights over 2000 fixed-seed offers', () => {
   const p=partyRoom(undefined,812),u=p.units[0]!;u.traits={finish:1};u.weapon='fists';let tagged=0,plain=0;

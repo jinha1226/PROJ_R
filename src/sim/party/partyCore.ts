@@ -28,6 +28,8 @@ export interface Unit {
   /** card state: rage built from blows taken, damage stored for the next blow, judgment marks, when a foe was last betrayed, chills taken toward a freeze */
   markFirst?: boolean; cycle?: number;
   martyrFloor?: number;
+  /** the memory the soul in this body carried from its life (a starting rule) */
+  memory?: string;
   rage?: number; nextFlat?: number; judge?: number; betrayedAt?: number; chillHits?: number;
   /** who last struck this foe and when, and everyone who did within the last turn (teamwork laws); the floor a last-stand law was used on */
   lastHitBy?: string; lastHitAt?: number; hitters?: { id: string; t: number }[]; lastStandFloor?: number;

@@ -36,7 +36,7 @@ export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
     refitHp(p, u);
     ev.push({ t: p.time, type: 'levelUp', src: u.id, dst: u.id, amount: u.level });
   }
-  if (u.picks && !u.offer?.length) u.offer = rollOffer(p, u);
+  if (u.picks && !u.offer?.length) offerNext(p, u);
   u.promoteReady = promotionOptions(p,u).some(o=>o.met);
 }
 
@@ -51,6 +51,12 @@ export function awardXp(p: Party, fallen: Unit, ev: GEvent[]): void {
   }
 }
 
+/** Rolls the next offer; with nothing left to offer, the remaining picks are spent rather than left waiting. */
+function offerNext(p: Party, u: Unit): void {
+  u.offer = rollOffer(p, u);
+  if (!u.offer.length) { u.picks = 0; u.offer = undefined; }
+}
+
 /** The player picks one of the offered traits: its rank goes up (toughness refits health), the next offer comes if picks are left. */
 export function pickTrait(p: Party, id: string, trait: TraitId): GEvent[] {
   const u = p.units.find((x) => x.id === id);
@@ -58,6 +64,6 @@ export function pickTrait(p: Party, id: string, trait: TraitId): GEvent[] {
   u.traits = { ...u.traits, [trait]: rank(u, trait) + 1 };
   u.picks--;
   if(TRAITS[trait]?.passive)refitHp(p,u);
-  u.offer = u.picks ? rollOffer(p, u) : undefined;
+  if (u.picks) offerNext(p, u); else u.offer = undefined;
   return [{ t: p.time, type: 'buff', src: id, dst: id, text: 'trait' }];
 }
