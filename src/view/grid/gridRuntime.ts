@@ -66,7 +66,7 @@ export class GridRuntime {
   private readonly pixel: PixelPass;
   /** rough pixel look on/off */
   pixelated = true;
-  private playback = new Playback();
+  private playback = new Playback(); private partyPace = false;
   private readonly hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
   /** a dim fill round the hero so it never vanishes between torch pools */
   private readonly light = new THREE.PointLight('#ffd8a8', 4, 6, 1.6);
@@ -157,7 +157,7 @@ export class GridRuntime {
     this.actors = new GridActors(this.lib);
     scene.add(this.terrain.root, this.torches.root, this.elements.root, this.actors.root);
     this.mapRef = s.map;
-    this.playback = new Playback();
+    this.playback = new Playback(this.partyPace);
     this.pending.clear();
     this.actors.sync(s);
     this.center.set(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
@@ -184,6 +184,8 @@ export class GridRuntime {
   hurry(): void {
     this.playback.hurry();
   }
+  /** The party screens' pacing: attacks play out and chains show one effect at a time (the screen waits for the show in a fight). */
+  partyShow(): void { this.partyPace = true; this.playback = new Playback(true); }
   get busy(): boolean {
     return this.playback.busy;
   }

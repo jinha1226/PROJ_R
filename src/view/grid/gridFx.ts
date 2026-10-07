@@ -11,6 +11,10 @@ const HITSTOP = 0.06;
 interface Bolt { mesh: THREE.Mesh; trail: THREE.Mesh; from: THREE.Vector3; to: THREE.Vector3; t: number; total: number; done: () => void }
 
 /** Bolts, numbers, hit-stop, camera shake, aim lines and intent icons. */
+/** how long a label keeps its place in the stack, and how far each one above it rises (px) */
+const LABEL_STACK_MS = 700;
+const LABEL_STACK_PX = 17;
+
 export class GridFx {
   readonly transient: TransientFx;
   private readonly numbers: DamageNumbers;
@@ -58,9 +62,15 @@ export class GridFx {
 
   /** A floating label over a point; `height` lifts it (loot floats above the blow that dropped it). */
   number(text: string, kind: NumberKind, at: THREE.Vector3, height = 2.0): void {
-    const p = this.project(at.clone().setY(height));
-    this.numbers.show(text, kind, p.left, p.top);
+    const p = this.project(at.clone().setY(height)), now = performance.now();
+    // labels landing on the same spot within a moment stack upward instead of piling into one blot
+    this.recent = this.recent.filter((r) => now - r.at < LABEL_STACK_MS);
+    const under = this.recent.filter((r) => Math.abs(r.left - p.left) < 46 && Math.abs(r.top - p.top) < 60).length;
+    this.recent.push({ left: p.left, top: p.top, at: now });
+    this.numbers.show(text, kind, p.left, p.top - under * LABEL_STACK_PX);
   }
+  /** labels shown in the last moment (screen spot and time), for stacking */
+  private recent: { left: number; top: number; at: number }[] = [];
 
   /** The screen edge flashes red when the hero is hurt. */
   hurt(): void {

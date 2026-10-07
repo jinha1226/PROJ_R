@@ -137,7 +137,7 @@ export class DelveScreen implements Screen {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still()) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still() && !(this.p.combat && this.rt?.busy)) {
         const t0 = this.p.time;
         const ev = delveTick(this.p, dt * RATE * this.speed);
         this.movedLast = ev.some((e) => e.type === 'move');
@@ -222,7 +222,7 @@ export class DelveScreen implements Screen {
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer());
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer()); this.rt.partyShow();
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = loadDot();
     // a light touch of glow: torches and lamps bleed a little, nothing blows out

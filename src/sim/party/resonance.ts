@@ -53,7 +53,7 @@ const floorOf = (p: Party) => (p as { floor?: number }).floor ?? 0;
 /** The resonance laws that work as triggers, for the clone's lit tags. */
 export function resonanceTriggers(p: Party, u: Unit): TriggerDef[] {
   const n = tagCount(p, u), lit = (tag: Tag, level: 1 | 2) => (n[tag] ?? 0) >= RESONANCE_AT[level - 1]!, out: TriggerDef[] = [];
-  const add = (tag: Tag, level: 1 | 2, def: Omit<TriggerDef, 'id'>) => { if (lit(tag, level)) out.push({ id: `공명:${tag}${RESONANCE_AT[level - 1]!}`, ...def }); };
+  const add = (tag: Tag, level: 1 | 2, def: Omit<TriggerDef, 'id'>) => { if (lit(tag, level)) out.push({ id: `${tag} 공명${level === 2 ? ' 2단' : ''}`, ...def }); };
   add('근접', 1, { when: 'hit', chance: 0.1, test: (pp, c) => !!c.target && melee(pp, c.src, c.t), run: (pp, c) => applyStatus(pp, c.src, c.target!, 'exposed', c.t, c.ev) });
   add('근접', 2, { when: 'kill', test: (pp, c) => melee(pp, c.src, c.t), run: (_pp, c) => { c.src.nextAt = c.t; } });
   add('원거리', 2, { when: 'hit', chance: 0.25, test: (pp, c) => !!c.target && alive(pp, c.target) && !melee(pp, c.src, c.t), run: (pp, c) => strike(pp, c.src, c.target!, c.t, c.ev, 1, false) });
@@ -63,7 +63,7 @@ export function resonanceTriggers(p: Party, u: Unit): TriggerDef[] {
   add('방패', 1, { when: 'block', test: (_pp, c) => !!c.target, run: (pp, c) => applyStatus(pp, c.src, c.target!, 'exposed', c.t, c.ev) });
   add('은신', 1, { when: 'kill', run: (_pp, c) => { c.src.hiddenUntil = Math.max(c.src.hiddenUntil, c.t + 1); } });
   add('은신', 2, { when: 'beforeHit', test: (_pp, c) => c.t < c.src.hiddenUntil, run: (_pp, c) => { c.src.nextCrit = true; } });
-  if (lit('은신', 2)) out.push({ id: '공명:은신6 유지', when: 'hit', chance: 0.5, run: (_pp, c) => { c.src.hiddenUntil = Math.max(c.src.hiddenUntil, c.t + 1); } });
+  if (lit('은신', 2)) out.push({ id: '은신 공명 2단', when: 'hit', chance: 0.5, run: (_pp, c) => { c.src.hiddenUntil = Math.max(c.src.hiddenUntil, c.t + 1); } });
   add('치유', 1, { when: 'overflow', test: (_pp, c) => !!c.target && (c.amount ?? 0) > 0, run: (_pp, c) => addShield(c.target!, c.amount ?? 0) });
   add('협공', 1, { when: 'beforeHit', test: (_pp, c) => !!c.target?.lastHitBy && c.target.lastHitBy !== c.src.id && c.t - (c.target.lastHitAt ?? -9) < 1, run: (_pp, c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 1.3; } });
   add('협공', 2, { when: 'hit', test: (_pp, c) => !!c.target && !active(c.target, 'stun', c.t) && new Set((c.target.hitters ?? []).filter((h) => c.t - h.t < 1).map((h) => h.id)).size >= 3, run: (pp, c) => applyStatus(pp, c.src, c.target!, 'stun', c.t, c.ev) });

@@ -22,7 +22,17 @@ export class WorldLog {
   /** Turns a batch of world events into log lines. */
   read(p: Party, ev: GEvent[]): void {
     const name = (id?: string) => { const u = id ? unitOf(p, id) : undefined; return u?.cls ? CLASSES[u.cls].name : u?.foe ? FOE_NAME[u.foe] : '?'; };
+    // what fired at this moment, in order, for the chain line
+    let moment = NaN, fired: { text: string; src?: string }[] = [];
     for (const e of ev) {
+      if (e.t !== moment) { moment = e.t; fired = []; }
+      if ((e.type === 'buff' || e.type === 'react') && e.text && /[가-힣]/.test(e.text)) fired.push({ text: e.text, src: e.src });
+      if (e.type === 'buff' && e.text === 'chain') {
+        // only what this clone's action set off (others acting at the same moment are their own story)
+        const own = fired.filter((f) => f.src === e.src).map((f) => f.text).filter((t, i, a) => t !== a[i - 1]);
+        const shown = own.length > 6 ? [...own.slice(0, 5), '…'] : own;
+        this.add(e.t, `${name(e.src)} 연쇄 ×${e.amount} · ${shown.join(' → ')}`, 'good'); fired = []; continue;
+      }
       const u = e.dst ? unitOf(p, e.dst) : undefined;
       const src = e.src ? unitOf(p, e.src) : undefined;
       // the blow-by-blow, as a roguelike tells it: who hit whom for how much, misses and blocks, heals

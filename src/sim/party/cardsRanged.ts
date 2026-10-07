@@ -33,7 +33,7 @@ function beyond(p: Party, u: Unit, target: Unit): Unit[] {
 const ARCHER: TraitDef[] = [
   card('huntMark', '사냥 표식', 'law', ['원거리'], 'archer', '전투 첫 사격 → 표식', {
     triggers: (r) => [
-      { id: '사냥 표식 준비', when: 'combatStart', run: (_p, c) => { c.src.markFirst = true; } },
+      { id: '사냥 표식', when: 'combatStart', run: (_p, c) => { c.src.markFirst = true; } },
       { id: '사냥 표식', when: 'beforeHit', test: (p, c) => !!c.src.markFirst && !!c.target && ranged(p, c.src), run: (p, c) => { c.src.markFirst = false; applyStatus(p, c.src, c.target!, 'mark', c.t, c.ev); } },
       ...(r >= 2 ? [tr({ id: '표식 이동', when: 'kill', test: (_p, c) => marked(c.target, c.t), run: (p, c) => {
         const at = posOf(p, c.target!), next = p.units.filter((f) => f.side === 'foe' && alive(p, f)).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0];

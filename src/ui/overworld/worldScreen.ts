@@ -151,7 +151,7 @@ export class WorldScreen implements Screen {
       // while the pod falls in the world waits; then the clone steps out
       if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
       this.handOver();
-      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing && !this.p.waiting && !this.still()) {
+      if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing && !this.p.waiting && !this.still() && !(this.p.combat && this.rt?.busy)) {
         const t0 = this.p.time;
         const ev = worldTick(this.p, dt * RATE * this.speed);
         this.movedLast = ev.some((e) => e.type === 'move');
@@ -210,7 +210,7 @@ export class WorldScreen implements Screen {
     this.warned.clear();
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p, nature: this.opts.nature });
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p, nature: this.opts.nature }); this.rt.partyShow();
     this.rt.setZoom(this.zoom);
     this.rt.addOverlay(this.build.view.root);
     this.rt.pixelated = loadDot();

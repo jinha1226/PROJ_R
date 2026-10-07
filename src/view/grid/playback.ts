@@ -10,6 +10,21 @@ export const CATCHUP = 3;
 
 interface Cue { at: number; ev: GEvent }
 
+/** party fights: a swing or a shot holds until its blow lands, so the attack plays out before what it caused */
+const SWING_HOLD = 0.26;
+/** party fights: each effect of a chain shows this long after the one before... */
+const CHAIN_GAP = 0.1;
+/** ...but a whole chain never holds the show longer than this */
+const CHAIN_MAX = 1.0;
+const korean = (s?: string) => !!s && /[가-힣]/.test(s);
+/** In a party fight, how long the rest of the show waits after this event (an attack's wind-up, a chain's beat, a fall). */
+function partyHold(ev: GEvent): number {
+  if (ev.type === 'bump' || ev.type === 'shoot') return SWING_HOLD;
+  if ((ev.type === 'buff' && korean(ev.text)) || ev.type === 'react') return CHAIN_GAP;
+  if (ev.type === 'die') return 0.12;
+  return 0;
+}
+
 /**
  * Moments the rest of a show waits for, so a combo reads in order: the dash step lands before its blow, a leap
  * lands before its strikes, a weave or parry shows before the counter, a shove before the shot that follows.
@@ -29,6 +44,12 @@ export class Playback {
   private cues: Cue[] = [];
   private now = 0;
   private rate = 1;
+  /** the moment (sim time) whose chain is being spaced out, and how much it has held so far */
+  private chainAt = NaN;
+  private chainHeld = 0;
+
+  /** party: the party screens' pacing (attacks play out, chains in sequence); otherwise the grid game's quick overlapping show */
+  constructor(private readonly party = false) {}
 
   push(events: GEvent[], startTime: number): void {
     const base = Math.max(this.now, this.cues.length ? this.cues[this.cues.length - 1]!.at : 0);
@@ -55,11 +76,20 @@ export class Playback {
     while (this.cues.length && this.cues[0]!.at <= this.now + 1e-9) {
       const ev = this.cues.shift()!.ev;
       out.push(ev);
-      const hold = holdAfter(ev);
+      const hold = this.party ? this.partyHold(ev) : holdAfter(ev);
       if (hold) { for (const c of this.cues) c.at += hold; break; }
     }
     if (!this.cues.length) this.rate = 1;
     return out;
+  }
+
+  private partyHold(ev: GEvent): number {
+    const h = partyHold(ev);
+    if (h !== CHAIN_GAP) return h;
+    if (ev.t !== this.chainAt) { this.chainAt = ev.t; this.chainHeld = 0; }
+    const left = Math.max(0, CHAIN_MAX - this.chainHeld);
+    this.chainHeld += Math.min(h, left);
+    return Math.min(h, left);
   }
 
   get busy(): boolean {

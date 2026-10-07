@@ -25,7 +25,7 @@ const CLERIC: TraitDef[] = [
     } }),
   }, '3에 폭발'),
   card('answeredPrayer', '응답하는 기도', 'law', ['치유'], 'cleric', '아군이 위기 → 즉시 치유 20 + 보호막 10', {
-    triggers: (r) => (['allyCrisis', 'crisis'] as const).map((when): TriggerDef => ({ id: `응답하는 기도${when === 'crisis' ? ' (자신)' : ''}`, when, run: (p, c) => {
+    triggers: (r) => (['allyCrisis', 'crisis'] as const).map((when): TriggerDef => ({ id: '응답하는 기도', when, run: (p, c) => {
       const who = when === 'crisis' ? c.src : c.target;
       for (const a of r >= 2 ? heroes(p) : who ? [who] : []) { heal(p, c.src, a, 20, c.t, c.ev); addShield(a, 10, c.src); }
     } })),

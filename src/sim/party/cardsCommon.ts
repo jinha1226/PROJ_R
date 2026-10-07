@@ -20,8 +20,8 @@ export const COMMON_CARDS: TraitDef[] = [
   card('initiative', '선제', 'law', ['치명'], 'common', '전투 시작 → 즉시 행동, 첫 공격 치명', {
     triggers: (r) => [
       { id: '선제', when: 'combatStart', run: (_p, c) => { c.src.nextAt = c.t; c.src.nextCrit = true; if (r >= 2) c.src.critUntilKill = true; } },
-      { id: '선제 유지', when: 'beforeHit', test: (_p, c) => !!c.src.critUntilKill, run: (_p, c) => { c.src.nextCrit = true; } },
-      { id: '선제 끝', when: 'kill', test: (_p, c) => !!c.src.critUntilKill, run: (_p, c) => { c.src.critUntilKill = false; } },
+      { id: '선제', when: 'beforeHit', test: (_p, c) => !!c.src.critUntilKill, run: (_p, c) => { c.src.nextCrit = true; } },
+      { id: '선제', when: 'kill', test: (_p, c) => !!c.src.critUntilKill, run: (_p, c) => { c.src.critUntilKill = false; } },
     ],
   }, '첫 처치까지 모든 공격 치명'),
   card('unyielding', '불굴', 'law', ['생존'], 'common', '위기 → 보호막 최대체력 30%, 붙은 적 노출', {
