@@ -17,7 +17,7 @@ const STICK = 1.35;
 const REACTIONS: [StatusId, StatusId][] = [['burn', 'chill'], ['burn', 'shock'], ['chill', 'shock'], ['burn', 'poison']];
 /** cards that pay off a kill, and cards that pay off a mark */
 const ON_KILL = ['finish', 'bloodthirst', 'shadowStep', 'morale', 'plunder', 'poisonNova'];
-const ON_MARK = ['rapidFire', 'poisonArrow'];
+const ON_MARK = ['multiShot', 'hunterInstinct'];
 
 const on = (u: Unit, id: StatusId, t: number) => (u.status[id]?.until ?? 0) > t;
 const states = (u: Unit, t: number) => Object.values(u.status).filter((s) => (s?.until ?? 0) > t).length;

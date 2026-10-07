@@ -20,6 +20,7 @@ import { isGun, magOf } from './ammo';
 import { elementAmp } from './cardsMage';
 import { necroAmp } from './cardsNecro';
 import { shoutAmp } from './cardsWarrior';
+import { elementShooterAmp } from './cardsArcher';
 
 export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
 
@@ -55,6 +56,8 @@ export interface Unit {
   spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
   /** a return shot under way (the empty body's return fire, rank 3) */
   returnFiring?: boolean;
+  /** the archer's volley ending and its piercing build-up */
+  volleyUntil?: number; pierceStack?: number;
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
@@ -219,6 +222,8 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
     amount=Math.round(amount*G.dmg(attacker)*vulnerable);
   }
+  // element archer mastery: fire and cold, multiplied
+  if (attacker?.traits?.elementShooter) amount = Math.round(amount * elementShooterAmp(attacker, kind));
   // shout mastery (warrior): a stunned or taunted foe takes more, multiplied
   if (attacker?.traits?.shoutAmp) amount = Math.round(amount * shoutAmp(attacker, dst, t));
   // a curse: the foe takes a fifth more from anyone
@@ -355,6 +360,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
   if (dodge || blocked || !p.s.rng.chance(odds.hit)) {
     ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev });
     if (basic && isGun(u)) u.hitStreak = 0;
+    emit(p, 'miss', { t, src: u, target, basic, ev });
     // target lock (the empty body's convert card): a miss makes the next shot critical
     if (rank(u, 'targetLock') && isGun(u)) { u.nextCrit = true; if (rank(u, 'targetLock') >= 2) u.critShots = Math.max(u.critShots ?? 0, 1); ev.push({ t, type: 'buff', src: u.id, dst: u.id, text: '표적 분석' }); }
     return;

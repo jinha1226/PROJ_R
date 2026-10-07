@@ -53,7 +53,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
     case 'sanctum': case 'longSanctum': for(const a of allies) if(dist(posOf(p,a),me)<=3) a.immuneUntil=t+(ult==='longSanctum'?5:3); break;
     case 'arrowRain': case 'bleedRain': {
       const targets=near(at!,1);
-      for(let k=0;k<5;k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(ult==='bleedRain') applyStatus(p,u,f,'bleed',t,ev);}}
+      for(let k=0;k<5;k++) {const f=targets[k%targets.length]!; if(alive(p,f)) {strike(p,u,f,t,ev,1,false); if(alive(p,f)) applyStatus(p,u,f,'mark',t,ev); if(ult==='bleedRain' && alive(p,f)) applyStatus(p,u,f,'bleed',t,ev);}}
       break;
     }
     case 'gravity': dropWell(p,id,at!,t); break;

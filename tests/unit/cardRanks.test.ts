@@ -16,7 +16,7 @@ import { newDelve } from '../../src/sim/delve/delveSim';
 import { unitOf } from '../../src/sim/party/partyCore';
 
 /** the lines whose cards already follow the rank rule (the rest join in later tasks) */
-const RANKED = ['shell', 'warrior', 'mage', 'necromancer', 'rogue'];
+const RANKED = ['shell', 'warrior', 'mage', 'necromancer', 'rogue', 'archer'];
 
 it.each(RANKED)('%s: signature and law cards have three ranks, convert and amp cards two, each with its texts', (line) => {
   const cards = Object.values(TRAITS).filter((d) => d.pool === line && d.branch);

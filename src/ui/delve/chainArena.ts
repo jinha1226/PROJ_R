@@ -16,7 +16,7 @@ const FODDER_HP = 10;
 const BUILDS: { cls: BaseClass; traits: Record<string, number>; memory: MemoryId }[] = [
   { cls: 'warrior', memory: 'frostGrave', traits: { bladeStorm: 2, bloodVortex: 2, rendWounds: 2, bladeAmp: 1, rage: 2, combo: 1 } },
   { cls: 'mage', memory: 'burnt', traits: { meteor: 1, fireball: 1, fireSpread: 1, chainLightning: 1, overcurrent: 1, boltAmp: 1 } },
-  { cls: 'archer', memory: 'lightning', traits: { huntMark: 2, pierce: 2, rapidFire: 2, poisonArrow: 2, cruel: 1, finish: 2 } },
+  { cls: 'archer', memory: 'lightning', traits: { multiShot: 2, huntMark: 2, hunterInstinct: 2, hunterEye: 2, cruel: 1, finish: 2 } },
 ];
 
 /**

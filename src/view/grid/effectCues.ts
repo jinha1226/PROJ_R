@@ -34,6 +34,7 @@ const CARD: Record<string, Look> = {
   '분노 폭발': L('blast', '#ff3a2a', 'dst', 1.0, 0.1), '최후의 버팀': L('shield', '#ffffff', 'src', 1.2), '철벽 반격': L('crit', '#d8e8ff', 'dst'),
   '급소 찌르기': L('crit', '#ffd04a', 'dst'), '독 폭발': L('smoke', '#7ad04a', 'dst', 1.7, 0.1),
   '그림자 걸음': L('smoke', '#3a2a4a', 'src'),
+  '다중 사격': L('hit', '#ffd23a', 'dst', 0.8), 난사: L('warn', '#ffd23a', 'src', 1.4), '폭발 화살': L('blast', '#ff7a2a', 'dst', 1.2, 0.08), '빙결 화살': L('frost', '#cfeaff', 'dst', 1.2), '파쇄 화살': L('frost', '#e8f6ff', 'dst', 1.4, 0.1), '유도 화살': L(undefined, undefined, 'line'), '약점 노출': L('hit', '#ffb0a0', 'dst'),
   칼바람: L('dust', '#ff3a4a', 'src', 1.2), '피의 소용돌이': L('hit', '#ff3a4a', 'dst', 1.8, 0.12), '상처 찢기': L('hit', '#ff2a3a', 'dst', 1.3, 0.1), '연속 도륙': L('crit', '#ff6a3a', 'dst'),
   '2연타': L('hit', '#ffb04a', 'dst'), '전투 함성': L('warn', '#ffd23a', 'src', 2.0, 0.1), 함성: L('shock', '#fff0a0', 'src', 1.4), '그림자 독': L('smoke', '#5a8a3a', 'dst'),
   '번개 함정': L('shock', '#ffe85a', 'dst', 1.2), '화염 함정': L('blast', '#ff7a2a', 'dst', 1.4, 0.1), '함정 설치': L('warn', '#ffd23a', 'dst', 0.5),
