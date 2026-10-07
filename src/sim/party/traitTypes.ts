@@ -17,6 +17,8 @@ export interface TraitDef {
   passive?: (u: Unit, rank: number) => Partial<Mods>; trigger?: (rank: number) => TriggerDef; triggers?: (rank: number) => TriggerDef[]; cost?: string;
   /** a card's kind, its line (Achra style) and, for a law, what its upgrade (rank 2) adds */
   kind?: CardKind; text?: string; up?: string;
+  /** a signature or law card's rank 3: the special effect that changes its rule (spec §2.2.1) */
+  up3?: string;
   /** a duo card: the two classes it needs alive, and which of them runs its effect */
   duo?: [BaseClass, BaseClass]; who?: BaseClass | 'any';
   /** the class branch the card belongs to (`line:branch`) and whether it is that branch's signature */
@@ -29,8 +31,11 @@ export function trait(id:string,name:string,tags:Tag[],pool:TraitDef['pool'],pas
   return { id,name,tags,pool,ranks:3,passive,trigger };
 }
 
-/** A card: one rule, its line, and (for a law) the upgrade a second pick adds. */
+/** A card: one rule, its line, the upgrade a second pick adds and (signature and law cards) the special effect of a third. */
 export function card(id: string, name: string, kind: CardKind, tags: Tag[], pool: TraitDef['pool'], text: string,
-  fx: { passive?: TraitDef['passive']; trigger?: TraitDef['trigger']; triggers?: TraitDef['triggers'] }, up?: string): TraitDef {
-  return { id, name, tags, pool, ranks: up ? 2 : 1, kind, text, up, ...fx };
+  fx: { passive?: TraitDef['passive']; trigger?: TraitDef['trigger']; triggers?: TraitDef['triggers'] }, up?: string, up3?: string): TraitDef {
+  return { id, name, tags, pool, ranks: up3 ? 3 : up ? 2 : 1, kind, text, up, ...(up3 ? { up3 } : {}), ...fx };
 }
+/** An amp card's per-tag base: rank 2 adds 0.04 (a damage-taken amp below 1 takes 0.04 off instead). */
+export const ampBase = (u: { traits?: Partial<Record<string, number>> }, id: string, base: number): number =>
+  rank(u, id) >= 2 ? base + (base < 1 ? -0.04 : 0.04) : base;

@@ -3,6 +3,7 @@ import { DIRS, dist, tileAt, walkable, type GEvent } from '../grid/types';
 import { alive, damage, entOf, occupied, posOf, type Party, type Unit } from './partyCore';
 import { heal, nearby } from './kitEffects';
 import { rank } from './traitDefs';
+import { ampBase } from './traitTypes';
 import { mods } from './traitMods';
 import { tagsOf } from './classKit';
 import { applyStatus } from './status';
@@ -24,7 +25,7 @@ export function takenMult(p:Party,u:Unit,t:number):number {
   let m=1+(mods(u).taken??0);
   if(rank(u,'shadowOath')&&t>=u.hiddenUntil)m*=1.25;
   // armour mastery (empty body): damage taken shrinks with every #생존
-  if(rank(u,'armorAmp'))m*=0.96**(tagsOf(u).생존??0);
+  if(rank(u,'armorAmp'))m*=ampBase(u,'armorAmp',0.96)**(tagsOf(u).생존??0);
   return m;
 }
 /** A clone's shield gave out: a cleric with shield burst hurts the foes beside it by what broke. */

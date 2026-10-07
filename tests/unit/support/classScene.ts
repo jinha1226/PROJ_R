@@ -5,12 +5,12 @@ import { action, emit } from '../../../src/sim/party/triggers';
 import type { BaseClass } from '../../../src/sim/party/partyDefs';
 import type { GEvent } from '../../../src/sim/grid/types';
 
-/** An open room with one clone of the class at (4,6), every floor foe gone; `put` brings one back where wanted; rolls always succeed. */
-export const classScene = (cls: BaseClass) => {
+/** An open room with one clone of the class (the empty body as it wakes, for 'shell') at (4,6), every floor foe gone; `put` brings one back where wanted; rolls always succeed. */
+export const classScene = (cls: BaseClass | 'shell') => {
   const p = newDelve(4, 1), u = unitOf(p, 'hero')!, me = entOf(p, 'hero')!;
   for (let y = 1; y < 13; y++) for (let x = 1; x < 20; x++) p.s.map.tiles[y * p.s.map.w + x] = 'floor';
   me.pos = { x: 4, y: 6 };
-  implant(p, u, cls, []);
+  if (cls !== 'shell') implant(p, u, cls, []);
   const foes = p.units.filter((x) => x.side === 'foe');
   for (const f of foes) { entOf(p, f.id)!.alive = false; f.reaped = true; f.raised = true; }
   const put = (k: number, x: number, y: number, hp = 999): Unit => {

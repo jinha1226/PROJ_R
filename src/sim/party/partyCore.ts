@@ -13,7 +13,7 @@ import { dist, idx, opaque, same, tileAt, type Cell, type Ent, type GEvent, type
 import { CLASSES, FOES, WEAPONS, type ClassId, type FoeId, type WeaponId } from './partyDefs';
 import { type TraitId } from './traitDefs';
 import { T } from './traitMods';
-import { rank } from './traitTypes';
+import { ampBase, rank } from './traitTypes';
 import { resonant, shieldedFury } from './resonance';
 import { markMult } from './cardsRanged';
 import { isGun, magOf } from './ammo';
@@ -53,6 +53,8 @@ export interface Unit {
   /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
   /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */
   spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
+  /** a return shot under way (the empty body's return fire, rank 3) */
+  returnFiring?: boolean;
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
@@ -208,7 +210,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   const attacker = unitOf(p, src);
   if(attacker && !alive(p,attacker) && !secondary) return;
   // blasting mastery (empty body): fire damage grows with every #화염
-  if (attacker && kind === 'fire' && rank(attacker, 'blastAmp')) amount = Math.round(amount * 1.12 ** (tagsOf(attacker).화염 ?? 0));
+  if (attacker && kind === 'fire' && rank(attacker, 'blastAmp')) amount = Math.round(amount * ampBase(attacker, 'blastAmp', 1.12) ** (tagsOf(attacker).화염 ?? 0));
   // necromancer masteries (bone, poison, minions), multiplied
   if (attacker && (attacker.traits || attacker.summoner)) { const m = necroAmp(p, attacker, kind); if (m !== 1) amount = Math.round(amount * m); }
   // mage masteries (fire, lightning, cold on the frozen), multiplied
@@ -354,7 +356,7 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
     ev.push({ t, type: 'miss', src: u.id, dst: target.id, to: { ...te.pos }, text: blocked ? 'block' : undefined }); emit(p, blocked ? 'block' : 'dodge', { t, src: target, target: u, ev });
     if (basic && isGun(u)) u.hitStreak = 0;
     // target lock (the empty body's convert card): a miss makes the next shot critical
-    if (rank(u, 'targetLock') && isGun(u)) { u.nextCrit = true; ev.push({ t, type: 'buff', src: u.id, dst: u.id, text: '표적 분석' }); }
+    if (rank(u, 'targetLock') && isGun(u)) { u.nextCrit = true; if (rank(u, 'targetLock') >= 2) u.critShots = Math.max(u.critShots ?? 0, 1); ev.push({ t, type: 'buff', src: u.id, dst: u.id, text: '표적 분석' }); }
     return;
   }
   u.attackMult = 1; emit(p,'beforeHit',{t,src:u,target,ev});
