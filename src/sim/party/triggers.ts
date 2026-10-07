@@ -73,7 +73,8 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
 // units, burning ground and gravity wells. A full JSON of every unit was too slow with a horde on the floor.
 function effectState(p: Party, src: Unit): string {
   let h = 0;
-  const mix = (v: number) => { h = (Math.imul(h, 31) + Math.round(v * 1000)) | 0; };
+  // a state with no end (shock) lasts Infinity: fold it to a big finite number, or the hash collapses to 0
+  const mix = (v: number) => { h = (Math.imul(h, 31) + Math.round((Number.isFinite(v) ? v : 1e9) * 1000)) | 0; };
   mix(p.units.length); mix(p.grounds?.length ?? 0); mix(p.wells?.length ?? 0);
   for (const u of p.units) {
     if (u === src) continue;

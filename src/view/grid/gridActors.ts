@@ -24,6 +24,12 @@ export const LOOK_BY_ID = new Map<string, UalLook>();
 /** within this many cells of the camera a figure is built even before its cell is seen; beyond this many it stops animating */
 const NEAR_BUILD = 14, FAR_ANIM = 18;
 
+/** Whether a figure is built now: clones always; others on a seen cell or within NEAR_BUILD cells of the camera. */
+export function buildsNow(e: { id: string; kind: string; pos: { x: number; y: number } }, seen: Uint8Array | undefined, w: number, focus: { x: number; y: number } | null): boolean {
+  if (e.kind === 'hero' || LOOK_BY_ID.has(e.id) || seen?.[e.pos.y * w + e.pos.x]) return true;
+  return !!focus && Math.max(Math.abs(e.pos.x - focus.x), Math.abs(e.pos.y - focus.y)) <= NEAR_BUILD;
+}
+
 export class GridActors {
   private readonly bars = new HpBars();
   readonly root = new THREE.Group();
@@ -49,7 +55,7 @@ export class GridActors {
       const hideBar = e.kind === 'hero' && !LOOK_BY_ID.has(e.id);
       if (existing) { this.bars.update(existing.bar, hideBar ? { ...e, alive: false } : e); continue; }
       // a horde floor: a figure is built once its cell has been seen or it is near the camera (clones always)
-      if (this.focus && !LOOK_BY_ID.has(e.id) && e.kind !== 'hero' && !s.seen?.[e.pos.y * s.map.w + e.pos.x] && Math.max(Math.abs(e.pos.x - this.focus.x), Math.abs(e.pos.y - this.focus.y)) > NEAR_BUILD) continue;
+      if (!buildsNow(e, s.seen, s.map.w, this.focus)) continue;
       this.kinds.set(e.id, e.kind);
       const byId = LOOK_BY_ID.get(e.id);
       const base = byId ?? (e.kind === 'hero' ? LOOK.hero : foeLook(LOOK[e.kind], e.kind, speciesOf(s.run.floor)));

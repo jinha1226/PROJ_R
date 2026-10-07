@@ -232,11 +232,12 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   const prevHp = e.hp;
   e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
-  const dealer = unitOf(p, src);
-  if (dealer?.side === 'hero' && dst.side === 'foe' && amount > 0) emit(p, 'damage', { t, src: dealer, target: dst, amount, kind, ev });
+  const dealer = unitOf(p, src), dealt = dealer?.side === 'hero' && dst.side === 'foe' && amount > 0;
   if (e.hp <= 0) {
     e.alive = false;
     ev.push({ t, type: 'die', src, dst: dst.id, to: { ...e.pos } });
+    // the damage is dealt once the foe is down: an on-damage effect cannot strike the dying body again
+    if (dealt) emit(p, 'damage', { t, src: dealer!, target: dst, amount, kind, ev });
     if (dst.side === 'hero' && !dst.summoner) allyFell(p, dst, t, ev);
     const master = dst.summoner ? unitOf(p, dst.summoner) : undefined;
     if (master && alive(p, master)) emit(p, 'summonDied', { t, src: master, target: dst, ev });
@@ -249,6 +250,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     }
     return;
   }
+  if (dealt) emit(p, 'damage', { t, src: dealer!, target: dst, amount, kind, ev });
   if (dst.side === 'hero') {
     // being hit (an attack or a free hit landed) is not the same as taking damage (a burn, a trap, a blast)
     if (hit) { dst.struckTimes = [...(dst.struckTimes ?? []).filter((s) => t - s < 1), t]; emit(p, 'struck', { t, src: dst, target: attacker, amount, ev }); }

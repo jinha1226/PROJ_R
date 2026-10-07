@@ -53,7 +53,7 @@ export const KITS: Record<ClassId, Kit> = {
   shell: { get innate() { return SHELL_INNATE; }, ultimate: 'gravity', ultCd: 35, proficient: ['gun'] },
   warrior: kit(warrior,'warcry',35,['sword','great','mace']), archer: kit(archer,'arrowRain',35,['bow','crossbow']), mage: kit(mage,'meteor',45,['staff']), cleric: kit(cleric,'sanctum',45,['mace','relic']), rogue: kit(rogue,'shadowDance',35,['dagger']),
   berserker: kit(extra(warrior,{ id: '광분', when: 'struck', test: (p,c) => entOf(p,c.src.id)!.hp < entOf(p,c.src.id)!.maxHp/2, run: (p,c) => { const e = entOf(p,c.src.id)!; c.src.lowHp = e.hp < e.maxHp/2; } }),'bloodFrenzy',35,['sword','great','mace']),
-  guardian: kit(extra(warrior,{ id: '수호', when: 'guard', run: (p,c) => { c.src.guardIntercepted = true; damage(p,c.t,c.target?.id ?? '',c.src,c.amount ?? 0,c.ev,true); } }),'bastion',35,['sword','mace']),
+  guardian: kit(extra(warrior,{ id: '수호', when: 'guard', run: (p,c) => { c.src.guardIntercepted = true; damage(p,c.t,c.target?.id ?? '',c.src,c.amount ?? 0,c.ev,true,false,'physical',true); } }),'bastion',35,['sword','mace']),
   sniper: kit(extra(archer,{ id: '저격', when: 'beforeHit', test: (p,c) => !!c.target && dist(posOf(p,c.src),posOf(p,c.target)) >= 5, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 2; } }),'pierceShot',35,['bow','crossbow']),
   hunter: kit(extra(archer,{ id: '속박', when: 'hit', chance: 0.25, run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,'freeze',c.t,c.ev); } }),'bleedRain',35,['bow','crossbow','dagger']),
   elementalist: kit(extra(mage,{ id: '원소 연쇄', when: 'fireball', run: (p,c) => { if(c.target) applyStatus(p,c.src,c.target,p.s.rng.pick(['chill','shock']),c.t,c.ev); } }),'elementStorm',45,['staff']),

@@ -117,6 +117,8 @@ export class GridRuntime {
     this.kit2 = { actors: this.actors, fx: this.fx, particles: this.particles, pops: this.pops, at: (id) => (id ? this.actors.pos(id) : undefined), punch: () => { this.punch = 0.16; }, trail: (id, sec) => { if (id) this.ghosts.trailOf(() => this.actors.figure(id), sec, id === 'hero' ? '#6dffb4' : '#ff8a6a'); } };
     // the figures are rebuilt on each floor, so the cues ask for the current set
     this.strikes = new StrikeCues(this.strikeFx, () => this.actors, this.particles);
+    // the camera's cell first: figures far from it and unseen wait until they come into view
+    this.actors.focus = { x: sim.s.hero.pos.x, y: sim.s.hero.pos.y };
     this.actors.sync(sim.s);
     const hp = sim.s.hero.pos;
     this.center.set(hp.x * CELL, 0, hp.y * CELL);
@@ -159,6 +161,7 @@ export class GridRuntime {
     this.mapRef = s.map;
     this.playback = new Playback(this.partyPace);
     this.pending.clear();
+    this.actors.focus = { x: s.hero.pos.x, y: s.hero.pos.y };
     this.actors.sync(s);
     this.center.set(s.hero.pos.x * CELL, 0, s.hero.pos.y * CELL);
     this.banner.textContent = `${s.run.floor}층 · ${zoneOf(s.run.floor).name}`;

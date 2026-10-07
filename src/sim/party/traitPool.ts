@@ -45,8 +45,11 @@ export function rollOffer(p: Party, u: Unit): string[] {
   // a branch already held always shows up while it has cards left
   const branchLeft = available.filter((d) => d.branch && held.has(d.branch) && !own.includes(d.id));
   if (held.size && branchLeft.length && !own.some((id) => TRAITS[id]?.branch && held.has(TRAITS[id]!.branch!))) {
-    const swap = draw(branchLeft, 1)[0]!;
-    if (own.length) own[own.length - 1] = swap; else own.push(swap);
+    const swap = draw(branchLeft, 1)[0]!, line = TRAITS[swap]!.pool;
+    // it takes the place of a card of its own line, so every line keeps its card
+    let at = own.findIndex((id) => TRAITS[id]?.pool === line);
+    if (at < 0) at = own.length - 1;
+    if (at >= 0) own[at] = swap; else own.push(swap);
   }
   const duos = available.filter((d) => d.pool === 'duo' && d.duo!.every((c) => lines.includes(c)));
   const extra = (hasMemory(u, 'scholar') ? 2 : 1) + (lines.length ? 0 : 2);
