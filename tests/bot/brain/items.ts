@@ -4,7 +4,7 @@ import { isKnown, potionKey, POTIONS, scrollKey, SCROLLS, type PotionKind, type 
 import { dist, type GAction, type GridState } from '../../../src/sim/grid/types';
 import type { BotMemory } from './policy';
 import { meleeFoe } from './tactics';
-import { adjacentFoes, awakeThreats, direction, gunReady, isChoke, safeSteps, visibleFoes } from './view';
+import { adjacentFoes, awakeThreats, direction, rangedReady, rangedWeapon, isChoke, safeSteps, visibleFoes } from './view';
 
 const knownPotion = (s: GridState, p: PotionKind) => (s.hero.gear.potions[p] ?? 0) > 0 && isKnown(s, potionKey(p));
 const knownScroll = (s: GridState, sc: ScrollKind) => (s.hero.gear.scrolls[sc] ?? 0) > 0 && isKnown(s, scrollKey(sc));
@@ -28,7 +28,7 @@ export function emergency(s: GridState, mem: BotMemory): GAction | null {
 
 export function fightUtility(s: GridState, mem: BotMemory): GAction | null {
   const h = s.hero, foes = visibleFoes(s), awake = foes.filter(f => f.awake);
-  if (!gunReady(s) && awake.length >= 2 && knownScroll(s, 'recharge')) return { kind: 'read', sc: 'recharge' };
+  if (rangedWeapon(s)?.group === 'staff' && !rangedReady(s) && awake.length >= 2 && knownScroll(s, 'recharge')) return { kind: 'read', sc: 'recharge' };
   const champion = foes.find(f => f.kind === 'champion' && !mem.bosses.includes(f.id));
   if (((champion && (h.hp >= h.maxHp * 0.8 || awakeThreats(s).length > 0)) || awake.length >= 3) && knownPotion(s, 'haste') && !buffOn(h, 'haste', h.nextAt)) return { kind: 'drink', p: 'haste' };
   if (!awake.length) return null;

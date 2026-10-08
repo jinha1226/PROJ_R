@@ -6,11 +6,13 @@ import { defend } from './defense';
 import { dist, opaque, same, tileAt, walkable, type Cell, type Ent, type GEvent, type GridMap, type GridState } from './types';
 
 const PER_TILE = 0.04;
-const COVER = 0.3;
+export type Cover = 'none' | 'half' | 'full';
+const COVER: Record<Cover, number> = { none: 0, half: 0.2, full: 0.4 };
 const MIN_HIT = 0.05;
 
 /** Is the target tucked beside a wall or pillar on the shooter's side? */
-export function inCover(m: GridMap, shooter: Cell, target: Cell): boolean {
+export function coverOf(m: GridMap, shooter: Cell, target: Cell): Cover {
+  if (dist(shooter, target) <= 1) return 'none';
   const dx = Math.sign(shooter.x - target.x);
   const dy = Math.sign(shooter.y - target.y);
   const sides: Cell[] = [];
@@ -18,11 +20,14 @@ export function inCover(m: GridMap, shooter: Cell, target: Cell): boolean {
   if (dy) sides.push({ x: target.x, y: target.y + dy });
   if (dx && dy) sides.push({ x: target.x + dx, y: target.y + dy });
   // only cover that is not right next to the shooter (point-blank ignores cover)
-  return dist(shooter, target) > 1 && sides.some((c) => opaque(tileAt(m, c)));
+  if (sides.some(c => opaque(tileAt(m, c)))) return 'full';
+  return sides.some(c => tileAt(m, c) === 'cover') ? 'half' : 'none';
 }
 
+export const inCover = (m: GridMap, shooter: Cell, target: Cell): boolean => coverOf(m, shooter, target) !== 'none';
+
 export function hitChance(m: GridMap, from: Cell, to: Cell, base: number, coverMul = 1): number {
-  const p = base - PER_TILE * (dist(from, to) - 1) - (inCover(m, from, to) ? COVER * coverMul : 0);
+  const p = base - PER_TILE * (dist(from, to) - 1) - COVER[coverOf(m, from, to)] * coverMul;
   return Math.max(MIN_HIT, Math.round(p * 1000) / 1000);
 }
 

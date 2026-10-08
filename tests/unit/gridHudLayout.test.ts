@@ -78,7 +78,7 @@ describe('suit tiles', () => {
     const s = state(); s.hero.suit = ['dash', 'rapid', 'chain', 'momentum'];
     for (const [group, expected] of [
       ['sword', [true, false, true, true]],
-      ['pistol', [false, true, true, true]],
+      ['bow', [false, true, true, true]],
     ] as const) {
       s.hero.gear.hands[1] = makeWeapon(group, 1); s.hero.gear.active = 1;
       expect(suitTiles(s).slice(0, 4).map((t) => t.lit)).toEqual(expected);

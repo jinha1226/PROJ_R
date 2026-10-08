@@ -1,3 +1,4 @@
+import { makeWeapon } from '../../../src/sim/grid/items';
 import { expect, it } from 'vitest';
 import { runEffect } from '../../../src/sim/grid/kataEffects';
 import { GridSim } from '../../../src/sim/grid/gridSim';
@@ -7,11 +8,11 @@ import { arena, foe } from './perkKit';
 import { sureHits } from './kit';
 
 it('counts volley follow-up shots toward doubleTap without charging the sixth shot', () => {
-  const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['doubleTap']; s.hero.suit = ['volley']; s.hero.charge = 5;
+  const sim = arena(), s = sim.s; sureHits(sim); s.hero.gear.hands[0] = makeWeapon('staff', 1); s.hero.perks = ['doubleTap']; s.hero.suit = ['volley']; s.hero.charge = 10;
   const f = foe(sim, 7); foe(sim, 7, 6); foe(sim, 7, 4);
   for (let i = 0; i < 3; i++) sim.act({ kind: 'shoot', target: f.id });
-  expect(s.hero.charge).toBe(1); expect(s.hero.fx.taps).toBe(5);
-  sim.act({ kind: 'shoot', target: f.id }); expect(s.hero.charge).toBe(1);
+  expect(s.hero.charge).toBe(4); expect(s.hero.fx.taps).toBe(5);
+  sim.act({ kind: 'shoot', target: f.id }); expect(s.hero.charge).toBe(4);
 });
 it('does not boost a new environmental poison after old hero poison expires', () => {
   const sim = arena(), s = sim.s; s.hero.perks = ['elemTank']; const f = foe(sim);
@@ -46,7 +47,7 @@ it('removes legacy heavy barrel stats without removing the back-slot silencer', 
   sim.act({ kind: 'socket', stone: 'reactive' }); expect(s.hero.shield).toBe(0);
 });
 it.each(['spinShot', 'execute'] as const)('doubleTap makes the third %s engraving shot free too', effect => {
-  const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['doubleTap']; s.hero.fx.taps = 2; s.hero.charge = 0;
+  const sim = arena(), s = sim.s; sureHits(sim); s.hero.gear.hands[0] = makeWeapon('staff', 1); s.hero.perks = ['doubleTap']; s.hero.fx.taps = 2; s.hero.charge = 0;
   const f = foe(sim), other = foe(sim, 5, 6);
   expect(runEffect(s, effect, { t: 0, foe: f, neighbours: [f, other] })).toBe(true);
   expect(s.events.filter(e => e.type === 'shoot')).toHaveLength(1); expect(s.hero.fx.taps).toBe(3); expect(s.hero.charge).toBe(0);
@@ -61,5 +62,5 @@ it('bayonetGrip changes pistol-bump damage and hit, preserving its time and weap
   const { meleeAttack } = await import('../../../src/sim/grid/weapons');
   const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['bayonetGrip']; const f = foe(sim); f.awake = false;
   expect(meleeAttack(s, 0, { x: 1, y: 0 }, f)).toBe(1);
-  expect(s.events.find(e => e.type === 'bump')?.group).toBe('pistol'); expect(f.hp).toBe(97);
+  expect(s.events.find(e => e.type === 'bump')?.group).toBe('bow'); expect(f.hp).toBe(97);
 });

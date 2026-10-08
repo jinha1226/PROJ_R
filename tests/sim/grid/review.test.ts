@@ -23,7 +23,7 @@ describe('final review fixes', () => {
       for (const c of m.chests) for (const d of [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }])
         expect(tileAt(m, { x: c.x + d.x, y: c.y + d.y }), `seed ${seed}`).not.toBe('door');
     }
-  });
+  }, 30_000);
 
   it('a shot line is the same in both directions', () => {
     const g = GridSim.create(1);

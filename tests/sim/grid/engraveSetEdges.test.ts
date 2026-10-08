@@ -67,27 +67,27 @@ it('gale counts two nested melee kills, and trance sees both real attack kinds',
 });
 it('barrage rejects hidden, blocked and out-of-range foes, and cannot overspend', () => {
   for (const reason of ['hidden', 'blocked', 'range'] as const) {
-    const { s } = setup(); s.hero.suit = ['barrage']; s.hero.charge = 1;
+    const { s } = setup(); s.hero.suit = ['barrage']; s.hero.arrows = 1;
     if (reason === 'hidden') s.visible.clear();
     if (reason === 'blocked') s.foes.forEach(f => { s.map.tiles[idx(s.map, f.pos)] = 'wall'; f.pos.x += 2; });
-    if (reason === 'range') s.foes.forEach(f => { f.pos.x = 13; });
+    if (reason === 'range') s.foes.forEach(f => { f.pos.x = 14; });
     emit(s, 'chain', { t: 0 });
-    expect(s.fired.size).toBe(0); expect(s.hero.charge).toBe(1);
+    expect(s.fired.size).toBe(0); expect(s.hero.arrows).toBe(1);
   }
-  const { s } = setup(); s.hero.suit = ['barrage']; s.hero.charge = 1;
-  emit(s, 'chain', { t: 0 }); expect(s.events.filter(e => e.type === 'shoot')).toHaveLength(1); expect(s.hero.charge).toBe(0);
+  const { s } = setup(); s.hero.suit = ['barrage']; s.hero.arrows = 1;
+  emit(s, 'chain', { t: 0 }); expect(s.events.filter(e => e.type === 'shoot')).toHaveLength(1); expect(s.hero.arrows).toBe(0);
 });
 it('pierce cannot refund its free shot through the parent attack', () => {
-  const { s } = setup(); s.hero.suit = ['pierce', 'thrift']; s.hero.charge = 1;
+  const { s } = setup(); s.hero.gear.hands[0] = makeWeapon('staff', 1); s.hero.suit = ['pierce', 'thrift']; s.hero.charge = 2;
   s.foes[1]!.pos = { x: 7, y: 7 }; s.foes[1]!.hp = 1;
   rangedAttack(s, 0, s.foes[0]!, hooks);
   expect(s.fired.has('pierce')).toBe(true); expect(s.fired.has('thrift')).toBe(false); expect(s.hero.charge).toBe(0);
 });
 it('preShot runs only for valid attacks, consumes boosts even on misses and uses max, not product', () => {
   const g = setup(), { s } = g; s.hero.suit = ['sniper', 'headshot', 'steady']; const foe = s.foes[0]!;
-  foe.pos = { x: 9, y: 7 }; s.hero.fx.lastAction = 'wait'; s.hero.charge = 0;
+  foe.pos = { x: 9, y: 7 }; s.hero.fx.lastAction = 'wait'; s.hero.arrows = 0;
   expect(rangedAttack(s, 0, foe, hooks)).toBeNull(); expect(s.fired.size).toBe(0);
-  s.hero.charge = 1; s.rng.chance = () => false;
+  s.hero.arrows = 1; s.rng.chance = () => false;
   rangedAttack(s, 0, foe, hooks);
   expect([...s.fired]).toEqual(['sniper', 'headshot']); expect(s.hero.fx.nextMult).toBe(1);
   expect(s.events.some(e => e.type === 'miss')).toBe(true);

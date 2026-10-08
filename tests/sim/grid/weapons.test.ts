@@ -65,7 +65,7 @@ describe('melee weapon groups', () => {
 
 describe('ranged weapon groups', () => {
   it('guns fire repeatedly at their neutral times and charge costs', () => {
-    for (const [group, time, cost] of [['pistol', 0.6, 1]] as const) {
+    for (const [group, time, cost] of [['bow', 1, 0], ['staff', 1, 2]] as const) {
       const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
       hold(g, group);
       g.s.hero.charge = 5;
@@ -74,21 +74,21 @@ describe('ranged weapon groups', () => {
       const t = g.s.time;
       expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))[0]).toBe('shoot');
       expect(g.s.time - t).toBeCloseTo(time);
-      expect(g.s.hero.charge).toBe(5 - 2 * cost);
+      expect(g.s.hero.charge).toBe(5 - 2 * cost + 1);
     }
   });
 
-  it('no charge, no shot', () => {
+  it('no arrows, no shot', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
-    hold(g, 'pistol');
-    g.s.hero.charge = 0;
+    hold(g, 'bow');
+    g.s.hero.arrows = 0;
     expect(types(g.act({ kind: 'shoot', target: g.s.foes[0]!.id }))).toEqual(['blocked']);
   });
 
 
   it('bumping with a ranged weapon in hand is a weak bash', () => {
     const g = sim(OPEN, { x: 7, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
-    hold(g, 'pistol');
+    hold(g, 'bow');
     g.s.rng = { next: () => 0.999, int: (_a: number, b: number) => b, chance: () => true, pick: <T>(arr: readonly T[]) => arr[0]!, shuffle: <T>(arr: T[]) => arr, getState: () => 0 };
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });

@@ -1,13 +1,13 @@
 import { takeStone } from './stones';
 import { hasPerk } from './mods';
-import { chargeDamage, meleePerks, shotPerks, tapCost, PERK_BALANCE } from './perks';
+import { chargeDamage, meleePerks, shotPerks, PERK_BALANCE } from './perks';
 import { preMelee } from './preMelee';
 import { bladeRound, takeRound, roundMult, roundHit } from './rounds';
 import { withOtherHand, otherHand } from './kata';
 import { emitKills } from './attackTriggers';
 import { emit } from './kataBus';
 import { resonance } from './resonance';
-import { gunCost } from './kataTargets';
+import { rangedCost, rangedReady, spendShot, recoverArrow } from './rangedResources';
 import { canSwingAt } from './combos';
 import { gainMaterial } from './materials';
 import { foeAt, freeCell, hitChance, shotClear, strike } from './combat';
@@ -18,7 +18,7 @@ import { buffOn } from './buffs';
 import { stow } from './consumables';
 import { potionName, scrollName } from './lore';
 import { activeWeapon, addToBag } from './gear';
-import { isGun, WEAPONS, type Weapon } from './items';
+import { isGun, MAX_ARROWS, WEAPONS, type Weapon } from './items';
 import { hurt, onEnter } from './status';
 import { add, canStep, COST, dist, HERO, same, tileAt, type Cell, type Ent, type GridState, type Hero } from './types';
 
@@ -89,7 +89,7 @@ export function meleeAttack(s: GridState, t: number, d: Cell, foe: Ent, hooks?: 
   const eventStart = s.events.length;
   if (!w || !armed) {
     let damage: readonly [number, number] = HERO.bash, chance = HERO.bashHit;
-    if (w?.group === 'pistol' && hasPerk(h, 'bayonetGrip')) {
+    if (w && isGun(w.group) && hasPerk(h, 'bayonetGrip')) {
       const blade = h.gear.hands.find(w => w && WEAPONS[w.group].melee);
       damage = heroDmg(s, { ...w, group: 'dagger', tier: blade?.tier ?? 1 }); chance = WEAPONS.dagger.hit;
     }
@@ -163,14 +163,14 @@ export function reachTarget(s: GridState, d: Cell): Ent | undefined {
 }
 
 export function weaponRange(w: Weapon | null, h?: Hero): number {
-  return w && !WEAPONS[w.group].melee ? (WEAPONS[w.group].range ?? 6) - (h && w.group === 'pistol' && hasPerk(h, 'scatter') ? PERK_BALANCE.scatterRange : 0) : 8;
+  return w && !WEAPONS[w.group].melee ? (WEAPONS[w.group].range ?? 6) - (h && isGun(w.group) && hasPerk(h, 'scatter') ? PERK_BALANCE.scatterRange : 0) : 8;
 }
 
-/** Can the weapon in hand fire with its current charge? */
+/** Can the weapon in hand fire with its arrows or mana? */
 export function canFire(s: GridState): boolean {
   const w = activeWeapon(s.hero.gear);
   if (!w || WEAPONS[w.group].melee) return false;
-  if (isGun(w.group)) return s.hero.charge >= gunCost(s, w);
+  if (isGun(w.group)) return rangedReady(s, w);
   return false;
 }
 
@@ -178,8 +178,8 @@ export function canFire(s: GridState): boolean {
 export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks, shot: { chargeCost?: number; through?: Ent } = {}): number | null {
   const h = s.hero;
   const w = activeWeapon(h.gear);
-  const cost = w ? tapCost(h, shot.chargeCost ?? gunCost(s, w)) : Infinity;
-  if (!h.alive || !foe.alive || !w || !isGun(w.group) || h.charge < cost || dist(h.pos, foe.pos) > weaponRange(w, h) || !shotClear(s, h.pos, foe.pos, shot.through)) return null;
+  const cost = w ? rangedCost(s, w, shot.chargeCost) : Infinity;
+  if (!h.alive || !foe.alive || !w || !isGun(w.group) || !rangedReady(s, w, shot.chargeCost) || dist(h.pos, foe.pos) > weaponRange(w, h) || !shotClear(s, h.pos, foe.pos, shot.through)) return null;
   emit(s, 'preShot', { t, foe, hooks, shotCost: cost });
   h.target = foe.id;
   h.fx.acted = 'shot';
@@ -198,7 +198,8 @@ export function rangedAttack(s: GridState, t: number, foe: Ent, hooks: ShotHooks
   foe.awake = true;
   const hit = strike(s, t, h, foe, chanceAt(h.pos, foe.pos), dmg, mult);
   const dealt = [...s.events].reverse().find(e => e.type === 'hit' && e.dst === foe.id)?.amount ?? 0;
-  h.charge -= cost;
+  spendShot(s, w, cost);
+  recoverArrow(s, w, foe.pos, hit);
   hooks.noise(h.pos, Math.max(0, 4 + (h.modStats?.noise ?? 0)));
   h.fx.nextMult = 1;
   if (hit) { shotPerks(s, t, foe, dealt); roundHit(s, t, foe, round); }
@@ -220,7 +221,8 @@ export function shootCell(s: GridState, t: number, at: Cell, explode: (c: Cell) 
   if (!clear) return null;
   s.events.push({ t, type: 'shoot', group: w.group, src: h.id, from: { ...h.pos }, to: { ...at }, text: w.group });
   h.fx.acted = 'shot';
-  if (isGun(w.group)) h.charge -= gunCost(s, w);
+  spendShot(s, w, rangedCost(s, w));
+  recoverArrow(s, w, at, true);
   h.fx.taps = (h.fx.taps ?? 0) + 1;
   noise?.(h.pos, Math.max(0, 4 + (h.modStats?.noise ?? 0)));
   takeRound(s);
@@ -234,6 +236,12 @@ export function pickUp(s: GridState, t: number): void {
   s.floorItems = s.floorItems.filter((f) => {
     if (!same(f.pos, s.hero.pos)) return true;
     const it = f.item;
+    if (it.kind === 'arrows') {
+      const n = Math.min(it.n, MAX_ARROWS - s.hero.arrows);
+      s.hero.arrows += n; it.n -= n;
+      if (n) s.events.push({ t, type: 'pickup', src: s.hero.id, text: '화살', amount: n });
+      return it.n > 0;
+    }
     if (it.kind === 'stone') { takeStone(s, t, it.id); return false; }
     if (it.kind === 'suit') {
       s.run.stones.push(...(s.run.leftSuit?.stones ?? []));

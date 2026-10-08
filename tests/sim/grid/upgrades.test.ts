@@ -75,7 +75,7 @@ describe('level-up suit upgrades', () => {
 
   it('gun and melee damage stack only on their matching weapon groups', () => {
     const { s } = sim(OPEN, { x: 5, y: 7 });
-    const pistol = makeWeapon('pistol', 1), sword = makeWeapon('sword', 1);
+    const pistol = makeWeapon('bow', 1), sword = makeWeapon('sword', 1);
     const gunBase = heroDmg(s, pistol), meleeBase = heroDmg(s, sword);
     applyUpgrade(s, 'meleeDmg');
     expect(heroDmg(s, sword)).toEqual(meleeBase.map((v) => v + 5));

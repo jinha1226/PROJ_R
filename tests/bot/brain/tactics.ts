@@ -7,8 +7,8 @@ import { canRegenerate } from '../../../src/sim/grid/regen';
 import { heroDmg, weaponRange } from '../../../src/sim/grid/weapons';
 import { add, canStep, DIRS, dist, idx, same, type Cell, type Ent, type GAction, type GridState } from '../../../src/sim/grid/types';
 import type { BotMemory } from './policy';
-import { adjacentFoes, awakeThreats, bladeIndex, dangerCells, direction, gunReady, isChoke, pistol,
-  pistolIndex, safeSteps, shotTargets, stepToward, visibleFoes } from './view';
+import { adjacentFoes, awakeThreats, bladeIndex, dangerCells, direction, rangedReady, isChoke, rangedWeapon,
+  rangedIndex, safeSteps, shotTargets, stepToward, visibleFoes } from './view';
 
 export const meleeFoe = (f: Ent) => ['minion', 'brute', 'ghoul', 'champion'].includes(f.kind);
 const rangedFoe = (f: Ent) => f.kind === 'mage' || f.kind === 'archer';
@@ -52,7 +52,7 @@ function chokeStep(s: GridState): GAction | null {
   return null;
 }
 function shootTarget(s: GridState): Ent | undefined {
-  const w = pistol(s); if (!w) return;
+  const w = rangedWeapon(s); if (!w) return;
   const sim = GridSim.fromState(s);
   const chance = (f: Ent) => sim.shotChance(f.id) ?? hitChance(s.map, s.hero.pos, f.pos, WEAPONS[w.group].hit + (s.hero.modStats?.hit ?? 0));
   const all = shotTargets(s), good = all.filter(f => chance(f) >= 0.35);
@@ -82,30 +82,30 @@ export function tactic(s: GridState, mem: BotMemory): GAction | null {
     && !(surroundedBuild && h.hp >= h.maxHp * 0.6)) {
     const retreat = chokeStep(s); if (retreat) return retreat;
   }
-  if (target && !(gunReady(s) && (h.suit.includes('reverseCut') || h.suit.includes('kite')))) {
+  if (target && !(rangedReady(s) && (h.suit.includes('reverseCut') || h.suit.includes('kite')))) {
     mem.chargeWaits = 0;
     return h.gear.active !== bladeIndex(s) ? { kind: 'swap' } : { kind: 'move', dir: direction(h.pos, target.pos) };
   }
   // Safe recovery takes precedence over waking a sleeper.
   if (!threats.length && !mem.pursuit && h.hp < h.maxHp * 0.85 && canRegenerate(s)) return null;
-  const shot = gunReady(s) ? shootTarget(s) : undefined;
+  const shot = rangedReady(s) ? shootTarget(s) : undefined;
   const opener = h.suit.some(id => ['headshot', 'sniper', 'steady'].includes(id));
   if (shot && (shot.awake || opener || !!target)) {
     mem.chargeWaits = 0;
     if (!shot.awake && !threats.length) {
-      const range = weaponRange(pistol(s), s.hero);
+      const range = weaponRange(rangedWeapon(s), s.hero);
       const farther = safeSteps(s).filter(c => dist(c, shot.pos) > dist(h.pos, shot.pos) && dist(c, shot.pos) <= range
         && shotTargets(s, c).some(f => f.id === shot.id)).sort((a, b) => dist(b, shot.pos) - dist(a, shot.pos))[0];
       if (farther) return move(s, farther);
     }
-    if (h.gear.active !== pistolIndex(s)) return { kind: 'swap' };
+    if (h.gear.active !== rangedIndex(s)) return { kind: 'swap' };
     if (!shot.awake && h.suit.includes('steady') && h.fx.lastAction !== 'wait') return { kind: 'wait' };
     return { kind: 'shoot', target: shot.id };
   }
   const ranged = visible.filter(f => f.awake && rangedFoe(f)).sort((a, b) => dist(a.pos, h.pos) - dist(b.pos, h.pos))[0];
   if (ranged) { const d = stepToward(s, ranged.pos); if (d) return { kind: 'move', dir: d }; }
   const approaching = threats.find(f => meleeFoe(f) && findPath(s.map, f.pos, h.pos, c => walkBlocked(s, c), 8));
-  if (!gunReady(s) && approaching && mem.chargeWaits++ < 4) return { kind: 'wait' };
+  if (rangedWeapon(s)?.group === 'staff' && !rangedReady(s) && approaching && mem.chargeWaits++ < 4) return { kind: 'wait' };
   const sleeper = visible.filter(f => !f.awake).sort((a, b) => dist(a.pos, h.pos) - dist(b.pos, h.pos))[0];
   const approach = approaching ?? (mem.pursuit ? { pos: mem.pursuit.pos } : sleeper);
   if (approach) {

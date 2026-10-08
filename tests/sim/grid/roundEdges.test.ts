@@ -48,10 +48,10 @@ it('execute consumes a loaded round even when the target dies', () => {
 });
 it('ricochet needs charge and carries the next loaded round', () => {
   for (const charge of [1, 2]) {
-    const g = setup(); g.s.hero.charge = charge; g.s.hero.suit = ['ricochet']; g.s.hero.rounds = ['fire', 'poison']; g.s.foes[0]!.hp = 1;
+    const g = setup(); g.s.hero.arrows = charge; g.s.hero.suit = ['ricochet']; g.s.hero.rounds = ['fire', 'poison']; g.s.foes[0]!.hp = 1;
     rangedAttack(g.s, 0, g.s.foes[0]!, hooks);
     expect(g.s.events.some(e => e.type === 'engrave' && e.text === 'ricochet')).toBe(charge === 2);
-    expect(g.s.foes[1]!.status?.poison ?? 0).toBe(charge === 2 ? 6 : 0); expect(g.s.hero.charge).toBe(0);
+    expect(g.s.foes[1]!.status?.poison ?? 0).toBe(charge === 2 ? 6 : 0); expect(g.s.hero.arrows).toBe(0);
   }
 });
 it('chain ignores enemy reactions and empty neighbours; spread paralysis caps champions', () => {
@@ -77,11 +77,11 @@ it('alternate also scales a surviving champion execution shot', () => {
 it('volley spends one charge per extra round and stops when empty', () => {
   for (const charge of [1, 2, 3]) {
     const g = setup(); g.s.foes[1]!.pos = { x: 7, y: 9 }; g.s.foes[2]!.pos = { x: 7, y: 5 };
-    g.s.hero.suit = ['volley']; g.s.hero.fx.shots = 2; g.s.hero.charge = charge; g.s.hero.rounds = ['poison'];
+    g.s.hero.suit = ['volley']; g.s.hero.fx.shots = 2; g.s.hero.arrows = charge; g.s.hero.rounds = ['poison'];
     rangedAttack(g.s, 0, g.s.foes[0]!, hooks);
     expect(g.s.events.filter(e => e.type === 'shoot')).toHaveLength(charge);
     expect(g.s.foes.filter(f => f.status?.poison)).toHaveLength(charge);
-    expect(g.s.hero.charge).toBe(0);
+    expect(g.s.hero.arrows).toBe(0);
   }
 });
 it('engraving scrolls keep engraving-only offers', () => {

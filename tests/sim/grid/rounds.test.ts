@@ -19,7 +19,7 @@ it('applies fire on a hit, not a miss, and never spends or advances an unavailab
   rangedAttack(g.s, 0, f, hooks); expect(f.status?.burn).toBe(3); expect(g.s.hero.roundIdx).toBe(1);
   g.s.rng.chance = () => false;
   rangedAttack(g.s, 1, f, hooks); expect(f.status?.poison ?? 0).toBe(0); expect(g.s.hero.roundIdx).toBe(0);
-  g.s.hero.charge = 0; expect(rangedAttack(g.s, 2, f, hooks)).toBeNull(); expect(g.s.hero.roundIdx).toBe(0);
+  g.s.hero.arrows = 0; expect(rangedAttack(g.s, 2, f, hooks)).toBeNull(); expect(g.s.hero.roundIdx).toBe(0);
 });
 it('shock reacts with poison and damages a neighbour', () => {
   const g = setup(); g.s.hero.rounds = ['shock'];
@@ -34,7 +34,7 @@ it('alternates barrel shots too', () => {
 });
 it('only the chosen unlocked round is applied; locked and missing choices are plain', () => {
   const m = freshMeta(); m.rounds = ['fire', 'shock'];
-  const opts = { gun: 'pistol' as const, start: 1 as const, startSuit: [] };
+  const opts = { gun: 'bow' as const, start: 1 as const, startSuit: [] };
   expect(newRunState(1, m, { ...opts, round: 'fire' }).hero.rounds).toEqual(['fire']);
   expect(newRunState(1, m, { ...opts, round: 'frost' }).hero.rounds).toEqual([]);
   expect(newRunState(1, m, opts).hero.rounds).toEqual([]);
@@ -42,13 +42,13 @@ it('only the chosen unlocked round is applied; locked and missing choices are pl
 it('alternate boosts only a changed element with two rounds and fires once per action', () => {
   const g = setup(), f = g.s.foes[0]!; g.s.hero.rounds = ['poison', 'shock']; g.s.hero.suit = ['alternate'];
   rangedAttack(g.s, 0, f, hooks); rangedAttack(g.s, 1, f, hooks); rangedAttack(g.s, 2, f, hooks);
-  expect(g.s.events.filter(e => e.type === 'hit' && !e.text).map(e => e.amount)).toEqual([4, 6, 4]);
+  expect(g.s.events.filter(e => e.type === 'hit' && !e.text).map(e => e.amount)).toEqual([5, 8, 5]);
   expect(g.s.events.filter(e => e.type === 'engrave' && e.text === 'alternate')).toHaveLength(1);
 });
 it('echo repeats the third shot element without another bullet or charge', () => {
   const g = setup(), f = g.s.foes[0]!; g.s.hero.rounds = ['poison']; g.s.hero.suit = ['echo'];
   for (let i = 0; i < 3; i++) { g.s.fired.clear(); rangedAttack(g.s, i, f, hooks); }
-  expect(f.status?.poison).toBe(24); expect(g.s.hero.charge).toBe(7);
+  expect(f.status?.poison).toBe(24); expect(g.s.hero.arrows).toBe(21);
 });
 it('element blade applies the loaded element on a blade hit and caps champion freeze', () => {
   const g = setup(), f = g.s.foes[0]!; f.kind = 'champion'; f.pos = { x: 4, y: 7 };

@@ -4,7 +4,7 @@ import { SHOP, engraveShop, type MetaState } from '../../../sim/grid/meta';
 import { allowedStart, type RunOptions } from '../../../sim/grid/runSetup';
 import { STATIONS, type StationId } from '../../../sim/grid/ship';
 import { ROUND_NAMES } from '../../../sim/grid/rounds';
-export const GUN_NAMES = { pistol: '권총' };
+export const GUN_NAMES = { pistol: '권총', bow: '사냥 활' };
 export interface PanelChoice { id: string; label: string; enabled: boolean; selected: boolean }
 export function launchOptions(m: MetaState, o: RunOptions): RunOptions {
   const start = allowedStart(m, o.start);

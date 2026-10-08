@@ -19,6 +19,7 @@ it('preserves the existing floor layout, spawns and contents apart from elite fl
       m.tiles[spot.pos.y * m.w + spot.pos.x] = 'wall';
       m.chests = m.chests.filter(c => c.x < spot.room.x || c.x >= spot.room.x + spot.room.w || c.y < spot.room.y || c.y >= spot.room.y + spot.room.h);
     }
+    m.tiles = m.tiles.map(t => t === 'cover' ? 'floor' : t);
     delete m.hidden; delete m.toolSpots;
     const plain = { ...m, spawns: m.spawns.map(({ kind, pos, group }) => ({ kind, pos, group })) };
     return createHash('sha256').update(JSON.stringify(plain)).digest('hex');
@@ -85,7 +86,7 @@ it('keeps records across floors and applies generated elite flags on descent', (
 it.each(['minion', 'brute', 'archer', 'mage', 'ghoul', 'champion'] as const)('a defeated %s immediately offers its family and leaves remains alongside existing items', (kind) => {
   const map = handMap(OPEN);
   map.spawns = [{ kind, pos: { x: 2, y: 1 }, group: 1, elite: kind !== 'champion' }];
-  const s = newState(map, 3, 'pistol', kind === 'champion' ? 15 : 1);
+  const s = newState(map, 3, 'bow', kind === 'champion' ? 15 : 1);
   s.floorItems.push({ pos: { x: 2, y: 1 }, item: makeWeapon('sword', 1) });
   const g = GridSim.fromState(s);
   sureHits(g);

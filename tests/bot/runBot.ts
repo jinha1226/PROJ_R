@@ -1,12 +1,12 @@
 import { allowedStart } from '../../src/sim/grid/runSetup';
 import { pickStone } from './brain/stones';
-import { smartDecide, createMemory } from './brain/policy';
+import { smartDecide, createMemory, arrowStep, recoverRoute } from './brain/policy';
 import type { EngraveId } from '../../src/sim/grid/engraveCore';
 import type { Round } from '../../src/sim/grid/rounds';
 import { GridSim } from '../../src/sim/grid/gridSim';
 import { freshMeta, type MetaState } from '../../src/sim/grid/meta';
 import { walkBlocked } from '../../src/sim/grid/actions';
-import { gunCost } from '../../src/sim/grid/kataTargets';
+import { rangedReady } from '../../src/sim/grid/rangedResources';
 import { activeWeapon } from '../../src/sim/grid/gear';
 import { exploreTarget } from '../../src/sim/grid/explore';
 import { findPath } from '../../src/sim/grid/path';
@@ -20,17 +20,21 @@ const stepTo = (s: GridState, to: Cell): Cell | null => {
 };
 
 /** One action by a plain policy: picks first, shoot what can be shot, walk to the core / stairs, explore, then hunt. */
-export function naiveDecide(sim: GridSim, campaign?: MetaState): Parameters<GridSim['act']>[0] {
+export function naiveDecide(sim: GridSim, campaign?: MetaState, mem = createMemory()): Parameters<GridSim['act']>[0] {
+  return recoverRoute(sim.s, mem, naiveAction(sim, campaign));
+}
+function naiveAction(sim: GridSim, campaign?: MetaState): Parameters<GridSim['act']>[0] {
   const s = sim.s;
   if (s.upgrades.length) return { kind: 'upgrade', i: 0 };
   if (s.offers.length) return { kind: 'choose', i: 0 };
   if (s.stonePrompt) return pickStone(s, campaign);
   const h = s.hero;
+  const arrows = arrowStep(s); if (arrows) return arrows;
   const w = activeWeapon(h.gear);
-  const loaded = !!w && h.charge >= gunCost(s, w);
+  const loaded = rangedReady(s, w);
   const t = loaded ? sim.autoTarget() : undefined;
   if (t) return { kind: 'shoot', target: t };
-  // out of charge: strike the nearest adjacent foe (hits refill it)
+  // Out of arrows or mana: strike the nearest adjacent foe.
   const adj = s.foes.find((f) => f.alive && Math.max(Math.abs(f.pos.x - h.pos.x), Math.abs(f.pos.y - h.pos.y)) === 1 && canStep(s.map, h.pos, { x: f.pos.x - h.pos.x, y: f.pos.y - h.pos.y }));
   if (adj) return { kind: 'move', dir: { x: adj.pos.x - h.pos.x, y: adj.pos.y - h.pos.y } };
   if (!loaded) {
@@ -50,6 +54,11 @@ export function naiveDecide(sim: GridSim, campaign?: MetaState): Parameters<Grid
   for (const g of goals) {
     const d = stepTo(s, g);
     if (d) return { kind: 'move', dir: d };
+  }
+  // Clear destructible obstacles only after every safe route fails.
+  for (const g of goals) {
+    const next = findPath(s.map, h.pos, g)?.[0];
+    if (next) return { kind: 'move', dir: { x: next.x - h.pos.x, y: next.y - h.pos.y }, plain: true };
   }
   // a found trap in a corridor hides the rest of the floor from exploring: walk through it
   const loose = (c: Cell) => s.barrels.some((b) => b.x === c.x && b.y === c.y);
@@ -73,9 +82,9 @@ export function runBot(seed: number, options: BotOptions | boolean, maxActions =
   const mem = createMemory();
   const meta = opts.meta ?? freshMeta();
   const campaign = opts.campaign ? meta : undefined;
-  const decide = (sim: GridSim) => opts.policy === 'smart' ? smartDecide(sim, mem, campaign) : naiveDecide(sim, campaign);
+  const decide = (sim: GridSim) => opts.policy === 'smart' ? smartDecide(sim, mem, campaign) : naiveDecide(sim, campaign, mem);
   const start = opts.startDeep ? allowedStart(meta, 11) === 11 ? 11 : allowedStart(meta, 6) : 1;
-  const sim = GridSim.createRun(seed, meta, { gun: 'pistol', start, startSuit: opts.startSuit ?? [], round: opts.round });
+  const sim = GridSim.createRun(seed, meta, { gun: 'bow', start, startSuit: opts.startSuit ?? [], round: opts.round });
   const s = sim.s;
   const floorActions: number[] = [];
   const stonesFound: string[] = [], stonesSocketed: string[] = [], portalsOpened: number[] = [];

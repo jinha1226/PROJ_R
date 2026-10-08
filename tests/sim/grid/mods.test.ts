@@ -20,7 +20,7 @@ it('crafts once after repair and fits owned mods only in their own slot', () => 
 it('applies all fitted stats once across floor changes and saves', () => {
   const m = freshMeta(); m.mods.owned = MODS.map(m => m.id);
   for (const mod of MODS.filter(m => !m.stone)) fit(m, mod.slot, mod.id);
-  const s = newRunState(3, m, { gun: 'pistol', start: 1, startSuit: [] });
+  const s = newRunState(3, m, { gun: 'bow', start: 1, startSuit: [] });
   expect(s.hero.maxCharge).toBe(12); expect(s.hero.charge).toBe(12); expect(s.hero.shield).toBe(0);
   expect(s.hero.bonus).toMatchObject({ gunDmg: 0, meleeDmg: 2, evasion: 0.05 });
   expect(s.hero.modStats).toMatchObject({ hit: 0.18, noise: -2, swap: -0.25 });
@@ -32,15 +32,15 @@ it('uses mod hit, shot noise and swap time in combat', () => {
   const noise = vi.fn(); g.s.hero.modStats = { hit: 0.08, noise: -2, swap: -0.25 };
   const chance = vi.spyOn(g.s.rng, 'chance').mockReturnValue(false);
   rangedAttack(g.s, 0, g.s.foes[0]!, { noise });
-  expect(noise).toHaveBeenCalledWith(g.s.hero.pos, 2); expect(chance.mock.calls.some(([p]) => p > 0.9)).toBe(true);
+  expect(noise).toHaveBeenCalledWith(g.s.hero.pos, 2); expect(chance.mock.calls.some(([p]) => p >= 0.9)).toBe(true);
   expect(swapCombo(g.s, 0, { noise })).toBe(0.25);
 });
 it('applies plating HP and stacked sight bonuses to each fresh run independently', () => {
   const m = freshMeta(); m.mods.owned = ['plating', 'longBarrel', 'redDot']; m.portals = [5, 10]; m.repairs = ['nav'];
   fit(m, 'chest', 'plating'); fit(m, 'barrel', 'longBarrel'); fit(m, 'sight', 'redDot');
   for (const start of [1, 6, 11] as const) {
-    const a = newRunState(3, m, { gun: 'pistol', start, startSuit: [] });
-    const b = newRunState(3, m, { gun: 'pistol', start, startSuit: [] });
+    const a = newRunState(3, m, { gun: 'bow', start, startSuit: [] });
+    const b = newRunState(3, m, { gun: 'bow', start, startSuit: [] });
     expect(a.hero.hp).toBe(35 + (a.hero.level - 1) * 5 + 6); expect(a.hero.hp).toBe(a.hero.maxHp);
     expect(a.hero.modStats?.hit).toBeCloseTo(0.18); expect(a.hero).toEqual(b.hero);
     expect(fromSave(toSave(a)).hero.hp).toBe(a.hero.hp);

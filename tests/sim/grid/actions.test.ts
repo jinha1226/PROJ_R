@@ -36,10 +36,10 @@ describe('hero actions', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
     g.s.foes[0]!.hp = 999;
     const id = g.s.foes[0]!.id;
-    const charge = g.s.hero.charge;
+    const charge = g.s.hero.arrows;
     expect(types(g.act({ kind: 'shoot', target: id }))[0]).toBe('shoot');
     expect(types(g.act({ kind: 'shoot', target: id }))[0]).toBe('shoot');
-    expect(g.s.hero.charge).toBe(charge - 2);
+    expect(g.s.hero.arrows).toBe(charge - 2);
   });
 
   it('hit chance falls with distance and behind cover, never below 5%', () => {
@@ -47,7 +47,7 @@ describe('hero actions', () => {
     expect(hitChance(m, { x: 3, y: 7 }, { x: 4, y: 7 }, 0.85)).toBeCloseTo(0.85);
     expect(hitChance(m, { x: 3, y: 7 }, { x: 9, y: 7 }, 0.85)).toBeCloseTo(0.65);
     const cover = handMap(['#########', '#.......#', '#.....#.#', '#.......#', '#########']);
-    expect(hitChance(cover, { x: 1, y: 2 }, { x: 7, y: 2 }, 0.85)).toBeCloseTo(0.85 - 0.04 * 5 - 0.3);
+    expect(hitChance(cover, { x: 1, y: 2 }, { x: 7, y: 2 }, 0.85)).toBeCloseTo(0.85 - 0.04 * 5 - 0.4);
     expect(hitChance(cover, { x: 1, y: 2 }, { x: 7, y: 2 }, 0.1)).toBeCloseTo(0.05);
   });
 
@@ -77,12 +77,12 @@ describe('hero actions', () => {
     const g = sim(rows, { x: 5, y: 7 });
     expect(types(g.act({ kind: 'move', dir: { x: 1, y: 0 } }))).toContain('door');
     expect(g.s.map.tiles[7 * 15 + 6]).toBe('open');
-    const before = g.s.hero.charge;
+    const before = g.s.hero.arrows;
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
     expect(types(ev)).toContain('open');
     expect(g.s.hero.pos).toEqual({ x: 6, y: 7 });
     expect(g.s.chests[0]!.opened).toBe(true);
-    expect(g.s.hero.charge).toBe(before);
+    expect(g.s.hero.arrows).toBe(before);
     expect(types(ev)).toContain('loot');
   });
 });

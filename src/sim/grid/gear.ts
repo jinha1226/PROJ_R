@@ -13,11 +13,11 @@ export interface Gear {
   scrolls: Partial<Record<ScrollKind, number>>;
 }
 
-/** Ship loadout: a gun, an agent knife, the agent's suit and two potions. */
-export function startGear(gun: GunGroup = 'pistol'): Gear {
-  const weapon = makeWeapon(gun, 1);
+/** Ship loadout: a bow, a dagger, the suit and two potions. */
+export function startGear(gun: GunGroup = 'bow'): Gear {
+  const weapon = makeWeapon(gun === 'pistol' ? 'bow' : gun, 1);
   const belt = { potion: 2, bomb: 0, fireFlask: 0, frostFlask: 0, shockFlask: 0, poisonFlask: 0 };
-  return { hands: [weapon, { ...makeWeapon('dagger', 1), name: '요원 칼' }], active: 0, bag: [], armor: agentSuit(), belt, potions: {}, scrolls: {} };
+  return { hands: [weapon, makeWeapon('dagger', 1)], active: 0, bag: [], armor: agentSuit(), belt, potions: {}, scrolls: {} };
 }
 
 export const activeWeapon = (g: Gear): Weapon | null => g.hands[g.active];

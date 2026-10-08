@@ -25,7 +25,7 @@ describe('final review fixes (roguelike basics)', () => {
   it('kite never rolls onto a found trap, nor out of a net', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
+    g.s.hero.gear.hands[0] = makeWeapon('bow', 1);
     g.s.hero.suit = ['kite'];
     g.s.hero.gear.active = 0;
     g.s.hero.charge = 5;
@@ -42,7 +42,7 @@ describe('final review fixes (roguelike basics)', () => {
   it('shooting or bumping a barrel gives an invisible hero away; drinking a healing potion does not', () => {
     const shot = sim(OPEN, { x: 3, y: 7 });
     shot.s.barrels = [{ x: 7, y: 7 }];
-    shot.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
+    shot.s.hero.gear.hands[0] = makeWeapon('bow', 1);
     shot.s.hero.gear.active = 0;
     shot.s.hero.charge = 3;
     addBuff(shot.s, shot.s.hero, 'invis', 10, shot.s.time);

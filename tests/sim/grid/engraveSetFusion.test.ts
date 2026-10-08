@@ -6,10 +6,10 @@ const setup = () => {
   sureHits(g); g.s.hero.suit = []; return g;
 };
 it('bayonet shoots the same living foe for one charge, not with an empty battery', () => {
-  const { s } = setup(); s.hero.gear.active = 1; s.hero.suit = ['bayonet']; s.hero.charge = 0; const foe = s.foes[0]!;
+  const { s } = setup(); s.hero.gear.active = 1; s.hero.suit = ['bayonet']; s.hero.arrows = 0; const foe = s.foes[0]!;
   emit(s, 'meleeHit', { t: 0, foe }); expect(s.fired.size).toBe(0);
-  s.hero.charge = 1; emit(s, 'meleeHit', { t: 0, foe });
-  expect(foe.hp).toBeLessThan(foe.maxHp); expect(s.hero.charge).toBe(0); expect(s.hero.gear.active).toBe(1); expect(s.fired.has('bayonet')).toBe(true);
+  s.hero.arrows = 1; emit(s, 'meleeHit', { t: 0, foe });
+  expect(foe.hp).toBeLessThan(foe.maxHp); expect(s.hero.arrows).toBe(0); expect(s.hero.gear.active).toBe(1); expect(s.fired.has('bayonet')).toBe(true);
 });
 it('reverseCut uses the offhand blade only against an adjacent living foe', () => {
   const { s } = setup(); s.hero.suit = ['reverseCut']; const foe = s.foes[0]!;
@@ -31,7 +31,7 @@ it('executionRush resolves after execute regardless of suit order, never without
   const { s } = setup(); s.hero.suit = ['executionRush']; s.hero.charge = 3; const foe = s.foes[0]!;
   emit(s, 'stunned', { t: 0, foe }); expect(s.fired.size).toBe(0);
   s.hero.suit.push('execute'); emit(s, 'stunned', { t: 0, foe });
-  expect(foe.alive).toBe(false); expect(s.hero.charge).toBe(4); expect(s.fired.has('executionRush')).toBe(true);
+  expect(foe.alive).toBe(false); expect(s.hero.charge).toBe(5); expect(s.fired.has('executionRush')).toBe(true);
 });
 it('trance heals three on a chain with both kill kinds, not melee alone', () => {
   const { s } = setup(); s.hero.suit = ['trance']; s.hero.hp -= 5;

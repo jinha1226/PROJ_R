@@ -18,9 +18,9 @@ const PISTOL: ModSlot[] = ['barrel', 'mag', 'sight', 'grip'];
 export function workbenchModel(meta: MetaState): WorkbenchModel {
   const m = structuredClone(meta);
   const find = (id?: string) => structuredClone(MODS.find(mod => mod.id === id) ?? null);
-  const damage = WEAPONS.pistol.dmg[0];
+  const damage = WEAPONS.bow.dmg[0];
   const base: [string, ModStat, number][] = [
-    ['피해', 'gunDmg', (damage[0] + damage[1]) / 2], ['명중', 'hit', WEAPONS.pistol.hit],
+    ['피해', 'gunDmg', (damage[0] + damage[1]) / 2], ['명중', 'hit', WEAPONS.bow.hit],
     ['충전', 'maxCharge', 10 + 2 * m.facilities.chargePlus], ['소음', 'noise', 4],
     ['체력', 'maxHp', HERO.hp], ['회피', 'evasion', 0.1], ['보호막', 'shield', 0],
   ];

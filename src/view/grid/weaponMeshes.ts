@@ -3,7 +3,7 @@ import type { WeaponGroup } from '../../sim/grid/items';
 import { weaponKit } from './weaponKit';
 
 /** What a figure can hold: the hero's weapon groups plus the skeletons' short blade. */
-export type WeaponLook = WeaponGroup | 'bow' | 'crossbow' | 'blade' | 'none';
+export type WeaponLook = WeaponGroup | 'pistol' | 'bow' | 'crossbow' | 'blade' | 'none';
 
 const box = (w: number, h: number, d: number, mat: THREE.Material, y = 0, z = 0): THREE.Mesh => {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);

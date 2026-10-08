@@ -10,7 +10,7 @@ import { newState } from '../../../src/sim/grid/state';
 
 describe('engraving and upgrade choices', () => {
   it('each starting gun has no engravings and the suit starts empty', () => {
-    for (const gun of ['pistol'] as const) {
+    for (const gun of ['bow'] as const) {
       const { hero } = GridSim.create(2, gun).s;
       expect(hero.suit).toEqual([]);
       expect(hero.gear.hands[0]).not.toHaveProperty('engraves');
@@ -23,7 +23,7 @@ describe('engraving and upgrade choices', () => {
     for (let seed = 1; seed <= 40; seed++) {
       const s = newState(handMap(OPEN), seed);
       s.rng = createRng(seed);
-      s.hero.gear.hands[0] = makeWeapon('pistol', 1);
+      s.hero.gear.hands[0] = makeWeapon('bow', 1);
       s.hero.gear.active = 0;
       const offer = offerFor(s);
       expect(new Set(offer).size).toBe(3);

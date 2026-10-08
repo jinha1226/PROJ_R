@@ -1,7 +1,7 @@
 import { walkBlocked } from '../../../src/sim/grid/actions';
 import { shotClear } from '../../../src/sim/grid/combat';
 import { WEAPONS } from '../../../src/sim/grid/items';
-import { gunCost } from '../../../src/sim/grid/kataTargets';
+import { rangedReady as hasAmmo } from '../../../src/sim/grid/rangedResources';
 import { findPath } from '../../../src/sim/grid/path';
 import { weaponRange } from '../../../src/sim/grid/weapons';
 import { add, canStep, DIRS, dist, idx, same, tileAt, walkable, type Cell, type GridState } from '../../../src/sim/grid/types';
@@ -12,10 +12,10 @@ export const adjacentFoes = (s: GridState) => s.foes.filter(f => f.alive && dist
 export const awakeThreats = (s: GridState) => s.foes.filter(f => f.alive && f.awake
   && s.visible.has(idx(s.map, f.pos)));
 export const visibleFoes = (s: GridState) => s.foes.filter(f => f.alive && s.visible.has(idx(s.map, f.pos)));
-export const pistolIndex = (s: GridState) => s.hero.gear.hands.findIndex(w => w && !WEAPONS[w.group].melee);
+export const rangedIndex = (s: GridState) => s.hero.gear.hands.findIndex(w => w && !WEAPONS[w.group].melee);
 export const bladeIndex = (s: GridState) => s.hero.gear.hands.findIndex(w => w && WEAPONS[w.group].melee);
-export const pistol = (s: GridState) => s.hero.gear.hands[pistolIndex(s)] ?? null;
-export const gunReady = (s: GridState): boolean => { const w = pistol(s); return !!w && s.hero.charge >= gunCost(s, w); };
+export const rangedWeapon = (s: GridState) => s.hero.gear.hands[rangedIndex(s)] ?? null;
+export const rangedReady = (s: GridState): boolean => hasAmmo(s, rangedWeapon(s));
 export function dangerCells(s: GridState): Set<number> {
   // Include imminent marks first, then later marks too: don't walk into a pending cast.
   const marks = [...s.telegraphs].sort((a, b) => Number(b.at <= s.hero.nextAt + 1.5) - Number(a.at <= s.hero.nextAt + 1.5));
@@ -29,7 +29,7 @@ export function stepToward(s: GridState, to: Cell): Cell | null {
   return p?.[0] ? direction(s.hero.pos, p[0]) : null;
 }
 export const shotTargets = (s: GridState, from = s.hero.pos) => {
-  const w = pistol(s);
+  const w = rangedWeapon(s);
   return w ? visibleFoes(s).filter(f => dist(from, f.pos) <= weaponRange(w, s.hero) && shotClear(s, from, f.pos)) : [];
 };
 export const safeSteps = (s: GridState) => {

@@ -10,13 +10,13 @@ import { LEVEL_HP, XP_STEPS } from './run';
 import { newState } from './state';
 import type { GridState } from './types';
 
-export interface RunOptions { gun: 'pistol'; round?: Round; start: 1 | 6 | 11; startSuit: EngraveId[] }
+export interface RunOptions { gun: 'pistol' | 'bow'; round?: Round; start: 1 | 6 | 11; startSuit: EngraveId[] }
 export function allowedStart(meta: MetaState, start: RunOptions['start']): RunOptions['start'] {
   return start !== 1 && meta.repairs.includes('nav') && (meta.portals ?? []).includes(start - 1) ? start : 1;
 }
 export function newRunState(seed: number, meta: MetaState, opts: RunOptions): GridState {
   opts = { ...opts, start: allowedStart(meta, opts.start) };
-  const s = newState(generateMap(opts.start === 1 ? seed : seed * 31 + opts.start, opts.start), seed, 'pistol', opts.start);
+  const s = newState(generateMap(opts.start === 1 ? seed : seed * 31 + opts.start, opts.start), seed, 'bow', opts.start);
   s.run.modsUnlocked = [...(meta.mods.unlocked ?? [])];
   s.run.stock = { ...meta.materials };
   s.run.tools = [...meta.tools];

@@ -12,8 +12,7 @@ export const savedIds = (v: unknown): EngraveId[] => Array.isArray(v)
 const equipment = <T extends Equipment>(item: T | null): T | null => {
   if (!item || item.kind !== 'weapon') return item;
   const group: string = item.group;
-  if (group === 'staff') return null;
-  return group === 'shotgun' || group === 'rifle' ? makeWeapon('pistol', 1) as T : item;
+  return group === 'pistol' || group === 'shotgun' || group === 'rifle' ? makeWeapon('bow', 1) as T : item;
 };
 const card = (c: OfferCard): boolean => typeof c === 'string' ? ENGRAVE_IDS.includes(c)
   : !!c && c.kind === 'round' && ELEMENTS.includes(c.element);
@@ -30,6 +29,7 @@ export function migrateRun(s: Pick<GridState, 'hero' | 'run' | 'records' | 'offe
   s.run.stock = savedMaterials(s.run.stock);
   s.run.tools ??= [];
   const h = s.hero, g = h.gear;
+  h.arrows ??= 24;
   g.hands = [equipment(g.hands[0]), equipment(g.hands[1])];
   g.bag = g.bag.flatMap(item => { const migrated = equipment(item); return migrated ? [migrated] : []; });
   h.rounds = validElements(h.rounds).slice(0, 2);

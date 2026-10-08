@@ -13,6 +13,13 @@ const REGEN_EVERY = 6;
 /** Six safe turns per HP; danger discards the bank, full health cannot stockpile it. */
 export function regenerate(s: GridState, spent: number, safeAtStart = true): void {
   const h = s.hero;
+  if (h.alive && spent > 0) {
+    h.manaClock = (h.manaClock ?? 0) + spent;
+    const mana = Math.floor((h.manaClock + 1e-9) / 1.5);
+    h.charge = Math.min(h.maxCharge, h.charge + mana);
+    h.manaClock -= mana * 1.5;
+    if (h.charge >= h.maxCharge) h.manaClock = 0;
+  }
   if (!safeAtStart || !canRegenerate(s)) {
     h.regenClock = 0;
     if (!h.alive || h.status?.burn || h.status?.poison || !hasPerk(h, 'regenPack') || h.hp >= h.maxHp) { h.regenCombat = 0; return; }

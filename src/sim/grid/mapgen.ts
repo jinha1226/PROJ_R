@@ -1,3 +1,4 @@
+import { placeCover } from './mapCover';
 import { placeToolSpots } from './toolSpots';
 import { isBossFloor } from './zones';
 import { placeTraps } from './traps';
@@ -121,5 +122,6 @@ export function generateMap(seed: number, floor = 1): GridMap {
     for (const sp of pool.slice(0, count)) sp.elite = true;
   }
   placeToolSpots(m, createRng((seed ^ 0x7a01) + floor * 8191));
+  placeCover(m, rng);
   return m;
 }

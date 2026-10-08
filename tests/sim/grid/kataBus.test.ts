@@ -14,7 +14,7 @@ it('empty suits and unavailable effects do not fire or mutate state', () => {
   const g = setup(); g.s.hero.suit = [];
   emit(g.s, 'stunned', { t: 0, foe: g.s.foes[0] });
   expect(g.s.events).toEqual([]);
-  g.s.hero.suit = ['execute']; g.s.hero.charge = 0;
+  g.s.hero.suit = ['execute']; g.s.hero.arrows = 0;
   const before = JSON.stringify(g.s);
   expect(canRun(g.s, 'execute', { t: 0, foe: g.s.foes[0] })).toBe(false);
   expect(runEffect(g.s, 'execute', { t: 0, foe: g.s.foes[0] })).toBe(false);

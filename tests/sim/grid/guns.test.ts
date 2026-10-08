@@ -8,41 +8,41 @@ import { counterBlow } from '../../../src/sim/grid/combos';
 import { handMap, OPEN, sim, sureHits } from './kit';
 
 const hooks = { noise: () => {} };
-describe('ship guns and suit charge', () => {
-  it('starts with a pistol, agent knife, full suit and no rack', () => {
+describe('ranged weapons and mana', () => {
+  it('starts with a bow, dagger, full mana and no rack', () => {
     const s = GridSim.create(7).s;
     expect(s.hero).toMatchObject({ hp: 35, maxHp: 35, charge: 10, maxCharge: 10 });
-    expect(s.hero.gear.hands[0]).toMatchObject({ group: 'pistol', tier: 1 });
+    expect(s.hero.gear.hands[0]).toMatchObject({ group: 'bow', tier: 1 });
     expect(s.hero.suit).toEqual([]);
-    expect(s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '요원 칼' });
+    expect(s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '단검' });
     expect(s.hero.gear.armor?.tier).toBe(1);
     expect(s.hero.gear.belt.potion).toBe(2);
     expect(s.floorItems.filter((f) => f.item.kind === 'weapon')).toEqual([]);
   });
 
-  it('spends one charge and 0.6 turns; empty charge refuses without time', () => {
+  it('spends one arrow and one turn; an empty quiver refuses without time', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 7, y: 7 } }]);
     g.s.foes[0]!.nextAt = 100;
     g.act({ kind: 'shoot', target: 'f1' });
-    expect(g.s.hero.charge).toBe(9);
-    expect(g.s.time).toBeCloseTo(0.6);
-    g.s.hero.charge = 0;
+    expect(g.s.hero.arrows).toBe(23);
+    expect(g.s.time).toBeCloseTo(1);
+    g.s.hero.arrows = 0;
     expect(g.act({ kind: 'shoot', target: 'f1' }).map((e) => e.type)).toContain('blocked');
-    expect(g.s.time).toBeCloseTo(0.6);
+    expect(g.s.time).toBeCloseTo(1);
   });
 
 
   it('cover factor can halve the penalty with the same base hit chance', () => {
     const m = handMap(['########', '#......#', '#...P..#', '#......#', '########']);
     const from = { x: 1, y: 1 }, to = { x: 5, y: 2 };
-    expect(hitChance(m, from, to, 0.85, 0.5)).toBeCloseTo(hitChance(m, from, to, 0.85) + 0.15);
+    expect(hitChance(m, from, to, 0.85, 0.5)).toBeCloseTo(hitChance(m, from, to, 0.85) + 0.2);
   });
 
   it.each([
     ['sword', 100, 0, true, 1], ['sword', 1, 0, true, 3],
     ['axe', 100, 0, true, 1], ['axe', 1, 0, true, 7],
     ['sword', 1, 9, true, 10], ['sword', 100, 0, false, 0],
-    ['pistol', 1, 0, true, 3],
+    ['bow', 1, 0, true, 3],
   ] as const)('%s melee hp=%s charge=%s hit=%s ends at %s', (group, hp, charge, hit, expected) => {
     const g = sim(OPEN, { x: 5, y: 5 }, [4, 5, 6].map((y) => ({ kind: 'brute', pos: { x: 6, y } })));
     g.s.hero.gear.hands[0] = makeWeapon(group, 1);
@@ -58,10 +58,10 @@ describe('ship guns and suit charge', () => {
     const rng = createRng(22);
     const finds = Array.from({ length: 1000 }, () => rollEquipment(rng, 10));
     expect(finds.every((w) => w.kind === 'weapon')).toBe(true);
-    expect(new Set(finds.flatMap((w) => w.kind === 'weapon' ? [w.group] : []))).toEqual(new Set(['dagger', 'sword', 'axe', 'spear', 'mace']));
+    expect(new Set(finds.flatMap((w) => w.kind === 'weapon' ? [w.group] : []))).toEqual(new Set(['dagger', 'sword', 'axe', 'spear', 'mace', 'bow', 'staff']));
   });
 
-  it('chests give no arrows and do not refill suit charge', () => {
+  it('opening ordinary supplies does not immediately refill mana', () => {
     const g = sim(['#####', '#.C.#', '#...#', '#####'], { x: 1, y: 1 });
     g.s.hero.charge = 3;
     const ev = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
@@ -71,10 +71,10 @@ describe('ship guns and suit charge', () => {
     expect(g.s.hero.charge).toBe(3);
   });
 
-  it.each(GUNS)('%s keeps tier 1 and spends its charge and noise on foe and barrel shots', (gun) => {
+  it.each(GUNS)('%s keeps tier 2 and spends resources and noise on foe and barrel shots', (gun) => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     g.s.hero.gear.hands[0] = makeWeapon(gun, 2);
-    expect(g.s.hero.gear.hands[0]!.tier).toBe(1);
+    expect(g.s.hero.gear.hands[0]!.tier).toBe(2);
     const noises: number[] = [];
     rangedAttack(g.s, 0, g.s.foes[0]!, { ...hooks, noise: (_at, r) => noises.push(r) });
     expect(g.s.hero.charge).toBe(10 - GUN_COST[gun]);
@@ -84,15 +84,15 @@ describe('ship guns and suit charge', () => {
     shootCell(g.s, 1, g.s.barrels[0]!, () => { exploded = true; }, (_at, r) => noises.push(r));
     expect(exploded).toBe(true);
     expect(g.s.hero.charge).toBe(10 - 2 * GUN_COST[gun]);
-    expect(noises).toEqual([gun === 'pistol' ? 4 : 6, gun === 'pistol' ? 4 : 6]);
-    g.s.hero.charge = GUN_COST[gun] - 1;
+    expect(noises).toEqual([4, 4]);
+    g.s.hero.charge = GUN_COST[gun] - 1; g.s.hero.arrows = 0;
     expect(canFire(g.s)).toBe(false);
     expect(shootCell(g.s, 2, g.s.barrels[0]!, () => { throw new Error('unpowered shot'); })).toBeNull();
   });
 
 
 
-  it.each([['pistol', 'pistol'], ['empty hand', null]] as const)('a bash with a %s still earns melee hit and kill charge', (_, group) => {
+  it.each([['bow', 'bow'], ['empty hand', null]] as const)('a bash with a %s still earns melee hit and kill charge', (_, group) => {
     const g = sim(OPEN, { x: 5, y: 5 }, [{ kind: 'minion', pos: { x: 6, y: 5 } }]);
     g.s.hero.gear.hands[0] = group ? makeWeapon(group, 1) : null;
     g.s.hero.charge = 0;
@@ -134,19 +134,20 @@ describe('ship guns and suit charge', () => {
     g.s.foes.forEach((f) => { f.hp = 1; });
     sureHits(g);
     g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-    expect(g.s.hero.charge).toBe(5);
+    expect(g.s.hero.charge).toBe(6);
   });
 
   it('shove-shot can spend the melee refill but its gun kill gives no melee kill charge', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     g.s.hero.suit = ['shoveShot'];
-    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('pistol', 1)];
+    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('bow', 1)];
     g.s.hero.charge = 0;
     g.s.foes[0]!.hp = 10;
     sureHits(g);
     meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, hooks);
     expect(g.s.foes[0]!.alive).toBe(false);
-    expect(g.s.hero.charge).toBe(0);
+    expect(g.s.hero.charge).toBe(1);
+    expect(g.s.hero.arrows).toBe(23);
     expect(g.s.events.some((e) => e.type === 'shoot')).toBe(true);
   });
 
@@ -162,14 +163,14 @@ describe('ship guns and suit charge', () => {
     expect(g.s.hero.gear.active).toBe(1);
     g.act({ kind: 'equip', bag: 0 });
     expect(g.s.hero.gear.hands).toEqual([gun, sword]);
-    expect(g.s.hero.gear.bag).toEqual([{ ...makeWeapon('dagger', 1), name: '요원 칼' }]);
+    expect(g.s.hero.gear.bag).toEqual([{ ...makeWeapon('dagger', 1), name: '단검' }]);
     g.act({ kind: 'swap' });
     expect(g.s.hero.gear.active).toBe(0);
   });
 
 });
 
-describe('no passive suit charge', () => {
+describe('mana replenishment', () => {
   it('a recharge scroll refills the suit', () => {
     const g = sim(OPEN, { x: 5, y: 7 });
     g.s.hero.charge = 0;
@@ -178,12 +179,12 @@ describe('no passive suit charge', () => {
     expect(g.s.hero.charge).toBe(g.s.hero.maxCharge);
   });
 
-  it.each(['wait', 'search'] as const)('%s never refills an empty or partly charged suit', (kind) => {
+  it.each(['wait', 'search'] as const)('%s regenerates empty or partly depleted mana', (kind) => {
     for (const charge of [0, 3]) {
       const g = sim(OPEN, { x: 5, y: 7 });
       g.s.hero.charge = charge;
       for (let i = 0; i < 60; i++) g.act({ kind });
-      expect(g.s.hero.charge).toBe(charge);
+      expect(g.s.hero.charge).toBe(g.s.hero.maxCharge);
     }
   });
 });

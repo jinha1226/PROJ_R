@@ -31,7 +31,7 @@ const foe = (s: GridState, id: string) => s.foes.find((f) => f.id === id)!;
 const hurt = (s: GridState, id: string, frac: number) => { const f = foe(s, id); f.hp = Math.max(0, Math.round(f.maxHp * frac)); f.alive = f.hp > 0; };
 const pop = (t: number, name: string): GEvent => ({ t, type: 'engrave', src: 'hero', text: name });
 const shoot = (t: number, dst: string, from: Cell, to: Cell, kill: boolean, text = 'pistol', src = 'hero'): GEvent[] => [
-  { t, type: 'shoot', group: 'pistol', src, dst, from: { ...from }, to: { ...to }, text },
+  { t, type: 'shoot', group: 'bow', src, dst, from: { ...from }, to: { ...to }, text },
   { t: t + 0.02, type: 'hit', src, dst, amount: 6, crit: kill, to: { ...to } },
   ...(kill ? [{ t: t + 0.02, type: 'die' as const, src, dst, to: { ...to } }] : []),
 ];

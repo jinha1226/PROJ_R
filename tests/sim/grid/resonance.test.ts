@@ -17,7 +17,7 @@ it.each(['melee', 'ranged', 'fusion', 'element'] as const)('%s counts only the c
 });
 it('melee resonance adds one to both damage endpoints, never gun damage', () => {
   const { s } = sim(OPEN, { x: 5, y: 7 }); s.hero.suit = ['dash', 'finisher'];
-  const sword = makeWeapon('sword', 1); const gun = makeWeapon('pistol', 1);
+  const sword = makeWeapon('sword', 1); const gun = makeWeapon('bow', 1);
   const base = heroDmg(s, sword); const gunBase = heroDmg(s, gun);
   s.hero.suit.push('leap'); expect(heroDmg(s, sword)).toEqual(base.map(n => n + 1));
   expect(heroDmg(s, gun)).toEqual(gunBase);
@@ -27,7 +27,7 @@ it('ranged resonance leaves pistol costs unchanged', () => {
   const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]); sureHits(g);
   g.s.hero.suit = ['rapid', 'mark']; expect(pistolCost(g.s, 3)).toBe(3);
   g.s.hero.suit.push('ricochet'); expect(pistolCost(g.s, 3)).toBe(3); expect(pistolCost(g.s, 1)).toBe(1);
-  rangedAttack(g.s, 0, g.s.foes[0]!, { noise: () => {} }); expect(g.s.hero.charge).toBe(9);
+  rangedAttack(g.s, 0, g.s.foes[0]!, { noise: () => {} }); expect(g.s.hero.arrows).toBe(23);
 });
 it.each(['fire', 'frost', 'poison'] as const)('element resonance extends hero %s only', el => {
   const { s } = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);

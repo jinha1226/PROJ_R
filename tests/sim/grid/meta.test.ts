@@ -38,7 +38,7 @@ describe('meta energy and facilities', () => {
     Object.assign(m.facilities, { suitSlots: 2, chargePlus: 2 });
     m.portals = [5, 10]; m.repairs = ['nav'];
     m.unlocked = ['dash', 'rapid', 'chain'];
-    const s = newRunState(12, m, { gun: 'pistol', start, startSuit: m.unlocked });
+    const s = newRunState(12, m, { gun: 'bow', start, startSuit: m.unlocked });
     const level = start === 1 ? 1 : start === 6 ? 4 : 7;
     expect(s.run.floor).toBe(start);
     expect(s.hero.level).toBe(level);
@@ -48,13 +48,13 @@ describe('meta energy and facilities', () => {
     expect(s.hero.maxCharge).toBe(14);
     expect(s.hero.charge).toBe(14);
     expect(s.hero.suit).toEqual(start === 1 ? ['dash', 'rapid'] : []);
-    expect(s.hero.gear.hands[0]?.group).toBe('pistol');
+    expect(s.hero.gear.hands[0]?.group).toBe('bow');
     expect(s.upgrades).toEqual([]);
     s.records.push('finisher');
     expect(m.records).not.toContain('finisher');
   });
   it('createRun wraps setup; kills grant energy once and record boss floors', () => {
-    const s = GridSim.createRun(3, freshMeta(), { gun: 'pistol', start: 1, startSuit: [] }).s;
+    const s = GridSim.createRun(3, freshMeta(), { gun: 'bow', start: 1, startSuit: [] }).s;
     const f = s.foes[0]!;
     f.alive = false;
     const alive = new Set([f.id]);

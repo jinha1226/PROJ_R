@@ -1,10 +1,9 @@
-import { tapCost } from './perks';
+export { rangedCost as gunCost } from './rangedResources';
 import { foeAt, freeCell, shotClear } from './combat';
 import { canSwingAt } from './combos';
 import { activeWeapon } from './gear';
 import { otherHand } from './kata';
-import { GUN_COST, isGun, type Weapon } from './items';
-import { pistolCost } from './resonance';
+import { isGun, type Weapon } from './items';
 import { weaponRange } from './weapons';
 import { add, canStep, DIRS, dist, idx, same, type GridState } from './types';
 import type { TriggerCtx } from './kataBus';
@@ -13,8 +12,6 @@ export const gunInHand = (s: GridState): Weapon | null => {
   const w = activeWeapon(s.hero.gear);
   return w && isGun(w.group) ? w : s.hero.gear.hands.find(w => w && isGun(w.group)) ?? null;
 };
-export const gunCost = (s: GridState, w: Weapon): number =>
-  w.group === 'pistol' ? tapCost(s.hero, pistolCost(s, GUN_COST.pistol)) : isGun(w.group) ? GUN_COST[w.group] : Infinity;
 export const shotTarget = (s: GridState, c: TriggerCtx) => c.foe ?? s.foes.find(f => f.id === c.src);
 export const inShot = (s: GridState, w: Weapon, c: TriggerCtx): boolean => {
   const f = shotTarget(s, c);

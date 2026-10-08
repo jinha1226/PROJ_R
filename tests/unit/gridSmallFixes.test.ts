@@ -68,16 +68,16 @@ describe('shot chance', () => {
   });
 });
 
-it('three ranged engravings add one gun damage while pistol cost stays one', () => {
+it('three ranged engravings add one gun damage while bow mana cost stays zero', () => {
   const { s } = sim(OPEN, { x: 5, y: 7 });
-  const pistol = makeWeapon('pistol', 1), sword = makeWeapon('sword', 1);
+  const pistol = makeWeapon('bow', 1), sword = makeWeapon('sword', 1);
   s.hero.suit = ['rapid', 'mark'];
   const base = heroDmg(s, pistol), meleeBase = heroDmg(s, sword);
-  expect(gunCost(s, pistol)).toBe(1);
+  expect(gunCost(s, pistol)).toBe(0);
   s.hero.suit.push('ricochet');
   expect(heroDmg(s, pistol)).toEqual(base.map(n => n + 1));
   expect(heroDmg(s, sword)).toEqual(meleeBase);
-  expect(gunCost(s, pistol)).toBe(1);
+  expect(gunCost(s, pistol)).toBe(0);
   s.hero.suit.pop();
   expect(heroDmg(s, pistol)).toEqual(base);
 });

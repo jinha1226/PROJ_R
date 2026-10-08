@@ -114,7 +114,7 @@ export function scatterLoot(s: GridState): FloorItem[] {
     cells.push(c);
   }
   const shuffled = rng.shuffle(cells), count = 2 + Math.floor((s.run.floor - 1) / 5);
-  const loot: FloorItem[] = shuffled.slice(0, count).map(pos => ({ pos, item: rollConsumable(rng) }));
+  const loot: FloorItem[] = shuffled.slice(0, count).map(pos => ({ pos, item: rng.chance(0.3) ? { kind: 'arrows', n: rng.int(6, 10) } : rollConsumable(rng) }));
   for (const pos of shuffled.slice(count, count + 2)) loot.push({ pos, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: 1 } });
   for (const spot of s.map.toolSpots ?? []) {
     loot.push({ pos: { ...spot.reward }, item: { kind: 'material', mat: zoneMaterial(s.run.floor), n: spot.n } });

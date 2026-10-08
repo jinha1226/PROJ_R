@@ -54,7 +54,7 @@ describe('melee combo engravings', () => {
   it('shove-shot: a blow shoves the foe away and the ranged weapon in the other hand fires', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'sword', ['shoveShot'], 'pistol');
+    arm(g, 'sword', ['shoveShot'], 'bow');
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: R });
     expect(fired(ev, 'shoveShot')).toBe(1);
@@ -103,7 +103,7 @@ describe('general engravings', () => {
   it('quickswap: changing weapon family is free and its next blow +50%', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'pistol', [], 'sword', ['quickswap']);
+    arm(g, 'bow', [], 'sword', ['quickswap']);
     const t = g.s.time;
     expect(fired(g.act({ kind: 'swap' }), 'quickswap')).toBe(1);
     expect(g.s.time).toBe(t);
@@ -115,7 +115,7 @@ describe('general engravings', () => {
   it('swap-strike: swapping strikes with the incoming weapon at once', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'pistol', [], 'sword', ['swapstrike']);
+    arm(g, 'bow', [], 'sword', ['swapstrike']);
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'swap' });
     expect(fired(ev, 'swapstrike')).toBe(1);
@@ -147,14 +147,14 @@ describe('ranged engravings', () => {
   it('rapid: the second shot at the same foe is quicker, the third is a crit', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 9, y: 7 } }]);
     sureHits(g);
-    arm(g, 'pistol', ['rapid']);
+    arm(g, 'bow', ['rapid']);
     const f = g.s.foes[0]!;
     f.hp = 999;
     f.stun = 99;
     g.act({ kind: 'shoot', target: f.id });
     const t = g.s.time;
     g.act({ kind: 'shoot', target: f.id });
-    expect(g.s.time - t).toBeCloseTo(0.6 * 0.7);
+    expect(g.s.time - t).toBeCloseTo(1 * 0.7);
     const third = g.act({ kind: 'shoot', target: f.id });
     expect(fired(third, 'rapid')).toBeGreaterThan(0);
     expect(third.find((e) => e.type === 'hit' && e.src === 'hero')!.crit).toBe(true);
@@ -163,7 +163,7 @@ describe('ranged engravings', () => {
   it('mark: a marked foe takes more from everything, the mark moves on when it dies', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'minion', pos: { x: 7, y: 7 } }, { kind: 'brute', pos: { x: 9, y: 9 } }]);
     sureHits(g);
-    arm(g, 'pistol', ['mark']);
+    arm(g, 'bow', ['mark']);
     const [a, b] = g.s.foes;
     a!.hp = 4;
     g.act({ kind: 'shoot', target: a!.id });
@@ -174,7 +174,7 @@ describe('ranged engravings', () => {
   it('ricochet: a killing shot bounces to a foe within 3 cells', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'minion', pos: { x: 7, y: 7 } }, { kind: 'brute', pos: { x: 9, y: 7 } }]);
     sureHits(g);
-    arm(g, 'pistol', ['ricochet']);
+    arm(g, 'bow', ['ricochet']);
     g.s.foes[0]!.hp = 1;
     g.s.foes[1]!.hp = 99;
     const ev = g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
@@ -185,7 +185,7 @@ describe('ranged engravings', () => {
   it('kite: shooting a foe at arm\'s length rolls you a step back', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
-    arm(g, 'pistol', ['kite']);
+    arm(g, 'bow', ['kite']);
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
     expect(fired(ev, 'kite')).toBe(1);
@@ -195,7 +195,7 @@ describe('ranged engravings', () => {
   it('volley: every third shot also hits two more foes', () => {
     const g = sim(OPEN, { x: 3, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }, { kind: 'brute', pos: { x: 8, y: 9 } }, { kind: 'brute', pos: { x: 8, y: 5 } }]);
     sureHits(g);
-    arm(g, 'pistol', ['volley']);
+    arm(g, 'bow', ['volley']);
     for (const f of g.s.foes) { f.hp = 99; f.stun = 99; }
     g.act({ kind: 'shoot', target: g.s.foes[0]!.id });
     g.act({ kind: 'shoot', target: g.s.foes[0]!.id });

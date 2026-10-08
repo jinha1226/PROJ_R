@@ -3,14 +3,19 @@ import type { Material } from './materials';
 import type { Rng } from '../../core/rng';
 import type { PotionKind, ScrollKind } from './lore';
 
-export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'pistol';
-export type GunGroup = 'pistol';
-export const GUNS: GunGroup[] = ['pistol'];
-export const GUN_COST: Record<GunGroup, number> = { pistol: 1 };
-export const isGun = (g: WeaponGroup): g is GunGroup => GUNS.includes(g as GunGroup);
+export type WeaponGroup = 'dagger' | 'sword' | 'axe' | 'spear' | 'mace' | 'bow' | 'staff';
+export type RangedGroup = 'bow' | 'staff';
+/** Legacy loadout input only; weapons themselves never have group pistol. */
+export type GunGroup = RangedGroup | 'pistol';
+export const isRanged = (g: WeaponGroup): g is RangedGroup => g === 'bow' || g === 'staff';
+export const isGun = isRanged;
+export const GUNS: RangedGroup[] = ['bow', 'staff'];
+export const GUN_COST: Record<RangedGroup, number> = { bow: 0, staff: 2 };
+export const MAX_ARROWS = 40;
 export type Element = 'fire' | 'frost' | 'shock' | 'poison';
 export interface Weapon {
   kind: 'weapon';
+  element?: Element;
   group: WeaponGroup;
   tier: 1 | 2;
   name: string;
@@ -35,11 +40,12 @@ export const WEAPONS: Record<WeaponGroup, { melee: boolean; dmg: Range2; hit: nu
   axe: { melee: true, dmg: [[7, 11], [9, 14]], hit: 0.85, time: 1.4 },
   spear: { melee: true, dmg: [[5, 8], [7, 11]], hit: 0.88, time: 1 },
   mace: { melee: true, dmg: [[6, 9], [8, 12]], hit: 0.85, time: 1.2 },
-  pistol: { melee: false, dmg: [[4, 6], [4, 6]], hit: 0.9, time: 0.6, range: 7 },
+  bow: { melee: false, dmg: [[5, 8], [7, 11]], hit: 0.86, time: 1, range: 8 },
+  staff: { melee: false, dmg: [[4, 6], [6, 9]], hit: 0.95, time: 1, range: 6 },
 };
 const NAMES: Record<WeaponGroup, [string, string]> = {
   dagger: ['단검', '날 선 단검'], sword: ['장검', '기사검'], axe: ['전투 도끼', '양날 도끼'], spear: ['창', '기병창'], mace: ['철퇴', '가시 철퇴'],
-  pistol: ['권총', '권총'],
+  bow: ['사냥 활', '장궁'], staff: ['견습 지팡이', '마도사 지팡이'],
 };
 const ARMORS: Armor[] = [
   { kind: 'armor', tier: 1, name: '가죽 갑옷', reduce: 1 },
@@ -47,12 +53,10 @@ const ARMORS: Armor[] = [
   { kind: 'armor', tier: 3, name: '판금 갑옷', reduce: 3 },
 ];
 const MELEE: WeaponGroup[] = ['dagger', 'sword', 'axe', 'spear', 'mace'];
-const LOCAL: WeaponGroup[] = MELEE;
 /** chance of a tier-2 find on floors 1, 2, 3 */
 const TIER2 = [0.1, 0.35, 0.6];
 
 export function makeWeapon(group: WeaponGroup, tier: 1 | 2): Weapon {
-  if (isGun(group)) tier = 1;
   const w: Weapon = { kind: 'weapon', group, tier, name: NAMES[group][tier - 1]! };
   return w;
 }
@@ -65,9 +69,12 @@ export function armorOf(tier: 1 | 2 | 3): Armor {
   return { ...ARMORS[tier - 1]! };
 }
 
-/** A random find: one of the five local weapon groups with equal weight (no armour — the agent wears the suit). */
+/** A random weapon: 60% melee, 20% bow, 20% elemental staff; tier follows floor. */
 export function rollEquipment(rng: Rng, floor: number): Weapon {
   const t2 = TIER2[Math.min(TIER2.length, Math.max(1, floor)) - 1]!;
-  const group = rng.pick(LOCAL);
-  return makeWeapon(group, rng.chance(t2) ? 2 : 1);
+  const roll = rng.next();
+  const group = roll < 0.6 ? rng.pick(MELEE) : roll < 0.8 ? 'bow' : 'staff';
+  const w = makeWeapon(group, rng.chance(t2) ? 2 : 1);
+  if (group === 'staff') w.element = rng.pick(['fire', 'frost', 'shock', 'poison']);
+  return w;
 }

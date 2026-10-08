@@ -32,7 +32,7 @@ const CONFUSED_ASTRAY = 0.5;
 export class GridSim {
   private constructor(readonly s: GridState) {}
 
-  static create(seed: number, gun: GunGroup = 'pistol'): GridSim {
+  static create(seed: number, gun: GunGroup = 'bow'): GridSim {
     const s = newState(generateMap(seed), seed, gun);
     s.floorItems.push(...scatterLoot(s));
     return new GridSim(s);

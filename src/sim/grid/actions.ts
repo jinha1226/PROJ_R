@@ -23,7 +23,7 @@ const CONSUMABLE_CHANCE = 0.45;
 const STEP_NOISE = 1;
 const DOOR_NOISE = 2;
 const BLOW_NOISE = 3;
-import { meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange, type ShotHooks } from './weapons';
+import { canFire, meleeAttack, pickUp, rangedAttack, reachTarget, shootCell, weaponRange, type ShotHooks } from './weapons';
 
 export const chestAt = (s: GridState, c: Cell) => s.chests.find((ch) => same(ch.pos, c));
 
@@ -54,13 +54,16 @@ function openChest(s: GridState, t: number, c: Cell): void {
     s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: got.kind === 'potion' ? potionName(s, got.p) : scrollName(s, got.sc) });
   }
   if (s.rng.chance(STONE_DROPS.chest)) s.floorItems.push({ pos: { ...c }, item: rollStone(s) });
-  const supply = s.rng.pick(['potion', 'potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask', null] as const);
-  if (supply) { g.belt[supply]++; s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: SUPPLY_NAME[supply], amount: 1 }); }
+  const supply = s.rng.pick(['potion', 'potion', 'bomb', 'fireFlask', 'frostFlask', 'shockFlask', 'poisonFlask', 'arrows', null] as const);
+  if (supply === 'arrows') {
+    s.floorItems.push({ pos: { ...c }, item: { kind: 'arrows', n: s.rng.int(6, 10) } });
+  } else if (supply) { g.belt[supply]++; s.events.push({ t, type: 'loot', src: 'hero', to: { ...c }, text: SUPPLY_NAME[supply], amount: 1 }); }
 }
 const SUPPLY_NAME = { potion: '물약', bomb: '폭탄', fireFlask: '화염병', frostFlask: '냉기병', shockFlask: '번개병', poisonFlask: '독병' } as const;
 
 /** Foes the weapon in hand could hit from here (in sight, in range, line clear). */
 export function shootable(s: GridState): string[] {
+  if (!canFire(s)) return [];
   const h = s.hero;
   const range = weaponRange(activeWeapon(h.gear), h);
   return s.foes.filter((f) => f.alive && s.visible.has(idx(s.map, f.pos)) && dist(h.pos, f.pos) <= range && shotClear(s, h.pos, f.pos)).map((f) => f.id);

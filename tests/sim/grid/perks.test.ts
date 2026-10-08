@@ -9,7 +9,7 @@ import { nextFloor, settleKills } from '../../../src/sim/grid/run';
 import { regenerate } from '../../../src/sim/grid/regen';
 import { newRunState } from '../../../src/sim/grid/runSetup';
 import { freshMeta } from '../../../src/sim/grid/meta';
-import { WEAPONS } from '../../../src/sim/grid/items';
+import { makeWeapon, WEAPONS } from '../../../src/sim/grid/items';
 import { idx } from '../../../src/sim/grid/types';
 import { arena, foe } from './perkKit';
 import { sureHits } from './kit';
@@ -17,23 +17,23 @@ const hooks = { noise: () => {} };
 const dir = { x: 1, y: 0 };
 it('scatter hurts at most two neighbours with half damage and shortens targeting range', () => {
   const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['scatter'];
-  const f = foe(sim, 7), a = foe(sim, 7, 6), b = foe(sim, 8, 5), c = foe(sim, 8, 6), far = foe(sim, 10);
+  const f = foe(sim, 7), a = foe(sim, 7, 6), b = foe(sim, 8, 5), c = foe(sim, 8, 6), far = foe(sim, 11);
   rangedAttack(s, 0, f, hooks);
   expect(a.hp).toBe(98); expect(b.hp).toBe(98); expect(c.hp).toBe(100);
   expect(s.events.filter(e => e.text === 'scatter')).toHaveLength(2);
-  expect(weaponRange(s.hero.gear.hands[0]!, s.hero)).toBe(4);
+  expect(weaponRange(s.hero.gear.hands[0]!, s.hero)).toBe(5);
   expect(shootable(s)).not.toContain(far.id);
 });
 it('pierceBarrel hits the first foe up to three cells behind without extra charge', () => {
   const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['pierceBarrel'];
   const f = foe(sim, 7), behind = foe(sim, 10), farther = foe(sim, 11);
   rangedAttack(s, 0, f, hooks);
-  expect(behind.hp).toBe(98); expect(farther.hp).toBe(100); expect(s.hero.charge).toBe(9);
+  expect(behind.hp).toBe(97); expect(farther.hp).toBe(100); expect(s.hero.arrows).toBe(23);
 });
 it('soulCell refunds one charge for a hero kill, once', () => {
   const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['soulCell']; s.hero.charge = 4;
   const f = foe(sim, 6, 5, 1), alive = new Set([f.id]); rangedAttack(s, 0, f, hooks);
-  settleKills(s, alive); settleKills(s, alive); expect(s.hero.charge).toBe(4);
+  settleKills(s, alive); settleKills(s, alive); expect(s.hero.charge).toBe(5);
 });
 it('runeScope doubles the existing sleeping-shot damage', () => {
   const shot = (perk: boolean) => {
@@ -55,15 +55,15 @@ it('bayonetGrip uses the blade tier dagger damage and refills on pistol melee', 
   expect(s.hero.charge).toBe(1); expect(s.hero.gear.active).toBe(0);
 });
 it('doubleTap makes the third consecutive shot free even at zero charge, then resets on wait', () => {
-  const sim = arena(), s = sim.s; sureHits(sim); s.hero.perks = ['doubleTap']; s.hero.charge = 2;
+  const sim = arena(), s = sim.s; sureHits(sim); s.hero.gear.hands[0] = makeWeapon('staff', 1); s.hero.perks = ['doubleTap']; s.hero.charge = 4;
   const f = foe(sim);
   for (let i = 0; i < 3; i++) expect(sim.act({ kind: 'shoot', target: f.id }).some(e => e.type === 'shoot')).toBe(true);
-  expect(s.hero.charge).toBe(0); sim.act({ kind: 'wait' });
+  expect(s.hero.charge).toBe(2); s.hero.charge = 0; sim.act({ kind: 'wait' });
   expect(sim.act({ kind: 'shoot', target: f.id }).some(e => e.type === 'shoot')).toBe(false);
 });
 it('soulWeave gives a shield at run start and refreshes its minimum at the next floor', () => {
   const m = freshMeta(); m.mods.fitted = { chest: 'soulWeave' };
-  const s = newRunState(3, m, { gun: 'pistol', start: 1, startSuit: [] });
+  const s = newRunState(3, m, { gun: 'bow', start: 1, startSuit: [] });
   expect(s.hero.shield).toBe(6); s.hero.shield = 1; nextFloor(s); expect(s.hero.shield).toBe(6);
   s.hero.shield = 9; nextFloor(s); expect(s.hero.shield).toBe(9);
 });
@@ -121,10 +121,10 @@ it('elemChamber adds one shot status strength on top of element resonance', () =
   const other = foe(sim, 7); addStatus(s, 0, other, 'fire', s.hero.id); expect(other.status?.burn).toBe(4);
 });
 it('doubleTap charges barrel shots in the same order as foe shots', () => {
-  const sim = arena(), s = sim.s; s.hero.perks = ['doubleTap']; s.hero.charge = 2;
+  const sim = arena(), s = sim.s; s.hero.gear.hands[0] = makeWeapon('staff', 1); s.hero.perks = ['doubleTap']; s.hero.charge = 4;
   for (let i = 0; i < 3; i++) {
     s.barrels = [{ x: 8, y: 5 }];
     expect(sim.act({ kind: 'shoot', at: { x: 8, y: 5 } }).some(e => e.type === 'shoot')).toBe(true);
-    expect(s.hero.charge).toBe(i === 0 ? 1 : 0);
+    expect(s.hero.charge).toBe([2, 1, 2][i]);
   }
 });

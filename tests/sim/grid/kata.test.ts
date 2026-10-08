@@ -25,16 +25,16 @@ it('gunRelay shoots a kill follow-up once and restores the dagger', () => {
   swing(g);
   expect(g.s.foes.every(f => !f.alive)).toBe(true);
   expect(fired(g, 'gunRelay')).toHaveLength(1);
-  expect(g.s.hero.charge).toBe(9);
+  expect(g.s.hero.arrows).toBe(23);
   expect(g.s.hero.gear.active).toBe(1);
   expect(g.s.events.find(e => e.type === 'bump')?.group).toBe('dagger');
-  expect(g.s.events.find(e => e.type === 'shoot')?.group).toBe('pistol');
+  expect(g.s.events.find(e => e.type === 'shoot')?.group).toBe('bow');
 });
 it.each(['empty', 'noGun', 'noHooks'] as const)('gunRelay refuses %s', reason => {
   const g = setup(['gunRelay'], [[6, 7], [8, 7]]);
   g.s.hero.gear.active = 1;
   g.s.foes[0]!.hp = 1;
-  if (reason === 'empty') g.s.hero.maxCharge = g.s.hero.charge = 0;
+  if (reason === 'empty') g.s.hero.arrows = 0;
   if (reason === 'noGun') g.s.hero.gear.hands[0] = makeWeapon('sword', 1);
   meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, reason === 'noHooks' ? undefined : hooks);
   expect(g.s.foes[1]!.hp).toBe(g.s.foes[1]!.maxHp);
@@ -53,19 +53,19 @@ it.each(['open', 'wall', 'stairs', 'spear', 'unseen'] as const)('bladeRelay resp
   expect(g.s.hero.gear.active).toBe(0);
   if (obstacle === 'open') {
     expect(g.s.foes[1]!.hp).toBeLessThan(g.s.foes[1]!.maxHp);
-    expect(time).toBeCloseTo(0.9);
+    expect(time).toBeCloseTo(1.3);
   }
 });
 it.each([1, 5])('spinShot spends only available charge (%i)', charge => {
   const g = setup(['spinShot'], [[6, 7], [5, 6], [5, 8]]);
   g.s.hero.gear.active = 1;
-  g.s.hero.maxCharge = g.s.hero.charge = charge;
+  g.s.hero.arrows = charge;
   g.s.foes.forEach(f => { f.hp = 1; });
   swing(g);
   expect(g.s.foes.filter(f => !f.alive)).toHaveLength(charge === 1 ? 2 : 3);
-  expect(g.s.hero.charge).toBe(charge === 1 ? 0 : 3);
+  expect(g.s.hero.arrows).toBe(charge === 1 ? 0 : 3);
   expect(fired(g, 'spinShot')).toHaveLength(1);
-  expect(g.s.events.filter(e => e.text === 'spin').every(e => e.group === 'pistol')).toBe(true);
+  expect(g.s.events.filter(e => e.text === 'spin').every(e => e.group === 'bow')).toBe(true);
 });
 it('spinShot ignores a lone neighbour', () => {
   const g = setup(['spinShot'], [[6, 7]]);
@@ -79,7 +79,7 @@ it('counterShot shoots after a dodge with either hand active', () => {
     g.s.hero.gear.active = active;
     expect(defend(g.s, 0, 'f1', 'shot')).toBe('dodge');
     expect(g.s.foes[0]!.hp).toBeLessThan(g.s.foes[0]!.maxHp);
-    expect(g.s.hero.charge).toBe(9);
+    expect(g.s.hero.arrows).toBe(23);
     expect(fired(g, 'counterShot')).toHaveLength(1);
     expect(g.s.hero.gear.active).toBe(active);
   }
@@ -101,8 +101,8 @@ it.each(['brute', 'champion'] as const)('execute handles a slammed %s', kind => 
   pushFoe(g.s, 0, foe, { x: 1, y: 0 });
   expect(foe.hp).toBe(kind === 'champion' ? foe.maxHp - 3 - Math.ceil(foe.maxHp * 0.25) : 0);
   expect(foe.alive).toBe(kind === 'champion');
-  expect(g.s.hero.charge).toBe(9);
-  expect(g.s.events.find(e => e.text === 'execute' && e.type === 'shoot')?.group).toBe('pistol');
+  expect(g.s.hero.arrows).toBe(23);
+  expect(g.s.events.find(e => e.text === 'execute' && e.type === 'shoot')?.group).toBe('bow');
 });
 it('gunRelay follows leap and counter kills', () => {
   for (const leap of [true, false]) {

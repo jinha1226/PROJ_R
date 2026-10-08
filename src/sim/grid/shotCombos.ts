@@ -1,6 +1,6 @@
 import { takeRound, roundMult, roundHit } from './rounds';
 import { activeWeapon } from './gear';
-import { gunCost } from './kataTargets';
+import { rangedCost, rangedReady, spendShot, recoverArrow } from './rangedResources';
 import { freeCell, shotClear, strike } from './combat';
 import { fire, has } from './engraveCore';
 import { buffOn } from './buffs';
@@ -33,14 +33,17 @@ export function rapidStep(s: GridState, t: number, foe: Ent): { mult: number; ti
 export function afterShot(s: GridState, t: number, foe: Ent, hit: boolean, dmg: readonly [number, number], chanceAt: (from: Cell, to: Cell) => number, range: number): void {
   const h = s.hero;
   const fx = h.fx;
-  const powered = () => h.alive && h.charge >= gunCost(s, activeWeapon(h.gear)!);
+  const powered = () => h.alive && rangedReady(s, activeWeapon(h.gear));
   const extra = (f: Ent, from: Cell, text: string, mult = 1) => {
-    const cost = gunCost(s, activeWeapon(h.gear)!);
-    h.charge -= cost; h.fx.taps = (h.fx.taps ?? 0) + 1;
+    const w = activeWeapon(h.gear)!;
+    const cost = rangedCost(s, w);
+    spendShot(s, w, cost); h.fx.taps = (h.fx.taps ?? 0) + 1;
     const round = takeRound(s);
-    s.events.push({ t, type: 'shoot', group: 'pistol', src: h.id, dst: f.id, from: { ...from }, to: { ...f.pos }, text });
+    s.events.push({ t, type: 'shoot', group: w.group, src: h.id, dst: f.id, from: { ...from }, to: { ...f.pos }, text });
     f.awake = true;
-    if (strike(s, t, h, f, chanceAt(from, f.pos), dmg, mult * roundMult(s, t, round))) roundHit(s, t, f, round, true);
+    const hit = strike(s, t, h, f, chanceAt(from, f.pos), dmg, mult * roundMult(s, t, round));
+    recoverArrow(s, w, f.pos, hit);
+    if (hit) roundHit(s, t, f, round, true);
   };
   if (hit && has(s, 'mark')) { foe.marked = true; fire(s, t, 'mark'); }
   if (hit && !foe.alive && has(s, 'ricochet') && s.rng.chance(RICOCHET_CHANCE)) {

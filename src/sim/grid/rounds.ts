@@ -1,7 +1,8 @@
+import { activeWeapon } from './gear';
 import { PERK_BALANCE } from './perks';
 import { hasPerk } from './mods';
 import { fire, has, type EngraveId } from './engraveCore';
-import type { Element } from './items';
+import type { Element, Weapon } from './items';
 import { applyElement } from './status';
 import type { Ent, GridState, Hero } from './types';
 
@@ -25,8 +26,8 @@ export function availableCard(s: GridState, card: OfferCard): boolean {
 }
 
 /** Reserve the round before effects can recursively fire another shot. */
-export function takeRound(s: GridState): { element?: Element; previous?: Element; third: boolean } {
-  const h = s.hero, element = loadedRound(h), previous = h.fx.lastEl;
+export function takeRound(s: GridState, weapon: Weapon | null = activeWeapon(s.hero.gear)): { element?: Element; previous?: Element; third: boolean } {
+  const h = s.hero, element = weapon?.group === 'staff' ? weapon.element ?? loadedRound(h) : loadedRound(h), previous = h.fx.lastEl;
   h.fx.lastEl = element;
   h.roundIdx = h.rounds.length ? (h.roundIdx + 1) % h.rounds.length : 0;
   return { element, previous, third: ++h.fx.roundShots % 3 === 0 };

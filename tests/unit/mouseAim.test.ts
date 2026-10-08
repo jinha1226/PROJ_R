@@ -40,7 +40,7 @@ describe('mouse aim decisions', () => {
   it('targets without swapping when holding a sword', () => {
     const s = state();
     s.foes[0]!.alive = false;
-    s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('pistol', 1)];
+    s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('bow', 1)];
     expect(mouseClickChoice(s, far)).toEqual({ kind: 'target', foe: s.foes[1]!.id });
   });
 

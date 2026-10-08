@@ -1,3 +1,4 @@
+import { MAX_ARROWS } from '../../../src/sim/grid/items';
 import type { MetaState } from '../../../src/sim/grid/meta';
 import { pickStone } from './stones';
 import { pickOffer, pickUpgrade } from './build';
@@ -22,12 +23,13 @@ function decide(sim: GridSim, mem: BotMemory, campaign?: MetaState): GAction {
   const urgent = emergency(s, mem); if (urgent) return urgent;
   const escape = dodge(s); if (escape) return escape;
   const item = fightUtility(s, mem) ?? utility(s, mem); if (item) return item;
+  const arrows = arrowStep(s); if (arrows) return arrows;
   const combat = tactic(s, mem); if (combat) return combat;
   const nearWave = s.time - s.run.floorStart >= 150 * (s.run.waves + 1) - 20;
   if (!awakeThreats(s).length && h.hp < h.maxHp * 0.85 && canRegenerate(s)
     && !(nearWave && h.hp >= h.maxHp * 0.6)) return { kind: 'wait' };
   const core = s.floorItems.find(f => f.item.kind === 'core');
-  const lootable = [...s.floorItems.filter(f => ['potion', 'scroll', 'material', 'suit', 'stone'].includes(f.item.kind)),
+  const lootable = [...s.floorItems.filter(f => ['potion', 'scroll', 'material', 'suit', 'stone'].includes(f.item.kind) || f.item.kind === 'arrows' && h.arrows < MAX_ARROWS),
     ...s.chests.filter(c => !c.opened)];
   if (mem.lootGoal && (mem.lootGoal.floor !== s.run.floor || !lootable.some(f => same(f.pos, mem.lootGoal!.pos)))) delete mem.lootGoal;
   if (!awakeThreats(s).length && !mem.lootGoal) {
@@ -41,14 +43,29 @@ function decide(sim: GridSim, mem: BotMemory, campaign?: MetaState): GAction {
   const goals = [core?.pos, ...loot, s.map.stairs && s.seen[idx(s.map, s.map.stairs)] ? s.map.stairs : undefined,
     exploreTarget(s), ...s.foes.filter(f => f.alive).sort((a, b) => dist(h.pos, a.pos) - dist(h.pos, b.pos)).map(f => f.pos), s.map.stairs];
   for (const g of goals) { const d = g && stepToward(s, g); if (d) return { kind: 'move', dir: d }; }
+  // Clear destructible obstacles only after every safe route fails.
+  for (const g of goals) {
+    const next = g && findPath(s.map, h.pos, g)?.[0];
+    if (next) return { kind: 'move', dir: { x: next.x - h.pos.x, y: next.y - h.pos.y }, plain: true };
+  }
   return { kind: 'search' };
 }
 
+/** Recover arrows before waking sleepers, using the existing twelve-step loot radius. */
+export function arrowStep(s: GridState): GAction | null {
+  if (s.hero.arrows >= MAX_ARROWS || awakeThreats(s).length) return null;
+  const path = s.floorItems.filter(f => f.item.kind === 'arrows' && s.visible.has(idx(s.map, f.pos)))
+    .map(f => findPath(s.map, s.hero.pos, f.pos, c => walkBlocked(s, c), 12))
+    .filter(p => p && p.length > 0).sort((a, b) => a!.length - b!.length)[0];
+  const next = path?.[0];
+  return next ? { kind: 'move', dir: { x: next.x - s.hero.pos.x, y: next.y - s.hero.pos.y }, plain: true } : null;
+}
+
 /** Commit to one navigation goal after repeated no-progress movement; combat still interrupts. */
-function recoverRoute(s: GridState, mem: BotMemory, action: GAction): GAction {
+export function recoverRoute(s: GridState, mem: BotMemory, action: GAction): GAction {
   const h = s.hero;
   const key = [s.run.floor, s.run.kills, s.floorItems.length, s.chests.filter(c => c.opened).length,
-    s.seen.reduce((a, v) => a + v, 0), h.hp, h.charge].join(':');
+    s.seen.reduce((a, v) => a + v, 0), h.hp, h.charge, h.arrows].join(':');
   if (mem.routeKey !== key) { mem.route = []; mem.routeKey = key; }
   if (mem.detour && (mem.detour.floor !== s.run.floor || same(h.pos, mem.detour.pos) || mem.detour.steps >= 100)) delete mem.detour;
   if (action.kind !== 'move' || adjacentFoes(s).length || dangerCells(s).has(idx(s.map, h.pos)) || h.hp < h.maxHp * 0.5) return action;

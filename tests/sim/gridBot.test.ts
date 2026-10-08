@@ -31,7 +31,7 @@ it('takes first choices, heals below 40%, equips the empty hand and switches for
 it('shoots only awake visible foes in range with charge', () => {
   const { s } = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'minion', pos: { x: 9, y: 7 } }]);
   expect(gridBotAction(s, 'decent')).toEqual({ kind: 'shoot', target: 'f1' });
-  s.hero.charge = 0;
+  s.hero.arrows = 0;
   expect(gridBotAction(s, 'decent').kind).not.toBe('shoot');
   s.hero.charge = 10; s.foes[0]!.awake = false;
   expect(gridBotAction(s, 'decent').kind).not.toBe('shoot');
@@ -44,7 +44,7 @@ it('pistol-only routes around melee pickups without opening chests', () => {
   g.s.floorItems = [{ pos: { x: 6, y: 7 }, item: makeWeapon('sword', 1) }];
   for (let i = 0; i < 4; i++) g.act(gridBotAction(g.s, 'pistol-only'));
   expect(g.s.hero.gear.bag).toEqual([]);
-  expect(g.s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '요원 칼' });
+  expect(g.s.hero.gear.hands[1]).toMatchObject({ group: 'dagger', name: '단검' });
 });
 
 it('descends onto boss remains once the floor is explored', () => {

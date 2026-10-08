@@ -1,8 +1,9 @@
+import { rangedReady } from '../../../src/sim/grid/rangedResources';
 import { GridSim } from '../../../src/sim/grid/gridSim';
 import { freshMeta } from '../../../src/sim/grid/meta';
 import { shotClear } from '../../../src/sim/grid/combat';
 import { BAG_SIZE } from '../../../src/sim/grid/gear';
-import { GUN_COST, isGun, WEAPONS } from '../../../src/sim/grid/items';
+import { isGun, WEAPONS } from '../../../src/sim/grid/items';
 import { canStep, dist, idx, type GAction, type GridState } from '../../../src/sim/grid/types';
 import { navigate } from './gridBotNav';
 
@@ -39,7 +40,7 @@ export function gridBotAction(s: GridState, mode: GridBotMode): GAction {
   }
   const gunHand = g.hands.findIndex(w => w && isGun(w.group));
   const gun = g.hands[gunHand];
-  if (gun && isGun(gun.group) && h.charge >= GUN_COST[gun.group]) {
+  if (gun && isGun(gun.group) && rangedReady(s, gun)) {
     const target = foes.find(f => f.awake && dist(h.pos, f.pos) <= WEAPONS[gun.group].range! && shotClear(s, h.pos, f.pos));
     if (target) return g.active === gunHand ? { kind: 'shoot', target: target.id } : { kind: 'swap' };
   }

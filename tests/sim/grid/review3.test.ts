@@ -9,7 +9,7 @@ describe('final review fixes (combos)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     g.s.hero.suit = ['quickswap', 'swapstrike'];
-    g.s.hero.gear.hands = [makeWeapon('pistol', 1), makeWeapon('sword', 1)];
+    g.s.hero.gear.hands = [makeWeapon('bow', 1), makeWeapon('sword', 1)];
     g.s.hero.gear.active = 0;
     g.s.foes[0]!.hp = 99;
     const t = g.s.time;
@@ -33,9 +33,9 @@ describe('final review fixes (combos)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 6, y: 7 } }]);
     sureHits(g);
     g.s.hero.suit = ['shoveShot'];
-    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('pistol', 1)];
+    g.s.hero.gear.hands = [makeWeapon('sword', 1), makeWeapon('bow', 1)];
     g.s.hero.gear.active = 0;
-    g.s.hero.maxCharge = g.s.hero.charge = 0;
+    g.s.hero.arrows = 0; g.s.hero.maxCharge = g.s.hero.charge = 0;
     g.s.foes[0]!.hp = 99;
     const ev = g.act({ kind: 'move', dir: R });
     expect(ev.some((e) => e.type === 'push')).toBe(false);
@@ -62,7 +62,7 @@ describe('final review fixes (combos)', () => {
     sureHits(kite);
     kite.s.map.stairs = { x: 4, y: 7 };
     kite.s.hero.suit = ['kite'];
-    kite.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
+    kite.s.hero.gear.hands[0] = makeWeapon('bow', 1);
     kite.s.hero.gear.active = 0;
     kite.s.hero.charge = 5;
     kite.s.foes[0]!.hp = 99;

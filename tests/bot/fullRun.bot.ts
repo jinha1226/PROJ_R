@@ -1,7 +1,14 @@
-import { it } from 'vitest';
+import { appendFileSync, writeFileSync } from 'node:fs';
+import { expect, it } from 'vitest';
 import { runBot, type BotResult } from './runBot';
 import { runCampaign } from './brain/campaign';
 
+const report = process.env.BOT_REPORT;
+if (report) writeFileSync(report, '');
+function reportSummary(line: string): void {
+  console.log(line);
+  if (report) appendFileSync(report, line + '\n');
+}
 const SEEDS = Number(process.env.SEEDS ?? 20);
 const stones = (r: BotResult) => ` stones ${r.stonesFound.length}/${r.stonesSocketed.length}/${r.stonesBanked.length} portals [${r.portalsOpened.join(',')}]`;
 function summary(label: string, rs: BotResult[]): string {
@@ -19,7 +26,8 @@ it('15-floor runs', () => {
     for (const r of rs) console.log(`seed ${r.seed} ${r.outcome.padEnd(7)} f${r.floor} lv${r.level} kills ${r.kills} acts ${r.actions}`
       + ` potions ${r.potions} scrolls ${r.scrolls} belt ${r.belt}${r.killedBy ? ` by ${r.killedBy}` : ''}${stones(r)}`
       + `${r.stuck ? ` STUCK ${r.stuck}` : ''} build [${r.build.join(',')}]`);
-    console.log(summary(`${policy} ${god ? 'god' : 'real'}`, rs));
+    reportSummary(summary(`${policy} ${god ? 'god' : 'real'}`, rs));
+    expect(rs.filter(r => r.stuck || r.outcome === 'timeout'), `${policy}/${god}`).toEqual([]);
   }
 });
 it('campaign with persistent meta', () => {
@@ -29,7 +37,8 @@ it('campaign with persistent meta', () => {
       + ` by ${r.killedBy ?? '-'} build [${r.build.join(',')}] energy ${r.metaAfter.energy}${stones(r)}`
       + ` materials ${JSON.stringify(r.materials)} repairs [${r.repairs.join(',')}] unlocked ${r.unlocked}`
       + `${r.stuck ? ` STUCK ${r.stuck}` : ''}`);
-    console.log(summary(`campaign ${label}`, campaign.runs)
+    reportSummary(summary(`campaign ${label}`, campaign.runs)
       + `, first win ${campaign.firstWin ?? 'none'}, last 10 avg floor ${campaign.last10Average.toFixed(2)}`);
+    expect(campaign.runs.filter(r => r.stuck || r.outcome === 'timeout'), label).toEqual([]);
   }
 });

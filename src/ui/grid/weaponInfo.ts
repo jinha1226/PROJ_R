@@ -9,7 +9,8 @@ export const GROUP_NOTE: Record<WeaponGroup, string> = {
   axe: '앞 3칸 휩쓸기 · 느림(1.4턴)',
   spear: '2칸 앞까지 찌름(관통)',
   mace: '밀치기 · 벽에 박으면 기절',
-  pistol: '빠름(0.6턴) · 충전 1',
+  bow: '1턴 · 화살 1',
+  staff: '1턴 · 마나 2',
 };
 
 export function weaponState(w: Weapon, hero: Pick<Hero, 'charge' | 'maxCharge'>): string {

@@ -53,7 +53,7 @@ export function startSuit(meta: MetaState, state: GridState): EngraveId[] {
 }
 export function runCampaign(seed: number, runs = 30, options: { startDeep?: boolean } = {}): CampaignResult {
   let meta = freshMeta();
-  let context = GridSim.createRun(seed, meta, { gun: 'pistol', start: 1, startSuit: [] }).s;
+  let context = GridSim.createRun(seed, meta, { gun: 'bow', start: 1, startSuit: [] }).s;
   const results: CampaignRun[] = [];
   for (let i = 0; i < runs; i++) {
     const metaStart = structuredClone(meta), suit = startSuit(meta, context);

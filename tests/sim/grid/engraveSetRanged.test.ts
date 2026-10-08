@@ -16,8 +16,8 @@ it('quickdraw gains one charge on gun kill, not a hit', () => {
 it('pierce hits the foe immediately behind a living target for no extra charge, never an off-line foe', () => {
   const { s } = setup(); s.hero.suit = ['pierce']; const [a, b] = s.foes;
   b!.pos.y++; emit(s, 'gunHit', { t: 0, foe: a }); expect(s.fired.size).toBe(0);
-  b!.pos.y--; s.hero.charge = 1; rangedAttack(s, 0, a!, hooks);
-  expect(b!.hp).toBeLessThan(b!.maxHp); expect(s.hero.charge).toBe(0); expect(s.fired.has('pierce')).toBe(true);
+  b!.pos.y--; s.hero.arrows = 2; rangedAttack(s, 0, a!, hooks);
+  expect(b!.hp).toBeLessThan(b!.maxHp); expect(s.hero.arrows).toBe(0); expect(s.fired.has('pierce')).toBe(true);
 });
 it.each([['sniper', 1.5], ['headshot', 2], ['steady', 2]] as const)('%s boosts the current shot before damage and rejects its missing condition', (id, mult) => {
   const { s } = setup(); s.hero.suit = [id]; const foe = s.foes[0]!; s.foes[1]!.alive = false;
@@ -45,10 +45,10 @@ it('suppress delays a living hit foe by half a turn, not a dead foe', () => {
   foe.alive = true; emit(s, 'gunHit', { t: 0, foe }); expect(foe.nextAt).toBe(before + 0.5); expect(s.fired.has('suppress')).toBe(true);
 });
 it('barrage shoots visible reachable foes for one charge each, stopping when empty', () => {
-  const { s } = setup(); s.hero.suit = ['barrage']; s.foes[1]!.pos = { x: 5, y: 9 }; s.hero.charge = 0;
+  const { s } = setup(); s.hero.suit = ['barrage']; s.foes[1]!.pos = { x: 5, y: 9 }; s.hero.arrows = 0;
   emit(s, 'chain', { t: 0 }); expect(s.fired.size).toBe(0);
-  s.hero.charge = 2; emit(s, 'chain', { t: 0 });
-  expect(s.events.filter(e => e.type === 'shoot')).toHaveLength(2); expect(s.hero.charge).toBe(0); expect(s.fired.has('barrage')).toBe(true);
+  s.hero.arrows = 2; emit(s, 'chain', { t: 0 });
+  expect(s.events.filter(e => e.type === 'shoot')).toHaveLength(2); expect(s.hero.arrows).toBe(0); expect(s.fired.has('barrage')).toBe(true);
 });
 it('thrift refunds the actual shot cost, not a full battery', () => {
   const { s } = setup(); s.hero.suit = ['thrift'];

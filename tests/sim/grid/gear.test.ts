@@ -6,7 +6,7 @@ import { newState } from '../../../src/sim/grid/state';
 import { handMap, OPEN } from './kit';
 
 describe('starting guns', () => {
-  it.each(['pistol'] as const)('starts with %s and the same neutral stats', (gun) => {
+  it.each(['bow'] as const)('starts with %s and the same neutral stats', (gun) => {
     const g = startGear(gun);
     expect(g.hands.map((w) => w?.group ?? null)).toEqual([gun, 'dagger']);
     expect(g.hands[0]).not.toHaveProperty('engraves');
@@ -17,13 +17,13 @@ describe('starting guns', () => {
 });
 
 describe('loot', () => {
-  it('found equipment is always melee, and better on deeper floors', () => {
+  it('found weapons include ranged groups and improve on deeper floors', () => {
     const rng = createRng(5);
     const rolls = (floor: number) => Array.from({ length: 400 }, () => rollEquipment(rng, floor));
     const f1 = rolls(1);
     const weapons = f1.filter((e) => e.kind === 'weapon');
     const melee = weapons.filter((w) => w.kind === 'weapon' && WEAPONS[w.group].melee).length / weapons.length;
-    expect(melee).toBe(1);
+    expect(melee).toBeCloseTo(0.6, 1);
     const t2 = (list: ReturnType<typeof rolls>) => list.filter((e) => e.tier >= 2).length / list.length;
     expect(t2(rolls(3))).toBeGreaterThan(t2(f1));
   });
@@ -31,29 +31,29 @@ describe('loot', () => {
 
 describe('hands and bag', () => {
   it('swapping hands switches the weapon in use', () => {
-    const g = startGear('pistol');
-    expect(activeWeapon(g)?.group).toBe('pistol');
+    const g = startGear('bow');
+    expect(activeWeapon(g)?.group).toBe('bow');
     swapHands(g);
     expect(activeWeapon(g)?.group).toBe('dagger');
   });
 
   it('a weapon from the bag goes into the hand in use and the old one into the bag', () => {
-    const g = startGear('pistol');
+    const g = startGear('bow');
     addToBag(g, makeWeapon('axe', 1));
     expect(equipFromBag(g, 0)).toBe(true);
     expect(activeWeapon(g)?.group).toBe('axe');
-    expect(g.bag.map((e) => e.kind === 'weapon' && e.group)).toEqual(['pistol']);
+    expect(g.bag.map((e) => e.kind === 'weapon' && e.group)).toEqual(['bow']);
   });
 
   it('the agent never takes the suit off: armour from the bag is refused', () => {
-    const g = startGear('pistol');
+    const g = startGear('bow');
     addToBag(g, { kind: 'armor', tier: 2, name: '사슬 갑옷', reduce: 2 });
     expect(wearFromBag(g, 0)).toBe(false);
     expect(g.armor?.name).toBe('요원 슈트');
   });
 
   it('the bag holds eight things', () => {
-    const g = startGear('pistol');
+    const g = startGear('bow');
     for (let i = 0; i < BAG_SIZE; i++) expect(addToBag(g, makeWeapon('mace', 1))).toBe(true);
     expect(addToBag(g, makeWeapon('mace', 1))).toBe(false);
   });

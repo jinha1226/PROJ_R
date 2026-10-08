@@ -31,8 +31,8 @@ it('relay picks the lowest id at equal range regardless of foe array order', () 
 it.each(['charge', 'range', 'wall', 'dead'] as const)('counterShot refuses %s without spending charge', reason => {
   const g = sim(OPEN, { x: 2, y: 7 }, [{ kind: 'archer', pos: { x: reason === 'range' ? 13 : 6, y: 7 } }]);
   sureHits(g); g.s.hero.suit = ['counterShot'];
-  g.s.hero.gear.hands[0] = makeWeapon('pistol', 1);
-  if (reason === 'charge') g.s.hero.charge = 0;
+  g.s.hero.gear.hands[0] = makeWeapon('bow', 1);
+  if (reason === 'charge') g.s.hero.arrows = 0;
   if (reason === 'wall') g.s.map.tiles[idx(g.s.map, { x: 4, y: 7 })] = 'wall';
   if (reason === 'dead') g.s.foes[0]!.alive = false;
   const before = g.s.hero.charge;
@@ -54,7 +54,7 @@ it('execute refuses distant, dead, unarmed, or uncharged targets and fires only 
     g.s.hero.suit = ['execute'];
     if (reason === 'dead') g.s.foes[0]!.alive = false;
     if (reason === 'noGun') g.s.hero.gear.hands[0] = null;
-    if (reason === 'empty') g.s.hero.charge = 0;
+    if (reason === 'empty') g.s.hero.arrows = 0;
     onStunned(g.s, 0, g.s.foes[0]!); onStunned(g.s, 0, g.s.foes[0]!);
     expect(g.s.events.filter(e => e.type === 'shoot')).toHaveLength(reason === 'repeat' ? 1 : 0);
   }
@@ -75,7 +75,7 @@ it('spin shots also work on a gun bash and cannot pass through diagonal corners'
   g.s.foes.forEach(f => { f.hp = 1; });
   meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, hooks);
   expect(g.s.foes.map(f => f.alive)).toEqual([false, false, true]);
-  expect(g.s.events.find(e => e.type === 'bump')?.group).toBe('pistol');
+  expect(g.s.events.find(e => e.type === 'bump')?.group).toBe('bow');
 });
 it('old saved runs fill free=false and retain their existing hands', () => {
   const g = sim(OPEN, { x: 5, y: 7 });
@@ -90,12 +90,12 @@ it('a slam execution spending the last charge does not fire shoveShot', () => {
   const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'champion', pos: { x: 6, y: 7 } }]);
   sureHits(g);
   g.s.hero.gear.hands[1] = makeWeapon('sword', 1); g.s.hero.gear.active = 1;
-  g.s.hero.suit = ['shoveShot', 'execute']; g.s.hero.maxCharge = g.s.hero.charge = 1;
+  g.s.hero.suit = ['shoveShot', 'execute']; g.s.hero.arrows = 1;
   g.s.map.tiles[idx(g.s.map, { x: 7, y: 7 })] = 'wall';
   meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, hooks);
   expect(g.s.events.some(e => e.text === 'execute')).toBe(true);
   expect(g.s.events.some(e => e.text === 'shoveShot')).toBe(false);
-  expect(g.s.hero.charge).toBe(0);
+  expect(g.s.hero.arrows).toBe(0);
   expect(g.s.hero.gear.active).toBe(1);
 });
 it('spin kills can trigger gunRelay when the main blow did not kill', () => {
@@ -104,5 +104,5 @@ it('spin kills can trigger gunRelay when the main blow did not kill', () => {
   g.s.foes[1]!.hp = 1;
   meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, hooks);
   expect(g.s.events.filter(e => e.type === 'engrave').map(e => e.text)).toEqual(['spinShot', 'gunRelay']);
-  expect(g.s.hero.charge).toBe(8);
+  expect(g.s.hero.arrows).toBe(22);
 });

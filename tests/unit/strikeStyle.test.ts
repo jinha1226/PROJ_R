@@ -3,7 +3,7 @@ import { severs, shotStyle, slashStyle } from '../../src/view/grid/strikeCues';
 import type { GEvent } from '../../src/sim/grid/types';
 
 const bump = (text?: string): GEvent => ({ t: 0, type: 'bump', src: 'hero', dst: 'f1', text });
-const shoot = (text = 'pistol'): GEvent => ({ t: 0, type: 'shoot', src: 'hero', dst: 'f1', text });
+const shoot = (text = 'bow'): GEvent => ({ t: 0, type: 'shoot', src: 'hero', dst: 'f1', text });
 it('a blow takes its look from its own text, else from the engraving just shown', () => {
   expect(slashStyle(bump('finisher'), null)).toBe('heavy');
   expect(slashStyle(bump('whirl'), null)).toBe('storm');

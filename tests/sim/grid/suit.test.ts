@@ -10,10 +10,10 @@ describe('suit engravings', () => {
     const { s } = sim(OPEN, { x: 3, y: 3 });
     expect(s.hero.suit).toEqual([]);
     s.hero.suit = ['dash', 'rapid', 'momentum', 'chain'];
-    for (const group of ['sword', 'pistol', null] as const) {
+    for (const group of ['sword', 'bow', null] as const) {
       s.hero.gear.hands[0] = group ? makeWeapon(group, 1) : null;
       expect(has(s, 'dash')).toBe(group === 'sword');
-      expect(has(s, 'rapid')).toBe(group === 'pistol');
+      expect(has(s, 'rapid')).toBe(group === 'bow');
       expect(has(s, 'chain')).toBe(true);
       expect(has(s, 'momentum')).toBe(true);
       expect(has(s, 'laststand')).toBe(false);
@@ -45,17 +45,17 @@ describe('suit engravings', () => {
     expect(g.s.hero.nextAt).toBe(0);
   });
 
-  it.each(['pistol', 'axe'] as const)('quickswap from %s to sword charges only a family change', (from) => {
+  it.each(['bow', 'axe'] as const)('quickswap from %s to sword charges only a family change', (from) => {
     const g = sim(OPEN, { x: 3, y: 3 }, [{ kind: 'brute', pos: { x: 4, y: 3 } }]);
     sureHits(g);
     g.s.foes[0]!.nextAt = 100;
     g.s.hero.suit = ['quickswap'];
     g.s.hero.gear.hands = [makeWeapon(from, 1), makeWeapon('sword', 1)];
     g.act({ kind: 'swap' });
-    expect(g.s.hero.nextAt).toBe(from === 'pistol' ? 0 : 0.5);
-    expect(g.s.hero.fx.nextMult).toBe(from === 'pistol' ? 1.5 : 1);
+    expect(g.s.hero.nextAt).toBe(from === 'bow' ? 0 : 0.5);
+    expect(g.s.hero.fx.nextMult).toBe(from === 'bow' ? 1.5 : 1);
     const hits = g.act({ kind: 'move', dir: { x: 1, y: 0 } });
-    expect(hits.find((e) => e.type === 'hit' && e.src === 'hero')?.amount).toBe(from === 'pistol' ? 9 : 6);
+    expect(hits.find((e) => e.type === 'hit' && e.src === 'hero')?.amount).toBe(from === 'bow' ? 9 : 6);
     expect(g.s.hero.fx.nextMult).toBe(1);
   });
 
@@ -67,7 +67,7 @@ describe('suit engravings', () => {
   });
 
   it.each([
-    ['sword', 'pistol', 0], ['pistol', 'sword', 0], ['sword', 'dagger', 0.5], ['pistol', 'pistol', 0.5], [null, 'sword', 0.5], ['sword', null, 0.5],
+    ['sword', 'bow', 0], ['bow', 'sword', 0], ['sword', 'dagger', 0.5], ['bow', 'bow', 0.5], [null, 'sword', 0.5], ['sword', null, 0.5],
   ] as [WeaponGroup | null, WeaponGroup | null, number][])('quickswap %s to %s costs %s', (from, to, cost) => {
     const g = sim(OPEN, { x: 3, y: 3 });
     g.s.hero.suit = ['quickswap'];

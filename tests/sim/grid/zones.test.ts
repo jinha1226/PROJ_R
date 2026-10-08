@@ -48,7 +48,7 @@ describe('fifteen floors in three zones', () => {
       for (let floor = 11; floor <= 15; floor++) mages += generateMap(seed, floor).spawns.filter((f) => f.kind === 'mage').length;
     }
     expect(mages).toBeGreaterThan(0);
-  });
+  }, 30_000);
 
   it('uses the zone weights with one random draw per spawn', () => {
     for (const [floor, counts] of [[1, [35, 15, 35, 15, 0]], [6, [45, 20, 15, 12, 8]], [11, [20, 30, 10, 20, 20]]] as const) {

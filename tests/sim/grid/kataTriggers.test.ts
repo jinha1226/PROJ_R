@@ -84,5 +84,5 @@ it('surrounded is emitted before the main blow while spin shots resolve after me
   meleeAttack(g.s, 0, { x: 1, y: 0 }, g.s.foes[0]!, hooks);
   expect(beforeBlow).toBe(true); expect(seen).toHaveLength(1);
   expect(g.s.events.findIndex(e => e.text === 'spin')).toBeGreaterThan(g.s.events.findIndex(e => e.type === 'hit'));
-  expect(g.s.fired.has('spinShot')).toBe(true); expect(g.s.hero.charge).toBe(0);
+  expect(g.s.fired.has('spinShot')).toBe(true); expect(g.s.hero.arrows).toBe(23);
 });

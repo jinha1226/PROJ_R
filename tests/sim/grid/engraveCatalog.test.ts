@@ -22,8 +22,8 @@ it('archer echoes offer only ranged engravings, reserving a locked choice first'
 });
 
 it.each([
-  ['pistol', 'dagger', true], ['pistol', null, false],
-  ['dagger', 'sword', false], ['pistol', 'pistol', false],
+  ['bow', 'dagger', true], ['bow', null, false],
+  ['dagger', 'sword', false], ['bow', 'bow', false],
 ] as const)('kata fits %s / %s in either active hand', (a, b, expected) => {
   const s = sim(OPEN, { x: 3, y: 3 }).s;
   s.hero.gear.hands = [makeWeapon(a as WeaponGroup, 1), b ? makeWeapon(b, 1) : null];

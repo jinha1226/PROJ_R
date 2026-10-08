@@ -6,7 +6,7 @@ describe('final review fixes (meta loop run)', () => {
   it('quick swap never makes an empty hand a free +50% (pistol ↔ empty)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
     g.s.hero.suit = ['quickswap'];
-    g.s.hero.gear.hands = [makeWeapon('pistol', 1), null];
+    g.s.hero.gear.hands = [makeWeapon('bow', 1), null];
     g.s.hero.gear.active = 0;
     const t = g.s.time;
     g.act({ kind: 'swap' });
@@ -19,7 +19,7 @@ describe('final review fixes (meta loop run)', () => {
     const g = sim(OPEN, { x: 5, y: 7 }, [{ kind: 'brute', pos: { x: 8, y: 7 } }]);
     sureHits(g);
     g.s.hero.suit = ['quickswap'];
-    g.s.hero.gear.hands = [makeWeapon('pistol', 1), makeWeapon('sword', 1)];
+    g.s.hero.gear.hands = [makeWeapon('bow', 1), makeWeapon('sword', 1)];
     g.s.hero.gear.active = 0;
     g.s.foes[0]!.hp = 99;
     g.act({ kind: 'shoot', target: g.s.foes[0]!.id });

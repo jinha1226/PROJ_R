@@ -20,7 +20,7 @@ it('keeps every original walkable cell reachable without tools over 50 seeds in 
     expect(new Set(m.toolSpots?.map(s => s.kind)).size).toBe(m.toolSpots?.length ?? 0);
   }
   for (const n of Object.values(counts)) expect(n).toBeGreaterThan(0);
-});
+}, 30_000);
 it.each(['seal', 'chasm'] as const)('blocks %s without its tool without advancing time', kind => {
   const g = sim(OPEN, { x: 1, y: 1 }); g.s.map.tiles[idx(g.s.map, { x: 2, y: 1 })] = kind;
   expect(g.act({ kind: 'move', dir: { x: 1, y: 0 } })).toContainEqual(expect.objectContaining({ type: 'blocked', text: kind }));

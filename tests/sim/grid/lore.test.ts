@@ -198,7 +198,7 @@ describe('finding potions and scrolls', () => {
     const held = Object.values(g.s.hero.gear.potions).concat(Object.values(g.s.hero.gear.scrolls));
     expect(held.reduce((a, b) => a + (b ?? 0), 0)).toBeGreaterThan(0);
     const run = GridSim.create(8);
-    expect(run.s.floorItems.filter((f) => f.item.kind === 'potion' || f.item.kind === 'scroll')).toHaveLength(2);
+    expect(run.s.floorItems.filter((f) => f.item.kind === 'potion' || f.item.kind === 'scroll' || f.item.kind === 'arrows')).toHaveLength(2);
     expect(sim(OPEN, { x: 5, y: 7 }).s.floorItems).toHaveLength(0);
   });
 });

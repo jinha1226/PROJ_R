@@ -22,7 +22,7 @@ it('saves, loads, clears and handles invalid or blocked storage', () => {
 });
 it('starts directly with a pistol, checkpoints actions and continues the saved seed', () => {
   const session = startGridRun(33);
-  expect(session.sim.s.hero.gear.hands[0]?.group).toBe('pistol');
+  expect(session.sim.s.hero.gear.hands[0]?.group).toBe('bow');
   expect(session.sim.s.run.floor).toBe(1);
   expect(loadRun()?.seed).toBe(33);
   session.sim.act({ kind: 'wait' }); session.checkpoint();

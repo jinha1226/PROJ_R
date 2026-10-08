@@ -1,4 +1,4 @@
-import { hitChance, shotClear, strike } from './combat';
+import { coverOf, hitChance, shotClear, strike } from './combat';
 import { applyElement, areaCells, onEnter, tickStatuses } from './status';
 import { championTurn } from './boss';
 import { foeDmg } from './foes';
@@ -82,6 +82,7 @@ function archerTurn(s: GridState, f: Ent, t: number): number {
   const def = FOES.archer;
   const h = s.hero.pos;
   const d = dist(f.pos, h);
+  if (seekCover(s, f, t)) return def.move;
   if (d <= 2) {
     const away = steps(s, f).sort((a, b) => dist(b, h) - dist(a, h))[0];
     if (away && dist(away, h) > d) { moveTo(s, f, away, t); return def.move; }
@@ -99,10 +100,25 @@ function archerTurn(s: GridState, f: Ent, t: number): number {
   return takeRange(s, f, t, def.move);
 }
 
+/** Cover preference is stable: preserve distance and DIRS ordering on equal cover. */
+function shootingSteps(s: GridState, f: Ent): Cell[] {
+  const h = s.hero.pos;
+  const covered = (c: Cell) => Number(coverOf(s.map, h, c) !== 'none');
+  return steps(s, f).filter(c => dist(c, h) >= 3 && dist(c, h) <= 6 && shotClear(s, c, h))
+    .sort((a, b) => covered(b) - covered(a) || dist(a, h) - dist(b, h));
+}
+function seekCover(s: GridState, f: Ent, t: number): boolean {
+  if (coverOf(s.map, s.hero.pos, f.pos) !== 'none') return false;
+  const spot = shootingSteps(s, f)[0];
+  if (!spot || coverOf(s.map, s.hero.pos, spot) === 'none') return false;
+  moveTo(s, f, spot, t);
+  return true;
+}
+
 /** Ranged foes: a neighbouring cell with a clear line in the 3–6 band, else close in. */
 function takeRange(s: GridState, f: Ent, t: number, move: number): number {
   const h = s.hero.pos;
-  const spot = steps(s, f).filter((c) => dist(c, h) >= 3 && dist(c, h) <= 6 && shotClear(s, c, h)).sort((a, b) => dist(a, h) - dist(b, h))[0];
+  const spot = shootingSteps(s, f)[0];
   if (spot) { moveTo(s, f, spot, t); return move; }
   return stepToward(s, f, f.lastSeen ?? h, t) ? move : 1;
 }
@@ -122,6 +138,7 @@ function mageTurn(s: GridState, f: Ent, t: number): number {
   }
   const h = s.hero.pos;
   const d = dist(f.pos, h);
+  if (seekCover(s, f, t)) return FOES.mage.move;
   if (d <= 1) {
     const away = steps(s, f).sort((a, b) => dist(b, h) - dist(a, h))[0];
     if (away && dist(away, h) > d) { moveTo(s, f, away, t); return FOES.mage.move; }
