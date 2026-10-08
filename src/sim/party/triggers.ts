@@ -12,7 +12,8 @@ import type { StatusId } from './status';
 import type { DamageKind } from './partyCore';
 export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'crisis' | 'nth' | 'still' | 'moved' | 'allyHit' | 'allyCrisis' | 'combatStart' | 'statusApplied' | 'ultimate' | 'healed' | 'taunt' | 'allyUltimate' | 'beforeHit' | 'guard' | 'overflow' | 'fireball' | 'counter' | 'shieldBreak' | 'summonDied' | 'reaction' | 'wait' | 'reload' | 'attack' | 'damage' | 'damaged' | 'teleport' | 'summon' | 'turn' | 'miss';
 export interface Ctx { kind?: DamageKind; basic?: boolean; t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; reaction?: string; over?: number; depth: number; ev: GEvent[] }
-export interface TriggerDef { id: string; when: Cond; cd?: number; chance?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void; repeat?: boolean }
+/** `every`: the effect goes off on every nth time its condition holds, counted per unit (2026-10-08: no effect is left to chance) */
+export interface TriggerDef { id: string; when: Cond; cd?: number; every?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void; repeat?: boolean }
 export const CHAIN_CAP = 30;
 export function sourcesOf(p: Party, u: Unit): TriggerDef[] { return [...resonanceTriggers(p, u), ...duoTriggers(p, u), ...memoryTriggers(u), ...(proficient(u) ? kitsOf(u).flatMap((k) => k.innate) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]&&TRAITS[id]!.pool!=='duo'?[...(TRAITS[id]!.trigger?[TRAITS[id]!.trigger!(r)]:[]),...(TRAITS[id]!.triggers?.(r)??[])]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...sfTriggers(u), ...(u.triggers ?? [])]; }
 // A shared action budget covers siblings as well as recursive calls, including damage callbacks.
@@ -44,7 +45,7 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
       if (!alive(p, c.src) || action.count >= CHAIN_CAP) break;
       const key = `${c.src.id}:${def.id}`;
       if (def.when !== cond || (!def.repeat && action.fired.has(key)) || c.t < (c.src.trig[def.id] ?? 0) || (def.nth && c.src.nth % def.nth !== 0) || (def.test && !def.test(p, c))) continue;
-      if (def.chance !== undefined && !p.s.rng.chance(def.chance)) continue;
+      if (def.every) { const tally = (c.src.tally ??= {}), n = (tally[def.id] = (tally[def.id] ?? 0) + 1); if (n % def.every !== 0) continue; }
       const before = effectState(p, c.src), oldReady = c.src.trig[def.id], eventAt = c.ev.length;
       // Reserve a slot before entering recursive callbacks; release it for a no-op.
       c.src.trig[def.id] = c.t + (def.cd ?? 0) * (c.src.traits?.fanatic ? .5 : 1);

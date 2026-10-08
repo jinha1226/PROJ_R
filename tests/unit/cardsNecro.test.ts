@@ -21,11 +21,17 @@ it('twelve necromancer cards in three branches, a signature each; the golem is i
   expect(ultSlots(necroScene().u).map((s) => s.ult)).toEqual(['golem']);
 });
 
-it('bone spear: a third of blows send a bone spear through every foe in line (hits)', () => {
-  const s = necroScene(); s.u.traits = { boneSpear: 1 }; s.p.s.rng.chance = () => true;
+it('bone spear: every third blow sends a bone spear through every foe in line (hits); every second once upgraded', () => {
+  const s = necroScene(); s.u.traits = { boneSpear: 1 };
   const a = s.put(0, 7, 6), b = s.put(1, 9, 6), c = s.put(2, 11, 6);
-  strike(s.p, s.u, a, 0, []);
+  strike(s.p, s.u, a, 0, []); strike(s.p, s.u, a, 1, []);
+  expect(hp(s.p, b)).toBe(999); expect(hp(s.p, c)).toBe(999);
+  strike(s.p, s.u, a, 2, []);
   expect(hp(s.p, b)).toBeLessThan(999); expect(hp(s.p, c)).toBeLessThan(999);
+  const up = necroScene(); up.u.traits = { boneSpear: 2 };
+  const d = up.put(0, 7, 6), e = up.put(1, 9, 6);
+  strike(up.p, up.u, d, 0, []); expect(hp(up.p, e)).toBe(999);
+  strike(up.p, up.u, d, 1, []); expect(hp(up.p, e)).toBeLessThan(999);
 });
 
 it('raise skeleton: two skeletons stand up as the fight opens, between the necromancer and the foe, with no body about', () => {

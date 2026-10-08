@@ -8,7 +8,7 @@ export const status = (id: string, status: StatusId, when: TriggerDef['when'] = 
 export const cleave: TriggerDef = { id: '양손 휩쓸기', when: 'hit', run: (p, c) => { for (const f of nearby(p, c.src, 1, 'foe'))
         if (f !== c.target)
             damage(p, c.t, c.src.id, f, (c.amount ?? 0) / 2, c.ev); } };
-export const stun: TriggerDef = { ...status('둔격', 'stun'), chance: .2 };
+export const stun: TriggerDef = { ...status('둔격', 'stun'), every: 5 };
 export const ward: TriggerDef = { id: '방벽', when: 'block', run: (p, c) => { for (const a of nearby(p, c.src, 2, 'hero'))
         addShield(a, 5); } };
 export const hide = (id: string, seconds: number): TriggerDef => ({ id, when: 'combatStart', run: (_p, c) => { c.src.hiddenUntil = c.t + seconds; } });
@@ -57,5 +57,5 @@ export const wind: TriggerDef = { id: '순풍', when: 'moved', run: (_p, c) => {
 export const thunder: TriggerDef = { id: '천둥', when: 'crit', run: (p, c) => { if (c.target)
         for (const f of nearby(p, c.target, 2, 'foe'))
             applyStatus(p, c.src, f, 'shock', c.t, c.ev); } };
-export const bones: TriggerDef = { id: '망자의 부름', when: 'kill', chance: .2, run: (p, c) => { if (c.target && !c.target.raised && summon(p, c.src, posOf(p, c.target), c.t, c.ev)) c.target.raised = true; } };
+export const bones: TriggerDef = { id: '망자의 부름', when: 'kill', every: 5, run: (p, c) => { if (c.target && !c.target.raised && summon(p, c.src, posOf(p, c.target), c.t, c.ev)) c.target.raised = true; } };
 export function gearTaken(u: Unit): number { return (u.gear?.armor?.def === 'ironPlate' || u.sfMods?.includes('sf-ironPlate')) && u.ironGuard && u.still >= 2 ? .8 : 1; }

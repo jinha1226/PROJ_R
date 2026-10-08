@@ -78,12 +78,14 @@ it('berserk: each frenzy stack adds five percent critical chance', () => {
   expect(TRAITS.berserk!.passive!(u, 1).crit).toBeCloseTo(0.2);
 });
 
-it('war shout: the fight’s start opens a three-turn shout that taunts and stuns within three each turn; a stunned foe’s death adds a turn', () => {
+it('war shout: the fight’s start opens a three-turn shout that taunts within three and stuns the nearest foe each turn; a stunned foe’s death adds a turn', () => {
   const { p, u, put, fire } = scene(); u.traits = { warShout: 1 };
   const a = put(0, 6, 6), weak = put(1, 5, 5, 1);
   fire('combatStart', 0); expect(u.shoutUntil).toBe(3);
   fire('turn', 1);
-  expect(a.tauntBy).toBe(u.id); expect((a.status.stun?.until ?? 0) > 1).toBe(true);
+  // both are taunted; the nearest one (weak) is stunned, the other stays on its feet
+  expect(a.tauntBy).toBe(u.id); expect(weak.tauntBy).toBe(u.id);
+  expect((weak.status.stun?.until ?? 0) > 1).toBe(true); expect((a.status.stun?.until ?? 0) > 1).toBe(false);
   action(p, () => damage(p, 1, u.id, weak, 99, [], true));
   expect(u.shoutUntil).toBe(4);
 });

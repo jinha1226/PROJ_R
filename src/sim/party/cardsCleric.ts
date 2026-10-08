@@ -142,9 +142,9 @@ export const CLERIC_CARDS: TraitDef[] = [
       { id: '광신의 오라', when: 'kill', repeat: true, test: (p, c) => !!c.target && inAura(p, c.src, c.target), run: (_p, c) => {
         c.src.zealUntil = r >= 2 ? Math.min(Math.max(c.src.zealUntil ?? 0, c.t) + 2, c.t + 6) : c.t + 2;
       } },
-      ...(r >= 3 ? [{ id: '광신 연타', when: 'hit', chance: 0.25, test: (p, c) => !!c.basic && c.t < (c.src.zealUntil ?? 0) && !!c.target && alive(p, c.target), run: (p, c) => strike(p, c.src, c.target!, c.t, c.ev, 1, false) } satisfies TriggerDef] : []),
+      ...(r >= 3 ? [{ id: '광신 연타', when: 'hit', every: 4, test: (p, c) => !!c.basic && c.t < (c.src.zealUntil ?? 0) && !!c.target && alive(p, c.target), run: (p, c) => strike(p, c.src, c.target!, c.t, c.ev, 1, false) } satisfies TriggerDef] : []),
     ],
-  }, '처치마다 연장', '광신 중 공격 25% → 2연타'), AURA),
+  }, '처치마다 연장', '광신 중 네 번째 공격마다 2연타'), AURA),
   inBranch(card('lifeTransfer', '생명 전이', 'convert', ['오라'], 'cleric', '치유량 30% → 가장 가까운 적에게 피해', {
     trigger: (r) => ({ id: '생명 전이', when: 'healed', test: (_p, c) => !!c.target && (c.amount ?? 0) > 0, run: (p, c) => {
       const at = posOf(p, c.target!), f = foesNear(p, at, 8).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0];

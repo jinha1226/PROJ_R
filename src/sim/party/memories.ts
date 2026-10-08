@@ -43,8 +43,8 @@ export const MEMORIES: Record<MemoryId, Memory> = {
     trigger: { id: '서리 무덤', when: 'struck', test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => applyStatus(p, c.src, c.target!, 'chill', c.t, c.ev) } },
   lightning: { name: '번개 맞은 자', tag: '전기', text: '치명 → 감전',
     trigger: { id: '번개 맞은 자', when: 'crit', test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => applyStatus(p, c.src, c.target!, 'shock', c.t, c.ev) } },
-  butcher: { name: '백정', tag: '출혈', text: '근접 적중 30% → 출혈',
-    trigger: { id: '백정', when: 'hit', chance: 0.3, test: (p, c) => meleeHit(p, c) && alive(p, c.target!), run: (p, c) => applyStatus(p, c.src, c.target!, 'bleed', c.t, c.ev) } },
+  butcher: { name: '백정', tag: '출혈', text: '세 번째 근접 적중마다 → 출혈',
+    trigger: { id: '백정', when: 'hit', every: 3, test: (p, c) => meleeHit(p, c) && alive(p, c.target!), run: (p, c) => applyStatus(p, c.src, c.target!, 'bleed', c.t, c.ev) } },
   warden: { name: '수호자', tag: '치유', text: '아군이 위기 → 그 곁으로 순간이동, 그 아군 보호막 10',
     trigger: { id: '수호자', when: 'allyCrisis', test: (_p, c) => !!c.target, run: (p, c) => { besideAlly(p, c.src, c.target!, c.t, c.ev); addShield(c.target!, 10, c.src); } } },
 };

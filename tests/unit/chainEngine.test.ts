@@ -42,3 +42,31 @@ it('a broken shield, a fallen summon and the overkill of a kill are events effec
   expect(seen).toContain('shieldBreak'); expect(seen).toContain('over15');
   expect(entOf(p, u.id)!.alive).toBe(true);
 });
+
+it('an effect with `every` goes off on every nth time its condition holds, counted per unit: nothing is left to chance', () => {
+  const { p, u } = scene();
+  let n = 0;
+  u.triggers = [{ id: 'third', when: 'hit', every: 3, test: (_p, c) => c.t >= 0, run: () => { n++; u.shield = n; } }];
+  // the dice would say no every time: the count alone decides
+  p.s.rng.chance = () => false;
+  const fired: number[] = [];
+  for (let t = 1; t <= 7; t++) { action(p, () => emit(p, 'hit', { t, src: u, ev: [] })); fired.push(n); }
+  expect(fired).toEqual([0, 0, 1, 1, 1, 2, 2]);
+  // a time its condition does not hold is not counted
+  action(p, () => emit(p, 'hit', { t: -1, src: u, ev: [] }));
+  expect(u.tally).toEqual({ third: 7 });
+});
+
+it('no card, innate, resonance law, memory or gear effect is left to chance', async () => {
+  const { TRAITS } = await import('../../src/sim/party/traitDefs');
+  const { KITS } = await import('../../src/sim/party/classKit');
+  const { CATALOG } = await import('../../src/sim/delve/catalog');
+  const { MEMORIES } = await import('../../src/sim/party/memories');
+  const defs = [
+    ...Object.values(TRAITS).flatMap((d) => [1, 2, 3].flatMap((r) => [...(d.trigger ? [d.trigger(r)] : []), ...(d.triggers?.(r) ?? [])])),
+    ...Object.values(KITS).flatMap((k) => k.innate), ...Object.values(CATALOG).flatMap((d) => d.triggers),
+    ...Object.values(MEMORIES).flatMap((m) => (m.trigger ? [m.trigger] : [])),
+  ];
+  expect(defs.length).toBeGreaterThan(200);
+  expect(defs.filter((d) => 'chance' in d)).toEqual([]);
+});

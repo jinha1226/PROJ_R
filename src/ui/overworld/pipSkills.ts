@@ -16,7 +16,7 @@ const row = (name: string, cond: string, effect: string, tag: string) => `<li cl
 /** What sets a trigger off, in words: the event, every n-th time, its odds, its cooldown. */
 function condOf(t: TriggerDef): string {
   const parts = [t.nth ? `${t.nth}번째 공격마다` : whenText(WHEN[t.when] ?? t.when)];
-  if (t.chance) parts.push(`${Math.round(t.chance * 100)}% 확률`);
+  if (t.every) parts.push(`${t.every}번째마다`);
   if (t.cd) parts.push(`대기 ${t.cd}턴`);
   return parts.join(' · ');
 }
@@ -24,7 +24,7 @@ function condOf(t: TriggerDef): string {
 export const effectOf = (text: string): string => (text.includes('→') ? text.slice(text.indexOf('→') + 1).trim() : text);
 /** the condition: the text's own cause when it names one (it is more exact than the event), else the trigger's event, odds and cooldown */
 export const causeOf = (text: string, t?: TriggerDef): string => {
-  const extra = t ? [t.chance ? `${Math.round(t.chance * 100)}% 확률` : '', t.cd ? `대기 ${t.cd}턴` : ''].filter(Boolean) : [];
+  const extra = t ? [t.every ? `${t.every}번째마다` : '', t.cd ? `대기 ${t.cd}턴` : ''].filter(Boolean) : [];
   const head = text.includes('→') ? whenText(text.slice(0, text.indexOf('→')).trim()) : t ? condOf(t) : '상시';
   return [head, ...extra.filter((x) => !head.includes(x))].join(' · ');
 };

@@ -113,18 +113,20 @@ export const WARRIOR_CARDS: TraitDef[] = [
     trigger: (r) => ({ id: '피의 광기', when: 'beforeHit', test: (_p, c) => (c.src.frenzy ?? 0) > 0, run: (_p, c) => { c.src.attackMult = (c.src.attackMult ?? 1) * (r >= 2 ? 1.03 : 1.02) ** ((tagsOf(c.src).근접 ?? 0) * c.src.frenzy!); } }),
   }, '×1.03'), FRENZY),
   // 함성: a shout that holds the room, stunning as it goes
-  inBranch(card('warShout', '전투 함성', 'law', ['함성'], 'warrior', '전투 시작·위기 → 함성 3턴: 매 턴 3칸 안 적 도발 + 30% 기절, 기절한 적 처치마다 +1턴', {
+  inBranch(card('warShout', '전투 함성', 'law', ['함성'], 'warrior', '전투 시작·위기 → 함성 3턴: 매 턴 3칸 안 적 도발 + 가장 가까운 적 1명 기절, 기절한 적 처치마다 +1턴', {
     triggers: (r) => [
       ...(['combatStart', 'crisis'] as const).map((when): TriggerDef => ({ id: '전투 함성', when, run: (_p, c) => { c.src.shoutUntil = Math.max(c.src.shoutUntil ?? 0, c.t + 3); } })),
       { id: '함성', when: 'turn', test: (p, c) => (c.src.shoutUntil ?? 0) > c.t && fighting(p, c.src), run: (p, c) => {
-        for (const f of foesNear(p, posOf(p, c.src), 3)) {
-          f.tauntBy = c.src.id; f.tauntUntil = c.t + 1;
-          if (p.s.rng.chance(r >= 2 ? 0.5 : 0.3)) { applyStatus(p, c.src, f, 'stun', c.t, c.ev); if (r >= 3 && alive(p, f)) applyStatus(p, c.src, f, 'exposed', c.t, c.ev); }
+        const me = posOf(p, c.src), near = foesNear(p, me, 3);
+        for (const f of near) { f.tauntBy = c.src.id; f.tauntUntil = c.t + 1; }
+        // the nearest foe still on its feet is stunned (two with the upgrade): no dice
+        for (const f of near.filter((x) => (x.status.stun?.until ?? 0) <= c.t).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me)).slice(0, r >= 2 ? 2 : 1)) {
+          applyStatus(p, c.src, f, 'stun', c.t, c.ev); if (r >= 3 && alive(p, f)) applyStatus(p, c.src, f, 'exposed', c.t, c.ev);
         }
       } },
       { id: '함성 연장', when: 'kill', repeat: true, test: (_p, c) => (c.src.shoutUntil ?? 0) > c.t && (c.target?.status.stun?.until ?? 0) > c.t, run: (_p, c) => { c.src.shoutUntil = Math.min(c.src.shoutUntil! + 1, c.t + 6); } },
     ],
-  }, '기절 50%', '함성으로 기절한 적 노출'), SHOUT, true),
+  }, '2명 기절', '함성으로 기절한 적 노출'), SHOUT, true),
   inBranch(card('rage', '분노 축적', 'law', ['함성'], 'warrior', '피격마다 분노 1 (최대 5) → 다음 공격에 분노 × 30% 추가 피해', {
     triggers: (r) => [
       // rank 3: struck with full rage, the warrior spins (checked before this blow adds rage)
@@ -136,9 +138,9 @@ export const WARRIOR_CARDS: TraitDef[] = [
       } },
     ],
   }, '분노가 터질 때 주변 1칸 적에게도 분노 × 4 피해', '분노 5에서 피격 → 바로 회오리 베기'), SHOUT),
-  inBranch(card('ironCounter', '철벽 반격', 'convert', ['함성'], 'warrior', '반격 피해 +50%, 반격 25% → 기절', {
+  inBranch(card('ironCounter', '철벽 반격', 'convert', ['함성'], 'warrior', '반격 피해 +50%, 네 번째 반격마다 기절', {
     passive: () => ({ counter: 0.5 }),
-    trigger: (r) => ({ id: '철벽 반격', when: 'counter', chance: r >= 2 ? 0.5 : 0.25, test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => applyStatus(p, c.src, c.target!, 'stun', c.t, c.ev) }),
-  }, '반격 50% → 기절'), SHOUT),
+    trigger: (r) => ({ id: '철벽 반격', when: 'counter', every: r >= 2 ? 2 : 4, test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => applyStatus(p, c.src, c.target!, 'stun', c.t, c.ev) }),
+  }, '두 번째 반격마다 기절'), SHOUT),
   inBranch(card('shoutAmp', '함성 숙련', 'amp', ['함성'], 'warrior', '#함성 1당 기절·도발 중인 적이 받는 피해 ×1.1 (곱)', {}, '×1.14'), SHOUT),
 ];

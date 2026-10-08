@@ -110,15 +110,15 @@ export const GOLEM_FALL: TriggerDef = { id: '골렘 붕괴', when: 'summonDied',
 
 export const NECRO_CARDS: TraitDef[] = [
   // 뼈: spears that run through lines, and run on through what they kill
-  inBranch(card('boneSpear', '뼈 창', 'law', ['뼈'], 'necromancer', '공격마다 30% → 일렬 관통 뼈 창(적중), 뼈 창으로 처치하면 그 자리에서 다음 적에게 한 번 더', {
-    trigger: (r) => ({ id: '뼈 창', when: 'attack', chance: r >= 2 ? 0.5 : 0.3, test: (p, c) => !!c.target && !!c.basic && alive(p, c.target), run: (p, c) => {
+  inBranch(card('boneSpear', '뼈 창', 'law', ['뼈'], 'necromancer', '세 번째 공격마다 → 일렬 관통 뼈 창(적중), 뼈 창으로 처치하면 그 자리에서 다음 적에게 한 번 더', {
+    trigger: (r) => ({ id: '뼈 창', when: 'attack', every: r >= 2 ? 2 : 3, test: (p, c) => !!c.target && !!c.basic && alive(p, c.target), run: (p, c) => {
       let dead = spear(p, c.src, c.target!, c.t, c.ev, r >= 3);
       for (let k = 0; k < 3 && dead.length; k++) {
         const from = dead[0]!, next = foesNear(p, posOf(p, from), 4).sort((a, b) => dist(posOf(p, a), posOf(p, from)) - dist(posOf(p, b), posOf(p, from)))[0];
         dead = next ? spear(p, c.src, next, c.t, c.ev, r >= 3) : [];
       }
     } }),
-  }, '50%', '뼈 창에 맞은 적 노출'), BONE, true),
+  }, '두 번째 공격마다', '뼈 창에 맞은 적 노출'), BONE, true),
   inBranch(card('bonePrison', '뼈 감옥', 'law', ['뼈'], 'necromancer', '위기 → 주변 2칸 적 1턴 묶음', {
     triggers: (r) => (r >= 3 ? ['crisis', 'combatStart'] as const : ['crisis'] as const).map((when): TriggerDef => ({ id: '뼈 감옥', when, run: (p, c) => {
       for (const f of foesNear(p, posOf(p, c.src), 2)) { applyStatus(p, c.src, f, 'stun', c.t, c.ev); if (r >= 2 && alive(p, f)) applyStatus(p, c.src, f, 'exposed', c.t, c.ev); }

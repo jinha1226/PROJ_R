@@ -135,10 +135,10 @@ it('carnage 3: the carnage blow is always critical', () => {
   expect(hp(b)).toBeLessThan(999); expect(crits).toBe(1);
 });
 
-it('berserk 2 adds eight percent per stack; iron counter 2 stuns half the time', () => {
+it('berserk 2 adds eight percent per stack; iron counter 2 stuns on every second counter', () => {
   const { u } = classScene('warrior'); u.frenzy = 5;
   expect(TRAITS.berserk!.passive!(u, 2).crit).toBeCloseTo(0.4);
-  expect(TRAITS.ironCounter!.trigger!(2).chance).toBe(0.5);
+  expect(TRAITS.ironCounter!.trigger!(1).every).toBe(4); expect(TRAITS.ironCounter!.trigger!(2).every).toBe(2);
 });
 
 it('war shout 3: what the shout stuns is left exposed', () => {
@@ -225,7 +225,8 @@ it('overcurrent 2: the shock passes to two foes beside', () => {
 it('bone spear 3: what the spear runs through is left exposed', () => {
   const { p, u, put } = classScene('necromancer'); u.traits = { boneSpear: 3 };
   const a = put(0, 7, 6), b = put(1, 9, 6);
-  strike(p, u, a, 0, []);
+  // upgraded, the spear flies on every second blow
+  strike(p, u, a, 0, []); strike(p, u, a, 1, []);
   expect((b.status.exposed?.until ?? 0) > 0).toBe(true);
 });
 

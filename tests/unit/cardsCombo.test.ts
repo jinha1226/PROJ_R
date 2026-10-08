@@ -75,6 +75,8 @@ it('bone arrow: a bone spear through a marked foe throws another from it', () =>
   const { p, u, put, hp } = both('necromancer', 'archer', { boneSpear: 1, boneArrow: 1 });
   const a = put(0, 7, 6), b = put(1, 9, 6), c = put(2, 10, 9);
   applyStatus(p, u, b, 'mark', 0, []);
+  // the spear flies on every third blow: this is the third
+  u.tally = { '뼈 창': 2 };
   strike(p, u, a, 0, []);
   expect(hp(c)).toBeLessThan(999);
 });

@@ -104,6 +104,8 @@ export interface Unit {
   group?: number;
   /** a fallen foe whose bio-matter has been gathered */
   reaped?: boolean; raised?: boolean;
+  /** how many times each counted effect's condition has held (an effect that goes off every nth time) */
+  tally?: Record<string, number>;
   /** a body that has burst (it can still be raised), or a skeleton that has blown itself up */
   burst?: boolean;
   /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */
