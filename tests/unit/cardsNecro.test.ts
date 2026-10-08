@@ -69,7 +69,32 @@ it('a minion\'s kill is its master\'s kill: the body bursts on the foes beside i
   action(s.p, () => emit(s.p, 'combatStart', { t: 0, src: s.u, ev: [] }));
   const sk = minions(s.p, s.u.id)[0]!, a = s.put(0, 9, 6, 40), b = s.put(1, 10, 6, 999);
   action(s.p, () => damage(s.p, 1, sk.id, a, 999, []));
-  expect(a.burst).toBe(true); expect(999 - hp(s.p, b)).toBe(20);
+  expect(a.burst).toBe(true); expect(999 - hp(s.p, b)).toBeGreaterThanOrEqual(20);
+});
+
+it('raise skeleton: a kill stands the body up where it fell, at once (the body bursts first)', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 10);
+  const a = s.put(0, 9, 6, 1); kill(s, a);
+  const sk = minions(s.p, s.u.id);
+  expect(sk).toHaveLength(1); expect(entOf(s.p, sk[0]!.id)!.pos).toEqual({ x: 9, y: 6 });
+  expect(a.burst).toBe(true); expect(a.raised).toBe(true);
+});
+
+it('raise skeleton: a skeleton strikes as it rises when a foe is in its reach', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.p.s.rng.chance = () => true;
+  const a = s.put(0, 9, 6, 2), b = s.put(1, 10, 6, 999), ev: GEvent[] = [];
+  action(s.p, () => damage(s.p, 0, s.u.id, a, 9999, ev, true));
+  const sk = minions(s.p, s.u.id)[0]!;
+  // the burst (half of 2) and then the skeleton's own blow
+  expect(999 - hp(s.p, b)).toBeGreaterThan(1);
+  expect(ev.some((e) => e.type === 'bump' && e.src === sk.id && e.dst === b.id)).toBe(true);
+});
+
+it('raise skeleton: at the legion\'s cap a kill leaves the body for a later turn', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 10);
+  for (let k = 0; k < 4; k++) kill(s, s.put(k, 3 + k, 9, 1));
+  expect(minions(s.p, s.u.id)).toHaveLength(3);
+  expect(corpsesNear(s.p, { x: 6, y: 9 }, 0)).toHaveLength(1);
 });
 
 it('grasp of the dead: a fallen minion leaves two bodies', () => {

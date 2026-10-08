@@ -1,11 +1,11 @@
 import { applyStatus } from './status';
 import { addShield } from './shield';
-import { alive, damage, entOf, freeHit, posOf, stats, type Party, type Unit } from './partyCore';
+import { alive, canHit, damage, entOf, freeHit, posOf, stats, strike, type Party, type Unit } from './partyCore';
 import { fighting, foesNear } from './cardFx';
 import { tagsOf } from './classKit';
 import { beyond } from './cardsRanged';
 import { summon } from './kitEffects';
-import { consume, corpsesNear } from './corpses';
+import { consume, corpsesNear, isCorpse } from './corpses';
 import { duoFor } from './cardsCombo';
 import { ampBase, card, inBranch, rank, type TraitDef } from './traitTypes';
 import { dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
@@ -31,8 +31,8 @@ function spear(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], expose 
 
 const legionCap = (r: number) => (r >= 2 ? 5 : 3);
 /** One more skeleton beside a cell (every other one an archer once the card is upgraded); false at the legion's cap. */
-const raise = (p: Party, u: Unit, at: Cell, t: number, ev: GEvent[], r: number): boolean =>
-  summon(p, u, at, t, ev, legionCap(r), { hp: 24, weapon: r >= 2 && minions(p, u).length % 2 === 1 ? 'longbow' : 'fists' });
+const raise = (p: Party, u: Unit, at: Cell, t: number, ev: GEvent[], r: number, here = false): boolean =>
+  summon(p, u, at, t, ev, legionCap(r), { hp: 24, weapon: r >= 2 && minions(p, u).length % 2 === 1 ? 'longbow' : 'fists', here });
 /** Where the legion rises as a fight opens: a step from the necromancer toward the nearest foe awake. */
 function front(p: Party, u: Unit): Cell {
   const me = posOf(p, u), foe = p.units.filter((f) => f.side === 'foe' && alive(p, f) && !f.asleep).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
@@ -105,13 +105,20 @@ export const NECRO_CARDS: TraitDef[] = [
   }, '받은 피해 35%'), BONE),
   inBranch(card('boneAmp', '뼈 숙련', 'amp', ['뼈'], 'necromancer', '#뼈 1당 뼈 피해 ×1.12 (곱)', {}, '×1.16'), BONE),
   // 군단: skeletons that stand up as the fight opens, and again from every body
-  inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '전투 진입 → 해골 2, 3칸 안 시체마다 매 턴 해골(최대 3), 전투 중 대기 → 하나 더', {
+  inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '전투 진입 → 해골 2 · 처치 → 그 시체가 해골로 일어남 · 해골은 일어나며 즉시 공격 · 3칸 안 남은 시체도 매 턴 해골(최대 3) · 전투 중 대기 → 하나 더', {
     triggers: (r) => [
       // the legion rises with the fight, between the necromancer and the foes: no body needed
       { id: '해골 일으키기', when: 'combatStart', run: (p, c) => { const at = front(p, c.src); for (let k = 0; k < (r >= 2 ? 3 : 2); k++) raise(p, c.src, at, c.t, c.ev, r); } },
+      // a kill: the body stands up where it fell (a body the legion has no room for stays, for a later turn or a golem)
+      { id: '해골 일으키기', when: 'kill', repeat: true, test: (p, c) => !!c.target && isCorpse(p, c.target), run: (p, c) => { if (raise(p, c.src, posOf(p, c.target!), c.t, c.ev, r, true)) consume(c.target!); } },
+      // a skeleton strikes as it rises, if a foe is in its reach
+      { id: '해골 강습', when: 'summon', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
+        const sk = c.target!, at = posOf(p, sk), foe = foesNear(p, at, stats(sk, c.t, p).range).filter((f) => !f.asleep && canHit(p, sk, f)).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0];
+        if (foe) strike(p, sk, foe, c.t, c.ev);
+      } },
       { id: '해골 일으키기', when: 'turn', test: (p, c) => fighting(p, c.src) && minions(p, c.src).length < legionCap(r) && corpsesNear(p, posOf(p, c.src), 3).length > 0, run: (p, c) => {
         const body = corpsesNear(p, posOf(p, c.src), 3)[0]!;
-        if (raise(p, c.src, posOf(p, body), c.t, c.ev, r)) consume(body);
+        if (raise(p, c.src, posOf(p, body), c.t, c.ev, r, true)) consume(body);
       } },
       { id: '해골 일으키기', when: 'wait', test: (p, c) => fighting(p, c.src), run: (p, c) => { raise(p, c.src, posOf(p, c.src), c.t, c.ev, r); } },
       ...(r >= 3 ? [{ id: '해골 폭발', when: 'summonDied', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
