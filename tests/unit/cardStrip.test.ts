@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { cardInfoHtml, cardMark, cardStripHtml, cardsLit, cardsOf } from '../../src/ui/overworld/cardStrip';
+import { blinkOn, cardInfoHtml, cardMark, cardStripHtml, cardsLit, cardsOf } from '../../src/ui/overworld/cardStrip';
 import { scene } from './support/cardScene';
 
 it('a card is marked by the head of its name\'s last word', () => {
@@ -29,4 +29,11 @@ it('an effect lights the card it belongs to: by the card\'s own name or by any o
   expect(new Set(cardsLit(u, '얼음 파편'))).toEqual(new Set(['blizzard', 'frostPrison']));
   expect(cardsLit(u, '운석')).toEqual([]); expect(cardsLit(u, '원소 순환')).toEqual([]);
   expect(cardInfoHtml(u, 'blizzard')).toMatch(/^<b>블리자드 ★★★<\/b><span class="cs-info">/);
+});
+
+it('a card blinks every time it fires: lit, a beat dark, lit again; each rock of a meteor shower is a firing of the meteor card', () => {
+  expect([0, 100, 200, 300, 400, 500].map(blinkOn)).toEqual([true, true, false, true, true, false]);
+  const { u } = scene('mage');
+  u.traits = { meteor: 1 };
+  expect(cardsLit(u, '운석')).toEqual(['meteor']); expect(cardsLit(u, '운석 낙하')).toEqual(['meteor']);
 });

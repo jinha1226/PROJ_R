@@ -5,8 +5,11 @@ import { traitText } from '../../sim/party/traitText';
 import { ULT_NAMES, ultSlots } from '../../sim/party/ultimate';
 import { richText } from './richText';
 
-/** how long a card stays lit after it fires (ms) */
-const LIT_MS = 650;
+/** a card blinks each time it fires: lit, a beat dark, lit again (ms from the moment it fired) */
+const BLINK: [number, number][] = [[0, 170], [250, 420]];
+const BLINK_END = 420;
+/** events a card throws under a name of their own, each a firing of that card (every rock of a meteor shower, every skeleton blown) */
+const ALSO: Record<string, TraitId> = { '운석 낙하': 'meteor', '해골 자폭': 'raiseSkeleton' };
 /** up to this many cards are told by name; more are told by their marks (the row is one line) */
 const FEW = 4;
 
@@ -23,7 +26,7 @@ function cardsNamed(text: string): TraitId[] {
       for (let r = 1; r <= d.ranks; r++) for (const t of [...(d.trigger ? [d.trigger(r)] : []), ...(d.triggers?.(r) ?? [])]) add(t.id, d.id as TraitId);
     }
   }
-  return byEffect.get(text) ?? [];
+  return byEffect.get(text) ?? (ALSO[text] ? [ALSO[text]] : []);
 }
 
 /** The cards a clone holds, in the order it took them. */
@@ -59,6 +62,7 @@ export function cardInfoHtml(u: Unit, id: TraitId): string {
 export class CardStrip {
   readonly el = document.createElement('div');
   private html = '';
+  /** what is blinking (a selector of its tile), and since when */
   private readonly lit = new Map<string, number>();
 
   constructor(private readonly p: () => Party, private readonly sel: () => string, private readonly a: { ult(slot: number): void; info(html: string): void }) {
@@ -70,23 +74,27 @@ export class CardStrip {
     });
   }
 
-  /** An effect showing on screen: the cards it belongs to light up (an ultimate's own name lights its key). */
+  /** An effect showing on screen: the cards it belongs to blink, every time (an ultimate's own name blinks its key). */
   flash(e: GEvent): void {
     if (e.type !== 'buff' || !e.text || !e.src) return;
     const p = this.p(), src = unitOf(p, e.src), who = src?.summoner ?? src?.id, u = unitOf(p, this.sel());
     if (!u || who !== u.id) return;
-    const until = performance.now() + LIT_MS;
-    for (const id of cardsLit(u, e.text)) this.lit.set(`[data-card="${id}"]`, until);
-    if ((Object.values(ULT_NAMES) as string[]).includes(e.text)) this.lit.set(`[data-name="${e.text}"]`, until);
+    const now = performance.now();
+    for (const id of cardsLit(u, e.text)) this.lit.set(`[data-card="${id}"]`, now);
+    if ((Object.values(ULT_NAMES) as string[]).includes(e.text)) this.lit.set(`[data-name="${e.text}"]`, now);
   }
 
   update(): void {
     const html = cardStripHtml(this.p(), this.sel());
     if (html !== this.html) { this.html = html; this.el.innerHTML = html; }
     const now = performance.now();
-    for (const [q, until] of this.lit) {
-      const el = this.el.querySelector(q);
-      if (now > until) { this.lit.delete(q); el?.classList.remove('lit'); } else el?.classList.add('lit');
+    for (const [q, since] of this.lit) {
+      const t = now - since;
+      this.el.querySelector(q)?.classList.toggle('lit', blinkOn(t));
+      if (t > BLINK_END) this.lit.delete(q);
     }
   }
 }
+
+/** Whether a card that fired `ms` ago is lit at this moment of its blink. */
+export const blinkOn = (ms: number): boolean => BLINK.some(([a, b]) => ms >= a && ms < b);
