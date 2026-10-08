@@ -295,3 +295,17 @@
   /* a card goes dark at once: a fade through the plate's dots left its name unreadable for a moment */
   .hud-solo .cs-card { transition: none; }
 }
+
+/*
+ * Lettering over the picture (harm, a toast, a banner, a pop): the HUD's heavy face, at whole multiples of the size it
+ * was drawn at (11px), so every dot of a letter is a square the size of the picture's own; a hard dark edge, no glow.
+ */
+.screen.world .dmg { font: normal 22px 'GalmuriBold', 'GalmuriMono', monospace; letter-spacing: 0; }
+.screen.world .dmg.crit { font-size: 33px; }
+.screen.world .dmg.combo { font-size: 22px; }
+.screen.world .dmg.miss { font-size: 11px; text-shadow: 1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000, 0 2px #000; }
+.screen.world .wh-toast { font: normal 22px 'GalmuriBold', 'GalmuriMono', monospace; letter-spacing: 0; white-space: nowrap; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000, -2px -2px #000, 2px -2px #000, -2px 2px #000, 2px 2px #000, 0 4px #000; }
+.screen.world .grid-banner { font: normal 44px 'GalmuriBold', 'GalmuriMono', monospace; letter-spacing: 0.1em; text-shadow: -4px 0 #000, 4px 0 #000, 0 -4px #000, 0 4px #000, 0 8px #000; }
+.screen.world .gpop { font: normal 22px 'GalmuriBold', 'GalmuriMono', monospace; letter-spacing: 0; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000, 0 4px #000; }
+.screen.world .grid-icon { font: normal 22px 'GalmuriBold', 'GalmuriMono', monospace; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
+.screen.world .step-next { font: normal 11px 'GalmuriBold', 'GalmuriMono', monospace; }
