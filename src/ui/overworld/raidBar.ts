@@ -6,6 +6,8 @@ import type { WorldParty } from '../../sim/overworld/worldSim';
 import { implant } from '../../sim/roam/roam';
 import { gainXp, LEVEL_XP } from '../../sim/party/partyLevel';
 import { CLASSES } from '../../sim/party/partyDefs';
+import { GATHER, type ModuleId } from '../../sim/base/modules';
+import { MODULE_NAMES } from './basePanels';
 
 const SIDE = ['서쪽', '동쪽', '북쪽', '남쪽'];
 
@@ -64,7 +66,8 @@ export function raidResultHtml(p: WorldParty): string {
   const rows = [`<div class="menu-row"><span>처치</span><span>${r.kills}</span></div>`,
     r.ore || r.crystal ? `<div class="menu-row"><span>얻은 자원</span><span>${[r.ore ? `광석 ${r.ore}` : '', r.crystal ? `마정석 ${r.crystal}` : ''].filter(Boolean).join(' · ')}</span></div>` : '',
     r.injured.length ? `<div class="menu-row"><span>부상</span><span>${r.injured.map(name).join(' · ')}</span></div>` : '',
-    r.buildings.length ? `<div class="menu-row"><span>부서진 바리케이드</span><span>${r.buildings.length}</span></div>` : ''].join('');
+    r.buildings.length ? `<div class="menu-row"><span>부서진 바리케이드</span><span>${r.buildings.length}</span></div>` : '',
+    r.modules?.length ? `<div class="menu-row"><span>고장 난 모듈</span><span>${r.modules.map((id) => MODULE_NAMES[id as ModuleId] ?? id).join(' · ')}</span></div>` : ''].join('');
   return `<div class="pip-frame menu-frame base-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : r.fell === 'down' ? '방어선 붕괴' : '코어 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
 }
 
@@ -73,6 +76,8 @@ export function raidNote(e: GEvent, p: WorldParty): string | undefined {
   if (e.type === 'buff' && e.text === 'raidSoon') return `다음 귀환 때 습격 · 규모 ${e.amount}`;
   if (e.type === 'buff' && e.text === 'raidReady') return '습격의 밤 · 자리와 바리케이드를 잡고 시작';
   if (e.type === 'buff' && e.text === 'raidWon') return '습격 격퇴';
+  if (e.type === 'buff' && e.text === 'gather') return `남은 클론이 광석 ${e.amount} · 생체 ${Math.round(((e.amount ?? 0) / GATHER.ore) * GATHER.bio)}를 모았다`;
+  if (e.type === 'die' && e.dst?.startsWith('module-')) return `${MODULE_NAMES[e.dst.slice(7) as ModuleId] ?? '모듈'} 고장`;
   if (e.type === 'dead' && e.text === 'raidLost') return p.lastRaid?.fell === 'down' ? '방어선 붕괴' : '코어 함락 · 수리 필요';
   return undefined;
 }

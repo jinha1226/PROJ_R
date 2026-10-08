@@ -3,6 +3,7 @@ import { resolveRaid, type Raid } from '../base/raids';
 import { swarmTick } from '../base/swarm';
 import { payRaidKills } from '../base/raidLoot';
 import { POD_MAX, type Building } from '../base/buildings';
+import { placeModules, type BaseUpgrade, type Module } from '../base/modules';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent } from '../grid/types';
@@ -27,11 +28,11 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   /** a raid night that has come but waits for the player to start it: its size and the edges it will come from (0 W, 1 E, 2 N, 3 S) */
   raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
   /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
-  lastRaid?: { won: boolean; fell?: 'pod' | 'down'; injured: string[]; buildings: string[]; kills: number; ore: number; crystal: number };
-  /** the fodder blows the pod can still take this turn (swarm.ts: only the front rank reaches it) */
-  podBlows?: number;
-  /** workshop steps that widen the barricade stock (phase 2 turns it up) */
-  barricadeLevel?: number;
+  lastRaid?: { won: boolean; fell?: 'pod' | 'down'; injured: string[]; buildings: string[]; modules?: string[]; kills: number; ore: number; crystal: number };
+  /** the fodder blows each of our structures can still take this turn (swarm.ts: only the front rank reaches it) */
+  blows?: Record<string, number>;
+  /** the modules round the pod (the pod's ground only) and what they have been given (modules.ts) */
+  modules?: Module[]; upgrades?: Partial<Record<BaseUpgrade, number>>;
   /** the raiders still to step out (the horde's waves) and what this raid's kills have paid so far */
   raidQueue?: import('../base/swarm').RaidSpawn[]; raidLoot?: { kills: number; ore: number; crystal: number };
   pod?: boolean }
@@ -58,6 +59,7 @@ function fromWorld(w: World, seed: number): WorldParty {
     e.hp = e.maxHp = Math.round(FOES[kind].hp * scale * (sp.elite ? 1.5 : 1));
     p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, asleep: true, group: sp.group, nextAt: 0.15 * i });
   });
+  if (w.pod) placeModules(p);
   p.foeAction = (u, t, ev) => raidTurn(p, u, t, ev);
   claim(p, w.base, CLAIM_BASE);
   look(p);

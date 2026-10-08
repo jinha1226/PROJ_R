@@ -2,12 +2,12 @@ import { dist, type GEvent } from '../grid/types';
 import { alive, canHit, entOf, occupied, posOf, stats, strike, type Unit } from '../party/partyCore';
 import type { WorldParty } from '../overworld/worldSim';
 import { breakBuilding, buildingsAt } from './buildings';
-import { blocks, podReach, raidStep, resetRaidPath } from './raidPath';
+import { blocks, hitTarget, raidStep, resetRaidPath, targetNear } from './raidPath';
 
 /**
  * A raid's elites on the grid (spec 2026-10-09 §2.3): a clone in reach is struck (an archer shoots any it can see), the pod
- * when they stand by it; otherwise they go nearly straight for the pod and break the barricade in the way — the horde leaks
- * through the hole after them.
+ * or a module when they stand by it; otherwise they go nearly straight for the nearest of those and break the barricade
+ * in the way — the horde leaks through the hole after them.
  */
 export function raidTurn(p: WorldParty, u: Unit, t: number, ev: GEvent[]): number | undefined {
   if (!p.raid || u.group !== p.raid.group || u.side !== 'foe' || !alive(p, u)) return undefined;
@@ -15,11 +15,8 @@ export function raidTurn(p: WorldParty, u: Unit, t: number, ev: GEvent[]): numbe
   const target = p.units.filter(h => h.side === 'hero' && alive(p, h) && canHit(p, u, h)).sort((a, b) => dist(e.pos, posOf(p, a)) - dist(e.pos, posOf(p, b)))[0];
   if (target) { strike(p, u, target, t, ev); return st.atk; }
   const amount = () => p.s.rng.int(st.dmg[0], st.dmg[1]);
-  if (podReach(p, e.pos)) {
-    const hit = amount(); p.podHp = Math.max(0, p.podHp - hit);
-    ev.push({ t, type: 'bump', src: u.id, dst: 'pod', from: { ...e.pos }, to: { ...p.base } }, { t, type: 'hit', src: u.id, dst: 'pod', to: { ...p.base }, amount: hit });
-    return st.atk;
-  }
+  const near = targetNear(p, e.pos);
+  if (near) { hitTarget(p, near, amount(), u.id, ev); return st.atk; }
   const next = raidStep(p, e.pos);
   if (!next) return .5;
   let b = buildingsAt(p, next);

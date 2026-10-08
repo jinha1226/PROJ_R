@@ -8,7 +8,6 @@ import { WorldLights } from './worldLights';
 import type { NatureKit } from './natureKit';
 import { natureRocks, natureTrees, natureTufts } from './worldNature';
 import { LandingPod, drillRig } from './podProps';
-import { Lab } from './labProps';
 import { EmberCracks } from './emberCracks';
 
 /** what the world view needs beyond the grid state */
@@ -41,8 +40,6 @@ export class WorldTerrain {
   private readonly cracks: EmberCracks;
   /** the landing pod (on the pod's ground) */
   readonly pod?: LandingPod;
-  /** the pod's lab (the clone printer), unfolding once the pod is down */
-  private readonly lab?: Lab;
   /** called when the falling pod hits the ground (the view shakes) */
   onThump?: () => void;
 
@@ -56,11 +53,10 @@ export class WorldTerrain {
     this.root.add(ruinWalls(by(['ruinWall']), this.fog));
     this.cracks = new EmberCracks(look, w, this.fog);
     // a landing pod (and the drill rig beside it) on the pod's ground, else the crashed ship
-    if (look.pod) { this.pod = new LandingPod(look.base, this.fog, () => { this.lab?.rise(); this.onThump?.(); }); this.root.add(this.pod.root); }
+    if (look.pod) { this.pod = new LandingPod(look.base, this.fog, () => this.onThump?.()); this.root.add(this.pod.root); }
     else this.root.add(crashedShip(look.base, this.fog));
     // the pod is its own shaft; a drill rig stands only over a shaft of its own
     if (look.drill && !look.pod) this.root.add(drillRig(look.drill, this.fog));
-    if (look.cloner) { this.lab = new Lab(look.cloner, this.fog); this.root.add(this.lab.root); }
     this.root.add(coverProps(look.ground, w, this.fog, nature ? new Set(['boulder']) : undefined), this.lights.root, this.cracks.mesh);
     for (const c of look.camps) { const cp = campProps(c, this.fog); this.camps.push(cp.view); this.root.add(cp.root); }
     this.spots();
@@ -128,7 +124,7 @@ export class WorldTerrain {
       L.add({ at: { x: b.x + 1, y: b.y + 2 }, y: 1.4, color: '#9fe8ff', power: 4, range: 7, flicker: 0, on: () => true });
     }
     const d = this.look.pod ? undefined : this.look.drill, lab = this.look.cloner;
-    if (lab) L.add({ at: lab, y: 1.9, color: '#5ae0ff', power: 5, range: 7, flicker: 0.04, on: () => !!this.lab?.up });
+    if (lab) L.add({ at: lab, y: 1.9, color: '#5ae0ff', power: 5, range: 7, flicker: 0.04, on: () => !this.pod?.landing });
     if (d) L.add({ at: d, y: 2.7, color: '#ffb84a', power: 5, range: 7, flicker: 0.08, on: () => true });
     for (const c of this.look.camps) {
       L.add({ at: c.pos, y: 0.8, color: '#ff9040', power: 9, range: 9, flicker: 0.2, on: () => !c.cleared });
@@ -168,12 +164,11 @@ export class WorldTerrain {
     this.sun.target.position.set(center.x, 0, center.z);
     this.lights.update(dt, center, (c) => this.seen?.[c.y * this.w + c.x] === 1);
     this.pod?.update(dt);
-    this.lab?.update(dt);
     for (const st of this.stones) { st.gem.position.y = 0.75 + Math.sin(this.clock * 2 + st.soul.id) * 0.12; st.gem.rotation.y = this.clock * 1.4 + st.soul.id; }
   }
 
-  /** Sends the pod falling in; its lab waits underground until it is down. */
-  landPod(): void { this.lab?.hide(); this.pod?.land(); }
+  /** Sends the pod falling in (the base's modules wait underground until it is down: baseView). */
+  landPod(): void { this.pod?.land(); }
 
   syncTiles(): void { /* nothing opens or breaks on the world map yet */ }
   openDoor(): void { /* no doors */ }

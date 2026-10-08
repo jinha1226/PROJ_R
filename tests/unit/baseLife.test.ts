@@ -32,5 +32,20 @@ it('on the pod’s ground any clone at the base can be sent down or print a body
   // another clone is sound, so the injured one stays home
   print(p, undefined, [], p.s.map.start); u.injured = true;
   expect(drillClone(p, 'hero')).not.toBe('hero'); expect(canDrill(p, 'hero')).toBe(false);
-  p.bio = BODY_COST; expect(canPrintClone(p)).toBe(true);
+  // (a bed more than the two it began with)
+  p.upgrades = { beds: 1 }; p.bio = BODY_COST; expect(canPrintClone(p)).toBe(true);
+});
+
+it('with the core\'s gathering on, a clone at home goes to a cell beside the pod or a module and works there', async () => {
+  const { homeLife } = await import('../../src/sim/base/baseLife');
+  const { worldTick } = await import('../../src/sim/overworld/worldSim');
+  const { targets } = await import('../../src/sim/base/raidPath');
+  const p = newSurface(4), u = unitOf(p, 'hero')!, e = entOf(p, 'hero')!;
+  p.upgrades = { gather: 1 };
+  let swings = 0;
+  for (let k = 0; k < 120; k++) { homeLife(p, p.time); swings += worldTick(p, 0.2).filter((x) => x.text === 'work' && x.src === 'hero').length; }
+  expect(swings).toBeGreaterThan(1);
+  expect(u.workCell).toBeDefined();
+  const beside = targets(p).some((t) => t.cells.some((c) => Math.abs(c.x - u.workCell!.x) + Math.abs(c.y - u.workCell!.y) === 1));
+  expect(beside).toBe(true); expect(Math.max(Math.abs(e.pos.x - p.base.x), Math.abs(e.pos.y - p.base.y))).toBeLessThan(8);
 });

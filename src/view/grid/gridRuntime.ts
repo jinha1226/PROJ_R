@@ -290,6 +290,8 @@ export class GridRuntime {
       case 'hit': {
         // a foe bleeds where it is struck (no white flash); a clone flinches with a red flash and the screen's edge
         const p = at(e.dst), ally = a.isAlly(e.dst);
+        // a blow on something built (the pod, a module): sparks where it stands, and the game does not catch its breath for it
+        if (!p && e.to) { this.particles.vfx.fire('hit', cellVec(e.to).setY(0.9), '#ffb02a'); break; }
         if (e.crit) a.knock(e.dst, at(e.src)); else a.hurt(e.dst, at(e.src));
         if (p) {
           this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : ally ? 'ally-hurt' : 'dmg', p);
@@ -396,7 +398,7 @@ export class GridRuntime {
   /** Extra things a screen draws in the scene (a dungeon floor's souls, shrine, floor items). */
   addOverlay(o: THREE.Object3D): void { this.h.scene.add(o); }
   /** The pod falls from the sky (the pod's ground only); false if there is no pod. */
-  landPod(): boolean { if (!(this.terrain instanceof WorldTerrain) || !this.terrain.pod) return false; this.terrain.onThump = () => this.fx.shake(0.45, 0.55); this.terrain.landPod(); return true; }
+  landPod(onDown?: () => void): boolean { if (!(this.terrain instanceof WorldTerrain) || !this.terrain.pod) return false; this.terrain.onThump = () => { this.fx.shake(0.45, 0.55); onDown?.(); }; this.terrain.landPod(); return true; }
   get podLanding(): boolean { return this.terrain instanceof WorldTerrain && !!this.terrain.pod?.landing; }
   /** The glow pass (fires and lamps bleed light), as on the world map. */
   enableBloom(glow?: { strength: number; radius: number; threshold: number }): void { this.bloom ??= new Bloom(this.h.renderer, this.h.scene, this.h.camera, glow); }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newSurface, worldTick } from '../../src/sim/overworld/worldSim';
-import { barricadeCap, barricadesLeft, BARRICADE_HP, BARRICADE_MAX, BARRICADE_START, breakBuilding, buildingsAt, canPlace, pickUp, place, podRepairCost, POD_MAX, repairPod } from '../../src/sim/base/buildings';
+import { barricadeCap, barricadesLeft, BARRICADE_HP, BARRICADE_MAX, BARRICADE_START, BARRICADE_STEP, breakBuilding, buildingsAt, canPlace, pickUp, place, podRepairCost, POD_MAX, repairPod } from '../../src/sim/base/buildings';
 import { canPost, setPost } from '../../src/sim/base/posts';
 import { startRaid } from '../../src/sim/base/raids';
 import { canHit, entOf, unitOf } from '../../src/sim/party/partyCore';
@@ -41,8 +41,8 @@ describe('barricades', () => {
     for (let x = p.base.x - 8; x <= p.base.x + 8 && n < 40; x++) if (place(p, { x, y: p.base.y - 6 })) n++;
     for (let x = p.base.x - 8; x <= p.base.x + 8 && n < 40; x++) if (place(p, { x, y: p.base.y + 7 })) n++;
     expect(n).toBe(BARRICADE_START); expect(barricadesLeft(p)).toBe(0);
-    p.barricadeLevel = 1; expect(barricadesLeft(p)).toBe(6);
-    p.barricadeLevel = 99; expect(barricadeCap(p)).toBe(BARRICADE_MAX);
+    p.upgrades = { stock: 1 }; expect(barricadesLeft(p)).toBe(BARRICADE_STEP);
+    p.upgrades = { stock: 99 }; expect(barricadeCap(p)).toBe(BARRICADE_MAX);
   });
 
   it('never close the last way to the pod: the last gap of a ring is refused, and a clone plugs it instead', () => {

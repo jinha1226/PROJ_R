@@ -1,7 +1,7 @@
-import { distanceMap } from '../grid/path';
-import { idx, same, tileAt, walkable, type Cell, type GEvent, type GridMap, type Tile } from '../grid/types';
+import { idx, same, tileAt, walkable, type Cell, type GEvent, type Tile } from '../grid/types';
 import { alive, entOf, occupied, posOf, type Unit } from '../party/partyCore';
 import type { WorldParty } from '../overworld/worldSim';
+import { aside, podOpen, reserved, upgradeLevel } from './modules';
 
 /**
  * Barricades (spec 2026-10-09 §2.1): the one thing laid on the base's ground. A limited stock, free to lay and to take up
@@ -9,32 +9,18 @@ import type { WorldParty } from '../overworld/worldSim';
  */
 export const BARRICADE_HP = 80;
 /** the stock: what the base starts with, what each workshop step adds, and the most it can hold */
-export const BARRICADE_START = 12, BARRICADE_STEP = 6, BARRICADE_MAX = 36;
+export const BARRICADE_START = 24, BARRICADE_STEP = 8, BARRICADE_MAX = 48;
 export type BuildingKind = 'barricade';
 export interface Building { id: string; kind: BuildingKind; at: Cell; hp: number; maxHp: number; original: { tile: Tile; cover: number };
   /** a raid has broken it: it blocks nothing until the raid is over */
   broken?: boolean }
 
-export const barricadeCap = (p: WorldParty): number => Math.min(BARRICADE_MAX, BARRICADE_START + BARRICADE_STEP * (p.barricadeLevel ?? 0));
+export const barricadeCap = (p: WorldParty): number => Math.min(BARRICADE_MAX, BARRICADE_START + BARRICADE_STEP * upgradeLevel(p, 'stock'));
 export const barricadesLeft = (p: WorldParty): number => barricadeCap(p) - p.buildings.length;
 export const buildingsAt = (p: WorldParty, at: Cell): Building | undefined => p.buildings.find((b) => same(b.at, at));
 
-/** the cells kept clear by the shaft: clones coming up step out there */
-const reserved = (p: WorldParty, c: Cell): boolean => {
-  const s = p.s.map.start;
-  return (c.y === s.y && (c.x === s.x || c.x === s.x + 1)) || same(c, { x: s.x, y: s.y + 1 });
-};
-
-/** a clone standing on the cell by day (it steps aside for a barricade), and the free cell beside it it would step to */
+/** a clone standing on the cell by day (it steps aside for a barricade) */
 const standing = (p: WorldParty, at: Cell): Unit | undefined => p.units.find((u) => u.side === 'hero' && alive(p, u) && same(posOf(p, u), at));
-function aside(p: WorldParty, at: Cell): Cell | undefined {
-  for (let r = 1; r <= 2; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-    const c = { x: at.x + dx, y: at.y + dy };
-    if (Math.max(Math.abs(dx), Math.abs(dy)) === r && walkable(tileAt(p.s.map, c)) && !occupied(p, c, '')) return c;
-  }
-  return undefined;
-}
-
 /**
  * Whether a barricade may go on the cell: by day, on our own open ground, with stock left, on nobody's post (a clone merely
  * standing there steps aside) — and never the last gap: the pod must stay reachable from the land outside by barricades
@@ -49,14 +35,6 @@ export function canPlace(p: WorldParty, at: Cell): boolean {
   const trial = { ...m, tiles: [...m.tiles] };
   trial.tiles[idx(m, at)] = 'chasm';
   return podOpen(p, trial);
-}
-
-/** The pod can still be walked to from the land outside (over the cells by the shaft, where the clones come up). */
-function podOpen(p: WorldParty, trial: GridMap): boolean {
-  const m = p.s.map, reach = distanceMap(trial, m.start);
-  let ring = false;
-  for (let y = p.base.y - 1; y <= p.base.y + 2 && !ring; y++) for (let x = p.base.x - 1; x <= p.base.x + 2; x++) if (reach[idx(m, { x, y })]! >= 0) { ring = true; break; }
-  return ring && reach.some((d, k) => d >= 0 && Math.hypot((k % m.w) - p.base.x, Math.floor(k / m.w) - p.base.y) > 12);
 }
 
 /** Lays a barricade (a clone standing on the cell steps aside first: `ev` carries its step for the view). */

@@ -57,6 +57,8 @@ export interface Unit {
   /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
   /** base mode: when an idle clone at home strolls again; a clone hurt in a raid (it skips the next trip) */
   idleAt?: number; injured?: boolean;
+  /** base mode, gathering on: the cell beside the pod or a module this clone works at, and when its next swing is */
+  workCell?: Cell; workAt?: number;
   /** a raid's fodder: moved by the horde (free coordinates sx, sy; its cell is where they fall), never by its own turns */
   swarm?: boolean; sx?: number; sy?: number; hitAt?: number; stillT?: number;
   /** a raider whose fall has been paid for (raid loot) */

@@ -5,6 +5,15 @@ import { rejoin, type Carry } from '../roam/carry';
 import { startDelve } from './drill';
 import { onRaidReturn } from './raids';
 import { applySf } from './workshop';
+import { gatherHome, upgradeOn } from './modules';
+import { living } from '../roam/roam';
+import { entOf } from '../party/partyCore';
+
+/** The lab's medical bay, switched on: everyone at home is whole again when a clone comes up. */
+function healHome(p: WorldParty): void {
+  if (!upgradeOn(p, 'medical')) return;
+  for (const u of living(p)) { const e = entOf(p, u.id)!; e.hp = e.maxHp; }
+}
 
 /** The surface freezes until return; a live raid must be resolved before departure. */
 export function departSurface(p: WorldParty, seed: number, carry: Carry, floor = 1): DelveParty | null {
@@ -16,9 +25,16 @@ export function departSurface(p: WorldParty, seed: number, carry: Carry, floor =
 }
 /** Return events are queued for the existing worldTick consumer and also returned to callers. */
 export function returnToSurface(p: WorldParty, carry: Carry): GEvent[] {
+  // the clones that stayed worked the wreck meanwhile (the core's gathering)
+  const got = gatherHome(p, living(p).length);
   rejoin(p, carry, p.drill ?? p.base);
+  // what they gathered is added to what came up (the carry holds the stores: the base's own waited)
+  if (got) { p.ore += got.ore; p.bio += got.bio; }
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
+  healHome(p);
   const ev = onRaidReturn(p, carry.deepest ?? 1);
+  // (the event carries the ore; the bio-matter is in step with it: GATHER)
+  if (got) ev.unshift({ t: p.time, type: 'buff', text: 'gather', amount: got.ore });
   p.baseEvents.push(...ev);
   return ev;
 }
@@ -27,5 +43,6 @@ export function beaconReturn(p: WorldParty, carry: Carry): GEvent[] {
   rejoin(p, carry, p.drill ?? p.base);
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
   p.away = false; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
+  healHome(p);
   return [];
 }

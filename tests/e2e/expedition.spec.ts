@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('the title drops a pod: an empty clone steps out beside it, the lab unfolds, the base view opens', async ({ page }) => {
+test('the title drops a pod: an empty clone steps out beside it, the base unfolds round it, the base view opens', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('./?seed=3');

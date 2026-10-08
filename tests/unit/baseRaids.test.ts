@@ -4,12 +4,15 @@ import { upgradeDrill } from '../../src/sim/base/drill';
 import { defencePower, onRaidReturn, RAID_MAX, RAID_REACH, raidPlan, raidSize, startRaid } from '../../src/sim/base/raids';
 import { place, POD_MAX } from '../../src/sim/base/buildings';
 import { resetRaidPath } from '../../src/sim/base/raidPath';
+import { footprint } from '../../src/sim/base/modules';
 import { raidTurn } from '../../src/sim/base/raidAi';
 import { departSurface } from '../../src/sim/base/trips';
 import { takeParty } from '../../src/sim/roam/carry';
 import { alive, entOf } from '../../src/sim/party/partyCore';
 import { dist, type GEvent } from '../../src/sim/grid/types';
 const setup = () => { const p = newSurface(42); p.ore = 200; p.crystal = 20; return p; };
+/** the pod alone on its ground (the modules taken away: these tests are about the way to the pod) */
+const bare = () => { const p = setup(); for (const m of p.modules ?? []) for (const c of footprint(m.at)) p.s.map.tiles[c.y * 96 + c.x] = 'floor'; p.modules = []; return p; };
 describe('raids', () => {
   it('arms at first upgrade, warns on first return, raids on second and every second after', () => {
     const p = setup(); upgradeDrill(p);
@@ -53,7 +56,7 @@ describe('raids', () => {
     worldTick(p, 3); expect(dist(e.pos, p.base)).toBeLessThan(before); expect(u.asleep).toBe(false);
   });
   it('an elite breaks the barricade in its way: it stands broken (open ground) until the raid is over', () => {
-    const p = setup(); place(p, { x: 48, y: 46 }); startRaid(p);
+    const p = bare(); place(p, { x: 48, y: 46 }); startRaid(p);
     const u = p.units.find(u => u.group === p.raid!.group && !u.swarm) ?? p.units.find(u => u.group === p.raid!.group)!;
     u.swarm = false; u.foe = 'brute'; entOf(p, u.id)!.swarm = false; entOf(p, u.id)!.pos = { x: 48, y: 45 };
     // the only way to the pod's north side is through this barricade
@@ -68,7 +71,7 @@ describe('raids', () => {
     expect(p.s.map.tiles[46 * 96 + 48]).toBe('floor');
   });
   it('an elite cannot cut diagonally through the corners of barricades', () => {
-    const p = setup(); place(p, { x: 49, y: 46 }); place(p, { x: 48, y: 45 }); startRaid(p);
+    const p = bare(); place(p, { x: 49, y: 46 }); place(p, { x: 48, y: 45 }); startRaid(p);
     const u = p.units.find(u => u.group === p.raid!.group)!; const e = entOf(p, u.id)!;
     u.swarm = false; u.foe = 'brute'; e.swarm = false;
     e.pos = { x: 49, y: 45 }; p.s.map.tiles.fill('wall');

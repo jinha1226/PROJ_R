@@ -4,6 +4,7 @@ import { living } from '../roam/roam';
 import { connect } from '../overworld/worldGen';
 import type { WorldParty } from '../overworld/worldSim';
 import { POD_MAX, restoreBarricades } from './buildings';
+import { upgradeOn } from './modules';
 import { takePosts } from './posts';
 import { unitPower } from './power';
 import { resetRaidPath } from './raidPath';
@@ -15,7 +16,9 @@ export const RAID_REACH = 18;
 export const RAID_MAX = 400;
 export interface Raid { group: number; size: number;
   /** barricades already down when it began (the result counts only what this raid broke) */
-  broken?: string[] }
+  broken?: string[];
+  /** modules already broken when it began */
+  wrecked?: string[] }
 export interface RaidLosses { ore: number; crystal: number; buildings: string[] }
 /** what stands against a raid: the clones at home, nothing else (spec 2026-10-09 §0) */
 export const defencePower = (p: WorldParty): number => living(p).reduce((n, u) => n + unitPower(p, u), 0);
@@ -63,7 +66,7 @@ export function startRaid(p: WorldParty): GEvent[] {
   connect(m, p.ground, cells);
   resetRaidPath(p);
   const free = p.s.rng.shuffle(cells.filter(c => walkable(tileAt(m, c))));
-  const ev: GEvent[] = []; p.raid = { group, size, broken: p.buildings.filter(b => b.broken).map(b => b.id) };
+  const ev: GEvent[] = []; p.raid = { group, size, broken: p.buildings.filter(b => b.broken).map(b => b.id), wrecked: (p.modules ?? []).filter(m => m.broken).map(m => m.id) };
   // the horde waits at the edges and pours out in waves (swarm.ts); the first raiders step out at once
   p.raidQueue = planWaves(raidPlan(p, size), free.length ? free : cells, p.time);
   p.raidLoot = { kills: 0, ore: 0, crystal: 0 };
@@ -75,15 +78,15 @@ export function startRaid(p: WorldParty): GEvent[] {
   p.combat = true; p.over = false;
   return ev;
 }
-/** The clones downed in the raid rise by the pod at half health, soul and level kept, injured (they skip the next trip). Returns the injured. */
+/** The clones downed in the raid rise by the pod at half health, soul and level kept; injured (they skip the next trip) unless the lab's medical bay is on. Returns the injured. */
 function raise(p: WorldParty): string[] {
-  const hurt: string[] = [];
+  const hurt: string[] = [], ward = upgradeOn(p, 'medical');
   for (const u of p.units.filter((x) => x.side === 'hero' && !x.summoner)) {
     const e = entOf(p, u.id);
     if (!e || e.alive) continue;
     e.alive = true; e.hp = Math.ceil(e.maxHp / 2);
     e.pos = freeNear(p, p.base) ?? e.pos;
-    u.injured = true; hurt.push(u.id);
+    if (!ward) { u.injured = true; hurt.push(u.id); }
   }
   return hurt;
 }
@@ -96,7 +99,7 @@ function freeNear(p: WorldParty, at: Cell): Cell | undefined {
 }
 function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   const losses: RaidLosses = { ore: 0, crystal: 0, buildings: [] };
-  // a raid costs repairs, never stored materials: a pod knocked down to a quarter when it fell (the barricades stand again by morning)
+  // a raid costs repairs, never stored materials: a pod knocked down to a quarter when it fell, modules to mend (the barricades stand again by morning)
   const before = new Set(p.raid?.broken ?? []);
   losses.buildings = p.buildings.filter(b => b.broken && !before.has(b.id)).map(b => b.id);
   const fell = p.podHp <= 0 ? 'pod' : 'down';
@@ -110,7 +113,8 @@ function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   p.manualUlts = false;
   restoreBarricades(p);
   const loot = p.raidLoot ?? { kills: 0, ore: 0, crystal: 0 };
-  p.lastRaid = { won, fell: won ? undefined : fell, injured: raise(p), buildings: [...losses.buildings], kills: loot.kills, ore: loot.ore, crystal: loot.crystal };
+  const wrecked = new Set(p.raid?.wrecked ?? []), modules = (p.modules ?? []).filter((m) => m.broken && !wrecked.has(m.id)).map((m) => m.id);
+  p.lastRaid = { won, fell: won ? undefined : fell, injured: raise(p), buildings: [...losses.buildings], modules, kills: loot.kills, ore: loot.ore, crystal: loot.crystal };
   p.raidQueue = [];
   p.raid = null; p.raidsDone++; p.combat = false; p.over = false;
   ev.push({ t: p.time, type: won ? 'buff' : 'dead', text: won ? 'raidWon' : 'raidLost' });

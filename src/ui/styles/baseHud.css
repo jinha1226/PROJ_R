@@ -34,7 +34,7 @@
   .world:is(.base-mode, .raid-mode) :is(.wh-menu, .base-menu button, .ult-bar button, .raid-bar button):active { transform: translateY(2px); }
 
   /* the day's keys along the bottom, the tool's line over them */
-  .base-menu { left: 6px; right: 6px; bottom: 6px; transform: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 0; background: none; border: 0; }
+  .base-menu { left: 6px; right: 6px; bottom: 6px; transform: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0; background: none; border: 0; }
   .base-menu button { height: var(--row); padding: 0; justify-content: center; align-items: center; white-space: nowrap; }
   .base-hint { left: 8px; right: 8px; bottom: 64px; transform: none; padding: 0; background: none; border: 0; gap: 8px; color: var(--pip-dim); white-space: nowrap; overflow: hidden; }
   .base-hint b { color: var(--pip); }

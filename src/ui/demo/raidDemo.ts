@@ -1,5 +1,6 @@
 import { newSurface, type WorldParty } from '../../sim/overworld/worldSim';
 import { place } from '../../sim/base/buildings';
+import { moveModule } from '../../sim/base/modules';
 import { setPost } from '../../sim/base/posts';
 import { raidSize, startRaid } from '../../sim/base/raids';
 import { gainXp, LEVEL_XP, pickTrait } from '../../sim/party/partyLevel';
@@ -8,21 +9,23 @@ import type { BaseClass } from '../../sim/party/partyDefs';
 import type { TraitId } from '../../sim/party/traitDefs';
 
 /**
- * A sound first layout: the clones stand in the ring of twelve cells round the pod (the first below it, then above, then to
- * the right), barricades close the rest of the ring, and what is left of the stock shields the second clone, then the third.
+ * A sound first layout: the lab and the quarters are drawn in against the pod (one block of six cells by two), the clones
+ * stand in the ring round that block (the first below the pod, then above it, then at the block's east end), barricades
+ * close the rest of the ring, and what is left of the stock shields the second clone, then the third.
  */
 export function ringLayout(p: WorldParty): void {
   const b = p.base, ids = living(p).map((u) => u.id);
-  const spots = [{ x: b.x, y: b.y + 2 }, { x: b.x, y: b.y - 1 }, { x: b.x + 2, y: b.y }].slice(0, ids.length);
-  const shield = [[{ x: b.x - 1, y: b.y - 2 }, { x: b.x, y: b.y - 2 }, { x: b.x + 1, y: b.y - 2 }], [{ x: b.x + 3, y: b.y - 1 }, { x: b.x + 3, y: b.y }, { x: b.x + 3, y: b.y + 1 }]];
+  moveModule(p, 'lab', { x: b.x - 2, y: b.y }); moveModule(p, 'quarters', { x: b.x + 2, y: b.y });
+  const spots = [{ x: b.x, y: b.y + 2 }, { x: b.x, y: b.y - 1 }, { x: b.x + 4, y: b.y }].slice(0, ids.length);
+  const shield = [[{ x: b.x - 1, y: b.y - 2 }, { x: b.x, y: b.y - 2 }, { x: b.x + 1, y: b.y - 2 }], [{ x: b.x + 5, y: b.y - 1 }, { x: b.x + 5, y: b.y }, { x: b.x + 5, y: b.y + 1 }]];
   ids.slice(0, spots.length).forEach((id, i) => setPost(p, id, spots[i]!));
-  for (let y = b.y - 1; y <= b.y + 2; y++) for (let x = b.x - 1; x <= b.x + 2; x++) if ((x < b.x || x > b.x + 1 || y < b.y || y > b.y + 1) && !spots.some((c) => c.x === x && c.y === y)) place(p, { x, y });
+  for (let y = b.y - 1; y <= b.y + 2; y++) for (let x = b.x - 3; x <= b.x + 4; x++) if (!spots.some((c) => c.x === x && c.y === y)) place(p, { x, y });
   for (let i = 1; i < spots.length; i++) for (const c of shield[i - 1]!) place(p, c);
 }
 
 /**
  * `?demo=raid&n=<raids done>`: a base with three level-8 clones (a warrior, a mage, a cleric; each has taken the first card
- * offered at every level) at their posts in a ring of barricades, and a raid under way — to watch the horde pile up on the
+ * offered at every level) at their posts in a ring of barricades round the pod, the lab and the quarters, and a raid under way — to watch the horde pile up on the
  * plug and fire the ultimates. `n` is how many raids the base has already seen (4 by default): it sets the horde's size and make-up.
  */
 export function raidArena(seed: number, raids = 4): WorldParty {

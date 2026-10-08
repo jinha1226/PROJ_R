@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import type { Building } from '../../sim/base/buildings';
+import type { Module } from '../../sim/base/modules';
+import { ModuleViews } from './moduleView';
 
 /**
- * The base's barricades on the land: a low plated block with a warning strip — low enough to shoot over,
- * chunky enough to read at the dot look's size. A broken one lies flat until the raid is over.
+ * What stands on the base's ground: its modules (moduleView.ts) and its barricades — a low plated block with a warning
+ * strip, low enough to shoot over, chunky enough to read at the dot look's size. A broken one lies flat until the raid is over.
  */
 export class BaseView {
   readonly root = new THREE.Group();
@@ -11,9 +13,13 @@ export class BaseView {
   private readonly plate = new THREE.MeshStandardMaterial({ color: '#566270', roughness: 0.7, metalness: 0.25 });
   private readonly dark = new THREE.MeshStandardMaterial({ color: '#2a323c', roughness: 0.8, metalness: 0.2 });
   private readonly strip = new THREE.MeshBasicMaterial({ color: '#ffb02a' });
+  readonly modules: ModuleViews;
 
-  /** Builds and drops figures so the scene matches the base's barricades. */
-  sync(buildings: Building[]): void {
+  constructor(base: string) { this.modules = new ModuleViews(base); this.root.add(this.modules.root); }
+
+  /** Builds and drops figures so the scene matches the base's barricades and modules. */
+  sync(buildings: Building[], modules: Module[] = [], dt = 0): void {
+    this.modules.sync(modules, dt);
     const live = new Set(buildings.map((b) => b.id));
     for (const [id, o] of this.shown) if (!live.has(id)) { this.root.remove(o); this.shown.delete(id); }
     for (const b of buildings) if (!this.shown.has(b.id)) { const o = this.make(); o.position.set(b.at.x, 0, b.at.y); this.root.add(o); this.shown.set(b.id, o); }
@@ -38,6 +44,7 @@ export class BaseView {
   }
 
   dispose(): void {
+    this.modules.dispose();
     this.root.clear();
     this.shown.clear();
   }

@@ -5,7 +5,7 @@ import { FOES, type FoeId } from '../party/partyDefs';
 import { blank } from '../roam/roam';
 import type { WorldParty } from '../overworld/worldSim';
 import { breakBuilding, buildingsAt } from './buildings';
-import { blocks, podReach, raidField, resetRaidPath } from './raidPath';
+import { blocks, hitTarget, raidField, resetRaidPath, targetNear, targets } from './raidPath';
 
 /** one raider waiting to come out at the edge: fodder (the horde), an elite, or the general; `lean` fodder leave nothing behind */
 export interface RaidSpawn { at: number; kind: 'fodder' | 'brute' | 'archer' | 'general'; cell: Cell; lean?: boolean }
@@ -16,8 +16,8 @@ export interface RaidPlan { size: number; waves: number; eliteEvery: number; gen
 const FODDER_HP = 6, FODDER_DMG: [number, number] = [1, 3], SPEED = 1.1, REACH = 0.42, STEP = 0.1;
 /** the waves: one every WAVE_GAP turns, each pouring out over WAVE_POUR; one fodder in PAY_EVERY leaves something behind */
 export const WAVE_GAP = 40, WAVE_POUR = 24, PAY_EVERY = 10;
-/** how many fodder blows the pod takes in a turn at most (the rest of the crowd cannot get at it) */
-export const POD_BLOWS = 12;
+/** how many fodder blows one structure (the pod, a module) takes in a turn at most (the rest of the crowd cannot get at it) */
+export const BLOWS = 12;
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const;
 
 /** Raid waves (spec 2026-10-09 §2.4): the horde in waves from the open edges, elites walking among it, the general last. */
@@ -51,17 +51,19 @@ function blocked(p: WorldParty, solid: Set<number>, x: number, y: number): boole
   return solid.has(idx(p.s.map, c)) || !walkable(tileAt(p.s.map, c));
 }
 
-/** a fodder's blow: a clone beside it, else the pod in reach, else the barricade it is pressed against */
+/** a fodder's blow: a clone beside it, else the pod or a module in reach, else the barricade it is pressed against */
 function strikeNear(p: WorldParty, u: Unit, cell: Cell, toward: Cell | null, heroes: Unit[], ev: GEvent[]): boolean {
   const t = p.time, hit = () => p.s.rng.int(FODDER_DMG[0], FODDER_DMG[1]);
   const hero = heroes.find((h) => alive(p, h) && dist(entOf(p, h.id)!.pos, cell) <= 1);
   if (hero) { damage(p, t, u.id, hero, hit(), ev, false, false, 'physical', true); return true; }
-  // the pod is thick-skinned: a fodder chips a point off it, and only the front rank lands its blows (POD_BLOWS a turn) —
-  // a leak is a countdown the player can answer, not a sudden end
-  if (podReach(p, cell)) {
-    if ((p.podBlows ?? 0) < 1) return true;
-    p.podBlows = (p.podBlows ?? 0) - 1; p.podHp = Math.max(0, p.podHp - 1);
-    ev.push({ t, type: 'hit', src: u.id, dst: 'pod', to: { ...p.base }, amount: 1 }); return true;
+  // what we built is thick-skinned: a fodder chips a point off it, and only the front rank lands its blows (BLOWS a turn
+  // on each structure) — a leak is a countdown the player can answer, not a sudden end
+  const target = targetNear(p, cell);
+  if (target) {
+    const left = p.blows?.[target] ?? 0;
+    if (left < 1) return true;
+    p.blows![target] = left - 1;
+    hitTarget(p, target, 1, u.id, ev); return true;
   }
   const b = toward && buildingsAt(p, toward);
   if (b && blocks(b)) {
@@ -91,7 +93,7 @@ function step(p: WorldParty, dt: number, ev: GEvent[]): void {
       const l = Math.hypot(dx, dy); gx += (dx / l) * (here - d); gy += (dy / l) * (here - d);
       if (d < bestD) { bestD = d; best = { x: nx, y: ny }; }
     }
-    const atPod = podReach(p, { x: cx, y: cy });
+    const atPod = !!targetNear(p, { x: cx, y: cy });
     if (p.time >= (u.hitAt ?? 0) && strikeNear(p, u, { x: cx, y: cy }, best && blocked(p, solid, best.x + 0.5, best.y + 0.5) ? best : null, heroes, ev)) u.hitAt = p.time + 1;
     let vx = 0, vy = 0;
     const gl = Math.hypot(gx, gy);
@@ -121,6 +123,7 @@ export function swarmTick(p: WorldParty, dt: number, ev: GEvent[]): void {
   if (!p.raid) return;
   const end = p.time;
   while (p.raidQueue?.length && p.raidQueue[0]!.at <= end) spawnRaider(p, p.raidQueue.shift()!, ev);
-  p.podBlows = Math.min(POD_BLOWS, (p.podBlows ?? POD_BLOWS) + POD_BLOWS * dt);
+  const blows = (p.blows ??= {});
+  for (const t of targets(p)) blows[t.id] = Math.min(BLOWS, (blows[t.id] ?? BLOWS) + BLOWS * dt);
   for (let left = dt; left > 1e-6; left -= STEP) step(p, Math.min(STEP, left), ev);
 }

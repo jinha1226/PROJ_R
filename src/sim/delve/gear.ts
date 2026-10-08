@@ -91,9 +91,11 @@ export function unequip(p: RoamParty, heroId: string, slot: ItemDef['slot']): bo
     refitGear(p, u);
     return true;
 }
-/** Surface forges improve sacrifice; underground gear keeps the ordinary rate. */
+/** The base's workshop improves sacrifice once given its salvage step; underground gear keeps the ordinary rate. */
 export function sacrificeRate(p: RoamParty): number {
-    return 'buildings' in p && (p.buildings as { kind: string }[]).some(b => b.kind === 'forge') ? .35 : .25;
+    // the workshop's salvage step, bought and the workshop standing
+    const base = p as { upgrades?: { salvage?: number }; modules?: { id: string; broken?: boolean }[] };
+    return base.upgrades?.salvage && base.modules?.some(m => m.id === 'workshop' && !m.broken) ? .35 : .25;
 }
 export function sacrifice(p: RoamParty, heroId: string, itemId: string): GEvent[] {
     const u = unitOf(p, heroId), i = p.pack.findIndex(it => it.id === itemId), it = p.pack[i];

@@ -1,4 +1,4 @@
-import { BaseTools, postLetter } from './baseTools';
+import { BaseTools, baseLabels } from './baseTools';
 import { RaidBar, overPanel, raidCountdown, raidNote, raidResultHtml, tryOutState } from './raidBar';
 import { QuickSlots } from './quickSlots';
 import { AutoExplore, exploreWants } from '../delve/explore';
@@ -13,8 +13,6 @@ import { homeLife } from '../../sim/base/baseLife';
 import { printClone } from '../../sim/base/cloner';
 import { implantCarried } from '../../sim/roam/roam';
 
-/** how near the pod a clone must stand for its build button to show */
-const POD_REACH = 3;
 import { startFloors } from '../../sim/base/drill';
 import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
@@ -148,7 +146,7 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.prompts.el);
     this.panels = new BasePanels(() => this.p, {
       send: (id, floor) => this.sendDown(id, floor), print: () => this.live(printClone(this.p)),
-      implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench(), live: (ev) => this.live(ev),
+      implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench(), live: (ev) => this.live(ev), move: (id) => this.build.move(id),
     }, () => this.opts.keptFloor);
     this.el.appendChild(this.panels.el);
     this.raidCtl = new RaidControl(() => this.p, {
@@ -157,9 +155,7 @@ export class WorldScreen implements Screen {
     });
     this.el.appendChild(this.raidCtl.bar); this.el.appendChild(this.result);
     this.menuBar = new BaseMenu((k) => {
-      if (k === 'wall' || k === 'post') this.build.pick(k);
-      else if (k === 'bench') { this.build.close(); this.openBench(); }
-      else { this.build.close(); this.panels.show({ kind: k }); }
+      if (k === 'wall' || k === 'post') this.build.pick(k); else { this.build.close(); this.panels.show({ kind: k }); }
     });
     this.el.appendChild(this.menuBar.el);
     this.result.addEventListener('click', (e) => { if (e.target === this.result || (e.target as HTMLElement).closest('[data-close]')) this.result.hidden = true; });
@@ -208,7 +204,7 @@ export class WorldScreen implements Screen {
         this.live(ev, t0);
         this.autoPause();
       }
-      this.build.update();
+      this.build.update(dt);
       this.raidBar.update();
       this.quick.update();
       { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.message(t), exploreWants(this.p)); }
@@ -276,7 +272,7 @@ export class WorldScreen implements Screen {
     this.log = new WorldLog();
     this.log.add(this.p.time, this.p.pod ? (this.opts.landing ? '포드가 착륙했다. 영혼이 없다.' : '지상으로 돌아왔다.') : '복제 포드가 열렸다. 영혼이 없다.', 'warn');
     // the pod falls in: the clone waits inside until it is down
-    if (this.opts.landing && this.rt.landPod()) { this.landing = true; this.landingAt = performance.now(); this.rt.actors.setVisible(this.p.leader ?? 'hero', false); }
+    if (this.opts.landing && this.rt.landPod(() => this.build.view.modules.rise())) { this.build.view.modules.land(); this.landing = true; this.landingAt = performance.now(); this.rt.actors.setVisible(this.p.leader ?? 'hero', false); }
     this.mini = new WorldMinimap(this.p, (c) => this.walk(c));
     this.hud.minimapSlot.replaceChildren(this.mini.el);
   }
@@ -346,8 +342,6 @@ export class WorldScreen implements Screen {
   private placePrompts(): Prompt[] {
     if (this.landing || this.baseMode) return []; const list: Prompt[] = [];
     if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: this.opts.keptFloor ? `▼ ${this.opts.keptFloor}층 복귀` : '▼ 지하로', act: () => this.descend() });
-    const lab = this.p.cloner ?? this.p.base, nearLab = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, lab) <= POD_REACH; });
-    if (this.p.pod && nearLab && !this.p.raid && !this.bench.open) list.push({ at: { x: lab.x, y: lab.y + 1 }, label: '⚙ 작업장', act: () => this.openBench() });
     return [...list, ...clonerPrompt(this.p, (ev) => this.live(ev)), ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })];
   }
 
@@ -443,11 +437,11 @@ export class WorldScreen implements Screen {
 
   private labels(): void {
     if (!this.rt) return;
-    // no names over heads. By day each post is marked with its clone's letter (the picked clone's lit); elsewhere a clone told to hold its ground
+    // no names over heads. By day the modules are named and each post marked with its clone's letter; elsewhere a clone told to hold its ground
     const at = (c: { x: number; y: number }, y: number, text: string, on: boolean, cls = '') => { const pt = this.rt!.project(new THREE.Vector3(c.x, y, c.y)); return `<div class="pd-label${on ? ' on' : ''}${cls}" style="left:${pt.left}px;top:${pt.top}px">${text}</div>`; };
     const heroes = this.p.units.filter((u) => u.side === 'hero' && !u.summoner && entOf(this.p, u.id)?.alive);
     this.el.querySelector('.pd-labels')!.innerHTML = this.baseMode
-      ? heroes.filter((u) => u.post).map((u) => at(u.post!, 0.1, postLetter(this.p, u.id), u.id === this.build.picked, ' post')).join('')
+      ? (this.landing || !this.build.view.modules.up ? [] : baseLabels(this.p, this.build.picked)).map((l) => at(l.at, l.y, l.text, l.on, l.cls)).join('')
       : this.raidMode ? '' : heroes.filter((u) => u.order?.kind === 'hold').map((u) => at(entOf(this.p, u.id)!.pos, 2.3, '▣', u.id === this.sel)).join('');
   }
 

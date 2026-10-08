@@ -1,18 +1,22 @@
 import { expect, it } from 'vitest';
 import { newSurface, worldTick } from '../../src/sim/overworld/worldSim';
 import { raidPlan, raidSize, startRaid } from '../../src/sim/base/raids';
-import { raidField, roadOpen } from '../../src/sim/base/raidPath';
-import { PAY_EVERY, planWaves, POD_BLOWS, swarmTick, WAVE_GAP, WAVE_POUR } from '../../src/sim/base/swarm';
+import { hitTarget, raidField, roadOpen, targetNear, targets } from '../../src/sim/base/raidPath';
+import { footprint, MODULE_HP, moduleOf } from '../../src/sim/base/modules';
+import { BLOWS, PAY_EVERY, planWaves, swarmTick, WAVE_GAP, WAVE_POUR } from '../../src/sim/base/swarm';
 import { buildingsAt, place, POD_MAX } from '../../src/sim/base/buildings';
 import { setPost } from '../../src/sim/base/posts';
 import { damage, entOf, occupied } from '../../src/sim/party/partyCore';
 import { action } from '../../src/sim/party/triggers';
 import { ringLayout } from '../../src/ui/demo/raidDemo';
-import { dist, idx, same, tileAt, walkable } from '../../src/sim/grid/types';
+import { dist, idx, same, tileAt, walkable, type GEvent } from '../../src/sim/grid/types';
 
-/** a raid with every clone too tough to fall and holding its fire (the horde runs by itself) */
-const raid = (seed = 42, prep?: (p: ReturnType<typeof newSurface>) => void) => {
+/** the pod alone on its ground (the modules taken away: most of these are about the horde and the pod) */
+const bare = (p: ReturnType<typeof newSurface>) => { for (const m of p.modules ?? []) for (const c of footprint(m.at)) p.s.map.tiles[idx(p.s.map, c)] = 'floor'; p.modules = []; return p; };
+/** a raid with every clone too tough to fall and holding its fire (the horde runs by itself); `whole`: the modules stay */
+const raid = (seed = 42, prep?: (p: ReturnType<typeof newSurface>) => void, whole = false) => {
   const p = newSurface(seed); p.raidsDone = 0;
+  if (!whole) bare(p);
   prep?.(p);
   startRaid(p);
   for (const u of p.units) if (u.side === 'hero') { u.nextAt = 1e9; const e = entOf(p, u.id)!; e.hp = e.maxHp = 1e6; }
@@ -71,7 +75,7 @@ it('with the road open the horde reaches the pod and chips at it: a point a blow
   const hp = p.podHp;
   expect(hp).toBeLessThan(POD_MAX);
   run(p, 10, 0.2);
-  expect(hp - p.podHp).toBeGreaterThan(0); expect(hp - p.podHp).toBeLessThanOrEqual(POD_BLOWS * 10 + POD_BLOWS);
+  expect(hp - p.podHp).toBeGreaterThan(0); expect(hp - p.podHp).toBeLessThanOrEqual(BLOWS * 10 + BLOWS);
 });
 
 it('an open road is followed however long: a wall with one gap far to the side is walked round, never broken', () => {
@@ -85,19 +89,38 @@ it('an open road is followed however long: a wall with one gap far to the side i
   expect(p.buildings.every((b) => !b.broken && b.hp === b.maxHp)).toBe(true); expect(p.podHp).toBeLessThan(POD_MAX);
 });
 
-it('a base sealed by barricades and a clone is stormed at the clone: the barricades stand, the pod is untouched while it lives', () => {
-  const p = raid(42, ringLayout);
-  expect(p.buildings.length).toBe(11);
+it('a base sealed by barricades and a clone is stormed at the clone: the barricades stand, the pod and the modules are untouched while it lives', () => {
+  const p = raid(42, ringLayout, true);
+  expect(p.buildings.length).toBe(19);
   expect(roadOpen(p, { x: p.base.x - 10, y: p.base.y })).toBe(false);
   const e = entOf(p, 'hero')!, hp = e.hp;
   run(p, 150, 0.2);
   expect(e.hp).toBeLessThan(hp); expect(p.podHp).toBe(POD_MAX); expect(p.buildings.every((b) => !b.broken)).toBe(true);
+  expect(moduleOf(p, 'lab')!.hp).toBe(MODULE_HP); expect(moduleOf(p, 'quarters')!.hp).toBe(MODULE_HP);
   // the horde piles up before it
   expect(fodder(p).filter((f) => dist(entOf(p, f.id)!.pos, e.pos) <= 3).length).toBeGreaterThan(10);
   // the clone falls: its cell opens and the horde is through
   e.alive = false;
   run(p, 20, 0.2);
-  expect(p.podHp).toBeLessThan(POD_MAX);
+  expect(p.podHp + moduleOf(p, 'lab')!.hp + moduleOf(p, 'quarters')!.hp).toBeLessThan(POD_MAX + 2 * MODULE_HP);
+});
+
+it('the horde makes for whatever of ours is nearest: a module left outside is hacked down (the front rank only), then the next thing', () => {
+  const p = raid(42, undefined, true), lab = moduleOf(p, 'lab')!, shop = moduleOf(p, 'workshop')!;
+  // a wreck is nothing to a raid: the workshop came down broken
+  expect(targets(p).map((t) => t.id)).toEqual(['pod', 'module-lab', 'module-quarters']);
+  expect(targetNear(p, { x: lab.at.x - 1, y: lab.at.y })).toBe('module-lab'); expect(targetNear(p, { x: shop.at.x - 1, y: shop.at.y - 1 })).toBeUndefined();
+  run(p, 40, 0.2);
+  const a = lab.hp + moduleOf(p, 'quarters')!.hp;
+  expect(a).toBeLessThan(2 * MODULE_HP);
+  run(p, 5, 0.2);
+  expect(a - lab.hp - moduleOf(p, 'quarters')!.hp).toBeLessThanOrEqual(2 * (BLOWS * 5 + BLOWS));
+  // broken, it is left alone and stays in the way
+  const ev: GEvent[] = [];
+  hitTarget(p, 'module-lab', 9999, 'x', ev);
+  expect(lab.broken).toBe(true); expect(ev.some((x) => x.type === 'die' && x.dst === 'module-lab')).toBe(true);
+  expect(targets(p).some((t) => t.id === 'module-lab')).toBe(false); expect(p.s.map.tiles[idx(p.s.map, lab.at)]).toBe('chasm');
+  const hp = lab.hp; hitTarget(p, 'module-lab', 5, 'x', ev); expect(lab.hp).toBe(hp);
 });
 
 it('a posted clone is a wall wherever it stands: the field goes round it', () => {
@@ -133,7 +156,7 @@ it('kills pay little (most fodder nothing), kept on a loss, and the result names
 });
 
 it('a tick of a horde at its largest stays cheap', () => {
-  const p = newSurface(42); p.raidsDone = 40;
+  const p = bare(newSurface(42)); p.raidsDone = 40;
   startRaid(p);
   for (const u of p.units) if (u.side === 'hero') { u.nextAt = 1e9; const e = entOf(p, u.id)!; e.hp = e.maxHp = 1e6; }
   // the whole horde out at once (the waves would take minutes of game time to get there), then on its way in

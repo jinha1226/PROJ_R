@@ -166,6 +166,10 @@
 .base-hint b { font-weight: normal; color: #e6ffb0; }
 .pd-label.post { color: #5ae0ff; text-shadow: 0 0 2px #000, 0 1px 0 #000; }
 .pd-label.post.on { color: #ffd23a; }
+/* a module's name over it by day; a broken one in the raid's red */
+.pd-label.mod { color: #9dffb8; text-shadow: 1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000, 0 2px #000; }
+.pd-label.mod.off { color: #ff5a4a; }
+.base-frame .warn { color: #ff5a4a; font-weight: normal; }
 
 /* raid mode: the ability bar along the bottom */
 .world.raid-mode .tp, .world.raid-mode .place-prompts { display: none; }
