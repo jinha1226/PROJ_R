@@ -1,8 +1,8 @@
-import { raidTurn, towerTick } from '../base/raidAi';
+import { raidTurn } from '../base/raidAi';
 import { resolveRaid, type Raid } from '../base/raids';
 import { swarmTick } from '../base/swarm';
 import { payRaidKills } from '../base/raidLoot';
-import type { Building } from '../base/buildings';
+import { POD_MAX, type Building } from '../base/buildings';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent } from '../grid/types';
@@ -28,9 +28,11 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
   /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
   lastRaid?: { won: boolean; fell?: 'pod' | 'down'; injured: string[]; buildings: string[]; kills: number; ore: number; crystal: number };
+  /** the fodder blows the pod can still take this turn (swarm.ts: only the front rank reaches it) */
+  podBlows?: number;
+  /** workshop steps that widen the barricade stock (phase 2 turns it up) */
+  barricadeLevel?: number;
   /** the raiders still to step out (the horde's waves) and what this raid's kills have paid so far */
-  /** ship support opened at the pod, and when each may fire again */
-  support?: { strike?: boolean; laser?: boolean; strikeReady?: number; laserReady?: number };
   raidQueue?: import('../base/swarm').RaidSpawn[]; raidLoot?: { kills: number; ore: number; crystal: number };
   pod?: boolean }
 
@@ -46,7 +48,7 @@ function fromWorld(w: World, seed: number): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, raidClock: null, raidsDone: 0, deepest: 1, podHp: 200, raid: null, raidReady: null, away: false, baseEvents: [], buildings: [], nextBuilding: 1, drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, raidClock: null, raidsDone: 0, deepest: 1, podHp: POD_MAX, raid: null, raidReady: null, away: false, baseEvents: [], buildings: [], nextBuilding: 1, drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'pistol', gear: starterGear('shell', () => nextItemId(p)) });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
@@ -79,7 +81,6 @@ export function worldTick(p: WorldParty, dt: number): GEvent[] {
   const ev = tick(p, dt);
   ev.unshift(...pending);
   swarmTick(p, dt, ev);
-  towerTick(p, ev);
   payRaidKills(p);
   resolveRaid(p, ev);
   // Delay the ordinary wipe/respawn rules until an unattended raid resolves.

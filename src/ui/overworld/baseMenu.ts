@@ -1,12 +1,14 @@
-/** what the base menu's buttons do */
-export type BaseMenuAct = 'build' | 'pod' | 'lab' | 'bench' | 'roster' | 'souls';
-const ITEMS: [BaseMenuAct, string, string][] = [['build', '건설', 'B'], ['pod', '원정', ''], ['lab', '연구실', ''], ['bench', '작업장', ''], ['roster', '클론', 'L'], ['souls', '영혼석', 'J']];
+import type { BaseTool } from './baseTools';
 
-/** The base menu's buttons (the build button lit while the building list is open). */
-export const baseMenuHtml = (building: boolean): string =>
-  ITEMS.map(([k, name, key]) => `<button type="button" data-menu="${k}" class="${k === 'build' && building ? 'on' : ''}">${name}${key ? `<small>${key}</small>` : ''}</button>`).join('');
+/** what the base keys do */
+export type BaseMenuAct = 'pod' | 'wall' | 'post' | 'lab' | 'bench';
+const ITEMS: [BaseMenuAct, string][] = [['pod', '원정'], ['wall', '바리케이드'], ['post', '자리'], ['lab', '연구실'], ['bench', '작업장']];
 
-/** Base mode's bar along the bottom (spec 2026-10-08 §1): build, send a clone down, the lab, the workshop, the clones, the soul stones. */
+/** The base keys (the tool in hand lit). */
+export const baseMenuHtml = (tool: BaseTool | null): string =>
+  ITEMS.map(([k, name]) => `<button type="button" data-menu="${k}" class="${k === tool ? 'on' : ''}">${name}</button>`).join('');
+
+/** Base mode's keys along the bottom (spec 2026-10-09 §7): send a clone down, lay barricades, set posts, the lab, the workshop. */
 export class BaseMenu {
   readonly el = document.createElement('div');
   private html = '';
@@ -14,9 +16,9 @@ export class BaseMenu {
     this.el.className = 'base-menu'; this.el.hidden = true;
     this.el.addEventListener('click', (e) => { const k = (e.target as HTMLElement).closest<HTMLElement>('[data-menu]')?.dataset.menu; if (k) act(k as BaseMenuAct); });
   }
-  update(on: boolean, building: boolean): void {
+  update(on: boolean, tool: BaseTool | null): void {
     this.el.hidden = !on;
-    const html = baseMenuHtml(building);
+    const html = baseMenuHtml(tool);
     if (on && html !== this.html) { this.html = html; this.el.innerHTML = html; }
   }
 }

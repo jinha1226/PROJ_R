@@ -1,11 +1,14 @@
-import { dist, same, type GEvent } from '../grid/types';
-import { alive, canHit, damage, entOf, occupied, posOf, stats, strike, unitOf, type Unit } from '../party/partyCore';
+import { dist, type GEvent } from '../grid/types';
+import { alive, canHit, entOf, occupied, posOf, stats, strike, type Unit } from '../party/partyCore';
 import type { WorldParty } from '../overworld/worldSim';
-import { breakBuilding, buildingsAt, LEVELS, levelOfBuilding } from './buildings';
+import { breakBuilding, buildingsAt } from './buildings';
 import { blocks, podReach, raidStep, resetRaidPath } from './raidPath';
-import { applyStatus } from '../party/status';
 
-/** Runs in the party scheduler: normal strikes against clones, otherwise break through to the pod. */
+/**
+ * A raid's elites on the grid (spec 2026-10-09 §2.3): a clone in reach is struck (an archer shoots any it can see), the pod
+ * when they stand by it; otherwise they go nearly straight for the pod and break the barricade in the way — the horde leaks
+ * through the hole after them.
+ */
 export function raidTurn(p: WorldParty, u: Unit, t: number, ev: GEvent[]): number | undefined {
   if (!p.raid || u.group !== p.raid.group || u.side !== 'foe' || !alive(p, u)) return undefined;
   const e = entOf(p, u.id)!, st = stats(u, t, p);
@@ -20,12 +23,8 @@ export function raidTurn(p: WorldParty, u: Unit, t: number, ev: GEvent[]): numbe
   const next = raidStep(p, e.pos);
   if (!next) return .5;
   let b = buildingsAt(p, next);
-  if (b && !blocks(b)) b = undefined;
-  // No corner cutting: break an orthogonal defence before crossing its diagonal.
-  if (!b && next.x !== e.pos.x && next.y !== e.pos.y) {
-    b = [buildingsAt(p, { x: next.x, y: e.pos.y }), buildingsAt(p, { x: e.pos.x, y: next.y })]
-      .find(b => b && blocks(b));
-  }
+  // No corner cutting: break an orthogonal barricade before crossing its diagonal.
+  if (!b && next.x !== e.pos.x && next.y !== e.pos.y) b = [buildingsAt(p, { x: next.x, y: e.pos.y }), buildingsAt(p, { x: e.pos.x, y: next.y })].find(x => x && blocks(x));
   if (b && blocks(b)) {
     const hit = amount(); b.hp = Math.max(0, b.hp - hit);
     ev.push({ t, type: 'bump', src: u.id, dst: b.id, from: { ...e.pos }, to: { ...b.at } }, { t, type: 'hit', src: u.id, dst: b.id, to: { ...b.at }, amount: hit });
@@ -35,30 +34,4 @@ export function raidTurn(p: WorldParty, u: Unit, t: number, ev: GEvent[]): numbe
   if (occupied(p, next, u.id)) return .3;
   ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...next } }); e.pos = next; u.moved = true; u.still = 0;
   return st.move;
-}
-/** Turrets shoot the nearest raider in reach (their level sets reach and blow); shock mines hurt and shock what stands on them. Broken ones do nothing. */
-export function towerTick(p: WorldParty, ev: GEvent[]): void {
-  if (!p.raid) return;
-  const raiders = p.units.filter(u => u.side === 'foe' && u.group === p.raid!.group && alive(p, u));
-  for (const b of p.buildings) {
-    if (b.broken || (b.kind !== 'watchtower' && b.kind !== 'shockMine')) continue;
-    const row = LEVELS[b.kind]!, lv = levelOfBuilding(b), [lo, hi] = row.dmg![lv - 1]!;
-    while (b.nextAt <= p.time) {
-      const t = b.nextAt;
-      if (b.kind === 'shockMine') {
-        b.nextAt += 2;
-        const on = raiders.filter(u => alive(p, u) && same(posOf(p, u), b.at));
-        if (!on.length) continue;
-        ev.push({ t, type: 'buff', src: b.id, to: { ...b.at }, text: '전기 지뢰' });
-        for (const u of on) { damage(p, t, b.id, u, p.s.rng.int(lo, hi), ev); if (alive(p, u)) applyStatus(p, unitOf(p, 'hero') ?? u, u, 'shock', t, ev); }
-        continue;
-      }
-      const reach = row.range![lv - 1]!;
-      const target = raiders.filter(u => alive(p, u) && dist(posOf(p, u), b.at) <= reach).sort((a, c) => dist(posOf(p, a), b.at) - dist(posOf(p, c), b.at))[0];
-      b.nextAt += 1.5;
-      if (!target) continue;
-      ev.push({ t, type: 'shoot', src: b.id, dst: target.id, from: { ...b.at }, to: { ...posOf(p, target) }, text: 'bow' });
-      damage(p, t, b.id, target, p.s.rng.int(lo, hi), ev);
-    }
-  }
 }

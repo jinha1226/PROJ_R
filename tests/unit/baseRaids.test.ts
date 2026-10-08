@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { newSurface, worldTick } from '../../src/sim/overworld/worldSim';
 import { upgradeDrill } from '../../src/sim/base/drill';
-import { autoDefend, defencePower, onRaidReturn, RAID_REACH, raidSize, startRaid } from '../../src/sim/base/raids';
-import { place } from '../../src/sim/base/buildings';
+import { defencePower, onRaidReturn, RAID_MAX, RAID_REACH, raidPlan, raidSize, startRaid } from '../../src/sim/base/raids';
+import { place, POD_MAX } from '../../src/sim/base/buildings';
+import { resetRaidPath } from '../../src/sim/base/raidPath';
 import { raidTurn } from '../../src/sim/base/raidAi';
 import { departSurface } from '../../src/sim/base/trips';
 import { takeParty } from '../../src/sim/roam/carry';
@@ -51,27 +52,29 @@ describe('raids', () => {
     expect(u.asleep).toBe(false); const before = dist(e.pos, p.base);
     worldTick(p, 3); expect(dist(e.pos, p.base)).toBeLessThan(before); expect(u.asleep).toBe(false);
   });
-  it('attacks and breaks a blocking wall, and gates block raiders too', () => {
-    for (const kind of ['wall', 'gate'] as const) {
-      const p = setup(); place(p, kind, { x: 48, y: 46 }); startRaid(p);
-      const u = p.units.find(u => u.group === p.raid!.group)!; entOf(p, u.id)!.pos = { x: 48, y: 45 };
-      // Only way to the pod's north side is through this defence.
-      p.s.map.tiles.fill('wall');
-      for (const y of [45, 47]) p.s.map.tiles[y * 96 + 48] = 'floor';
-      if (kind === 'gate') p.s.map.tiles[46 * 96 + 48] = 'floor';
-      const ev: GEvent[] = [];
-      for (let t = 0; t < 30 && !p.buildings[0]!.broken; t++) raidTurn(p, u, t, ev);
-      expect(ev.some(e => e.type === 'hit' && e.dst?.startsWith('building'))).toBe(true);
-      // broken, not gone: it waits for a repair (spec 2026-10-08 §5)
-      expect(p.buildings[0]!.broken).toBe(true);
-      expect(p.s.map.tiles[46 * 96 + 48]).toBe('floor');
-    }
+  it('an elite breaks the barricade in its way: it stands broken (open ground) until the raid is over', () => {
+    const p = setup(); place(p, { x: 48, y: 46 }); startRaid(p);
+    const u = p.units.find(u => u.group === p.raid!.group && !u.swarm) ?? p.units.find(u => u.group === p.raid!.group)!;
+    u.swarm = false; u.foe = 'brute'; entOf(p, u.id)!.swarm = false; entOf(p, u.id)!.pos = { x: 48, y: 45 };
+    // the only way to the pod's north side is through this barricade
+    p.s.map.tiles.fill('wall');
+    for (const y of [45, 47]) p.s.map.tiles[y * 96 + 48] = 'floor';
+    p.s.map.tiles[46 * 96 + 48] = 'chasm';
+    resetRaidPath(p);
+    const ev: GEvent[] = [];
+    for (let t = 0; t < 40 && !p.buildings[0]!.broken; t++) raidTurn(p, u, t, ev);
+    expect(ev.some(e => e.type === 'hit' && e.dst?.startsWith('building'))).toBe(true);
+    expect(p.buildings[0]!.broken).toBe(true);
+    expect(p.s.map.tiles[46 * 96 + 48]).toBe('floor');
   });
-  it('cannot cut diagonally through the corners of breakable defences', () => {
-    const p = setup(); place(p, 'wall', { x: 49, y: 46 }); place(p, 'wall', { x: 48, y: 45 }); startRaid(p);
+  it('an elite cannot cut diagonally through the corners of barricades', () => {
+    const p = setup(); place(p, { x: 49, y: 46 }); place(p, { x: 48, y: 45 }); startRaid(p);
     const u = p.units.find(u => u.group === p.raid!.group)!; const e = entOf(p, u.id)!;
+    u.swarm = false; u.foe = 'brute'; e.swarm = false;
     e.pos = { x: 49, y: 45 }; p.s.map.tiles.fill('wall');
     for (const c of [{ x: 49, y: 45 }, { x: 48, y: 46 }, { x: 48, y: 47 }]) p.s.map.tiles[c.y * 96 + c.x] = 'floor';
+    for (const b of p.buildings) p.s.map.tiles[b.at.y * 96 + b.at.x] = 'chasm';
+    resetRaidPath(p);
     const ev: GEvent[] = []; raidTurn(p, u, 0, ev);
     expect(e.pos).toEqual({ x: 49, y: 45 });
     expect(ev.some(e => e.type === 'hit' && e.dst?.startsWith('building'))).toBe(true);
@@ -82,41 +85,35 @@ describe('raids', () => {
     expect(p.raid).toBeNull(); expect(p.over).toBe(false);
     expect(ev.some(e => e.text === 'wiped')).toBe(false); expect(ev.some(e => e.text === 'raidLost')).toBe(true);
   });
-  it('towers shoot the nearest raider and use 1.5-turn cooldowns', () => {
-    const p = setup(); place(p, 'watchtower', { x: 50, y: 45 }); startRaid(p);
-    const u = p.units.find(u => u.group === p.raid!.group)!; const e = entOf(p, u.id)!;
-    e.pos = { x: 51, y: 45 }; u.nextAt = 100; u.sx = 51.5; u.sy = 45.5; p.raidQueue = [];
-    // the clone (now with a pistol) holds its fire so only the tower's shots count
-    for (const h of p.units) if (h.side === 'hero') h.nextAt = 100;
-    const hp = e.hp; const ev = worldTick(p, .1);
-    expect(ev.some(e => e.type === 'shoot' && e.src === p.buildings[0]!.id)).toBe(true);
-    expect(hp - e.hp).toBeGreaterThanOrEqual(6); expect(hp - e.hp).toBeLessThanOrEqual(9);
-    const after = e.hp; worldTick(p, 1); expect(e.hp).toBe(after);
-    worldTick(p, .5); expect(e.hp).toBeLessThan(after);
-  });
-  it('pod loss keeps the stored materials and every building; the pod is left at a quarter to repair', () => {
-    const p = setup(); for (let x = 44; x < 47; x++) place(p, 'wall', { x, y: 44 });
+  it('pod loss keeps the stored materials and every barricade; the pod is left at a quarter to repair', () => {
+    const p = setup(); for (let x = 44; x < 47; x++) place(p, { x, y: 44 });
     p.ore = 101; p.crystal = 19; startRaid(p); p.podHp = 0;
     expect(worldTick(p, .1).some(e => e.type === 'dead' && e.text === 'raidLost')).toBe(true);
-    expect(p.ore).toBeGreaterThanOrEqual(101); expect(p.crystal).toBeGreaterThanOrEqual(19); expect(p.podHp).toBe(50);
-    expect(p.buildings).toHaveLength(3);
+    expect(p.ore).toBeGreaterThanOrEqual(101); expect(p.crystal).toBeGreaterThanOrEqual(19); expect(p.podHp).toBe(POD_MAX / 4);
+    expect(p.buildings).toHaveLength(3); expect(p.buildings.every(b => !b.broken && b.hp === b.maxHp)).toBe(true);
     expect(p.raid).toBeNull(); expect(p.units.filter(u => u.side === 'foe' && alive(p, u))).toHaveLength(0);
+    expect(p.manualUlts).toBe(false); expect(p.units.filter(u => u.side === 'hero').every(u => !u.order)).toBe(true);
   });
-  it('auto defence requires 120% power and counts only clones at base', () => {
-    const p = setup(); startRaid(p); const size = p.raid!.size;
-    expect(autoDefend(p)).toBeNull(); p.units[0]!.level = 100;
-    p.s.hero.pos = { x: 10, y: 10 }; expect(defencePower(p)).toBe(0); expect(autoDefend(p)).toBeNull();
-    p.s.hero.pos = { ...p.s.map.start }; expect(defencePower(p)).toBeGreaterThanOrEqual(size * 1.2);
-    p.raid!.size = defencePower(p) / 1.2 + .001; expect(autoDefend(p)).toBeNull();
-    p.raid!.size = defencePower(p) / 1.2;
-    expect(autoDefend(p)).toEqual({ won: true, losses: { ore: 0, crystal: 0, buildings: [] } }); expect(p.raid).toBeNull();
+  it('the defence is the clones at home and nothing else; the raid grows with raids done and with their strength', () => {
+    const p = setup(), one = defencePower(p);
+    expect(one).toBeGreaterThan(0);
+    for (let x = 44; x < 47; x++) place(p, { x, y: 44 });
+    expect(defencePower(p)).toBe(one);
+    const first = raidSize(p);
+    p.raidsDone = 3; expect(raidSize(p)).toBeGreaterThan(first);
+    p.raidsDone = 0; p.units[0]!.level = 12;
+    expect(raidSize(p)).toBeGreaterThan(first); expect(first).toBeGreaterThanOrEqual(60);
+    p.raidsDone = 99; expect(raidSize(p)).toBe(RAID_MAX);
+    // the first raid brings no elites and no general; later ones both
+    p.raidsDone = 0; expect(raidPlan(p)).toMatchObject({ eliteEvery: 0, general: false });
+    p.raidsDone = 4; expect(raidPlan(p).eliteEvery).toBeGreaterThan(0); expect(raidPlan(p).general).toBe(true);
   });
   it('continues a live raid with no returning clones, even after roam marks them wiped', () => {
     const p = setup(); startRaid(p); p.s.hero.alive = false; p.units = p.units.filter(u => u.side === 'foe');
     for (const u of p.units) { entOf(p, u.id)!.pos = { x: 48, y: 47 }; u.nextAt = 0; }
     let lost = false;
     for (let i = 0; i < 150 && p.raid; i++) lost ||= worldTick(p, 1).some(e => e.text === 'raidLost');
-    expect(lost).toBe(true); expect(p.podHp).toBeGreaterThanOrEqual(50);
+    expect(lost).toBe(true); expect(p.podHp).toBeGreaterThanOrEqual(POD_MAX / 4);
   });
   it('does not tick raids while away; seed and inputs reproduce events', () => {
     const run = () => { const p = setup(); startRaid(p); p.away = true;

@@ -180,7 +180,9 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
     if (f.side !== 'foe' || f.reaped || !e || e.alive) continue;
     f.reaped = true;
     awardXp(p, f, ev);
-    const n = Math.max(1, Math.round((BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1) * (f.fodder ? 0.5 : 1)));
+    // a raid's dead leave a quarter of what a dungeon's do (most of its fodder nothing)
+    if (f.lean) continue;
+    const n = Math.max(1, Math.round((BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1) * (f.fodder ? 0.5 : 1) * (f.raider ? 0.25 : 1)));
     p.bio += n;
     ev.push({ t: p.time, type: 'loot', to: { ...e.pos }, amount: n, text: 'bio' });
   }
@@ -204,7 +206,8 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   }
   for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH && t >= (f.alertUntil ?? 0)) f.asleep = true;
   const was = p.combat;
-  p.combat = p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
+  // a raid is one fight from its first raider to its last (the lulls between waves are no rest)
+  p.combat = !!(p as { raid?: unknown }).raid || p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
   if (!was && p.combat) for (const u of living(p)) emit(p, 'combatStart', { t, src: u, ev });
   if (!p.combat) for (const u of living(p)) {u.crisisUsed = false;u.immortalUsed=false;}
   souls(p, ev, true);

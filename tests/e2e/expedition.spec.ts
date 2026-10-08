@@ -39,6 +39,7 @@ test('a raid night: the raid starts in running time with its ultimate bar, and i
     for (const u of p.units) if (u.group === p.raid?.group) { const e = p.s.foes.find((f) => f.id === u.id); if (e) e.alive = false; }
   });
   await expect(page.locator('.pip-title', { hasText: '습격 격퇴' })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.world.base-mode')).toHaveCount(1);
+  // the mode changes on the next frame, and a software renderer's frame can take seconds
+  await expect(page.locator('.world.base-mode')).toHaveCount(1, { timeout: 30_000 });
   expect(errors).toEqual([]);
 });

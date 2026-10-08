@@ -20,6 +20,7 @@ export class GridElements {
   private readonly tiles = new THREE.Group();
   private readonly marks = new THREE.Group();
   private readonly aim = new THREE.Group();
+  private readonly reach = new THREE.Group();
   /** the hovered walk: a dotted trail and a framed end cell */
   private readonly path = new THREE.Group();
   private readonly pathDot = new THREE.MeshBasicMaterial({ color: '#c8ffd8', transparent: true, opacity: 0.75, depthWrite: false });
@@ -34,7 +35,7 @@ export class GridElements {
   private t = 0;
 
   constructor(private readonly kit: DungeonKit, s: GridState) {
-    this.root.add(this.tiles, this.marks, this.aim, this.traps, this.path);
+    this.root.add(this.tiles, this.marks, this.aim, this.reach, this.traps, this.path);
     for (const b of s.barrels) {
       const o = kit.clone('Barrel', { width: CELL * 0.6 });
       o.position.copy(toWorld(b.x, b.y));
@@ -116,13 +117,36 @@ export class GridElements {
   }
 
   /** Throw preview: the covered cells, green when it can land there, red when not; null clears it. */
+  private aimKey = '';
   setAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
+    // the same marks again (most frames): nothing is rebuilt
+    const key = cells?.length ? `${ok}${cells.map((c) => `${c.x},${c.y}`).join(';')}` : '';
+    if (key === this.aimKey) return;
+    this.aimKey = key;
+    for (const o of this.aim.children) { (o as THREE.Mesh).geometry.dispose(); ((o as THREE.Mesh).material as THREE.Material).dispose(); }
     this.aim.clear();
     for (const c of cells ?? []) {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(CELL * 0.9, CELL * 0.9), new THREE.MeshBasicMaterial({ color: ok ? '#7ae08a' : '#e05a4a', transparent: true, opacity: 0.45, depthWrite: false }));
       m.rotation.x = -Math.PI / 2;
       m.position.copy(toWorld(c.x, c.y)).setY(0.05);
       this.aim.add(m);
+    }
+  }
+
+  private reachKey = '';
+  /** A square drawn on the ground round a cell: how far something there reaches (null hides it). */
+  setReach(c: { x: number; y: number } | null, r: number, color = '#5ae0ff'): void {
+    const key = c ? `${c.x},${c.y},${r},${color}` : '';
+    if (key === this.reachKey) return;
+    this.reachKey = key;
+    for (const o of this.reach.children) { (o as THREE.Mesh).geometry.dispose(); ((o as THREE.Mesh).material as THREE.Material).dispose(); }
+    this.reach.clear();
+    if (!c) return;
+    const side = (2 * r + 1) * CELL, w = CELL * 0.14, at = toWorld(c.x, c.y);
+    for (const [dx, dz, lx, lz] of [[0, -side / 2, side, w], [0, side / 2, side, w], [-side / 2, 0, w, side], [side / 2, 0, w, side]] as const) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(lx, lz).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, depthWrite: false }));
+      m.position.set(at.x + dx, 0.07, at.z + dz); m.renderOrder = 5;
+      this.reach.add(m);
     }
   }
 

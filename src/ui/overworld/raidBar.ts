@@ -1,5 +1,6 @@
 import { alive, type Unit } from '../../sim/party/partyCore';
-import { autoDefend, defencePower, startRaid } from '../../sim/base/raids';
+import { POD_MAX } from '../../sim/base/buildings';
+import { startRaid } from '../../sim/base/raids';
 import type { GEvent } from '../../sim/grid/types';
 import type { WorldParty } from '../../sim/overworld/worldSim';
 import { implant } from '../../sim/roam/roam';
@@ -7,13 +8,22 @@ import { gainXp, LEVEL_XP } from '../../sim/party/partyLevel';
 import { CLASSES } from '../../sim/party/partyDefs';
 
 const SIDE = ['서쪽', '동쪽', '북쪽', '남쪽'];
-/** auto-defence wins outright when the base outweighs the wave by this much (as the simulation rules) */
-const AUTO_MARGIN = 1.2;
-const POD_MAX = 200;
+
+/** How many trips down are left before the next raid comes (0: tonight; null: none is on its way yet). */
+export function tripsToRaid(p: WorldParty): number | null {
+  if (p.raid || p.raidReady) return 0;
+  if (p.raidClock === null) return null;
+  return p.raidClock % 2 ? 1 : 2;
+}
+/** the day's line about the next raid, for the base's status */
+export const raidCountdown = (p: WorldParty): string => { const n = tripsToRaid(p); return n ? `다음 습격까지 <b>${n}회</b>` : ''; };
+
+/** the raiders left: out on the ground and still to come out of the dark */
+export const raidersLeft = (p: WorldParty): number => (p.raid ? p.units.filter((u: Unit) => u.group === p.raid!.group && u.side === 'foe' && alive(p, u)).length + (p.raidQueue?.length ?? 0) : 0);
 
 /**
- * The raid line under the top bar: a night that has come (where they will come from, their strength against ours,
- * start it or let the defences settle it), then the fight's state (the pod's health, raiders left).
+ * The raid line under the top bar: a night that has come (where they will come from, how many; start it when the posts
+ * and barricades are set), then the fight's state (the core's health, raiders left).
  */
 export class RaidBar {
   readonly el = document.createElement('div');
@@ -23,9 +33,8 @@ export class RaidBar {
     this.el.className = 'raid-bar';
     this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
-      const k = (e.target as HTMLElement).closest<HTMLElement>('[data-r]')?.dataset.r, p = this.p();
-      if (k === 'start') this.live(startRaid(p));
-      if (k === 'auto') { const ev = startRaid(p); autoDefend(p, ev); this.live(ev); }
+      const k = (e.target as HTMLElement).closest<HTMLElement>('[data-r]')?.dataset.r;
+      if (k === 'start') this.live(startRaid(this.p()));
     });
   }
 
@@ -33,13 +42,10 @@ export class RaidBar {
     const p = this.p();
     let html = '';
     if (p.raidReady) {
-      const def = Math.round(defencePower(p)), size = p.raidReady.size;
-      html = `<b class="rb-night">습격의 밤</b><span>${p.raidReady.sides.map((s) => SIDE[s]).join(' · ')}에서</span><span>규모 <b>${size}</b> / 방어력 <b class="${def >= size ? 'ok' : 'low'}">${def}</b></span>
-        <button type="button" data-r="start">습격 시작</button>${def >= size * AUTO_MARGIN ? '<button type="button" data-r="auto">자동 방어</button>' : ''}`;
+      html = `<b class="rb-night">습격의 밤</b><span>${p.raidReady.sides.map((s) => SIDE[s]).join(' · ')}에서 <b>${p.raidReady.size}</b></span><button type="button" data-r="start">습격 시작</button>`;
     } else if (p.raid) {
-      // the raiders still to come out of the dark count too
-      const left = p.units.filter((u: Unit) => u.group === p.raid!.group && alive(p, u)).length + (p.raidQueue?.length ?? 0);
-      html = `<b class="rb-fight">습격</b><span>포드 <b class="${p.podHp < POD_MAX / 3 ? 'low' : ''}">${Math.max(0, Math.round(p.podHp))}/${POD_MAX}</b></span><span>남은 적 <b>${left}</b></span>`;
+      const hp = Math.max(0, Math.round(p.podHp)), cells = 12, full = Math.round((hp / POD_MAX) * cells);
+      html = `<b class="rb-fight">습격</b><span>남은 적 <b>${raidersLeft(p)}</b></span><span class="rb-core${p.podHp < POD_MAX / 3 ? ' low' : ''}">코어 [<i>${'#'.repeat(full)}</i><s>${'#'.repeat(cells - full)}</s>] ${hp}</span>`;
     }
     // the land darkens while a raid is near or under way
     this.screen.classList.toggle('night', !!(p.raidReady || p.raid));
@@ -58,16 +64,16 @@ export function raidResultHtml(p: WorldParty): string {
   const rows = [`<div class="menu-row"><span>처치</span><span>${r.kills}</span></div>`,
     r.ore || r.crystal ? `<div class="menu-row"><span>얻은 자원</span><span>${[r.ore ? `광석 ${r.ore}` : '', r.crystal ? `마정석 ${r.crystal}` : ''].filter(Boolean).join(' · ')}</span></div>` : '',
     r.injured.length ? `<div class="menu-row"><span>부상</span><span>${r.injured.map(name).join(' · ')}</span></div>` : '',
-    r.buildings.length ? `<div class="menu-row"><span>잃은 건물</span><span>${r.buildings.length}</span></div>` : ''].join('');
-  return `<div class="pip-frame menu-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : r.fell === 'down' ? '방어선 붕괴' : '포드 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
+    r.buildings.length ? `<div class="menu-row"><span>부서진 바리케이드</span><span>${r.buildings.length}</span></div>` : ''].join('');
+  return `<div class="pip-frame menu-frame base-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : r.fell === 'down' ? '방어선 붕괴' : '코어 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
 }
 
 /** The log/toast line for a raid event, or undefined for other events. */
 export function raidNote(e: GEvent, p: WorldParty): string | undefined {
-  if (e.type === 'buff' && e.text === 'raidSoon') return `다음 귀환 때 습격 · 규모 ${e.amount} / 방어력 ${Math.round(defencePower(p))}`;
-  if (e.type === 'buff' && e.text === 'raidReady') return '습격의 밤 · 준비되면 시작';
+  if (e.type === 'buff' && e.text === 'raidSoon') return `다음 귀환 때 습격 · 규모 ${e.amount}`;
+  if (e.type === 'buff' && e.text === 'raidReady') return '습격의 밤 · 자리와 바리케이드를 잡고 시작';
   if (e.type === 'buff' && e.text === 'raidWon') return '습격 격퇴';
-  if (e.type === 'dead' && e.text === 'raidLost') return p.lastRaid?.fell === 'down' ? '방어선 붕괴 · 수리 필요' : '포드 함락 · 수리 필요';
+  if (e.type === 'dead' && e.text === 'raidLost') return p.lastRaid?.fell === 'down' ? '방어선 붕괴' : '코어 함락 · 수리 필요';
   return undefined;
 }
 

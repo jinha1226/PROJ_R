@@ -16,7 +16,7 @@ import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targe
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useUltimate, aiUltimate } from './ultimate';
 import { bestTarget, charge } from './utility';
-import { approachUltimate, driveTurn } from './handDrive';
+import { approachUltimate } from './handDrive';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -97,10 +97,13 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   }
   if (u.order?.kind === 'hold') {
     const me = e.pos, spot = u.order.cell;
-    const inReach = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && canHit(p, u, x)).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+    // at a post in a raid the elites in reach come first (they are the ones that break the walls), then whatever is nearest
+    const rank = (x: Unit) => dist(posOf(p, x), me) - (u.order?.kind === 'hold' && u.order.fixed && !x.swarm ? 100 : 0);
+    const inReach = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && canHit(p, u, x)).sort((a, b) => rank(a) - rank(b))[0];
     if (inReach) { strike(p, u, inReach, t, ev); return st.atk; }
     // a fighter guards the ground round its spot: it steps out to meet a foe that comes near, then goes back
-    if (st.range <= 1) {
+    // (never from a post in a raid: there it is a wall, and a wall does not walk off)
+    if (st.range <= 1 && !u.order.fixed) {
       const near = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && dist(posOf(p, x), spot) <= GUARD).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
       if (near && stepToward(p, u, posOf(p, near), t, ev)) return st.move;
       if (!near && !same(me, spot) && stepToward(p, u, spot, t, ev)) return st.move;
@@ -150,15 +153,20 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
   if (u.side === 'hero' && !u.summoner) action(p, () => emit(p, 'turn', { t: p.time, src: u, ev }));
   if (!alive(p, u)) return;
   if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
-  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
+  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !p.manualUlts && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
   if(u.ultQueued && approachUltimate(p,u,ev)) { p.onMovement?.(ev.slice(start),ev); return; }
   if(u.ultQueued) {
     const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; }
     // a companion lets a refused skill go (it picks again when it is worth it); the player's own queued skill waits for a target
-    if(u.id!==p.manual) u.ultQueued=false;
+    if(u.id!==p.manual && !p.manualUlts) u.ultQueued=false;
   }
-  // a raid's driven clone: its push or the nearest blow, never a wait
-  if (driveTurn(p, u, ev)) { p.onMovement?.(ev.slice(start), ev); return; }
+  // a clone off its post in a raid (its own leap or blink took it out): it goes straight back — the wall closes again
+  if (u.order?.kind === 'hold' && u.order.fixed && !same(posOf(p, u), u.order.cell) && !occupied(p, u.order.cell, u.id)) {
+    const e = entOf(p, u.id)!;
+    ev.push({ t: p.time, type: 'move', src: u.id, from: { ...e.pos }, to: { ...u.order.cell }, text: 'leap' });
+    e.pos = { ...u.order.cell }; u.nextAt = p.time + 0.4;
+    p.onMovement?.(ev.slice(start), ev); return;
+  }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);
 }
@@ -182,7 +190,7 @@ export function tick(p: Party, dt: number): GEvent[] {
     tickGrounds(p,p.time,ev); tickWells(p,p.time,ev); tickSnares(p,p.time,ev); tickHammers(p,p.time,ev); tickZones(p,p.time,ev);
     tickStatuses(p, statusTime, p.time, ev); statusTime = p.time;
     if (!p.units.includes(next) || !alive(p, next)) continue;
-    if (next.id === p.manual && p.drive?.id !== next.id) {
+    if (next.id === p.manual) {
       // the clone under the hand that has reached the end of its walk just stops: its next act is the player's to choose
       const o = next.order, at = entOf(p, next.id)!.pos;
       if (o?.kind === 'move' && same(at, o.cell)) next.order = null;

@@ -42,7 +42,9 @@ export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
 /** Fallen foes give experience to the clones fighting near them (on the surface, only to clones that have been down: a fresh body stays ready for souls). */
 export function awardXp(p: Party, fallen: Unit, ev: GEvent[]): void {
   const at = entOf(p, fallen.id)!;
-  const n = (XP[fallen.foe ?? ''] ?? 4) * (at.elite ? 2 : 1) * (fallen.fodder ? 0.5 : 1);
+  // a raid is a fight to hold, not to grow on: most of its fodder teach nothing, the rest of it a quarter
+  if (fallen.lean) return;
+  const n = (XP[fallen.foe ?? ''] ?? 4) * (at.elite ? 2 : 1) * (fallen.fodder ? 0.5 : 1) * (fallen.raider ? 0.25 : 1);
   for (const u of p.units) {
     const e = entOf(p, u.id);
     // a summon learns nothing (it used to level up beside its master: level-up pops over skeletons, their health refitted as a clone's)

@@ -1,11 +1,11 @@
-import { BuildMode } from './buildMode';
-import { RaidBar, overPanel, raidNote, raidResultHtml, tryOutState } from './raidBar';
+import { BaseTools, postLetter } from './baseTools';
+import { RaidBar, overPanel, raidCountdown, raidNote, raidResultHtml, tryOutState } from './raidBar';
 import { QuickSlots } from './quickSlots';
 import { AutoExplore, exploreWants } from '../delve/explore';
 import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placePrompt';
 import { WorkbenchScreen } from './workbench/workbenchScreen';
 import { BaseCamera } from './baseCamera';
-import { RaidControl } from './raidControl';
+import { RaidControl, RAID_SPEEDS } from './raidControl';
 import { BaseMenu } from './baseMenu';
 import { SwarmView } from '../../view/overworld/swarmView';
 import { BasePanels, panelAt } from './basePanels';
@@ -74,7 +74,7 @@ export class WorldScreen implements Screen {
   private movedLast = true;
   /** a wait runs time on to here */
   private waitUntil = 0;
-  private build!: BuildMode;
+  private build!: BaseTools;
   private raidBar!: RaidBar;
   private readonly prompts = new PlacePrompts();
   private over!: HTMLElement;
@@ -102,8 +102,6 @@ export class WorldScreen implements Screen {
   private panels!: BasePanels;
   private raidCtl!: RaidControl;
   private menuBar!: BaseMenu;
-  /** base mode: the building list is open above the base menu */
-  private building = false;
   private swarm = new SwarmView();
   private readonly result = Object.assign(document.createElement('div'), { className: 'pip-win menu-win', hidden: true });
 
@@ -125,7 +123,6 @@ export class WorldScreen implements Screen {
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
-      build: () => this.build.toggle(),
       select: (id) => this.select(id),
       skill: (id, slot) => queueUltimate(this.p, id || this.sel, undefined, slot),
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
@@ -138,12 +135,11 @@ export class WorldScreen implements Screen {
       speed: (v) => { this.speed = v; this.pace(); },
       dot: () => { if (!this.rt) return; this.rt.pixelated = !this.rt.pixelated; saveDot(this.rt.pixelated); },
       pip: (tab) => this.togglePip(tab),
-      build: () => this.build.toggle(),
       restart: () => (this.opts.restart ? this.opts.restart() : this.restart()), quit: this.opts.quit,
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.build = new BuildMode(() => this.p, (ev) => this.live(ev), import.meta.env.BASE_URL, (open) => { if (open) { this.pausedBeforePip = this.paused; this.paused = true; } else this.paused = this.pausedBeforePip; });
+    this.build = new BaseTools(() => this.p, (t) => this.message(t), (ev) => this.live(ev));
     for (const part of this.build.parts) this.el.appendChild(part);
     this.bench = new WorkbenchScreen(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.bench.el);
@@ -152,21 +148,18 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.prompts.el);
     this.panels = new BasePanels(() => this.p, {
       send: (id, floor) => this.sendDown(id, floor), print: () => this.live(printClone(this.p)),
-      implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench(),
+      implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench(), live: (ev) => this.live(ev),
     }, () => this.opts.keptFloor);
     this.el.appendChild(this.panels.el);
     this.raidCtl = new RaidControl(() => this.p, {
-      cellAt: (x, y) => this.rt?.cellAt(x, y) ?? null,
-      screenOf: (id) => { const e = entOf(this.p, id); return e && this.rt ? this.rt.project(new THREE.Vector3(e.pos.x, 0.8, e.pos.y)) : null; },
-      speed: () => this.speed, setSpeed: (v) => { this.speed = v; this.pace(); }, live: (ev) => this.live(ev),
-      paused: () => this.paused, pause: () => { this.paused = !this.paused; },
+      speed: () => this.speed, setSpeed: (v) => { this.speed = v; this.pace(); },
+      paused: () => this.paused, pause: () => { this.paused = !this.paused; }, say: (t) => this.message(t),
     });
-    this.el.appendChild(this.raidCtl.bar); this.el.appendChild(this.raidCtl.box); this.el.appendChild(this.result);
+    this.el.appendChild(this.raidCtl.bar); this.el.appendChild(this.result);
     this.menuBar = new BaseMenu((k) => {
-      if (k === 'build') this.building = !this.building;
-      else if (k === 'pod' || k === 'lab') this.panels.show({ kind: k });
-      else if (k === 'bench') this.openBench();
-      else this.togglePip(k === 'roster' ? 'roster' : 'soul');
+      if (k === 'wall' || k === 'post') this.build.pick(k);
+      else if (k === 'bench') { this.build.close(); this.openBench(); }
+      else { this.build.close(); this.panels.show({ kind: k }); }
     });
     this.el.appendChild(this.menuBar.el);
     this.result.addEventListener('click', (e) => { if (e.target === this.result || (e.target as HTMLElement).closest('[data-close]')) this.result.hidden = true; });
@@ -178,7 +171,6 @@ export class WorldScreen implements Screen {
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
     this.camera = new BaseCamera(this.stage, () => this.zoom, () => this.p.s.map);
-    this.raidCtl.attach(this.stage);
     // a pointer-up that ends a pinch or a drag is not a click
     this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
@@ -197,19 +189,18 @@ export class WorldScreen implements Screen {
       // while the pod falls in the world waits; then the clone steps out
       if (this.landing && (!this.rt?.podLanding || now - this.landingAt > LANDING_MAX)) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
       const base = this.baseMode, raid = this.raidMode;
-      if (this.raidCtl.on && !raid) this.raidCtl.reset();
+      if (this.raidCtl.on && !raid) { this.raidCtl.reset(); if (!RAID_SPEEDS.includes(this.speed)) this.speed = 1; }
+      if (raid && !this.raidCtl.on) this.build.close();
       this.raidCtl.on = raid; this.raidCtl.update();
-      // the camera roams free over the base and the raid, and follows the clone the player drives
-      const free = base || (raid && !this.raidCtl.driving);
-      // in a raid a mouse drag picks clones (a box); a finger still drags the view
-      this.camera.on = free; this.camera.mouse = base; this.camera.update(dt);
-      if (this.rt) { this.rt.actors.walk = base; this.rt.freeAim = free ? this.camera.aim : null; if (this.raidCtl.driving) this.rt.focusId = this.raidCtl.driving; }
-      this.build.setDocked(base && this.building);
-      this.menuBar.update(base, this.building);
+      // the camera roams free over the base and the raid (a mouse drag or a finger moves it)
+      this.camera.on = base || raid; this.camera.mouse = base || raid; this.camera.update(dt);
+      if (this.rt) { this.rt.actors.walk = base; this.rt.freeAim = base || raid ? this.camera.aim : null; }
+      this.menuBar.update(base, this.build.tool);
       this.el.classList.toggle('base-mode', base);
       this.el.classList.toggle('raid-mode', raid);
       this.handOver();
-      if (base && !this.paused) homeLife(this.p, this.p.time);
+      // nobody strolls off while the posts are being given out
+      if (base && !this.paused) homeLife(this.p, this.p.time, this.build.tool !== 'post');
       if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.landing && !this.p.waiting && (base || !this.still())) {
         const t0 = this.p.time;
         const ev = worldTick(this.p, dt * RATE * this.speed);
@@ -228,7 +219,7 @@ export class WorldScreen implements Screen {
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.build.open && !this.bench.open);
-      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p) + (this.p.pod ? `<div class="st-row st-raid">${raidCountdown(this.p)}</div>` : ''), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };
@@ -291,6 +282,9 @@ export class WorldScreen implements Screen {
   }
 
   private select(id: string): void { this.sel = id; if (this.rt) this.rt.focusId = id; }
+  /** tests and screenshots: the game runs on by so many turns at once; where a point of the land is on the screen */
+  skip(turns: number): void { for (let k = 0; k < turns * 5; k++) this.live(worldTick(this.p, 0.2)); }
+  cellPoint(v: { x: number; y: number; z: number }): { left: number; top: number } | null { return this.rt?.project(new THREE.Vector3(v.x, v.y, v.z)) ?? null; }
   /** the living clones, in the order they were made (keys 1 2 3) */
   private ids(): string[] { return clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => u.id); }
 
@@ -298,8 +292,8 @@ export class WorldScreen implements Screen {
   /** Turn-based: in a fight the chosen clone's moments wait for the player. */
   private handOver(): void {
     if (this.baseMode) { this.p.manual = undefined; this.p.waiting = false; return; }
-    // a raid runs on: only a clone the player drives is under the hand, and it never stops the clock
-    if (this.raidMode) { this.p.manual = this.raidCtl.driving ?? undefined; this.p.waiting = false; return; }
+    // a raid runs on: nobody is under the hand (the clones hold their posts), and it never stops the clock
+    if (this.raidMode) { this.p.manual = undefined; this.p.waiting = false; return; }
     const hand = this.p.combat && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
   }
@@ -353,7 +347,6 @@ export class WorldScreen implements Screen {
     if (this.landing || this.baseMode) return []; const list: Prompt[] = [];
     if (this.opts.onDrill && this.p.drill && canDrill(this.p)) list.push({ at: this.p.pod ? { x: this.p.drill.x + 0.5, y: this.p.drill.y + 0.5 } : this.p.drill, label: this.opts.keptFloor ? `▼ ${this.opts.keptFloor}층 복귀` : '▼ 지하로', act: () => this.descend() });
     const lab = this.p.cloner ?? this.p.base, nearLab = clones(this.p).some((u) => { const e = entOf(this.p, u.id); return e?.alive && dist(e.pos, lab) <= POD_REACH; });
-    if (this.p.pod && nearLab && !this.p.raid && !this.build.open) list.push({ at: lab, label: '⚒ 건설', act: () => this.build.toggle() });
     if (this.p.pod && nearLab && !this.p.raid && !this.bench.open) list.push({ at: { x: lab.x, y: lab.y + 1 }, label: '⚙ 작업장', act: () => this.openBench() });
     return [...list, ...clonerPrompt(this.p, (ev) => this.live(ev)), ...soulPrompt(this.p, (ev) => this.live(ev), (id) => { this.select(id); this.togglePip('bag'); })];
   }
@@ -375,7 +368,7 @@ export class WorldScreen implements Screen {
     if (k === 'escape' && this.bench.open) { this.bench.close(); return; }
     if (k === 'escape' && this.panels.open) { this.panels.close(); return; }
     if (k === 'escape' && this.build.open) { this.build.close(); return; }
-    if (k === 'b' && !this.pip.open && !this.menu.open) { if (this.baseMode) this.building = !this.building; else this.build.toggle(); return; }
+    if ((k === 'b' || k === 'g') && this.baseMode && !this.pip.open && !this.menu.open) { this.build.pick(k === 'b' ? 'wall' : 'post'); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
@@ -403,9 +396,9 @@ export class WorldScreen implements Screen {
   private click(e: PointerEvent): void {
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
-    if (this.raidMode) return;
-    if (this.baseMode && this.camera.dragged) { this.camera.dragged = false; return; }
-    if (this.build.click(c, coarsePointer())) return;
+    if ((this.baseMode || this.raidMode) && this.camera.dragged) { this.camera.dragged = false; return; }
+    if (this.raidMode) { this.raidCtl.tap(c); return; }
+    if (this.baseMode && this.build.click(c, this.rt?.figureAt(e.clientX, e.clientY, this.ids()))) return;
     if (this.baseMode) {
       // base mode: a building opens its panel, a clone its card; the ground does nothing
       const hit = panelAt(this.p, c), who = this.unitAt(c);
@@ -429,8 +422,15 @@ export class WorldScreen implements Screen {
 
   private marks(): void {
     if (!this.rt || this.build.marks(this.rt, this.hover)) return;
-    // the base runs itself: no walk is drawn for the clones living about it, nor in a raid
-    if (this.baseMode || this.raidMode) { this.rt.showAim(null, true); this.rt.showPath(null); return; }
+    // a raid: the ultimate being aimed shows how far it reaches from its caster, and the cell pointed at
+    if (this.raidMode) {
+      const reach = this.raidCtl.reach, h = this.hover;
+      this.rt.showPath(null); this.rt.showReach(reach?.from ?? null, reach?.r ?? 0, '#ffd23a');
+      this.rt.showAim(reach && h ? [h] : null, !!reach && !!h && dist(reach.from, h) <= reach.r);
+      return;
+    }
+    // the base runs itself: no walk is drawn for the clones living about it
+    if (this.baseMode) { this.rt.showAim(null, true); this.rt.showPath(null); return; }
     const me = unitOf(this.p, this.sel);
     const e = me && entOf(this.p, me.id);
     const o = me?.order;
@@ -443,14 +443,12 @@ export class WorldScreen implements Screen {
 
   private labels(): void {
     if (!this.rt) return;
-    // no names over heads: only a mark over a clone told to hold its ground
-    // raid mode marks the picked clones (▼ the driven one); otherwise a clone told to hold its ground
-    const raid = this.raidMode, picked = this.raidCtl.selected;
-    this.el.querySelector('.pd-labels')!.innerHTML = this.p.units.filter((u) => u.side === 'hero' && entOf(this.p, u.id)?.alive && (raid ? picked.has(u.id) : u.order?.kind === 'hold')).map((u) => {
-      const e = entOf(this.p, u.id)!;
-      const pt = this.rt!.project(new THREE.Vector3(e.pos.x, 2.3, e.pos.y));
-      return `<div class="pd-label${u.id === this.sel || u.id === this.raidCtl.driving ? ' on' : ''}" style="left:${pt.left}px;top:${pt.top}px">${u.id === this.raidCtl.driving ? '▼' : '▣'}</div>`;
-    }).join('');
+    // no names over heads. By day each post is marked with its clone's letter (the picked clone's lit); elsewhere a clone told to hold its ground
+    const at = (c: { x: number; y: number }, y: number, text: string, on: boolean, cls = '') => { const pt = this.rt!.project(new THREE.Vector3(c.x, y, c.y)); return `<div class="pd-label${on ? ' on' : ''}${cls}" style="left:${pt.left}px;top:${pt.top}px">${text}</div>`; };
+    const heroes = this.p.units.filter((u) => u.side === 'hero' && !u.summoner && entOf(this.p, u.id)?.alive);
+    this.el.querySelector('.pd-labels')!.innerHTML = this.baseMode
+      ? heroes.filter((u) => u.post).map((u) => at(u.post!, 0.1, postLetter(this.p, u.id), u.id === this.build.picked, ' post')).join('')
+      : this.raidMode ? '' : heroes.filter((u) => u.order?.kind === 'hold').map((u) => at(entOf(this.p, u.id)!.pos, 2.3, '▣', u.id === this.sel)).join('');
   }
 
   /** The Pip-Boy window (the game waits while it is open, and goes on as it was). */

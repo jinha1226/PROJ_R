@@ -188,6 +188,10 @@ export class GridRuntime {
   showAim(cells: { x: number; y: number }[] | null, ok: boolean): void {
     this.elements.setAim(cells, ok);
   }
+  /** a square on the ground: how far something standing on the cell reaches (null hides it) */
+  showReach(c: { x: number; y: number } | null, r: number, color?: string): void {
+    this.elements.setReach(c, r, color);
+  }
   hurry(): void {
     this.playback.hurry();
   }

@@ -23,9 +23,12 @@ import { shoutAmp } from './cardsWarrior';
 import { elementShooterAmp } from './cardsArcher';
 import { holyAmp } from './cardsCleric';
 
-export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell } | null;
+/** `hold` with `fixed`: the unit never leaves its cell (a clone at its post in a raid: it is a wall there) */
+export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell; fixed?: boolean } | null;
 
 export interface Unit {
+  /** where this clone stands when a raid comes (chosen by day; none: wherever it happens to be) */
+  post?: Cell;
   fastNext?: boolean; attackMult?: number; ironGuard?: boolean; guardIntercepted?: boolean;
   ultReady: number; ultQueued?: boolean; ultSlot?: number; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
@@ -58,6 +61,8 @@ export interface Unit {
   swarm?: boolean; sx?: number; sy?: number; hitAt?: number; stillT?: number;
   /** a raider whose fall has been paid for (raid loot) */
   paid?: boolean;
+  /** come with a raid (its fall pays a quarter of what a dungeon foe's does); `lean`: one of the many that leave nothing at all */
+  raider?: boolean; lean?: boolean;
   /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */
   spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
   /** a return shot under way (the empty body's return fire, rank 3) */
@@ -120,14 +125,14 @@ export interface Unit {
   manualSkills?: boolean;
 }
 export interface Party {
+  /** a raid: the clones' ultimates are the player's to fire (no clone reaches for its own) */
+  manualUlts?: boolean;
   foeAction?: (u: Unit, t: number, ev: GEvent[]) => number | undefined;
   grounds?: {at:Cell;by:string;until:number;next:number;kind?:'burn'|'poison';r?:number}[];
   /** gravity wells pulling foes in (the empty body's ultimate) */
   wells?: {at:Cell;by:string;until:number;next:number}[];
   /** the rogue's snares on the floor */
   snares?: import('./snares').Snare[];
-  /** raid mode: the clone the player drives and the way it is pushed (null: strike what is in reach) */
-  drive?: { id: string; dir: Cell | null };
   /** sanctuaries on the floor (the cleric's ultimate) */
   zones?: { at: Cell; by: string; until: number; next: number; r: number }[];
   onMovement?: (moves: GEvent[], ev: GEvent[]) => void;
@@ -151,7 +156,23 @@ export interface Party {
 /** how far a fight reaches on the roaming maps: clones go for foes this close, and a foe this close to any clone means a fight */
 export const ENGAGE = 10;
 
-export const entOf = (p: Party, id: string): Ent | undefined => (id === 'hero' ? p.s.hero : p.s.foes.find((f) => f.id === id));
+/** the foe list by id (a raid has hundreds out at once, and everything asks who is alive): rebuilt when the list grows, is replaced, or an id was changed */
+const byId = new WeakMap<Ent[], { n: number; map: Map<string, Ent> }>();
+function indexOf(foes: Ent[]): Map<string, Ent> {
+  const map = new Map<string, Ent>();
+  // the first of a kind wins, as a search from the front would
+  for (const f of foes) if (!map.has(f.id)) map.set(f.id, f);
+  byId.set(foes, { n: foes.length, map });
+  return map;
+}
+export function entOf(p: Party, id: string): Ent | undefined {
+  if (id === 'hero') return p.s.hero;
+  const foes = p.s.foes, ix = byId.get(foes);
+  let e = (ix && ix.n === foes.length ? ix.map : indexOf(foes)).get(id);
+  // a body renamed since the list was read (a printed clone takes its own id): read it again
+  if (!e || e.id !== id) { e = indexOf(foes).get(id); if (e && e.id !== id) e = undefined; }
+  return e;
+}
 export const unitOf = (p: Party, id: string): Unit | undefined => p.units.find((u) => u.id === id);
 export const alive = (p: Party, u: Unit): boolean => entOf(p, u.id)?.alive ?? false;
 export const posOf = (p: Party, u: Unit): Cell => entOf(p, u.id)!.pos;

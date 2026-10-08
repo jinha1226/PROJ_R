@@ -333,7 +333,7 @@ button.pip-slot { position: relative; font: 11px 'Galmuri', monospace; color: #9
 
 @media (orientation: portrait) and (max-width: 700px) {
   /* an upright phone has the height: the record window takes it, so the bag's grid and the thing chosen under it show together */
-  .pip-frame { height: min(640px, 80vh); }
+  .pip-frame:not(.menu-frame) { height: min(640px, 80vh); }
   .pip-grid { gap: 4px; }
 }
 /* the demo's step key steps aside while the record window is open */

@@ -1,27 +1,42 @@
-import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
-import { alive, entOf, occupied, posOf } from '../party/partyCore';
+import { idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
+import { alive, entOf, occupied } from '../party/partyCore';
 import { living } from '../roam/roam';
 import { connect } from '../overworld/worldGen';
 import type { WorldParty } from '../overworld/worldSim';
-import { levelOfBuilding, onReturn, POD_MAX } from './buildings';
+import { POD_MAX, restoreBarricades } from './buildings';
+import { takePosts } from './posts';
 import { unitPower } from './power';
 import { resetRaidPath } from './raidPath';
-import { planWaves, spawnRaider } from './swarm';
+import { planWaves, spawnRaider, type RaidPlan } from './swarm';
 
 /** how far from the pod the horde steps out of the dark */
 export const RAID_REACH = 18;
+/** the most raiders one raid brings (what a phone still draws smoothly) */
+export const RAID_MAX = 400;
 export interface Raid { group: number; size: number;
-  /** buildings already broken when it began (the result counts only what this raid broke) */
+  /** barricades already down when it began (the result counts only what this raid broke) */
   broken?: string[] }
 export interface RaidLosses { ore: number; crystal: number; buildings: string[] }
-/** How many come (spec 2026-10-08 §4): 60 at first, more with every raid done and every floor reached, 150 at most. */
-export const raidSize = (p: WorldParty): number => Math.min(150, 60 + p.raidsDone * 12 + Math.max(0, p.deepest - 1) * 3);
-export const defencePower = (p: WorldParty): number => living(p).filter(u => dist(posOf(p, u), p.base) <= 6).reduce((n, u) => n + unitPower(p, u), 0)
-  + p.buildings.filter(b => !b.broken).reduce((n, b) => n + (b.kind === 'watchtower' ? 15 : b.kind === 'shockMine' ? 3 : b.kind === 'wall' ? 1 : 0) * levelOfBuilding(b), 0);
+/** what stands against a raid: the clones at home, nothing else (spec 2026-10-09 §0) */
+export const defencePower = (p: WorldParty): number => living(p).reduce((n, u) => n + unitPower(p, u), 0);
+/**
+ * How many come (spec 2026-10-09 §2.4): more with every raid done, and scaled by how strong the clones at home are against
+ * what that raid expects — a chain build outgrows a count that only rises with time, a lone weak body is not drowned.
+ */
+export function raidSize(p: WorldParty): number {
+  const n = p.raidsDone, expected = 45 + 40 * n;
+  const scale = Math.min(1.5, Math.max(0.6, defencePower(p) / expected));
+  return Math.min(RAID_MAX, Math.round((100 + 40 * n) * scale));
+}
+/** A raid's make-up: waves by its size; no elites the first time, then ever more of them; the general from the third raid. */
+export function raidPlan(p: WorldParty, size = raidSize(p)): RaidPlan {
+  const n = p.raidsDone;
+  return { size, waves: size > 300 ? 6 : size > 180 ? 5 : 4, eliteEvery: n ? Math.max(14, 34 - 3 * n) : 0, general: n >= 3 };
+}
 
-/** Count completed trips, heal, and advance the return-only raid clock. */
+/** Count completed trips and advance the return-only raid clock. */
 export function onRaidReturn(p: WorldParty, deepest = p.deepest): GEvent[] {
-  p.away = false; p.trips++; p.deepest = Math.max(p.deepest, deepest); onReturn(p);
+  p.away = false; p.trips++; p.deepest = Math.max(p.deepest, deepest);
   // a trip has gone by: the raid's injured are well again
   for (const u of p.units) if (u.injured) u.injured = false;
   if (p.raid) return [];
@@ -35,7 +50,7 @@ export function onRaidReturn(p: WorldParty, deepest = p.deepest): GEvent[] {
 /** Open connected entry cells on one or two opposing edges of the generated rock border. */
 export function startRaid(p: WorldParty): GEvent[] {
   if (p.away || p.raid) return [];
-  const size = raidSize(p), group = 1000 + p.raidsDone, m = p.s.map;
+  const size = p.raidReady?.size ?? raidSize(p), group = 1000 + p.raidsDone, m = p.s.map;
   const sides = p.raidReady?.sides ?? p.s.rng.shuffle([0, 1, 2, 3]).slice(0, p.s.rng.int(2, 3));
   p.raidReady = null;
   // the horde comes out of the dark a little beyond the base's ground on each side (spec 2026-10-08 §4), along a seven-cell front
@@ -49,25 +64,26 @@ export function startRaid(p: WorldParty): GEvent[] {
   resetRaidPath(p);
   const free = p.s.rng.shuffle(cells.filter(c => walkable(tileAt(m, c))));
   const ev: GEvent[] = []; p.raid = { group, size, broken: p.buildings.filter(b => b.broken).map(b => b.id) };
-  for (const b of p.buildings) b.nextAt = p.time;
   // the horde waits at the edges and pours out in waves (swarm.ts); the first raiders step out at once
-  p.raidQueue = planWaves(p, size, free.length ? free : cells, p.time);
+  p.raidQueue = planWaves(raidPlan(p, size), free.length ? free : cells, p.time);
   p.raidLoot = { kills: 0, ore: 0, crystal: 0 };
-  // every clone holds its ground like a turret: ranged ones stay put, melee ones step out to a foe near their spot and go back; they move only when told
-  for (const u of living(p)) if (!u.summoner) u.order = { kind: 'hold', cell: { ...entOf(p, u.id)!.pos } };
+  // every clone takes its post and holds it: a wall tile that fights; only their ultimates are the player's to fire
+  takePosts(p, ev);
+  p.manualUlts = true;
+  for (const u of living(p)) { u.ultQueued = false; u.ultCell = undefined; }
   while (p.raidQueue.length && p.raidQueue[0]!.at <= p.time) spawnRaider(p, p.raidQueue.shift()!, ev);
   p.combat = true; p.over = false;
   return ev;
 }
-/** The clones downed in the raid rise by the pod at half health, soul and level kept; injured (they skip the next trip) unless an infirmary stands. Returns the injured. */
+/** The clones downed in the raid rise by the pod at half health, soul and level kept, injured (they skip the next trip). Returns the injured. */
 function raise(p: WorldParty): string[] {
-  const ward = p.buildings.some((b) => b.kind === 'infirmary' && b.hp > 0), hurt: string[] = [];
+  const hurt: string[] = [];
   for (const u of p.units.filter((x) => x.side === 'hero' && !x.summoner)) {
     const e = entOf(p, u.id);
     if (!e || e.alive) continue;
     e.alive = true; e.hp = Math.ceil(e.maxHp / 2);
     e.pos = freeNear(p, p.base) ?? e.pos;
-    if (!ward) { u.injured = true; hurt.push(u.id); }
+    u.injured = true; hurt.push(u.id);
   }
   return hurt;
 }
@@ -80,7 +96,7 @@ function freeNear(p: WorldParty, at: Cell): Cell | undefined {
 }
 function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   const losses: RaidLosses = { ore: 0, crystal: 0, buildings: [] };
-  // a raid costs repairs, never stored materials (spec 2026-10-08 §5): the buildings it broke, and a pod knocked down to a quarter when it fell
+  // a raid costs repairs, never stored materials: a pod knocked down to a quarter when it fell (the barricades stand again by morning)
   const before = new Set(p.raid?.broken ?? []);
   losses.buildings = p.buildings.filter(b => b.broken && !before.has(b.id)).map(b => b.id);
   const fell = p.podHp <= 0 ? 'pod' : 'down';
@@ -89,8 +105,10 @@ function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   const group = p.raid?.group;
   p.units = p.units.filter(u => u.group !== group || u.side !== 'foe');
   p.s.foes = p.s.foes.filter(e => e.group !== group);
-  // nothing aimed in the raid goes off at home afterwards
-  for (const u of p.units) if (u.side === 'hero') { u.ultQueued = false; u.ultCell = undefined; }
+  // nothing aimed in the raid goes off at home afterwards, and nobody is held to its post by day
+  for (const u of p.units) if (u.side === 'hero') { u.ultQueued = false; u.ultCell = undefined; if (!u.summoner) u.order = null; }
+  p.manualUlts = false;
+  restoreBarricades(p);
   const loot = p.raidLoot ?? { kills: 0, ore: 0, crystal: 0 };
   p.lastRaid = { won, fell: won ? undefined : fell, injured: raise(p), buildings: [...losses.buildings], kills: loot.kills, ore: loot.ore, crystal: loot.crystal };
   p.raidQueue = [];
@@ -103,8 +121,4 @@ export function resolveRaid(p: WorldParty, ev: GEvent[]): void {
   // the pod falls, or every clone at the base is down: the raid is lost (never the run)
   if (p.podHp <= 0 || !living(p).length) finish(p, false, ev);
   else if (!p.raidQueue?.length && !p.units.some(u => u.side === 'foe' && u.group === p.raid!.group && alive(p, u))) finish(p, true, ev);
-}
-export function autoDefend(p: WorldParty, ev: GEvent[] = []): { won: boolean; losses: RaidLosses } | null {
-  if (p.away || !p.raid || p.podHp <= 0 || defencePower(p) < p.raid.size * 1.2) return null;
-  return { won: true, losses: finish(p, true, ev) };
 }

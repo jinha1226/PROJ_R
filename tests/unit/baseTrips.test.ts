@@ -7,9 +7,9 @@ import { takeClone, takeParty } from '../../src/sim/roam/carry';
 import { startRaid } from '../../src/sim/base/raids';
 
 describe('base trips', () => {
-  it('preserves base state, suspends surface ticks, returns depth and heals before the raid', () => {
+  it('preserves base state, suspends surface ticks, returns depth before the raid', () => {
     const p = newSurface(7); p.ore = 200; p.bio = 10;
-    upgradeDrill(p); place(p, 'infirmary', { x: 50, y: 45 }); place(p, 'wall', { x: 44, y: 44 });
+    upgradeDrill(p); place(p, { x: 44, y: 44 });
     p.podHp = 150;
     const before = structuredClone(p.buildings), claimed = [...p.claimed];
     const delve = departSurface(p, 9, takeClone(p, 'hero'), 3)!;
@@ -20,7 +20,7 @@ describe('base trips', () => {
     const back = takeParty(delve); expect(back.deepest).toBe(3);
     expect(returnToSurface(p, back)).toMatchObject([{ text: 'raidSoon' }]);
     expect(p.away).toBe(false); expect(p.trips).toBe(1); expect(p.deepest).toBe(3);
-    expect(p.s.hero.hp).toBe(p.s.hero.maxHp); expect(p.ore).toBe(140);
+    expect(p.ore).toBe(181);
     expect(p.buildings).toEqual(before); expect([...p.claimed]).toEqual(claimed);
     expect([p.drillLevel, p.podHp, p.raidsDone]).toEqual([1, 150, 0]);
     const next = departSurface(p, 10, takeClone(p, 'hero'))!;
@@ -37,6 +37,6 @@ describe('base trips', () => {
     returnToSurface(p, takeParty(d)); expect(p.raidReady).not.toBeNull();
     startRaid(p); expect(p.raid).not.toBeNull();
     p.podHp = 0; expect(worldTick(p, 1).some(e => e.text === 'raidLost')).toBe(true);
-    expect(p.raid).toBeNull(); expect(p.podHp).toBe(50);
+    expect(p.raid).toBeNull(); expect(p.podHp).toBe(150);
   });
 });

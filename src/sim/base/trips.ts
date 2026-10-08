@@ -4,7 +4,6 @@ import type { WorldParty } from '../overworld/worldSim';
 import { rejoin, type Carry } from '../roam/carry';
 import { startDelve } from './drill';
 import { onRaidReturn } from './raids';
-import { onReturn } from './buildings';
 import { applySf } from './workshop';
 
 /** The surface freezes until return; a live raid must be resolved before departure. */
@@ -28,6 +27,5 @@ export function beaconReturn(p: WorldParty, carry: Carry): GEvent[] {
   rejoin(p, carry, p.drill ?? p.base);
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
   p.away = false; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
-  onReturn(p);
   return [];
 }

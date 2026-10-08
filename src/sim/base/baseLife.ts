@@ -1,4 +1,4 @@
-import { dist, idx, tileAt, walkable, type Cell } from '../grid/types';
+import { dist, idx, same, tileAt, walkable, type Cell } from '../grid/types';
 import { occupied, posOf } from '../party/partyCore';
 import { living } from '../roam/roam';
 import type { WorldParty } from '../overworld/worldSim';
@@ -18,12 +18,20 @@ function homeSpot(p: WorldParty, near: Cell): Cell | undefined {
 
 /**
  * Base mode (spec 2026-10-08 §1): the clones at home live about the base — an idle one strolls to a free claimed cell near
- * the pod, then rests a few turns before the next. Nobody strolls on a raid night or in a raid.
+ * the pod, then rests a few turns before the next. A clone with a post goes to it and stands there instead.
  */
-export function homeLife(p: WorldParty, t: number): void {
-  if (p.raid || p.raidReady || p.combat || p.away) return;
+export function homeLife(p: WorldParty, t: number, stroll = true): void {
+  if (p.raid || p.combat || p.away) return;
   for (const u of living(p)) {
-    if (u.order || (u.idleAt ?? 0) > t) continue;
+    // a clone with a post keeps to it: it walks there (now and then trying again when the way is shut) and stands
+    if (u.post) {
+      const at = same(posOf(p, u), u.post);
+      if (at && !u.order) u.order = { kind: 'hold', cell: { ...u.post } };
+      else if (!at && u.order?.kind !== 'move' && (u.idleAt ?? 0) <= t) { u.idleAt = t + 4; u.order = { kind: 'move', cell: { ...u.post } }; }
+      continue;
+    }
+    // nobody strolls on a raid night (or while told not to: the posts are being given out)
+    if (!stroll || p.raidReady || u.order || (u.idleAt ?? 0) > t) continue;
     u.idleAt = t + 3 + p.s.rng.int(0, 4);
     const spot = homeSpot(p, posOf(p, u));
     if (spot) u.order = { kind: 'move', cell: spot };
