@@ -57,6 +57,8 @@ const RATE = 3.6;
 /** figures animate at most this much faster (a quicker game just covers more ground per second) */
 const SHOW_MAX = 2;
 const SPEEDS = [1, 2, 4];
+/** the longest the landing may hold the game (ms): a slow device's few frames would drag it out */
+const LANDING_MAX = 8000;
 
 /** The surface: an empty clone wakes by the crashed ship, finds souls that give it a class (more souls carried home become new clones), and the party takes the land round the goblin camps — in real time, pause any time. */
 export class WorldScreen implements Screen {
@@ -89,6 +91,8 @@ export class WorldScreen implements Screen {
   private bench!: WorkbenchScreen;
   private hover: { x: number; y: number } | null = null;
   private landing = false;
+  /** when the landing began (a slow device never waits more than LANDING_MAX for it) */
+  private landingAt = 0;
   private log = new WorldLog();
   private raf = 0;
   private readonly onKey = (e: KeyboardEvent) => this.key(e);
@@ -189,7 +193,7 @@ export class WorldScreen implements Screen {
       const dt = Math.max(0, Math.min(0.1, (now - last) / 1000));
       last = now;
       // while the pod falls in the world waits; then the clone steps out
-      if (this.landing && !this.rt?.podLanding) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
+      if (this.landing && (!this.rt?.podLanding || now - this.landingAt > LANDING_MAX)) { this.landing = false; this.rt?.actors.setVisible(this.p.leader ?? 'hero', true); this.hud.toast('착륙'); }
       const base = this.baseMode, raid = this.raidMode;
       if (this.raidCtl.on && !raid) this.raidCtl.reset();
       this.raidCtl.on = raid; this.raidCtl.update();
@@ -278,7 +282,7 @@ export class WorldScreen implements Screen {
     this.log = new WorldLog();
     this.log.add(this.p.time, this.p.pod ? (this.opts.landing ? '포드 착륙 · 영혼 없음' : '지상 복귀') : '복제 포드 개방 · 영혼 없음', 'warn');
     // the pod falls in: the clone waits inside until it is down
-    if (this.opts.landing && this.rt.landPod()) { this.landing = true; this.rt.actors.setVisible(this.p.leader ?? 'hero', false); }
+    if (this.opts.landing && this.rt.landPod()) { this.landing = true; this.landingAt = performance.now(); this.rt.actors.setVisible(this.p.leader ?? 'hero', false); }
     this.mini = new WorldMinimap(this.p, (c) => this.walk(c));
     this.hud.minimapSlot.replaceChildren(this.mini.el);
   }

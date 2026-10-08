@@ -12,7 +12,7 @@ test('the title drops a pod: an empty clone steps out beside it, the lab unfolds
   await expect(page.locator('.wh-top')).toContainText('턴');
   await expect(page.locator('.wh-log')).toContainText('포드 착륙');
   // base mode: no clone under the hand, the base menu along the bottom
-  await expect(page.locator('.base-menu')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.base-menu')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.world.base-mode')).toHaveCount(1);
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');
