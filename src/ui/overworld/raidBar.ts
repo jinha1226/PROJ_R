@@ -59,7 +59,7 @@ export function raidResultHtml(p: WorldParty): string {
     r.ore || r.crystal ? `<div class="menu-row"><span>얻은 자원</span><span>${[r.ore ? `광석 ${r.ore}` : '', r.crystal ? `마정석 ${r.crystal}` : ''].filter(Boolean).join(' · ')}</span></div>` : '',
     r.injured.length ? `<div class="menu-row"><span>부상</span><span>${r.injured.map(name).join(' · ')}</span></div>` : '',
     r.buildings.length ? `<div class="menu-row"><span>잃은 건물</span><span>${r.buildings.length}</span></div>` : ''].join('');
-  return `<div class="pip-frame menu-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : '포드 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
+  return `<div class="pip-frame menu-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : r.fell === 'down' ? '방어선 붕괴' : '포드 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
 }
 
 /** The log/toast line for a raid event, or undefined for other events. */
@@ -67,7 +67,7 @@ export function raidNote(e: GEvent, p: WorldParty): string | undefined {
   if (e.type === 'buff' && e.text === 'raidSoon') return `다음 귀환 때 습격 · 규모 ${e.amount} / 방어력 ${Math.round(defencePower(p))}`;
   if (e.type === 'buff' && e.text === 'raidReady') return '습격의 밤 · 준비되면 시작';
   if (e.type === 'buff' && e.text === 'raidWon') return '습격 격퇴';
-  if (e.type === 'dead' && e.text === 'raidLost') return '포드 함락 · 자원과 건물 일부 잃음';
+  if (e.type === 'dead' && e.text === 'raidLost') return p.lastRaid?.fell === 'down' ? '방어선 붕괴 · 수리 필요' : '포드 함락 · 수리 필요';
   return undefined;
 }
 

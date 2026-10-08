@@ -55,7 +55,7 @@ export interface Unit {
   /** base mode: when an idle clone at home strolls again; a clone hurt in a raid (it skips the next trip) */
   idleAt?: number; injured?: boolean;
   /** a raid's fodder: moved by the horde (free coordinates sx, sy; its cell is where they fall), never by its own turns */
-  swarm?: boolean; sx?: number; sy?: number; hitAt?: number;
+  swarm?: boolean; sx?: number; sy?: number; hitAt?: number; stillT?: number;
   /** a raider whose fall has been paid for (raid loot) */
   paid?: boolean;
   /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */

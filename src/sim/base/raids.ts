@@ -10,7 +10,9 @@ import { planWaves, spawnRaider } from './swarm';
 
 /** how far from the pod the horde steps out of the dark */
 export const RAID_REACH = 18;
-export interface Raid { group: number; size: number }
+export interface Raid { group: number; size: number;
+  /** buildings already broken when it began (the result counts only what this raid broke) */
+  broken?: string[] }
 export interface RaidLosses { ore: number; crystal: number; buildings: string[] }
 /** How many come (spec 2026-10-08 §4): 60 at first, more with every raid done and every floor reached, 150 at most. */
 export const raidSize = (p: WorldParty): number => Math.min(150, 60 + p.raidsDone * 12 + Math.max(0, p.deepest - 1) * 3);
@@ -46,7 +48,7 @@ export function startRaid(p: WorldParty): GEvent[] {
   connect(m, p.ground, cells);
   resetRaidPath(p);
   const free = p.s.rng.shuffle(cells.filter(c => walkable(tileAt(m, c))));
-  const ev: GEvent[] = []; p.raid = { group, size };
+  const ev: GEvent[] = []; p.raid = { group, size, broken: p.buildings.filter(b => b.broken).map(b => b.id) };
   for (const b of p.buildings) b.nextAt = p.time;
   // the horde waits at the edges and pours out in waves (swarm.ts); the first raiders step out at once
   p.raidQueue = planWaves(p, size, free.length ? free : cells, p.time);
@@ -79,11 +81,18 @@ function freeNear(p: WorldParty, at: Cell): Cell | undefined {
 function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   const losses: RaidLosses = { ore: 0, crystal: 0, buildings: [] };
   // a raid costs repairs, never stored materials (spec 2026-10-08 §5): the buildings it broke, and a pod knocked down to a quarter when it fell
-  losses.buildings = p.buildings.filter(b => b.broken).map(b => b.id);
+  const before = new Set(p.raid?.broken ?? []);
+  losses.buildings = p.buildings.filter(b => b.broken && !before.has(b.id)).map(b => b.id);
+  const fell = p.podHp <= 0 ? 'pod' : 'down';
   if (!won) p.podHp = Math.max(p.podHp, Math.round(POD_MAX / 4));
-  for (const u of p.units) if (u.side === 'foe' && u.group === p.raid?.group) { const e = entOf(p, u.id)!; if (e.alive) u.reaped = true; e.alive = false; e.hp = 0; }
+  // the raid's dead and the raiders left are cleared away (their bodies would only weigh down every later frame)
+  const group = p.raid?.group;
+  p.units = p.units.filter(u => u.group !== group || u.side !== 'foe');
+  p.s.foes = p.s.foes.filter(e => e.group !== group);
+  // nothing aimed in the raid goes off at home afterwards
+  for (const u of p.units) if (u.side === 'hero') { u.ultQueued = false; u.ultCell = undefined; }
   const loot = p.raidLoot ?? { kills: 0, ore: 0, crystal: 0 };
-  p.lastRaid = { won, injured: raise(p), buildings: [...losses.buildings], kills: loot.kills, ore: loot.ore, crystal: loot.crystal };
+  p.lastRaid = { won, fell: won ? undefined : fell, injured: raise(p), buildings: [...losses.buildings], kills: loot.kills, ore: loot.ore, crystal: loot.crystal };
   p.raidQueue = [];
   p.raid = null; p.raidsDone++; p.combat = false; p.over = false;
   ev.push({ t: p.time, type: won ? 'buff' : 'dead', text: won ? 'raidWon' : 'raidLost' });

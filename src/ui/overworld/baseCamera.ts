@@ -8,11 +8,13 @@ export class BaseCamera {
   aim = { x: 0, y: 0 };
   dragged = false;
   on = false;
+  /** whether a mouse drag pans (base mode); a finger always does */
+  mouse = true;
   private readonly held = new Set<string>();
   private drag: { x: number; y: number; moved: boolean } | null = null;
 
   constructor(private readonly stage: HTMLElement, private readonly zoom: () => number, private readonly bounds: () => { w: number; h: number }) {
-    stage.addEventListener('pointerdown', (e) => { if (this.on && e.button === 0 && e.isPrimary) { this.drag = { x: e.clientX, y: e.clientY, moved: false }; this.dragged = false; } });
+    stage.addEventListener('pointerdown', (e) => { if (this.on && e.button === 0 && e.isPrimary && (this.mouse || e.pointerType !== 'mouse')) { this.drag = { x: e.clientX, y: e.clientY, moved: false }; this.dragged = false; } });
     addEventListener('pointermove', (e) => {
       const d = this.drag;
       if (!d || !this.on) return;

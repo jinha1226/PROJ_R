@@ -27,7 +27,7 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   /** a raid night that has come but waits for the player to start it: its size and the edges it will come from (0 W, 1 E, 2 N, 3 S) */
   raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
   /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
-  lastRaid?: { won: boolean; injured: string[]; buildings: string[]; kills: number; ore: number; crystal: number };
+  lastRaid?: { won: boolean; fell?: 'pod' | 'down'; injured: string[]; buildings: string[]; kills: number; ore: number; crystal: number };
   /** the raiders still to step out (the horde's waves) and what this raid's kills have paid so far */
   /** ship support opened at the pod, and when each may fire again */
   support?: { strike?: boolean; laser?: boolean; strikeReady?: number; laserReady?: number };

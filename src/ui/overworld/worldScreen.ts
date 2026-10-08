@@ -158,6 +158,7 @@ export class WorldScreen implements Screen {
       cellAt: (x, y) => this.rt?.cellAt(x, y) ?? null,
       screenOf: (id) => { const e = entOf(this.p, id); return e && this.rt ? this.rt.project(new THREE.Vector3(e.pos.x, 0.8, e.pos.y)) : null; },
       speed: () => this.speed, setSpeed: (v) => { this.speed = v; this.pace(); }, live: (ev) => this.live(ev),
+      paused: () => this.paused, pause: () => { this.paused = !this.paused; },
     });
     this.el.appendChild(this.raidCtl.bar); this.el.appendChild(this.raidCtl.box); this.el.appendChild(this.result);
     this.menuBar = new BaseMenu((k) => {
@@ -199,7 +200,8 @@ export class WorldScreen implements Screen {
       this.raidCtl.on = raid; this.raidCtl.update();
       // the camera roams free over the base and the raid, and follows the clone the player drives
       const free = base || (raid && !this.raidCtl.driving);
-      this.camera.on = free; this.camera.update(dt);
+      // in a raid a mouse drag picks clones (a box); a finger still drags the view
+      this.camera.on = free; this.camera.mouse = base; this.camera.update(dt);
       if (this.rt) { this.rt.freeAim = free ? this.camera.aim : null; if (this.raidCtl.driving) this.rt.focusId = this.raidCtl.driving; }
       this.build.setDocked(base && this.building);
       this.menuBar.update(base, this.building);
@@ -335,8 +337,8 @@ export class WorldScreen implements Screen {
   private alert(key: string, text: string): void {
     if (this.warned.has(key)) return;
     this.warned.add(key);
-    // a notice only stops the game in a fight; out of one (say, a level-up) it is just said
-    if (this.p.combat) this.paused = true;
+    // a notice only stops the game in a fight (not a raid: its time runs on); out of one (say, a level-up) it is just said
+    if (this.p.combat && !this.raidMode) this.paused = true;
     this.message(text);
   }
 

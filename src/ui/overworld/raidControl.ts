@@ -11,7 +11,7 @@ const KEYS: Record<string, [number, number]> = { w: [0, -1], a: [-1, 0], s: [0, 
 export const raidClones = (p: WorldParty): string[] => p.units.filter((u) => u.side === 'hero' && !u.summoner && alive(p, u)).map((u) => u.id);
 
 /** The ultimate bar: each clone's ultimate with its cooldown (turns left), the one being aimed lit; the speed buttons. */
-export function ultBarHtml(p: WorldParty, aiming: { id: string; slot: number } | null, speed: number, sup: SupportId | null = null): string {
+export function ultBarHtml(p: WorldParty, aiming: { id: string; slot: number } | null, speed: number, sup: SupportId | null = null, paused = false): string {
   const slots = raidClones(p).flatMap((id) => ultSlots(unitOf(p, id)!).map((s) => ({ id, s })));
   const btn = slots.map(({ id, s }) => {
     const left = Math.ceil(s.ready - p.time), on = aiming?.id === id && aiming.slot === s.slot;
@@ -22,7 +22,7 @@ export function ultBarHtml(p: WorldParty, aiming: { id: string; slot: number } |
     const left = Math.ceil((p.support![`${id}Ready`] ?? 0) - p.time);
     return `<button type="button" data-sup="${id}" class="ship${sup === id ? ' on' : ''}" ${left > 0 ? 'disabled' : ''}><b>함선</b><span>${SUPPORT[id].name}</span>${left > 0 ? `<em>${left}</em>` : ''}</button>`;
   }).join('');
-  return `<div class="ub-slots">${btn}${ship}</div><div class="ub-side">${aiming || sup ? '<small>칸 선택 · Esc 취소</small>' : ''}${[1, 2].map((v) => `<button type="button" data-speed="${v}" class="${speed === v ? 'on' : ''}">${v}×</button>`).join('')}</div>`;
+  return `<div class="ub-slots">${btn}${ship}</div><div class="ub-side">${aiming || sup ? '<small>칸 선택 · Esc 취소</small>' : ''}${[1, 2].map((v) => `<button type="button" data-speed="${v}" class="${speed === v ? 'on' : ''}">${v}×</button>`).join('')}<button type="button" data-pause class="${paused ? 'on' : ''}">${paused ? '재개' : '정지'}</button></div>`;
 }
 
 /**
@@ -41,12 +41,14 @@ export class RaidControl {
   on = false;
   private readonly held = new Set<string>();
   private down: { x: number; y: number; box: boolean } | null = null;
+  /** fingers on the glass now (a pinch is no tap) */
+  private fingers = 0;
   private lastTap = { id: '', at: 0 };
   private html = '';
 
   constructor(private readonly p: () => WorldParty, private readonly view: {
     cellAt: (x: number, y: number) => Cell | null; screenOf: (id: string) => { left: number; top: number } | null;
-    speed: () => number; setSpeed: (v: number) => void; live: (ev: GEvent[]) => void;
+    speed: () => number; setSpeed: (v: number) => void; live: (ev: GEvent[]) => void; paused: () => boolean; pause: () => void;
   }) {
     this.bar.className = 'ult-bar'; this.bar.hidden = true;
     this.box.className = 'sel-box'; this.box.hidden = true;
@@ -55,6 +57,7 @@ export class RaidControl {
       if (b.dataset.ult) { const [id, slot] = b.dataset.ult.split(':'); this.aiming = { id: id!, slot: Number(slot) }; this.ship = null; }
       if (b.dataset.sup) { this.ship = b.dataset.sup as SupportId; this.aiming = null; }
       if (b.dataset.speed) this.view.setSpeed(Number(b.dataset.speed));
+      if (b.hasAttribute('data-pause')) this.view.pause();
       this.html = '';
     });
     addEventListener('keydown', (e) => this.key(e));
@@ -62,7 +65,8 @@ export class RaidControl {
   }
 
   attach(stage: HTMLElement): void {
-    stage.addEventListener('pointerdown', (e) => { if (this.on && e.button === 0) this.down = { x: e.clientX, y: e.clientY, box: false }; });
+    stage.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') this.fingers++; if (this.on && e.button === 0 && e.isPrimary) this.down = { x: e.clientX, y: e.clientY, box: false }; });
+    addEventListener('pointercancel', (e) => { if (e.pointerType === 'touch') this.fingers = Math.max(0, this.fingers - 1); });
     addEventListener('pointermove', (e) => {
       const d = this.down; if (!d || !this.on || e.pointerType === 'touch') return;
       if (!d.box && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) return;
@@ -70,8 +74,12 @@ export class RaidControl {
       Object.assign(this.box.style, { left: `${Math.min(d.x, e.clientX)}px`, top: `${Math.min(d.y, e.clientY)}px`, width: `${Math.abs(e.clientX - d.x)}px`, height: `${Math.abs(e.clientY - d.y)}px` });
     });
     stage.addEventListener('pointerup', (e) => {
-      const d = this.down; this.down = null; this.box.hidden = true;
-      if (!this.on || e.button !== 0) return;
+      const pinched = e.pointerType === 'touch' && this.fingers > 1;
+      if (e.pointerType === 'touch') this.fingers = Math.max(0, this.fingers - 1);
+      const d = this.down; if (e.isPrimary) this.down = null; this.box.hidden = true;
+      if (!this.on || e.button !== 0 || !e.isPrimary || pinched) return;
+      // a finger that dragged was looking around, not giving an order
+      if (e.pointerType === 'touch' && d && Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10) return;
       if (d?.box) { this.pickBox(d.x, d.y, e.clientX, e.clientY, e.shiftKey); return; }
       this.tap(e.clientX, e.clientY, e.shiftKey, e.pointerType === 'touch');
     });
@@ -96,7 +104,7 @@ export class RaidControl {
       for (const k of this.held) { x += KEYS[k]![0]; y += KEYS[k]![1]; }
       p.drive = { id: this.driving, dir: x || y ? { x: Math.sign(x), y: Math.sign(y) } : null };
     }
-    const html = ultBarHtml(p, this.aiming, this.view.speed(), this.ship);
+    const html = ultBarHtml(p, this.aiming, this.view.speed(), this.ship, this.view.paused());
     if (html !== this.html) { this.html = html; this.bar.innerHTML = html; }
   }
 
@@ -130,7 +138,7 @@ export class RaidControl {
     const who = this.hereAt(c);
     if (who?.side === 'hero' && !who.summoner) {
       const now = performance.now();
-      if (this.lastTap.id === who.id && now - this.lastTap.at < 320) { this.drive(who.id); this.lastTap = { id: '', at: 0 }; return; }
+      if (!touch && this.lastTap.id === who.id && now - this.lastTap.at < 320) { this.drive(who.id); this.lastTap = { id: '', at: 0 }; return; }
       this.lastTap = { id: who.id, at: now };
       if (!add) this.selected.clear();
       this.selected.add(who.id);

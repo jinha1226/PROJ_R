@@ -82,15 +82,22 @@ function step(p: WorldParty, dt: number, ev: GEvent[]): void {
     let vx = 0, vy = 0;
     const gl = Math.hypot(gx, gy);
     if (gl > 0 && !atPod) { vx = (gx / gl) * SPEED; vy = (gy / gl) * SPEED; }
+    // pulls that cancel out (a pillar between two equal ways) or a fodder that has stood still a while: head for the lowest cell's middle
+    if (!atPod && best && (gl < 0.35 || (u.stillT ?? 0) > 0.6)) {
+      const tx = best.x + 0.5 - u.sx!, ty = best.y + 0.5 - u.sy!, tl = Math.hypot(tx, ty) || 1;
+      vx = (tx / tl) * SPEED; vy = (ty / tl) * SPEED;
+    }
     // pushed apart by the crowd round it
     for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) for (const o of crowd.get((cy + oy) * m.w + cx + ox) ?? []) {
       if (o === u) continue;
       const dx = u.sx! - o.sx!, dy = u.sy! - o.sy!, d = Math.hypot(dx, dy) || 0.01;
       if (d < REACH * 2) { const push = (REACH * 2 - d) * 3; vx += (dx / d) * push; vy += (dy / d) * push; }
     }
-    const nx = u.sx! + vx * dt, ny = u.sy! + vy * dt;
+    const nx = u.sx! + vx * dt, ny = u.sy! + vy * dt, ox = u.sx!, oy = u.sy!;
     if (!blocked(p, nx, u.sy!)) u.sx = nx;
     if (!blocked(p, u.sx!, ny)) u.sy = ny;
+    // how long it has stood (nearly) still away from the pod: the watchdog above reads it
+    u.stillT = atPod || Math.hypot(u.sx! - ox, u.sy! - oy) > SPEED * dt * 0.25 ? 0 : (u.stillT ?? 0) + dt;
     e.pos = { x: Math.floor(u.sx!), y: Math.floor(u.sy!) };
   }
 }
