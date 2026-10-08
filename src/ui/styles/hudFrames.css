@@ -62,10 +62,12 @@
 .sb-row .pf-trait { justify-self: start; font-size: 12px; line-height: 16px; padding: 0 8px; }
 /* the ultimates: keys the size of the touch pad's own */
 .sb-skills { display: flex; gap: 6px; }
-.sb .pf-skill { width: 66px; height: 48px; }
-.sb .pf-skill .sn { display: block; position: absolute; left: 6px; right: 6px; bottom: 7px; font-size: 11px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
+.sb .pf-skill, .wh-ults .pf-skill { width: 66px; height: 48px; }
+.sb .pf-skill .sn, .wh-ults .pf-skill .sn { display: block; position: absolute; left: 6px; right: 6px; bottom: 7px; font-size: 11px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
 /* a finger has no keys: a key's letter would only sit on the skill's name */
-@media (pointer: coarse) { .sb .pf-skill kbd { display: none; } .sb .pf-skill .sn { bottom: auto; top: 50%; transform: translateY(-50%); } }
+@media (pointer: coarse) { .sb .pf-skill kbd, .wh-ults .pf-skill kbd { display: none; } .sb .pf-skill .sn, .wh-ults .pf-skill .sn { bottom: auto; top: 50%; transform: translateY(-50%); } }
+/* the ultimates as keys of their own, and where the clone is: only an upright phone shows them (see below) */
+.wh-ults, .sb-place { display: none; }
 
 /* phones: every key along the bottom is one height, the bar's ultimates among them */
 @media (max-height: 520px) and (orientation: landscape) {
@@ -85,6 +87,45 @@
   .sb .pf-skill { width: 58px; height: 44px; }
   .wh-beacon { margin-top: 3px; padding: 3px 6px; font-size: 10px; }
   .wh-party .sb { font-size: 12px; }
+
+  /*
+   * One clone on an upright phone. Everything to read is one strip along the top: the minimap with the beacon under it,
+   * the status bar beside it (the floor and the menu on its first line). Everything to press is one row along the
+   * bottom: quick slots, the ultimates, attack / wait / bag. The log sits just above that row.
+   */
+  .hud-solo { --strip: 92px; --key: 54px; --log-bottom: 58px; }
+  .hud-solo aside.wh-tl { left: 6px; top: 6px; width: 70px; height: var(--strip); padding: 5px; }
+  .hud-solo .wh-mini canvas { width: 60px; height: 60px; border: 0; }
+  .hud-solo .wh-top { display: none; }
+  .hud-solo .wh-beacon { margin-top: 3px; height: 19px; padding: 0; font-size: 10px; line-height: 17px; border-image-width: 5px; }
+  .hud-solo .wh-party { left: 80px; right: 6px; top: 6px; bottom: auto; width: auto; transform: none; display: block; }
+  .hud-solo .wh-party .sb { width: 100%; height: var(--strip); grid-template-columns: minmax(0, 1fr); align-content: center; padding: 5px 10px 6px; }
+  .hud-solo .sb-skills { display: none; }
+  .hud-solo .sb-top { min-height: 26px; align-items: center; gap: 8px; margin-bottom: 3px; padding-right: 42px; overflow: hidden; }
+  .hud-solo .sb-place { display: block; margin-left: auto; color: #6fbf88; }
+  .hud-solo .sb-row { line-height: 20px; }
+  .hud-solo .sb-row.hp .sb-bar { height: 16px; }
+  .hud-solo .sb-row.xp .sb-bar { height: 12px; }
+  /* the menu: a key in the bar's first line; the stairs' button hangs under the strip when there are stairs */
+  .hud-solo aside.wh-tr { left: auto; right: 12px; top: 11px; z-index: 7; }
+  .hud-solo .wh-menu { width: 36px; height: 26px; min-height: 0; padding: 0; }
+  .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"] { position: absolute; right: -6px; top: calc(var(--strip) + 1px); white-space: nowrap; }
+  .hud-solo .wh-btns [data-k="descend"] ~ [data-k="ascend"] { top: calc(var(--strip) + 39px); }
+  /* a foe's card (shown while it is looked at) hangs under the strip */
+  .hud-solo .wh-target { left: 6px; right: auto; top: calc(var(--strip) + 12px); max-width: calc(100% - 12px); justify-content: flex-start; }
+  /* the demo's step key stands clear of the card */
+  .hud-solo .step-next { top: calc(var(--strip) + 46px); }
+  /* the bottom row, right to left: three buttons, the ultimates, then what is left for the quick slots */
+  .hud-solo .tp-btns { grid-template-columns: repeat(3, var(--key)); }
+  .hud-solo .wh-ults { display: flex; gap: 4px; position: absolute; z-index: 8; bottom: 6px; right: calc(var(--key) * 3 + 18px); }
+  .hud-solo .wh-ults .pf-skill { width: var(--key); height: 44px; }
+  .hud-solo .wh-ults .pf-skill .sn { left: 4px; right: 4px; }
+  .hud-solo .quick-slots { right: calc(var(--key) * 3 + 18px + var(--ults, 0) * (var(--key) + 4px)); }
+}
+/* a narrow window with a mouse has no touch buttons: the ultimates take the corner */
+@media (orientation: portrait) and (max-width: 700px) and (pointer: fine) {
+  .hud-solo .wh-ults { right: 6px; }
+  .hud-solo .quick-slots { right: calc(6px + var(--ults, 0) * (var(--key) + 4px)); }
 }
 
 /* a key's letter sits inside the drawn edge, not under it */

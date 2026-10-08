@@ -1,5 +1,5 @@
 import type { Party } from '../../sim/party/partyCore';
-import { detailHtml, partyFramesHtml, soloBarHtml } from './partyFrames';
+import { detailHtml, partyFramesHtml, soloBarHtml, soloSkillsHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
 import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
 
@@ -36,7 +36,7 @@ export class WorldHud {
         ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}
         <button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
       <aside class="wh-br"></aside>
-      <div class="wh-party"></div>`);
+      <div class="wh-party"></div>${a.solo ? '<div class="wh-ults"></div>' : ''}`);
     el.querySelector('.wh-btns')!.addEventListener('click', (e) => {
       const k = (e.target as HTMLElement).closest<HTMLElement>('[data-k]')?.dataset.k;
       if (k === 'menu') a.menu();
@@ -57,6 +57,7 @@ export class WorldHud {
     el.querySelector('.wh-party')!.addEventListener('click', party);
     el.querySelector('.wh-tl')!.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-k="beacon"]')) a.beacon?.(); });
     if (a.solo) el.classList.add('hud-solo');
+    el.querySelector('.wh-ults')?.addEventListener('click', (e) => { const skill = (e.target as HTMLElement).closest<HTMLElement>('[data-skill]'); if (skill) a.skill('', Number(skill.dataset.skill)); });
     // the corner log opens the whole of it: a window over the game, the newest at the bottom
     el.querySelector('.wh-bl')!.addEventListener('click', () => this.openLog());
     el.querySelector('.wh-br')!.addEventListener('click', (e) => {
@@ -119,7 +120,9 @@ export class WorldHud {
   }
 
   /** status: the top-centre line (floor, turn, bio); mode: the fight banner; and whether the stairs, the lift or a turn is waiting. */
-  draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean; target?: string; beacon?: { label: string; on: boolean } }): void {
+  draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean; target?: string; beacon?: { label: string; on: boolean };
+    /** where the party is, in a word or two (the lone clone's bar carries it on an upright phone) */
+    place?: string }): void {
     if (performance.now() > this.toastUntil) this.el.querySelector('.wh-toast')!.classList.remove('on');
     this.put('.wh-top', view.status);
     this.put('.wh-mode', view.mode);
@@ -133,7 +136,12 @@ export class WorldHud {
     this.put('.wh-log', view.log.html());
     this.log = view.log;
     if (this.full) this.fillLog();
-    if (this.put('.wh-party', this.a.solo ? soloBarHtml(p, sel) : partyFramesHtml(p, ids, sel))) {
+    if (this.a.solo) {
+      // one clone: its bar (at the top of an upright phone, so the log's place is set by the stylesheet), its ultimates as keys of their own
+      this.put('.wh-party', soloBarHtml(p, sel, view.place));
+      const keys = soloSkillsHtml(p, sel);
+      if (this.put('.wh-ults', keys)) this.el.style.setProperty('--ults', String((keys.match(/data-skill=/g) ?? []).length));
+    } else if (this.put('.wh-party', partyFramesHtml(p, ids, sel))) {
       // on an upright phone the log sits just above the portraits, however tall they come out
       const party = this.el.querySelector<HTMLElement>('.wh-party')!;
       const top = party.getBoundingClientRect().top;

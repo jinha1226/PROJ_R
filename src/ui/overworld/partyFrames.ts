@@ -49,18 +49,24 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
  * gauges: health (its shield laid after it) and experience (a level-up waiting for its card shows the button beside
  * it), and the ultimates. No portrait, no second panel.
  */
-export function soloBarHtml(p: Party, id: string): string {
+export function soloBarHtml(p: Party, id: string, place = ''): string {
   const u = unitOf(p, id), e = entOf(p, id);
   if (!u || !e) return '';
   const lv = levelOf(u), xp = u.xp ?? 0, from = LEVEL_XP[lv - 1]!, to = LEVEL_XP[lv] ?? from, k = lv >= MAX_LEVEL ? 1 : Math.max(0, Math.min(1, (xp - from) / Math.max(1, to - from)));
   const hp = Math.max(0, Math.min(1, e.hp / e.maxHp)), shield = Math.min(1 - hp, u.shield / e.maxHp);
   return `<div class="sb${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
     <div class="sb-main">
-      <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${unitChips(u, p.time)}</div>
+      <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${unitChips(u, p.time)}${place ? `<span class="sb-place">${place}</span>` : ''}</div>
       <div class="sb-row hp"><label>HP</label><div class="sb-bar"><i style="width:${hp * 100}%"></i><u style="left:${hp * 100}%;width:${shield * 100}%"></u></div><span class="sb-num">${e.hp}<small>/${e.maxHp}</small>${u.shield > 0 ? `<em>+${u.shield}</em>` : ''}</span></div>
       <div class="sb-row xp"><label>XP</label><div class="sb-bar"><i style="width:${k * 100}%"></i></div>${u.picks ? '<button type="button" class="pf-trait" data-traits>특성</button>' : `<span class="sb-num">${lv >= MAX_LEVEL ? 'MAX' : `${Math.floor(k * 100)}%`}</span>`}</div>
     </div>
     <div class="sb-skills">${skillTiles(u, p.time, e.alive, false)}</div></div>`;
+}
+
+/** The lone clone's ultimates as keys of their own (an upright phone puts them in the action row, beside attack). */
+export function soloSkillsHtml(p: Party, id: string): string {
+  const u = unitOf(p, id), e = entOf(p, id);
+  return u && e ? skillTiles(u, p.time, e.alive, false) : '';
 }
 
 /** The chosen clone in full at the bottom right: emblem, weapon and engraving, big skill buttons. */

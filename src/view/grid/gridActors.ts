@@ -113,6 +113,21 @@ export class GridActors {
     return v && !v.dead ? v.actor.root : undefined;
   }
 
+  private reticle: THREE.Group | null = null;
+  private target: string | undefined;
+  /** The foe the attack key would strike: a reticle of four arcs, the attack key's red, turns on the floor under it (it follows the figure; gone when the foe is). */
+  setTarget(id: string | undefined): void {
+    this.target = id;
+    if (!id) { if (this.reticle) this.reticle.visible = false; return; }
+    if (!this.reticle) {
+      this.reticle = new THREE.Group();
+      const mat = new THREE.MeshBasicMaterial({ color: '#d01020', transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide });
+      for (let k = 0; k < 4; k++) this.reticle.add(new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 10, 1, k * (Math.PI / 2) + 0.3, Math.PI / 2 - 0.6), mat));
+      this.reticle.rotation.x = -Math.PI / 2; this.reticle.position.y = 0.05; this.reticle.visible = false;
+      this.root.add(this.reticle);
+    }
+  }
+
   /** whether a figure stands on screen (built, alive, on a cell the party sees) */
   shown(id: string): boolean {
     const v = this.views.get(id);
@@ -380,7 +395,19 @@ export class GridActors {
       v.actor.update(step);
     }
     for (const id of left) this.rebuild(id);
+    // the reticle rides under its foe, turning, breathing a little
+    if (this.reticle) {
+      const v = this.target ? this.views.get(this.target) : undefined;
+      this.reticle.visible = !!v && !v.dead && v.actor.root.visible;
+      if (v && this.reticle.visible) {
+        this.spinT += dt;
+        this.reticle.position.set(v.x + v.ox, 0.05, v.z + v.oz);
+        this.reticle.rotation.z = this.spinT * 1.6;
+        this.reticle.scale.setScalar(1 + 0.08 * Math.sin(this.spinT * 6));
+      }
+    }
   }
+  private spinT = 0;
 
   /** A clone taking a soul: it lights up gold and casts for a moment, then stands up in its new look (see `update`). */
   absorb(id: string): void {

@@ -1,4 +1,8 @@
-export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; explore?(): void; tap?(x: number, y: number): void }
+export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; explore?(): void; tap?(x: number, y: number): void;
+  /** a finger held still on the field (a long press): look at what is under it */
+  hold?(x: number, y: number): void }
+/** how long a finger rests before it is a long press (ms) */
+export const HOLD_MS = 450;
 
 /** how often a held stick asks for another step (real seconds) */
 const REPEAT = 0.2;
@@ -19,6 +23,7 @@ export class TouchPad {
   private timer = 0;
   private origin: { x: number; y: number } | null = null;
   private moved = false;
+  private holdTimer: ReturnType<typeof setTimeout> | undefined;
   /** the middle button: wait in a fight, explore out of one */
   private readonly act: HTMLElement;
   private fighting = false;
@@ -46,6 +51,7 @@ export class TouchPad {
       if (!was || was.x !== d.x || was.y !== d.y) { this.timer = REPEAT; this.a.dir(d.x, d.y); }
     };
     const end = (e: PointerEvent) => {
+      clearTimeout(this.holdTimer);
       if (this.origin && !this.moved) this.a.tap?.(e.clientX, e.clientY);
       this.origin = null; this.dirNow = null; this.knob.style.transform = '';
       this.zone.classList.remove('on');
@@ -57,6 +63,10 @@ export class TouchPad {
       const r = this.zone.getBoundingClientRect();
       this.origin = { x: e.clientX, y: e.clientY };
       this.moved = false;
+      // held still: a long press on the field under the zone (no step, no tap follows)
+      const at = { x: e.clientX, y: e.clientY };
+      clearTimeout(this.holdTimer);
+      this.holdTimer = setTimeout(() => { if (this.origin && !this.moved && !this.dirNow) { this.moved = true; this.a.hold?.(at.x, at.y); } }, HOLD_MS);
       this.base.style.left = `${e.clientX - r.left}px`;
       this.base.style.top = `${e.clientY - r.top}px`;
       this.zone.classList.add('on');
@@ -75,6 +85,7 @@ export class TouchPad {
 
   /** lets go of the stick without a step or a tap (a pinch began) */
   cancel(): void {
+    clearTimeout(this.holdTimer);
     this.origin = null; this.dirNow = null; this.knob.style.transform = '';
     this.zone.classList.remove('on');
   }

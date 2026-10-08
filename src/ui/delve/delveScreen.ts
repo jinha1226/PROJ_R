@@ -6,7 +6,7 @@ import { findPath } from '../../sim/grid/path';
 import { dist, idx, same, walkable, tileAt, type Cell, type GEvent } from '../../sim/grid/types';
 import { alive, entOf, unitOf, type Unit } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
-import { cardTarget, targetCardHtml } from '../overworld/targetCard';
+import { targetCardHtml } from '../overworld/targetCard';
 import { tapCell } from './tapCell';
 import { MiningCue } from './miningCue';
 import { AutoExplore, exploreWants } from './explore';
@@ -36,7 +36,7 @@ import { WorldLog } from '../overworld/worldLog';
 import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
 import { DelveMinimap } from './delveMinimap';
 import { DelveProps } from '../../view/delve/delveProps';
-import { TouchPad } from '../overworld/touchPad';
+import { HOLD_MS, TouchPad } from '../overworld/touchPad';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
 import '../styles/partyScreen.css';
@@ -75,6 +75,11 @@ export class DelveScreen implements Screen {
   private speed = 1;
   private zoom = 11;
   private hover: Cell | null = null;
+  /** the foe being looked at (a long press on it): its card shows until the next tap or a few seconds pass */
+  private inspect: { id: string; until: number } | null = null;
+  /** a long press is under way on the field, or has just fired (the tap that ends it is swallowed) */
+  private press: { x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
+  private held = false;
   private readonly miningCue = new MiningCue();
   private readonly quick = new QuickSlots(() => this.p, () => this.sel, (ev) => this.live(ev));
   private readonly explorer = new AutoExplore();
@@ -122,7 +127,7 @@ export class DelveScreen implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
     this.el.appendChild(this.pad.el);
     if (this.opts.stepped) {
       const next = document.createElement('button');
@@ -134,8 +139,18 @@ export class DelveScreen implements Screen {
     this.hud.minimapSlot.replaceChildren(this.mini.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
+    // a finger held still on a foe looks at it (its card); the tap that ends the press does nothing more
+    const drop = () => { if (this.press) { clearTimeout(this.press.timer); this.press = null; } };
+    this.stage.addEventListener('pointerdown', (e) => {
+      drop();
+      if (e.pointerType !== 'touch') return;
+      const x = e.clientX, y = e.clientY;
+      this.press = { x, y, timer: setTimeout(() => { this.press = null; if (this.look(x, y)) this.held = true; }, HOLD_MS) };
+    });
+    this.stage.addEventListener('pointermove', (e) => { if (this.press && Math.hypot(e.clientX - this.press.x, e.clientY - this.press.y) > 14) drop(); });
+    this.stage.addEventListener('pointercancel', drop);
     // a pointer-up that ends a pinch or a drag is not a click
-    this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
+    this.stage.addEventListener('pointerup', (e) => { drop(); if (this.held) { this.held = false; return; } if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
     this.stage.addEventListener('pointerleave', () => { this.hover = null; });
     this.stage.addEventListener('contextmenu', (e) => { e.preventDefault(); this.aiming = null; });
@@ -332,12 +347,30 @@ export class DelveScreen implements Screen {
     else orderTo(this.p, this.sel, c);
   }
 
-  /** The nearest foe in sight: struck now on the clone's turn, else marked as its target. */
-  private attackNearest(): void {
-    const e = entOf(this.p, this.sel);
-    if (!e?.alive) return;
-    const foe = this.p.units.filter((u) => u.side === 'foe' && !u.asleep && entOf(this.p, u.id)?.alive && this.p.s.visible.has(idx(this.p.s.map, entOf(this.p, u.id)!.pos)))
+  /** Looks at the foe under a point of the screen: its card shows for a while. False when no foe is there. */
+  private look(x: number, y: number): boolean {
+    // the finger is on the figure as drawn (it stands taller than its cell), else on its cell
+    const foes = this.p.units.filter((u) => u.side === 'foe' && entOf(this.p, u.id)?.alive).map((u) => u.id);
+    const c = this.rt?.cellAt(x, y), on = c ? this.unitAt(c) : undefined;
+    const id = this.rt?.figureAt(x, y, foes) ?? (on?.side === 'foe' ? on.id : undefined);
+    if (!id) return false;
+    this.inspect = { id, until: performance.now() + 6000 };
+    return true;
+  }
+
+  /** Whom the attack key strikes: the foe the clone was told to go for, else the nearest foe awake and in sight. */
+  private attackTarget(): Unit | undefined {
+    const e = entOf(this.p, this.sel), me = unitOf(this.p, this.sel);
+    if (!e?.alive || !me) return undefined;
+    const told = me.order?.kind === 'attack' ? unitOf(this.p, me.order.target) : undefined;
+    if (told && entOf(this.p, told.id)?.alive) return told;
+    return this.p.units.filter((u) => u.side === 'foe' && !u.asleep && entOf(this.p, u.id)?.alive && this.p.s.visible.has(idx(this.p.s.map, entOf(this.p, u.id)!.pos)))
       .sort((a, b) => Math.hypot(entOf(this.p, a.id)!.pos.x - e.pos.x, entOf(this.p, a.id)!.pos.y - e.pos.y) - Math.hypot(entOf(this.p, b.id)!.pos.x - e.pos.x, entOf(this.p, b.id)!.pos.y - e.pos.y))[0];
+  }
+
+  /** The foe the attack key would strike (it wears the mark on the field): struck now on the clone's turn, else set as its target. */
+  private attackNearest(): void {
+    const foe = this.attackTarget();
     if (!foe) return;
     if (this.myTurn) this.live(command(this.p, { kind: 'attack', target: foe.id }));
     else unitOf(this.p, this.sel)!.order = { kind: 'attack', target: foe.id };
@@ -371,6 +404,7 @@ export class DelveScreen implements Screen {
 
   /** On a clone: choose it. On its turn a click is its action (a step toward, or a blow); otherwise an order. */
   private click(e: PointerEvent): void {
+    this.inspect = null;
     if (this.opts.stepped) { this.paused = false; return; }
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
@@ -402,6 +436,8 @@ export class DelveScreen implements Screen {
     if (!this.rt) return;
     const me = unitOf(this.p, this.sel), e = me && entOf(this.p, me.id), o = me?.order, m = this.p.s.map, h = this.hover;
     this.rt.showAim(null, true);
+    // the foe the attack key would strike wears a mark (on a touch screen, where the key is; with a mouse only a foe it was told to go for)
+    this.rt.markTarget(coarsePointer() || o?.kind === 'attack' ? this.attackTarget()?.id : undefined);
     const hoverWalk = h && e?.alive && this.p.s.seen[idx(m, h)] && walkable(tileAt(m, h)) && !same(h, e.pos) && !this.unitAt(h) ? findPath(m, e.pos, h) : null;
     this.rt.showPath(hoverWalk ?? (o?.kind === 'move' && e?.alive ? findPath(m, e.pos, o.cell) : null));
   }
@@ -431,8 +467,11 @@ export class DelveScreen implements Screen {
     // no mode banner: the top centre says floor and turn, the frames say whose turn it is
     const mode = '';
     const status = statusLine(`지하 <b>${p.floor}층</b>`, p, false);
-    const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
+    // a foe's card shows only when it is looked at: a long press on a touch screen, the mouse over it otherwise
+    if (this.inspect && (performance.now() > this.inspect.until || !entOf(p, this.inspect.id)?.alive)) this.inspect = null;
+    const looked = this.inspect ? unitOf(p, this.inspect.id) : this.hover ? this.unitAt(this.hover) : undefined;
+    const target = targetCardHtml(p, this.sel, looked?.side === 'foe' ? looked : undefined);
     const beacon = p.beacon ? { label: portalOpen(p) ? `포탈 ${Math.max(0, Math.ceil(p.beacon.closeAt - p.time))}` : `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
-    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon });
+    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon, place: `지하 ${p.floor}층` });
   }
 }

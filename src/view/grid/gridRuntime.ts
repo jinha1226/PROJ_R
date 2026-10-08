@@ -180,6 +180,8 @@ export class GridRuntime {
   }
   skipIntro(): void { this.intro?.skip(); }
   powerShip(meta: MetaState): void { if (this.terrain instanceof ShipTerrain) this.terrain.power(meta); }
+  /** Marks the foe the attack key would strike (a turning reticle on the floor under it); nothing clears it. */
+  markTarget(id: string | undefined): void { this.actors.setTarget(id); }
   showPath(cells: { x: number; y: number }[] | null): void {
     this.elements.setPath(cells);
   }
@@ -403,6 +405,24 @@ export class GridRuntime {
   /** The grid cell under a screen point (null off the map). */
   cellAt(clientX: number, clientY: number): Cell | null {
     return cellAtScreen(this.el, this.h.camera, this.sim.s.map, clientX, clientY);
+  }
+
+  /**
+   * Which of these figures a finger rests on: the one whose body (feet to head, as drawn) passes nearest the point, within
+   * `reach` screen pixels. A figure stands taller than its cell, so a finger on its chest is over the cell behind it.
+   */
+  figureAt(clientX: number, clientY: number, ids: string[], reach = 26): string | undefined {
+    const box = this.el.getBoundingClientRect(), x = clientX - box.left, y = clientY - box.top;
+    let best: string | undefined, near = reach;
+    for (const id of ids) {
+      const at = this.actors.shown(id) ? this.actors.pos(id) : undefined;
+      if (!at) continue;
+      const a = this.project(at), b = this.project(at.clone().setY(at.y + 1.5));
+      const dx = b.left - a.left, dy = b.top - a.top, k = Math.max(0, Math.min(1, ((x - a.left) * dx + (y - a.top) * dy) / Math.max(1e-6, dx * dx + dy * dy)));
+      const d = Math.hypot(x - (a.left + dx * k), y - (a.top + dy * k));
+      if (d < near) { near = d; best = id; }
+    }
+    return best;
   }
 
   dispose(): void {

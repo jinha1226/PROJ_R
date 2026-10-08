@@ -134,3 +134,13 @@ it('one clone alone gets a single status bar: name, level, a health bar with its
   const low = soloBarHtml(p, u.id);
   expect(low).toMatch(/sb-row xp.*data-traits/s); expect(low).toContain('class="sb low"');
 });
+
+it('the lone clone\'s bar can say where it is, and its ultimates come as keys of their own (an upright phone puts them by attack)', async () => {
+  const { soloBarHtml, soloSkillsHtml } = await import('../../src/ui/overworld/partyFrames');
+  const { p, u } = scene('mage');
+  expect(soloBarHtml(p, u.id)).not.toContain('sb-place');
+  expect(soloBarHtml(p, u.id, '지하 3층')).toContain('<span class="sb-place">지하 3층</span>');
+  const keys = soloSkillsHtml(p, u.id);
+  expect(keys).toMatch(/^<button[^>]*class="pf-skill/); expect(keys).toContain('data-skill="0"');
+  expect(soloSkillsHtml(p, 'nobody')).toBe('');
+});
