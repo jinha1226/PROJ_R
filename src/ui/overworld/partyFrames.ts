@@ -44,20 +44,30 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
   }).join('');
 }
 
+/** how many characters a status bar's gauge is wide */
+export const GAUGE = 24;
+/** A gauge told in characters, as Jupiter Hell tells one: `[######==------]` — filled, then a second kind laid after it (a shield), then what is missing. */
+function gauge(filled: number, extra = 0): string {
+  const f = Math.max(0, Math.min(GAUGE, filled)), x = Math.max(0, Math.min(GAUGE - f, extra));
+  return `<span class="sb-cells">[<i>${'#'.repeat(f)}</i><u>${'#'.repeat(x)}</u><s>${'-'.repeat(GAUGE - f - x)}</s>]</span>`;
+}
+
 /**
- * One clone alone (the dungeon): a single bar along the bottom, as plain as Pixel Dungeon's — who and what level, the
- * states it is in, health with its shield, experience, and the ultimates beside them. No portrait, no second panel.
+ * One clone alone (the dungeon): a single bar along the bottom — who and what level, the states it is in, then two
+ * gauges told in characters: health (its shield laid after it) and experience (a level-up waiting for its card shows the
+ * button beside it), and the ultimates. No portrait, no second panel.
  */
 export function soloBarHtml(p: Party, id: string): string {
   const u = unitOf(p, id), e = entOf(p, id);
   if (!u || !e) return '';
-  const lv = levelOf(u), xp = u.xp ?? 0, from = LEVEL_XP[lv - 1]!, to = LEVEL_XP[lv] ?? from, k = lv >= MAX_LEVEL ? 1 : (xp - from) / Math.max(1, to - from);
-  const hp = Math.max(0, e.hp / e.maxHp), shield = Math.min(1 - hp, u.shield / e.maxHp);
+  const lv = levelOf(u), xp = u.xp ?? 0, from = LEVEL_XP[lv - 1]!, to = LEVEL_XP[lv] ?? from, k = lv >= MAX_LEVEL ? 1 : Math.max(0, Math.min(1, (xp - from) / Math.max(1, to - from)));
+  // a living clone always shows one mark of health, however little is left
+  const hp = e.hp <= 0 ? 0 : Math.max(1, Math.round((e.hp / e.maxHp) * GAUGE)), shield = Math.round((u.shield / e.maxHp) * GAUGE);
   return `<div class="sb${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
     <div class="sb-main">
-      <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${unitChips(u, p.time)}${u.picks ? '<button type="button" class="pf-trait" data-traits>특성</button>' : ''}<span class="sb-num">${e.hp}<small>/${e.maxHp}</small>${u.shield > 0 ? `<em>+${u.shield}</em>` : ''}</span></div>
-      <div class="sb-hp"><i style="width:${hp * 100}%"></i><u style="left:${hp * 100}%;width:${shield * 100}%"></u></div>
-      <div class="sb-xp"><i style="width:${k * 100}%"></i></div>
+      <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${unitChips(u, p.time)}</div>
+      <div class="sb-row hp"><label>HP</label>${gauge(hp, shield)}<span class="sb-num">${e.hp}<small>/${e.maxHp}</small>${u.shield > 0 ? `<em>+${u.shield}</em>` : ''}</span></div>
+      <div class="sb-row xp"><label>XP</label>${gauge(Math.round(k * GAUGE))}${u.picks ? '<button type="button" class="pf-trait" data-traits>특성</button>' : `<span class="sb-num">${lv >= MAX_LEVEL ? 'MAX' : `${Math.floor(k * 100)}%`}</span>`}</div>
     </div>
     <div class="sb-skills">${skillTiles(u, p.time, e.alive, false)}</div></div>`;
 }

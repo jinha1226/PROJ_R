@@ -143,12 +143,11 @@ export class WorldHud {
   }
 }
 
-/** Under the minimap: where and which turn, then (on the surface) what the party holds (ore, crystal, bio-matter against a body's cost, souls carried). */
+/** Under the minimap: where (on the surface, which turn too), then (on the surface) what the party holds (ore, crystal, bio-matter against a body's cost, souls carried). */
 export function statusLine(place: string, p: RoamParty, holdings = true): string {
   const souls = p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : '';
-  const where = `<div class="st-row"><span>${place}</span><span>턴 <b>${Math.floor(p.time)}</b></span></div>`;
-  // in the dungeon only where and when (2026-10-08: one clone goes down, what it holds is in its own window)
-  if (!holdings) return where;
-  return where
+  // in the dungeon only where (2026-10-08: one clone goes down, what it holds is in its own window; a long turn count would not fit the line)
+  if (!holdings) return `<div class="st-row"><span>${place}</span></div>`;
+  return `<div class="st-row"><span>${place}</span><span>턴 <b>${Math.floor(p.time)}</b></span></div>`
     + `<div class="st-row st-res"><span>광석 <b>${p.ore}</b></span><span>마정석 <b>${p.crystal}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">생체 <b>${p.bio}</b></span>${souls}</div>`;
 }

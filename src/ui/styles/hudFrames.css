@@ -25,41 +25,51 @@
 .wh-beacon:disabled { cursor: default; }
 
 /* ---- one clone alone (the dungeon): a single status bar, no portrait, no detail panel ---- */
+/* the corner the detail panel left: an empty panel the size of the log's, kept for what comes later */
 .hud-solo .wh-br { display: none; }
+@media (min-width: 701px) and (min-height: 521px) and (pointer: fine) {
+  .hud-solo .wh-br, .hud-solo .wh-br:empty { display: block; box-sizing: border-box; width: 330px; min-height: 120px; padding: 8px; }
+}
 /* the corner that held the beacon keeps only its buttons: no empty panel round them */
 .screen.world.hud-solo aside.wh-tr, .hud-solo aside.wh-tr { border-image: none; box-shadow: none; width: auto; padding: 0; }
 .hud-solo .wh-party { display: block; }
-.wh-party .sb { box-sizing: border-box; width: 430px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 14px 12px; font-family: 'GalmuriMono', monospace; }
-.sb-top { display: flex; align-items: baseline; gap: 8px; font-size: 12px; white-space: nowrap; }
+.wh-party .sb { box-sizing: border-box; width: 450px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 14px 12px; font-family: 'GalmuriMono', monospace; }
+.sb-top { display: flex; align-items: baseline; gap: 8px; font-size: 12px; white-space: nowrap; margin-bottom: 3px; }
 .sb-top b { font-weight: normal; font-size: 13px; color: var(--tint); }
 .sb-lv { color: #e6ffb0; font-size: 11px; }
+/* the gauges are told in characters, as Jupiter Hell tells them: [########----] */
+.sb-row { display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 1.35; white-space: nowrap; }
+.sb-row label { width: 18px; font-size: 10px; color: #34a85c; }
+.sb-cells { color: #2f7a4a; letter-spacing: 0; font-size: 15px; }
+.sb-cells i, .sb-cells u, .sb-cells s { font-style: normal; text-decoration: none; }
+.sb-cells s { color: #164a28; }
+.sb-row.hp .sb-cells i { color: #ffd24a; text-shadow: 0 0 6px #c8862a88; }
+.sb-row.hp .sb-cells u { color: #8fdcff; }
+.sb-row.xp .sb-cells i { color: #8ff0ff; }
+.sb.low .sb-row.hp .sb-cells i { color: #ff5a3a; text-shadow: 0 0 6px #a8241a; animation: wh-blink 0.8s steps(2) infinite; }
 .sb-num { margin-left: auto; color: #fff; font-size: 13px; text-shadow: 0 1px 0 #000; }
+.sb-row.xp .sb-num { color: #8fb39a; font-size: 11px; }
 .sb-num small { color: #8fb39a; font-size: 10px; }
 .sb-num em { font-style: normal; font-size: 11px; color: #8fdcff; margin-left: 4px; }
-/* troughs sunk into the panel; the fills are flat bands (a lit strip, the body, a shade), not gradients */
-.sb-hp, .sb-xp { position: relative; border: 2px solid transparent; border-image: url('./img/trough.png') 2 fill / 4px stretch; image-rendering: pixelated; overflow: hidden; }
-.sb-hp { height: 12px; margin: 5px 0 4px; }
-.sb-xp { height: 4px; }
-.sb-hp i, .sb-hp u, .sb-xp i { position: absolute; top: 0; bottom: 0; }
-.sb-hp i { left: 0; background: linear-gradient(180deg, #fff0a8 0 2px, #ffd24a 2px 8px, #c8862a 8px); }
-.sb.low .sb-hp i { background: linear-gradient(180deg, #ffb09a 0 2px, #ff5a3a 2px 8px, #a8241a 8px); }
-.sb.low .sb-num { color: #ff8a7a; animation: wh-blink 0.8s steps(2) infinite; }
-.sb-hp u { background: linear-gradient(180deg, #e0f6ff 0 2px, #8fdcff 2px 8px, #4a9ac8 8px); }
-.sb-xp i { left: 0; background: #8ff0ff; }
+.sb.low .sb-row.hp .sb-num { color: #ff8a7a; }
+.sb-row .pf-trait { margin-left: auto; }
 .sb-skills { display: flex; gap: 6px; }
 .sb .pf-skill { width: 62px; height: 44px; }
 .sb .pf-skill .sn { display: block; position: absolute; left: 3px; right: 3px; bottom: 5px; font-size: 9px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
 
 @media (max-height: 520px) and (orientation: landscape) {
   .screen.world aside, .wh-br, .wh-party .sb { border-image-width: 8px; }
-  .wh-party .sb { width: 320px; padding: 6px 8px 7px; gap: 8px; }
+  .wh-party .sb { width: 360px; padding: 6px 8px 7px; gap: 8px; }
+  .sb-row { font-size: 11px; }
+  .sb-cells { font-size: 13px; }
   .sb .pf-skill { width: 50px; height: 34px; }
-  .sb-hp { height: 10px; margin: 3px 0; }
   .wh-beacon { margin-top: 3px; padding: 3px 6px; font-size: 10px; }
 }
 @media (orientation: portrait) and (max-width: 700px) {
   .screen.world aside, .wh-br, .wh-party .sb { border-image-width: 8px; }
   .wh-party .sb { width: 100%; padding: 6px 8px 7px; gap: 8px; }
+  .sb-row { font-size: 11px; }
+  .sb-cells { font-size: 13px; }
   .sb .pf-skill { width: 50px; height: 34px; }
   .wh-beacon { margin-top: 3px; padding: 3px 6px; font-size: 10px; }
 }
@@ -71,3 +81,6 @@
 /* the surface's party frames wear the same drawn frame (at 1x, over their own background); the chosen one is ringed in its colour */
 .wh-party .pf { border: 1px solid transparent; border-image: url('./img/panel-open.png') 8 / 8px stretch; image-rendering: pixelated; clip-path: none; }
 .wh-party .pf.on { box-shadow: 0 0 0 2px var(--tint), 0 0 16px color-mix(in srgb, var(--tint) 40%, transparent); }
+
+/* under the minimap: floor and turn on one line */
+.wh-top .st-row { justify-content: flex-start; flex-wrap: nowrap; gap: 8px; white-space: nowrap; }

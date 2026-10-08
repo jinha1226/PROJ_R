@@ -118,17 +118,20 @@ it('a clone that steps and then shoots finishes the step before the shot (no sli
   expect(shot.at - step.at).toBeGreaterThanOrEqual(0.2);
 });
 
-it('one clone alone gets a single status bar: name, level, health with its shield, experience and its ultimates, no portrait', async () => {
-  const { soloBarHtml } = await import('../../src/ui/overworld/partyFrames');
+it('one clone alone gets a single status bar: name, level, health and experience told in characters, its ultimates, no portrait', async () => {
+  const { soloBarHtml, GAUGE } = await import('../../src/ui/overworld/partyFrames');
   const { entOf } = await import('../../src/sim/party/partyCore');
   const { p, u } = scene('mage'); const e = entOf(p, u.id)!;
   e.hp = 30; e.maxHp = 60; u.shield = 6; u.level = 3;
   const html = soloBarHtml(p, u.id);
+  expect(GAUGE).toBe(24);
   expect(html).toContain('마법사'); expect(html).toContain('Lv 3'); expect(html).toContain('30<small>/60</small>'); expect(html).toContain('<em>+6</em>');
-  expect(html).toContain('width:50%'); expect(html).toContain('left:50%;width:10%');
-  expect(html).toContain('data-skill='); expect(html).not.toContain('pf-face');
-  // a level-up waiting for its card shows the button, a hurt clone is flagged
-  u.picks = 1; e.hp = 10;
+  // half the gauge filled, a tenth of it shield, the rest missing: [##############----------]
+  expect(html).toContain(`[<i>${'#'.repeat(12)}</i><u>##</u><s>${'-'.repeat(10)}</s>]`);
+  expect(html.match(/sb-cells/g)).toHaveLength(2);
+  expect(html).toContain('data-skill='); expect(html).not.toContain('pf-face'); expect(html).not.toContain('data-traits');
+  // a level-up waiting for its card shows the button beside the experience gauge; a hurt clone is flagged and keeps one mark
+  u.picks = 1; e.hp = 1; u.shield = 0;
   const low = soloBarHtml(p, u.id);
-  expect(low).toContain('data-traits'); expect(low).toContain('class="sb low"');
+  expect(low).toMatch(/sb-row xp.*data-traits/s); expect(low).toContain('class="sb low"'); expect(low).toContain(`[<i>#</i><u></u><s>${'-'.repeat(23)}</s>]`);
 });
