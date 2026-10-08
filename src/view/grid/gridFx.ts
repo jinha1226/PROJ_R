@@ -9,7 +9,7 @@ import { FlashLights } from './flashLights';
 const BOLT_SPEED = 4 / 0.08;   // cells per second
 const HITSTOP = 0.06;
 
-interface Bolt { mesh: THREE.Mesh; trail: THREE.Mesh; from: THREE.Vector3; to: THREE.Vector3; t: number; total: number; done: () => void }
+interface Bolt { mesh: THREE.Mesh; trail: THREE.Mesh; from: THREE.Vector3; to: THREE.Vector3; t: number; total: number; done: () => void; tail?: number }
 
 /** Bolts, numbers, hit-stop, camera shake, aim lines and intent icons. */
 /** how long a label keeps its place in the stack, and how far each one above it rises (px) */
@@ -56,6 +56,16 @@ export class GridFx {
     for (const m of [mesh, trail]) { m.rotation.order = 'YXZ'; m.rotation.y = yaw; m.rotation.x = Math.PI / 2; this.scene.add(m); }
     const cells = from.distanceTo(to) / CELL;
     this.bolts.push({ mesh, trail, from: from.clone().setY(1.1), to: to.clone().setY(1.0), t: 0, total: Math.max(0.05, cells / BOLT_SPEED), done });
+  }
+
+  /** A burning rock falling out of the sky onto a spot, a tail of fire behind it; `done` runs as it lands. */
+  drop(at: THREE.Vector3, done: () => void, color = '#ff7a2a', sec = 0.14): void {
+    const to = at.clone().setY(0.25), from = to.clone().add(new THREE.Vector3(-1.3 * CELL, 8, -0.9 * CELL));
+    const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.24, 0), new THREE.MeshBasicMaterial({ color: '#ffe6b0' }));
+    const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.02, 1, 6, 1, true).translate(0, -0.5, 0), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false }));
+    trail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize());
+    this.scene.add(mesh, trail);
+    this.bolts.push({ mesh, trail, from, to, t: 0, total: sec, done, tail: 4 });
   }
 
   energy(at: THREE.Vector3, amount: number): void {
@@ -160,7 +170,7 @@ export class GridFx {
       const k = Math.min(1, b.t / b.total);
       b.mesh.position.lerpVectors(b.from, b.to, k);
       b.trail.position.copy(b.mesh.position);
-      b.trail.scale.y = Math.min(1.6, b.from.distanceTo(b.mesh.position));
+      b.trail.scale.y = Math.min(b.tail ?? 1.6, b.from.distanceTo(b.mesh.position));
       if (k >= 1) {
         for (const m of [b.mesh, b.trail]) { this.scene.remove(m); m.geometry.dispose(); (m.material as THREE.Material).dispose(); }
         this.bolts.splice(i, 1);

@@ -26,7 +26,7 @@ const REACTION: Record<string, Look> = {
 const CARD: Record<string, Look> = {
   '연소 폭발': L('blast', '#ff7a2a', 'dst', 1.7, 0.12), '번개 사슬': L('shock', '#ffe85a', 'dst', 1.4), '연쇄 반응': L('magic', '#b48aff', 'dst', 1.0),
   '원소 과부하': L('blast', '#c88aff', 'src', 2.6, 0.16), '서리 감옥': L('frost', '#bfe8ff', 'dst', 1.0), '마력 역류': L('shield', '#8ff0ff', 'src'),
-  '관통 화살': L(undefined, undefined, 'line'), '뼈 창': L(undefined, undefined, 'line'), '뼈 감옥': L('dust', '#e8e0c8', 'src', 1.6), '뼈 파편': L('hit', '#e8e0c8', 'src', 1.0), '해골 일으키기': L('smoke', '#22c8a0', 'dst', 0.8), '망자의 손아귀': L('smoke', '#3a6a5a', 'dst'), '독 신성': L('smoke', '#7ad04a', 'dst', 1.6), 저주: L('magic', '#6a4a8a', 'dst'), '골렘 붕괴': L('blast', '#e8e0c8', 'dst', 2.6, 0.18), 운석: L('blast', '#ff6a2a', 'dst', 1.8, 0.14), 화염구: L('blast', '#ff9a3a', 'dst', 1.2), '화염 전이': L('blast', '#ff7a2a', 'dst', 0.8), 블리자드: L('frost', '#cfeaff', 'src', 2.2, 0.06), '서리 고리': L('frost', '#bfe8ff', 'src', 1.6, 0.08), '얼음 파편': L('frost', '#e8f6ff', 'dst', 1.0), '연쇄 번개': L('shock', '#ffe85a', 'dst', 1.2), 정전기장: L('shock', '#bfe0ff', 'src', 1.6), 과전류: L('shock', '#ffe85a', 'dst', 0.8), '시체 폭발': L('blast', '#e8e0c8', 'dst', 1.2, 0.08), '망자의 부름': L('smoke', '#22c8a0', 'dst'), 관통탄: L(undefined, undefined, 'line'), '반격 사격': L(undefined, undefined, 'line'), '전술 재장전': L(undefined, undefined, 'line'),
+  '관통 화살': L(undefined, undefined, 'line'), '뼈 창': L(undefined, undefined, 'line'), '뼈 감옥': L('dust', '#e8e0c8', 'src', 1.6), '뼈 파편': L('hit', '#e8e0c8', 'src', 1.0), '해골 일으키기': L('smoke', '#22c8a0', 'dst', 0.8), '망자의 손아귀': L('smoke', '#3a6a5a', 'dst'), '독 신성': L('smoke', '#7ad04a', 'dst', 1.6), 저주: L('magic', '#6a4a8a', 'dst'), '골렘 붕괴': L('blast', '#e8e0c8', 'dst', 2.6, 0.18), 운석: L('magic', '#ff9a3a', 'src', 0.9), 화염구: L('blast', '#ff9a3a', 'dst', 1.2), '화염 전이': L('blast', '#ff7a2a', 'dst', 0.8), 블리자드: L('frost', '#cfeaff', 'src', 2.2, 0.06), '서리 고리': L('frost', '#bfe8ff', 'src', 1.6, 0.08), '얼음 파편': L('frost', '#e8f6ff', 'dst', 1.0), '연쇄 번개': L('shock', '#ffe85a', 'dst', 1.2), 정전기장: L('shock', '#bfe0ff', 'src', 1.6), 과전류: L('shock', '#ffe85a', 'dst', 0.8), '시체 폭발': L('blast', '#e8e0c8', 'dst', 1.2, 0.08), '망자의 부름': L('smoke', '#22c8a0', 'dst'), 관통탄: L(undefined, undefined, 'line'), '반격 사격': L(undefined, undefined, 'line'), '전술 재장전': L(undefined, undefined, 'line'),
   과열탄: L('blast', '#ff7a2a', 'dst', 1.0), 유탄: L('blast', '#ff9a3a', 'dst', 1.4, 0.1), '연쇄 폭발': L('blast', '#ff7a2a', 'dst', 1.2, 0.08), '즉시 재장전': L('magic', '#9fe8ff', 'src'), '개머리판 밀치기': L('hit', '#d8d8d8', 'dst', 0.8, 0.08), '슈트 과부하': L('shield', '#9fe8ff', 'src', 1.4),
   '조준 사격': L('crit', '#ffd04a', 'dst'), '표적 분석': L('warn', '#ffd04a', 'src'), '산탄 확산': L('hit', '#ffb04a', 'dst'), '사냥 표식': L('warn', '#ffd23a', 'dst'), '표식 이동': L('warn', '#ffd23a', 'dst'),
   '가시 갑옷': L('hit', '#d8d8d8', 'dst'),
@@ -49,6 +49,10 @@ const CARD: Record<string, Look> = {
 };
 /** the colour of each tag's resonance flare */
 const TAG_COLOR: Record<string, string> = { 화염: '#ff7a2a', 냉기: '#9fd8ff', 전기: '#ffe85a', 독: '#7ad04a', 출혈: '#ff3a4a', 근접: '#ffb04a', 원거리: '#9fe85a', 방패: '#d8e8ff', 은신: '#8a7aa8', 치유: '#5dff8a', 협공: '#ffd76a', 소환: '#b48aff', 생존: '#ffffff', 치명: '#ffd04a', 뼈: '#e8e0c8', 함정: '#c8b090', 함성: '#ff8a4a', 오라: '#ffe08a', 신성: '#fff2b0' };
+
+/** where fire last leapt from a body: for a moment, flame runs from there to each foe it sets alight */
+let spread: { at: THREE.Vector3; until: number } | undefined;
+const SPREAD_MS = 700, SPREAD_REACH = 2.9;
 
 function lookOf(e: GEvent): Look | undefined {
   const text = e.text ?? '';
@@ -75,6 +79,28 @@ export function effectCue(k: CueKit, e: GEvent): boolean {
     const at = toWorld(e.to.x, e.to.y);
     k.particles.vfx.fire('magic', at, '#7a4aff'); k.fx.transient.burst(at.x, at.z, '#b48aff', 1.2, 0.35); k.fx.flash(at, '#b48aff', 40, 0.3, 8); k.fx.shake(0.16, 0.22);
     return true;
+  }
+  // a meteor: a burning rock out of the sky, and the blast where it lands (its hits wait for the fall: playback.ts)
+  if (e.type === 'buff' && e.text === '운석 낙하') {
+    const at = e.to ? toWorld(e.to.x, e.to.y) : k.at(e.dst);
+    if (!at) return false;
+    k.fx.drop(at, () => {
+      k.particles.vfx.fire('blast', at, '#ff7a2a'); k.fx.transient.burst(at.x, at.z, '#ff7a2a', 1.1, 0.35);
+      k.fx.flash(at, '#ff8a2a', 46, 0.35, 9); k.fx.shake(0.12, 0.2);
+    });
+    return true;
+  }
+  // fire leaping from a body: a ring where it fell, then (below) a streak of flame to every foe it sets alight
+  if (e.type === 'buff' && e.text === '화염 전이') {
+    const at = k.at(e.dst);
+    if (!at) return false;
+    spread = { at: at.clone(), until: performance.now() + SPREAD_MS };
+    k.particles.vfx.fire('blast', at, '#ffb04a'); k.fx.transient.burst(at.x, at.z, '#ff9a3a', 0.9, 0.4); k.fx.flash(at, '#ff8a2a', 30, 0.3, 7);
+    return true;
+  }
+  if (e.type === 'buff' && e.text === 'burn' && spread && performance.now() < spread.until) {
+    const to = k.at(e.dst), d = to ? to.distanceTo(spread.at) : 0;
+    if (to && d > 0.1 && d <= SPREAD_REACH * CELL) k.fx.bolt(spread.at, to, () => undefined, 1.4);
   }
   const look = lookOf(e);
   if (!look) return false;

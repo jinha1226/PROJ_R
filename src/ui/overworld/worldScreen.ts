@@ -282,7 +282,7 @@ export class WorldScreen implements Screen {
     this.paused = false;
     this.message('');
     this.log = new WorldLog();
-    this.log.add(this.p.time, this.p.pod ? (this.opts.landing ? '포드 착륙 · 영혼 없음' : '지상 복귀') : '복제 포드 개방 · 영혼 없음', 'warn');
+    this.log.add(this.p.time, this.p.pod ? (this.opts.landing ? '포드가 착륙했다. 영혼이 없다.' : '지상으로 돌아왔다.') : '복제 포드가 열렸다. 영혼이 없다.', 'warn');
     // the pod falls in: the clone waits inside until it is down
     if (this.opts.landing && this.rt.landPod()) { this.landing = true; this.landingAt = performance.now(); this.rt.actors.setVisible(this.p.leader ?? 'hero', false); }
     this.mini = new WorldMinimap(this.p, (c) => this.walk(c));

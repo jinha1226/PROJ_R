@@ -34,11 +34,16 @@ export function elementAmp(attacker: Unit, dst: Unit, kind: DamageKind, t: numbe
   return m;
 }
 
+/** the foes within `r` of a cell, from its centre outward (a blast ripples out) */
+const outward = (p: Party, at: Cell, r: number): Unit[] => foesNear(p, at, r).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at));
+
 /** A meteor on a foe: fire damage and a burn round it; each kill it makes drops another on the next burning foe (bounded). */
 function meteor(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], ground: boolean, more = 3, stun = false): void {
   const at = { ...posOf(p, target) }, amount = Math.round(avg(p, u, t) * 1.5);
   let kills = 0;
-  for (const f of foesNear(p, at, 1)) {
+  // where this one lands (the engine's own line names the card once; a chain drops several)
+  ev.push({ t, type: 'buff', src: u.id, dst: target.id, to: { ...at }, text: '운석 낙하' });
+  for (const f of outward(p, at, 1)) {
     damage(p, t, u.id, f, amount, ev, true, false, 'fire');
     if (alive(p, f)) { applyStatus(p, u, f, 'burn', t, ev); if (stun) applyStatus(p, u, f, 'stun', t, ev); } else kills++;
   }
@@ -92,15 +97,15 @@ export const MAGE_CARDS: TraitDef[] = [
   inBranch(card('fireball', '화염구', 'law', ['화염'], 'mage', '세 번째 공격마다 화염구(대상 주변 1칸 화염 피해·화상)', {
     trigger: (r) => ({ id: '화염구', when: 'hit', test: (_p, c) => !!c.target && !!c.basic && c.src.nth % (r >= 2 ? 2 : 3) === 0, run: (p, c) => {
       const at = { ...posOf(p, c.target!) }, burnt = on(c.target!, 'burn', c.t);
-      const ball = (where: Cell) => { for (const f of foesNear(p, where, 1)) { damage(p, c.t, c.src.id, f, Math.round(avg(p, c.src, c.t)), c.ev, true, false, 'fire'); if (alive(p, f)) applyStatus(p, c.src, f, 'burn', c.t, c.ev); } };
+      const ball = (where: Cell) => { for (const f of outward(p, where, 1)) { damage(p, c.t, c.src.id, f, Math.round(avg(p, c.src, c.t)), c.ev, true, false, 'fire'); if (alive(p, f)) applyStatus(p, c.src, f, 'burn', c.t, c.ev); } };
       ball(at);
       // rank 3: a fireball on a burning foe throws another at the nearest foe outside the first
       const next = r >= 3 && burnt ? foesNear(p, at, 4).filter((f) => dist(posOf(p, f), at) > 1).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0] : undefined;
-      if (next) ball({ ...posOf(p, next) });
+      if (next) { c.ev.push({ t: c.t, type: 'buff', src: c.src.id, dst: next.id, text: '화염구' }); ball({ ...posOf(p, next) }); }
     } }),
   }, '두 번째 공격마다', '화상 적을 맞힌 화염구 → 가장 가까운 적에게 하나 더'), FIRE),
   inBranch(card('fireSpread', '화염 전이', 'convert', ['화염'], 'mage', '화염 피해로 처치 → 주변 1칸 적 화상 2중첩', {
-    trigger: (r) => ({ id: '화염 전이', when: 'kill', test: (_p, c) => c.kind === 'fire' && !!c.target, run: (p, c) => { for (const f of foesNear(p, posOf(p, c.target!), r >= 2 ? 2 : 1)) applyStatus(p, c.src, f, 'burn', c.t, c.ev, 2, true); } }),
+    trigger: (r) => ({ id: '화염 전이', when: 'kill', test: (_p, c) => c.kind === 'fire' && !!c.target, run: (p, c) => { for (const f of outward(p, posOf(p, c.target!), r >= 2 ? 2 : 1)) applyStatus(p, c.src, f, 'burn', c.t, c.ev, 2, true); } }),
   }, '주변 2칸까지'), FIRE),
   inBranch(card('fireAmp', '화염 숙련', 'amp', ['화염'], 'mage', '#화염 1당 화염 피해 ×1.15 (곱)', {}, '×1.19'), FIRE),
   // 냉기: a blizzard that keeps falling while the mage holds its ground

@@ -195,7 +195,8 @@ export class DelveScreen implements Screen {
       if (e.text === 'soul') this.rt?.actors.absorb(u.id);
     }
     this.rt?.applyLive(ev, t0);
-    this.log.read(this.p, ev);
+    // the log is told as the show plays each event (a chain's lines run by with its effects); with no stage, all at once
+    if (!this.rt) this.log.read(this.p, ev);
     for (const e of ev) {
       if (e.type === 'die' && unitOf(this.p, e.dst!)?.side === 'hero') this.alert(`dead${e.dst}`, `${this.name(e.dst!)} 쓰러짐`, false);
       if (e.type === 'wake') this.alert(`wake${this.p.floor}:${e.text}`, '적 발견', false);
@@ -211,7 +212,7 @@ export class DelveScreen implements Screen {
       if (e.type === 'buff' && e.text === 'beaconClosed') this.hud.toast('포탈 닫힘');
       if (e.type === 'dead') {
         this.hud.toast('사망');
-        this.log.add(e.t, e.text === 'lost' ? '사망 · 영혼 소멸' : '사망 · 재료 부족', 'warn');
+        this.log.add(e.t, e.text === 'lost' ? '쓰러졌다. 영혼이 소멸했다.' : '쓰러졌다. 새 몸을 만들 재료가 모자란다.', 'warn');
         // below ground nobody comes back on their own: the pod takes it from here
         if (e.text === 'lost' && this.opts.onAscend) setTimeout(() => this.opts.onAscend!(takeParty(this.p)), 2200);
       }
@@ -229,7 +230,7 @@ export class DelveScreen implements Screen {
     this.p = this.opts.party ?? newDelve(this.seed);
     this.warned.clear();
     this.log = new WorldLog();
-    this.log.add(this.p.time, `승강기 하강 · 지하 ${this.p.floor}층`, 'warn');
+    this.log.add(this.p.time, `승강기를 타고 지하 ${this.p.floor}층으로 내려갔다.`, 'warn');
     LOOK_BY_ID.clear();
     this.view();
     this.select(this.p.leader ?? 'hero');
@@ -241,7 +242,7 @@ export class DelveScreen implements Screen {
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer()); this.rt.partyShow();
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), (e) => this.log.tell(this.p, e)); this.rt.partyShow();
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = loadDot();
     // a light touch of glow: torches and lamps bleed a little, nothing blows out
@@ -255,7 +256,7 @@ export class DelveScreen implements Screen {
 
   private down(): void {
     if (!descend(this.p)) return;
-    this.log.add(this.p.time, `지하 ${this.p.floor}층`, 'warn');
+    this.log.add(this.p.time, `지하 ${this.p.floor}층에 내려섰다.`, 'warn');
     this.view();
     this.select(clones(this.p)[0]!.id);
     this.hud.toast(`지하 ${this.p.floor}층`);

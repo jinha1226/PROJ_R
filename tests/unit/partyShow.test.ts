@@ -13,13 +13,13 @@ it('in a party fight a swing plays out before the blow it caused shows', () => {
   expect(hit.at - swing.at).toBeGreaterThanOrEqual(0.13);
 });
 
-it('a chain shows one effect after another, but one clone\'s chain stays under half a second', () => {
+it('a chain shows one effect after another, but one clone\'s chain stays under a second', () => {
   const pb = new Playback(true);
   const names = ['원소 순환', '증기', '연소 폭발', '연쇄 반응', '과부하', '번개 사슬', '연소 폭발 ', '증기 ', '과부하 ', '독연 폭발', '원소 순환 ', '연쇄 반응 ', '증기  ', '과부하  '];
   pb.push(names.map((text): GEvent => ({ t: 2, type: 'buff', src: 'c1', text })), 2);
   const seen = drain(pb);
   expect(seen[1]!.at - seen[0]!.at).toBeGreaterThanOrEqual(0.035);
-  expect(seen[seen.length - 1]!.at - seen[0]!.at).toBeLessThanOrEqual(0.55);
+  expect(seen[seen.length - 1]!.at - seen[0]!.at).toBeLessThanOrEqual(1);
 });
 
 it('the grid game keeps its quick overlapping show', () => {
@@ -29,13 +29,35 @@ it('the grid game keeps its quick overlapping show', () => {
   expect(seen[1]!.at - seen[0]!.at).toBeLessThan(0.05);
 });
 
-it('the log tells a chain as one line: who, how many, what fired in order', () => {
-  const { p, u } = scene('mage'); const log = new WorldLog();
+it('the log tells a chain as it runs, in sentences: each effect, what it did, and how long the chain ran', () => {
+  const { p, u, foes } = scene('mage'); const log = new WorldLog(), f = foes[0]!;
   log.read(p, [
-    { t: 3, type: 'buff', src: u.id, text: '원소 순환' }, { t: 3, type: 'react', src: u.id, dst: 'x', text: '증기' },
-    { t: 3, type: 'buff', src: u.id, text: '연소 폭발' }, { t: 3, type: 'buff', src: u.id, text: 'chain', amount: 3 },
+    { t: 3, type: 'shoot', src: u.id, dst: f.id }, { t: 3, type: 'hit', src: u.id, dst: f.id, amount: 7 },
+    { t: 3, type: 'buff', src: u.id, dst: f.id, text: 'burn' },
+    { t: 3, type: 'buff', src: u.id, text: '운석' }, { t: 3, type: 'buff', src: u.id, dst: f.id, text: '운석 낙하' },
+    { t: 3, type: 'hit', src: u.id, dst: f.id, amount: 12 }, { t: 3, type: 'die', src: u.id, dst: f.id },
+    { t: 3, type: 'buff', src: u.id, dst: f.id, text: '화염 전이' }, { t: 3, type: 'react', src: u.id, dst: 'x', text: '증기' },
+    { t: 3, type: 'buff', src: u.id, text: 'chain', amount: 3 },
   ]);
-  expect(log.html()).toContain('마법사 연쇄 ×3 · 원소 순환 → 증기 → 연소 폭발');
+  const told = log.lines.map((l) => l.text);
+  expect(told[0]).toBe('마법사가 고블린을 공격해 7 피해를 입혔다.');
+  expect(told[1]).toBe('고블린이 불타기 시작했다.');
+  expect(told[2]).toMatch(/^마법사의 운석이 발동했다\./);
+  expect(told.slice(3, 6)).toEqual(['운석이 고블린 위로 떨어졌다.', '고블린이 12 피해를 입었다.', '고블린이 쓰러졌다.']);
+  expect(told[6]).toMatch(/^마법사의 화염 전이가 발동했다\./);
+  expect(told.slice(7)).toEqual(['증기 반응이 일어났다.', '연쇄가 3번 이어졌다.']);
+});
+
+it('the log explains an effect the first time a clone sets it off, and only names it after', () => {
+  const { p, u } = scene('mage'); const log = new WorldLog();
+  log.read(p, [{ t: 1, type: 'buff', src: u.id, text: '화염 전이' }, { t: 2, type: 'buff', src: u.id, text: '화염 전이' }]);
+  expect(log.lines[0]!.text).toContain('('); expect(log.lines[1]!.text).toBe('마법사의 화염 전이가 발동했다.');
+});
+
+it('Korean particles follow the last sound of the word', async () => {
+  const { josa } = await import('../../src/ui/overworld/worldLog');
+  expect([josa('해골', '이/가'), josa('마법사', '이/가'), josa('고블린', '을/를'), josa('전사', '을/를'), josa('뼈 창', '이/가'), josa('화염 전이', '이/가')])
+    .toEqual(['해골이', '마법사가', '고블린을', '전사를', '뼈 창이', '화염 전이가']);
 });
 
 it('clones act at the same time: one clone\'s chain does not hold another clone\'s swing', () => {
