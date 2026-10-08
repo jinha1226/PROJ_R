@@ -51,6 +51,8 @@ export function startRaid(p: WorldParty): GEvent[] {
   // the horde waits at the edges and pours out in waves (swarm.ts); the first raiders step out at once
   p.raidQueue = planWaves(p, size, free.length ? free : cells, p.time);
   p.raidLoot = { kills: 0, ore: 0, crystal: 0 };
+  // every clone holds its ground like a turret: ranged ones stay put, melee ones step out to a foe near their spot and go back; they move only when told
+  for (const u of living(p)) if (!u.summoner) u.order = { kind: 'hold', cell: { ...entOf(p, u.id)!.pos } };
   while (p.raidQueue.length && p.raidQueue[0]!.at <= p.time) spawnRaider(p, p.raidQueue.shift()!, ev);
   p.combat = true; p.over = false;
   return ev;

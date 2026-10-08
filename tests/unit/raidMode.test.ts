@@ -103,3 +103,29 @@ it('the raid’s end leaves a result for the window: won or lost, the injured, t
   const html = raidResultHtml(p);
   expect(html).toContain('격퇴'); expect(html).toContain('부상'); expect(html).toContain('처치');
 });
+
+it('a raid starts with every clone holding its ground: a ranged one never leaves its spot, a melee one steps out to a foe near it and goes back', () => {
+  const p = newSurface(42), u = unitOf(p, 'hero')!, e = entOf(p, 'hero')!;
+  u.souls = []; implant(p, u, 'archer', []);
+  const spot = { ...e.pos };
+  startRaid(p); p.raidQueue = [];
+  expect(u.order).toEqual({ kind: 'hold', cell: spot });
+  // a raider far off: the archer stays put
+  const f = raiders(p)[0]!, fe = entOf(p, f.id)!;
+  fe.pos = { x: spot.x + 9, y: spot.y }; if (f.swarm) { f.sx = fe.pos.x + 0.5; f.sy = fe.pos.y + 0.5; } f.nextAt = 1e9;
+  tick(p, 3);
+  expect(e.pos).toEqual(spot);
+  // a warrior steps out to a foe two cells off its spot, then comes back once it is gone
+  const q = newSurface(42), w = unitOf(q, 'hero')!, we = entOf(q, 'hero')!;
+  w.souls = []; implant(q, w, 'warrior', []);
+  const home = { ...we.pos };
+  startRaid(q); q.raidQueue = [];
+  const g = raiders(q)[0]!, ge = entOf(q, g.id)!;
+  ge.pos = { x: home.x + 2, y: home.y }; ge.hp = ge.maxHp = 9999; if (g.swarm) { g.sx = ge.pos.x + 0.5; g.sy = ge.pos.y + 0.5; } g.nextAt = 1e9;
+  for (const o of raiders(q)) if (o !== g) entOf(q, o.id)!.alive = false;
+  tick(q, 2);
+  expect(dist(we.pos, ge.pos)).toBeLessThanOrEqual(1);
+  ge.alive = false; q.raidQueue = [{ at: 999, kind: 'fodder', cell: { x: 1, y: 1 } }];
+  tick(q, 4);
+  expect(we.pos).toEqual(home);
+});
