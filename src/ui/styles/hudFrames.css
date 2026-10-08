@@ -21,7 +21,7 @@
 .pf-skill.queued kbd, .pf-skill.queued .sn { color: #021006; }
 
 /* under the minimap: where and when, then the return beacon */
-.wh-beacon { display: block; width: 100%; margin-top: 6px; padding: 5px 8px; color: #5dff8a; cursor: pointer; }
+.wh-beacon { display: block; width: 100%; margin-top: 6px; padding: 5px 8px; font: 12px 'GalmuriMono', monospace; color: #5dff8a; cursor: pointer; }
 .wh-beacon:disabled { cursor: default; }
 
 /* ---- one clone alone (the dungeon): a single status bar, no portrait, no detail panel ---- */
@@ -33,7 +33,7 @@
 /* the corner that held the beacon keeps only its buttons: no empty panel round them */
 .screen.world.hud-solo aside.wh-tr, .hud-solo aside.wh-tr { border-image: none; box-shadow: none; width: auto; padding: 0; }
 .hud-solo .wh-party { display: block; }
-.wh-party .sb { box-sizing: border-box; width: 470px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 16px 13px; }
+.wh-party .sb { box-sizing: border-box; width: 450px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 16px 13px; font: 13px 'GalmuriMono', monospace; }
 .sb-top { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; margin-bottom: 4px; }
 .sb-top b { font-weight: normal; color: var(--tint); }
 .sb-lv { color: #e6ffb0; }
@@ -41,7 +41,7 @@
  * Health and experience are bars in sunk troughs. Both rows share three columns (label, bar, value), so the bars are
  * the same width and the number and the level-up button sit right after their bar, in line.
  */
-.sb-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 84px; align-items: center; column-gap: 8px; line-height: 18px; white-space: nowrap; }
+.sb-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 72px; align-items: center; column-gap: 8px; line-height: 18px; white-space: nowrap; }
 .sb-row + .sb-row { margin-top: 3px; }
 .sb-row label { color: #34a85c; }
 .sb-bar { position: relative; box-sizing: border-box; border: 2px solid transparent; border-image: url('./img/trough.png') 2 fill / 4px stretch; image-rendering: pixelated; overflow: hidden; }
@@ -59,7 +59,7 @@
 .sb-num small { font-size: inherit; color: #8fb39a; }
 .sb-num em { font-style: normal; color: #8fdcff; margin-left: 6px; }
 .sb.low .sb-row.hp .sb-num { color: #ff8a7a; }
-.sb-row .pf-trait { justify-self: start; line-height: 16px; padding: 0 8px; }
+.sb-row .pf-trait { justify-self: start; font-size: 12px; line-height: 16px; padding: 0 8px; }
 /* the ultimates: keys the size of the touch pad's own */
 .sb-skills { display: flex; gap: 6px; }
 .sb .pf-skill { width: 66px; height: 48px; }
@@ -71,18 +71,20 @@
 @media (max-height: 520px) and (orientation: landscape) {
   .screen.world aside, .wh-br, .wh-party .sb { border-image-width: 8px; }
   .wh-party .sb { width: 380px; padding: 7px 10px 8px; gap: 8px; }
-  .sb-row { grid-template-columns: 24px minmax(0, 1fr) 60px; column-gap: 6px; }
+  .sb-row { grid-template-columns: 20px minmax(0, 1fr) 54px; column-gap: 6px; }
   .sb-num em { display: none; }
   .sb .pf-skill { width: 58px; height: 48px; }
-  .wh-beacon { margin-top: 3px; padding: 3px 6px; }
+  .wh-beacon { margin-top: 3px; padding: 3px 6px; font-size: 10px; }
+  .wh-party .sb { font-size: 12px; }
 }
 @media (orientation: portrait) and (max-width: 700px) {
   .screen.world aside, .wh-br, .wh-party .sb { border-image-width: 8px; }
   .wh-party .sb { width: 100%; padding: 7px 10px 8px; gap: 8px; }
-  .sb-row { grid-template-columns: 24px minmax(0, 1fr) 60px; column-gap: 6px; }
+  .sb-row { grid-template-columns: 20px minmax(0, 1fr) 54px; column-gap: 6px; }
   .sb-num em { display: none; }
   .sb .pf-skill { width: 58px; height: 44px; }
-  .wh-beacon { margin-top: 3px; padding: 3px 6px; }
+  .wh-beacon { margin-top: 3px; padding: 3px 6px; font-size: 10px; }
+  .wh-party .sb { font-size: 12px; }
 }
 
 /* a key's letter sits inside the drawn edge, not under it */
@@ -96,19 +98,3 @@
 /* under the minimap: floor and turn on one line */
 .wh-top .st-row { justify-content: flex-start; flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
 .wh-cap-t { font-weight: normal; }
-
-/*
- * Two faces, each at the size it was drawn for (a pixel font set between its sizes smears):
- * Neo둥근모 Code at 16px for what is read at a glance (the status bar, keys, captions, the floor),
- * 갈무리 at 11px for what is read as text (the log, the foe's line, the small labels on a key).
- */
-@font-face { font-family: 'NeoDGM'; src: url('/assets/fonts/NeoDGMCode.woff2') format('woff2'); font-display: swap; }
-.wh-party .sb, .wh-beacon, .wh-btns button, .wh-cap, .wh-top, .tp-btns button, .wl-box header, .sb .pf-trait {
-  font-family: 'NeoDGM', 'GalmuriMono', monospace; font-size: 16px; letter-spacing: 0;
-}
-.wh-cap { line-height: 18px; }
-.wh-cap span { font-size: 16px; }
-.wh-top { line-height: 20px; }
-.screen.world .wl-line, .wh-target, .wh-target *, .sb .pf-skill .sn, .sb .pf-skill kbd, .sb .pf-skill em { font-family: 'GalmuriMono', monospace; font-size: 11px; }
-.screen.world .wl-line { line-height: 17px; }
-.screen.world .wl-all .wl-line { line-height: 20px; }
