@@ -55,3 +55,10 @@ it('opened ship support sits at the end of the ultimate bar with its cooldown', 
   const html = ultBarHtml(p, null, 1);
   expect(html).toContain('data-sup="strike"'); expect(html).toContain('궤도 포격'); expect(html).not.toContain('data-sup="laser"');
 });
+
+it('the base menu offers build, a trip down, the lab, the workshop, the clones and the soul stones', async () => {
+  const { baseMenuHtml } = await import('../../src/ui/overworld/baseMenu');
+  const html = baseMenuHtml(true);
+  for (const k of ['build', 'pod', 'lab', 'bench', 'roster', 'souls']) expect(html).toContain(`data-menu="${k}"`);
+  expect(html).toMatch(/data-menu="build" class="on"/);
+});

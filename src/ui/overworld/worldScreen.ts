@@ -6,6 +6,7 @@ import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placeProm
 import { WorkbenchScreen } from './workbench/workbenchScreen';
 import { BaseCamera } from './baseCamera';
 import { RaidControl } from './raidControl';
+import { BaseMenu } from './baseMenu';
 import { SwarmView } from '../../view/overworld/swarmView';
 import { BasePanels, panelAt } from './basePanels';
 import { homeLife } from '../../sim/base/baseLife';
@@ -95,6 +96,9 @@ export class WorldScreen implements Screen {
   private camera!: BaseCamera;
   private panels!: BasePanels;
   private raidCtl!: RaidControl;
+  private menuBar!: BaseMenu;
+  /** base mode: the building list is open above the base menu */
+  private building = false;
   private swarm = new SwarmView();
   private readonly result = Object.assign(document.createElement('div'), { className: 'pip-win menu-win', hidden: true });
 
@@ -152,6 +156,13 @@ export class WorldScreen implements Screen {
       speed: () => this.speed, setSpeed: (v) => { this.speed = v; this.pace(); }, live: (ev) => this.live(ev),
     });
     this.el.appendChild(this.raidCtl.bar); this.el.appendChild(this.raidCtl.box); this.el.appendChild(this.result);
+    this.menuBar = new BaseMenu((k) => {
+      if (k === 'build') this.building = !this.building;
+      else if (k === 'pod' || k === 'lab') this.panels.show({ kind: k });
+      else if (k === 'bench') this.openBench();
+      else this.togglePip(k === 'roster' ? 'roster' : 'soul');
+    });
+    this.el.appendChild(this.menuBar.el);
     this.result.addEventListener('click', (e) => { if (e.target === this.result || (e.target as HTMLElement).closest('[data-close]')) this.result.hidden = true; });
     this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
@@ -186,7 +197,8 @@ export class WorldScreen implements Screen {
       const free = base || (raid && !this.raidCtl.driving);
       this.camera.on = free; this.camera.update(dt);
       if (this.rt) { this.rt.freeAim = free ? this.camera.aim : null; if (this.raidCtl.driving) this.rt.focusId = this.raidCtl.driving; }
-      this.build.setDocked(base);
+      this.build.setDocked(base && this.building);
+      this.menuBar.update(base, this.building);
       this.el.classList.toggle('base-mode', base);
       this.el.classList.toggle('raid-mode', raid);
       this.handOver();
@@ -356,7 +368,7 @@ export class WorldScreen implements Screen {
     if (k === 'escape' && this.bench.open) { this.bench.close(); return; }
     if (k === 'escape' && this.panels.open) { this.panels.close(); return; }
     if (k === 'escape' && this.build.open) { this.build.close(); return; }
-    if (k === 'b' && !this.pip.open && !this.menu.open) { this.build.toggle(); return; }
+    if (k === 'b' && !this.pip.open && !this.menu.open) { if (this.baseMode) this.building = !this.building; else this.build.toggle(); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
@@ -410,6 +422,8 @@ export class WorldScreen implements Screen {
 
   private marks(): void {
     if (!this.rt || this.build.marks(this.rt, this.hover)) return;
+    // the base runs itself: no walk is drawn for the clones living about it, nor in a raid
+    if (this.baseMode || this.raidMode) { this.rt.showAim(null, true); this.rt.showPath(null); return; }
     const me = unitOf(this.p, this.sel);
     const e = me && entOf(this.p, me.id);
     const o = me?.order;

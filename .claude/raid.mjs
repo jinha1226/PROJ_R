@@ -4,7 +4,7 @@ const br = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsa
 const p = await br.newPage({ viewport: { width: 1280, height: 720 } });
 p.on('pageerror', (e) => console.log('ERR', e.message));
 await p.goto(`${base}?seed=3&raid&lvl&rich`); await p.click('[data-testid="to-grid"]', { timeout: 60000 });
-await p.waitForSelector('.build-panel.docked', { timeout: 60000 }); await p.waitForTimeout(4000);
+await p.waitForSelector('.base-menu', { timeout: 60000 }); await p.waitForTimeout(4000);
 await p.screenshot({ path: `${out}/raid-night.png` });
 await p.click('[data-r="start"]'); await p.waitForTimeout(6000);
 await p.screenshot({ path: `${out}/raid-on.png` });

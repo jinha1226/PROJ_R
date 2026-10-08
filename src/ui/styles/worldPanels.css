@@ -204,3 +204,11 @@
 .sel-box[hidden] { display: none; }
 .world.raid-mode .quick-slots, .world.raid-mode .wh-br { display: none; }
 .world.raid-mode .ult-bar { bottom: 96px; }
+/* base mode's menu along the bottom; the building list opens above it */
+.base-menu { position: absolute; z-index: 9; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px 8px; font: 13px 'GalmuriMono', monospace; background: #03140af2; border: 1px solid #1f7a3e; }
+.base-menu[hidden] { display: none; }
+.base-menu button { display: flex; gap: 6px; align-items: baseline; padding: 5px 12px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; }
+.base-menu button small { color: #34a85c; font-size: 10px; }
+.base-menu button.on { background: #1f7a3e; color: #021006; }
+.world.base-mode .build-panel.docked { bottom: 62px; }
+.world.base-mode .wh-bl { bottom: 62px; }
