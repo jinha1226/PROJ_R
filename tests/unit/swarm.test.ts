@@ -136,8 +136,10 @@ it('a tick of a horde at its largest stays cheap', () => {
   const p = newSurface(42); p.raidsDone = 40;
   startRaid(p);
   for (const u of p.units) if (u.side === 'hero') { u.nextAt = 1e9; const e = entOf(p, u.id)!; e.hp = e.maxHp = 1e6; }
-  run(p, 6 * WAVE_GAP + WAVE_POUR, 0.25);
+  // the whole horde out at once (the waves would take minutes of game time to get there), then on its way in
+  for (const s of p.raidQueue!) s.at = p.time;
+  run(p, 12, 0.25);
   expect(fodder(p).length).toBeGreaterThan(300);
   const t0 = performance.now(); for (let k = 0; k < 30; k++) { p.time += 0.1; swarmTick(p, 0.1, []); }
   expect((performance.now() - t0) / 30).toBeLessThan(8);
-});
+}, 30_000);
