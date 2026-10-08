@@ -60,9 +60,10 @@ describe('raids', () => {
       for (const y of [45, 47]) p.s.map.tiles[y * 96 + 48] = 'floor';
       if (kind === 'gate') p.s.map.tiles[46 * 96 + 48] = 'floor';
       const ev: GEvent[] = [];
-      for (let t = 0; t < 30 && p.buildings.length; t++) raidTurn(p, u, t, ev);
+      for (let t = 0; t < 30 && !p.buildings[0]!.broken; t++) raidTurn(p, u, t, ev);
       expect(ev.some(e => e.type === 'hit' && e.dst?.startsWith('building'))).toBe(true);
-      expect(p.buildings).toHaveLength(0);
+      // broken, not gone: it waits for a repair (spec 2026-10-08 §5)
+      expect(p.buildings[0]!.broken).toBe(true);
       expect(p.s.map.tiles[46 * 96 + 48]).toBe('floor');
     }
   });
@@ -93,12 +94,12 @@ describe('raids', () => {
     const after = e.hp; worldTick(p, 1); expect(e.hp).toBe(after);
     worldTick(p, .5); expect(e.hp).toBeLessThan(after);
   });
-  it('pod loss takes exactly floor(30%) materials and 1–2 buildings without refunds', () => {
+  it('pod loss keeps the stored materials and every building; the pod is left at a quarter to repair', () => {
     const p = setup(); for (let x = 44; x < 47; x++) place(p, 'wall', { x, y: 44 });
     p.ore = 101; p.crystal = 19; startRaid(p); p.podHp = 0;
     expect(worldTick(p, .1).some(e => e.type === 'dead' && e.text === 'raidLost')).toBe(true);
-    expect([p.ore, p.crystal, p.podHp]).toEqual([71, 14, 100]);
-    expect(p.buildings.length).toBeGreaterThanOrEqual(1); expect(p.buildings.length).toBeLessThanOrEqual(2);
+    expect(p.ore).toBeGreaterThanOrEqual(101); expect(p.crystal).toBeGreaterThanOrEqual(19); expect(p.podHp).toBe(50);
+    expect(p.buildings).toHaveLength(3);
     expect(p.raid).toBeNull(); expect(p.units.filter(u => u.side === 'foe' && alive(p, u))).toHaveLength(0);
   });
   it('auto defence requires 120% power and counts only clones at base', () => {
@@ -115,7 +116,7 @@ describe('raids', () => {
     for (const u of p.units) { entOf(p, u.id)!.pos = { x: 48, y: 47 }; u.nextAt = 0; }
     let lost = false;
     for (let i = 0; i < 150 && p.raid; i++) lost ||= worldTick(p, 1).some(e => e.text === 'raidLost');
-    expect(lost).toBe(true); expect(p.podHp).toBe(100);
+    expect(lost).toBe(true); expect(p.podHp).toBeGreaterThanOrEqual(50);
   });
   it('does not tick raids while away; seed and inputs reproduce events', () => {
     const run = () => { const p = setup(); startRaid(p); p.away = true;

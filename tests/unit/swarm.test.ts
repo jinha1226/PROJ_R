@@ -69,7 +69,7 @@ it('a full ring of walls round the pod is broken through', () => {
   expect(Number.isFinite(raidField(p)[idx(p.s.map, { x: 2, y: p.base.y })]!) || Number.isFinite(raidField(p)[idx(p.s.map, { x: p.s.map.w - 3, y: p.base.y })]!)).toBe(true);
   const hp = p.podHp;
   run(p, 300, 0.25);
-  expect(p.buildings.length).toBeLessThan(walls); expect(p.podHp).toBeLessThan(hp);
+  expect(p.buildings.length).toBe(walls); expect(p.buildings.some((b) => b.broken)).toBe(true); expect(p.podHp).toBeLessThan(hp);
 });
 
 it('a blast through the ordinary damage kills the fodder in its cells', () => {

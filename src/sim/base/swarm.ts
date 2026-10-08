@@ -4,8 +4,8 @@ import { alive, damage, entOf, type Unit } from '../party/partyCore';
 import { FOES, type FoeId } from '../party/partyDefs';
 import { blank } from '../roam/roam';
 import type { WorldParty } from '../overworld/worldSim';
-import { buildingsAt, removeBuilding } from './buildings';
-import { podReach, raidField, resetRaidPath } from './raidPath';
+import { breakBuilding, buildingsAt } from './buildings';
+import { blocks, podReach, raidField, resetRaidPath } from './raidPath';
 
 /** one raider waiting to come out at the edge: fodder (the horde), an elite, or the general */
 export interface RaidSpawn { at: number; kind: 'fodder' | 'brute' | 'archer' | 'general'; cell: Cell }
@@ -42,7 +42,7 @@ function blocked(p: WorldParty, x: number, y: number): boolean {
   const c = { x: Math.floor(x), y: Math.floor(y) };
   if (c.x < 0 || c.y < 0 || c.x >= p.s.map.w || c.y >= p.s.map.h) return true;
   const b = buildingsAt(p, c);
-  return (!!b && b.kind !== 'palisade') || !walkable(tileAt(p.s.map, c));
+  return (!!b && blocks(b)) || !walkable(tileAt(p.s.map, c));
 }
 
 /** a fodder's blow: a clone beside it, else the pod in reach, else the building it is pressed against */
@@ -52,9 +52,9 @@ function strikeNear(p: WorldParty, u: Unit, cell: Cell, toward: Cell | null, ev:
   if (hero) { damage(p, t, u.id, hero, hit(), ev, false, false, 'physical', true); return true; }
   if (podReach(p, cell)) { const n = hit(); p.podHp = Math.max(0, p.podHp - n); ev.push({ t, type: 'hit', src: u.id, dst: 'pod', to: { ...p.base }, amount: n }); return true; }
   const b = toward && buildingsAt(p, toward);
-  if (b && b.kind !== 'palisade') {
+  if (b && blocks(b)) {
     b.hp = Math.max(0, b.hp - hit());
-    if (b.hp === 0) { removeBuilding(p, b.id); resetRaidPath(p); ev.push({ t, type: 'die', src: u.id, dst: b.id, to: { ...b.at } }); }
+    if (b.hp === 0) { breakBuilding(p, b); resetRaidPath(p); ev.push({ t, type: 'die', src: u.id, dst: b.id, to: { ...b.at } }); }
     return true;
   }
   return false;

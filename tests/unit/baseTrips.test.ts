@@ -37,6 +37,6 @@ describe('base trips', () => {
     returnToSurface(p, takeParty(d)); expect(p.raidReady).not.toBeNull();
     startRaid(p); expect(p.raid).not.toBeNull();
     p.podHp = 0; expect(worldTick(p, 1).some(e => e.text === 'raidLost')).toBe(true);
-    expect(p.raid).toBeNull(); expect(p.podHp).toBe(100);
+    expect(p.raid).toBeNull(); expect(p.podHp).toBe(50);
   });
 });

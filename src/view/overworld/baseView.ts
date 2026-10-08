@@ -31,6 +31,8 @@ export class BaseView {
     const live = new Set(buildings.map((b) => b.id));
     for (const [id, o] of this.shown) if (!live.has(id)) { this.root.remove(o); this.shown.delete(id); }
     for (const b of buildings) if (!this.shown.has(b.id)) { const o = this.make(b.kind); this.place(o, b); this.root.add(o); this.shown.set(b.id, o); }
+    // a broken building lies low until it is repaired
+    for (const b of buildings) { const o = this.shown.get(b.id); if (o) o.scale.y = b.broken ? 0.3 : 1; }
   }
 
   /** A building figure on its footprint (cells are 1 m; a 2×2 sits centred on its four cells). */
@@ -58,6 +60,7 @@ export class BaseView {
       g.add(m);
     } else if (kind === 'wall') box(1, 1.1, 1, this.wall);
     else if (kind === 'palisade') for (let i = 0; i < 4; i++) box(0.14, 0.55 + (i % 2) * 0.12, 0.14, this.wood, -0.33 + i * 0.22, 0, 0);
+    else if (kind === 'shockMine') { box(0.56, 0.06, 0.56, this.post); box(0.18, 0.05, 0.18, this.glow, 0, 0.06); }
     else if (kind === 'gate') { box(0.16, 1.1, 0.16, this.post, -0.42); box(0.16, 1.1, 0.16, this.post, 0.42); box(0.7, 0.06, 0.06, this.glow, 0, 0.3); box(0.7, 0.06, 0.06, this.glow, 0, 0.7); }
     else box(size * 0.9, 0.8, size * 0.9, this.post);
     return g;

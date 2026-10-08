@@ -6,12 +6,12 @@ import type { GridRuntime } from '../../view/grid/gridRuntime';
 import { BaseView } from '../../view/overworld/baseView';
 
 const INFO: Record<BuildingKind, [string, string]> = {
-  watchtower: ['망루', '사거리 6 자동 사격 · 영역 확장'], wall: ['성벽', '길을 막음'], palisade: ['방책', '엄폐'],
+  watchtower: ['포탑', '사거리 6 자동 사격 · 영역 확장'], wall: ['방벽', '길을 막음'], palisade: ['바리케이드', '엄폐'], shockMine: ['전기 지뢰', '밟으면 피해·감전'],
   gate: ['성문', '아군만 통과'], infirmary: ['의무실', '귀환하면 완전 회복'], forge: ['대장간', '희생 효율 35%'],
 };
 /** each building's name (the panels and the base share it) */
 export const BUILD_NAMES = Object.fromEntries(Object.entries(INFO).map(([k, v]) => [k, v[0]])) as Record<BuildingKind, string>;
-const ORDER: BuildingKind[] = ['watchtower', 'wall', 'palisade', 'gate', 'infirmary', 'forge'];
+const ORDER: BuildingKind[] = ['watchtower', 'wall', 'palisade', 'shockMine', 'gate', 'infirmary', 'forge'];
 /** wall-like tiles stay picked so a run can be laid tap after tap; the rest are placed once */
 const RUN = new Set<BuildingKind>(['wall', 'palisade']);
 

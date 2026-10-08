@@ -29,6 +29,8 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
   lastRaid?: { won: boolean; injured: string[]; buildings: string[]; kills: number; ore: number; crystal: number };
   /** the raiders still to step out (the horde's waves) and what this raid's kills have paid so far */
+  /** ship support opened at the pod, and when each may fire again */
+  support?: { strike?: boolean; laser?: boolean; strikeReady?: number; laserReady?: number };
   raidQueue?: import('../base/swarm').RaidSpawn[]; raidLoot?: { kills: number; ore: number; crystal: number };
   pod?: boolean }
 

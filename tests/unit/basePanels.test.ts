@@ -33,3 +33,25 @@ it('a click on the pod, the lab or a building finds its panel; elsewhere none', 
   expect(defencePanelHtml(p, hit!.id!)).toContain('60/60');
   expect(panelAt(p, { x: 1, y: 1 })).toBeNull();
 });
+
+it('a defence’s panel offers its next level and, when hurt, a repair; the pod’s offers its repair and the ship’s support', async () => {
+  const { breakBuilding, canPlace } = await import('../../src/sim/base/buildings');
+  const p = newSurface(4); p.ore = 300; p.crystal = 40;
+  let at = { x: 0, y: 0 };
+  for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) if (!at.x && canPlace(p, 'watchtower', { x: p.base.x + dx, y: p.base.y + dy })) at = { x: p.base.x + dx, y: p.base.y + dy };
+  place(p, 'watchtower', at);
+  const b = p.buildings[0]!;
+  expect(defencePanelHtml(p, b.id)).toContain('data-upgrade'); expect(defencePanelHtml(p, b.id)).not.toContain('data-repair');
+  breakBuilding(p, b);
+  expect(defencePanelHtml(p, b.id)).toContain('data-repair'); expect(defencePanelHtml(p, b.id)).toContain('파손');
+  p.podHp = 120;
+  const pod = podPanelHtml(p, 1);
+  expect(pod).toContain('data-podrepair'); expect(pod).toContain('data-unlock="strike"'); expect(pod).toContain('data-unlock="laser"');
+});
+
+it('opened ship support sits at the end of the ultimate bar with its cooldown', async () => {
+  const { ultBarHtml } = await import('../../src/ui/overworld/raidControl');
+  const p = newSurface(4); p.support = { strike: true, strikeReady: p.time + 5 };
+  const html = ultBarHtml(p, null, 1);
+  expect(html).toContain('data-sup="strike"'); expect(html).toContain('궤도 포격'); expect(html).not.toContain('data-sup="laser"');
+});

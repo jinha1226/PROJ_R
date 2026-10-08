@@ -1,4 +1,5 @@
-import { buildingsAt, BUILDINGS } from '../../sim/base/buildings';
+import { buildingsAt, levelOfBuilding, LEVELS, podRepairCost, POD_MAX, repairBuilding, repairCost, repairPod, upgradeBuilding } from '../../sim/base/buildings';
+import { SUPPORT, unlockSupport, type SupportId } from '../../sim/base/support';
 import { canPrintClone } from '../../sim/base/cloner';
 import { startFloors } from '../../sim/base/drill';
 import { same, type Cell } from '../../sim/grid/types';
@@ -29,7 +30,13 @@ export function podPanelHtml(p: WorldParty, floor: number, kept?: number): strin
     const ok = canDrill(p, u.id);
     return `<div class="menu-row"><span>${name(u)} · 레벨 ${u.level ?? 1}${u.injured ? ' · 부상' : ''}</span><button type="button" data-send="${u.id}" ${ok ? '' : 'disabled'}>보내기</button></div>`;
   }).join('');
-  return frame('포드', `<p class="base-sub">${kept ? `▼ ${kept}층 복귀` : '▼ 지하로'}</p>${floors}${rows}`);
+  const fix = podRepairCost(p);
+  const pod = `<div class="menu-row"><span>포드 ${Math.round(p.podHp)}/${POD_MAX}</span>${fix ? `<button type="button" data-podrepair ${p.ore >= fix ? '' : 'disabled'}>수리 · 광석 ${fix}</button>` : ''}</div>`;
+  const ship = (Object.keys(SUPPORT) as SupportId[]).map((id) => {
+    const s = SUPPORT[id], open = !!p.support?.[id];
+    return `<div class="menu-row"><span>${s.name}</span>${open ? '<small>함선 지원 대기</small>' : `<button type="button" data-unlock="${id}" ${p.ore >= s.cost[0] && p.crystal >= s.cost[1] ? '' : 'disabled'}>열기 · 광석 ${s.cost[0]} · 마정석 ${s.cost[1]}</button>`}</div>`;
+  }).join('');
+  return frame('포드', `<p class="base-sub">${kept ? `▼ ${kept}층 복귀` : '▼ 지하로'}</p>${floors}${rows}${pod}${ship}`);
 }
 
 /** The lab: print a body (bio-matter permitting), put carried souls into fresh bodies, the workshop. */
@@ -45,7 +52,10 @@ export function labPanelHtml(p: WorldParty): string {
 export function defencePanelHtml(p: WorldParty, id: string): string {
   const b = p.buildings.find((x) => x.id === id);
   if (!b) return '';
-  return frame(BUILD_NAMES[b.kind], `<div class="menu-row"><span>체력 ${b.hp}/${b.maxHp}</span><small>${BUILDINGS[b.kind].size}×${BUILDINGS[b.kind].size}</small></div>`);
+  const row = LEVELS[b.kind], lv = levelOfBuilding(b), next = row?.cost[lv - 1], fix = repairCost(b);
+  const up = next ? `<button type="button" data-upgrade ${!b.broken && p.ore >= next[0] && p.crystal >= next[1] ? '' : 'disabled'}>${lv + 1}단계 · 광석 ${next[0]}${next[1] ? ` · 마정석 ${next[1]}` : ''}</button>` : '';
+  const mend = fix ? `<button type="button" data-repair ${p.ore >= fix ? '' : 'disabled'}>수리 · 광석 ${fix}</button>` : '';
+  return frame(BUILD_NAMES[b.kind], `<div class="menu-row"><span>${row ? `${lv}단계 · ` : ''}체력 ${b.hp}/${b.maxHp}${b.broken ? ' · 파손' : ''}</span></div><div class="menu-row">${up}${mend}</div>`);
 }
 
 /** The panel window over the base: shows one panel, routes its buttons. */
@@ -66,6 +76,11 @@ export class BasePanels {
       if (t.hasAttribute('data-print')) this.act.print();
       if (t.dataset.implant) { const [id, i] = t.dataset.implant.split(':'); this.act.implant(id!, Number(i)); }
       if (t.hasAttribute('data-bench')) { this.close(); this.act.bench(); return; }
+      const p = this.p(), id = this.hit?.id;
+      if (t.hasAttribute('data-upgrade') && id) upgradeBuilding(p, id);
+      if (t.hasAttribute('data-repair') && id) repairBuilding(p, id);
+      if (t.hasAttribute('data-podrepair')) repairPod(p);
+      if (t.dataset.unlock) unlockSupport(p, t.dataset.unlock as SupportId);
       this.draw();
     });
   }

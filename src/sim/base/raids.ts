@@ -3,7 +3,7 @@ import { alive, entOf, occupied, posOf } from '../party/partyCore';
 import { living } from '../roam/roam';
 import { connect } from '../overworld/worldGen';
 import type { WorldParty } from '../overworld/worldSim';
-import { onReturn, removeBuilding } from './buildings';
+import { levelOfBuilding, onReturn, POD_MAX } from './buildings';
 import { unitPower } from './power';
 import { resetRaidPath } from './raidPath';
 import { planWaves, spawnRaider } from './swarm';
@@ -15,7 +15,7 @@ export interface RaidLosses { ore: number; crystal: number; buildings: string[] 
 /** How many come (spec 2026-10-08 §4): 60 at first, more with every raid done and every floor reached, 150 at most. */
 export const raidSize = (p: WorldParty): number => Math.min(150, 60 + p.raidsDone * 12 + Math.max(0, p.deepest - 1) * 3);
 export const defencePower = (p: WorldParty): number => living(p).filter(u => dist(posOf(p, u), p.base) <= 6).reduce((n, u) => n + unitPower(p, u), 0)
-  + p.buildings.reduce((n, b) => n + (b.kind === 'watchtower' ? 15 : b.kind === 'wall' ? 1 : 0), 0);
+  + p.buildings.filter(b => !b.broken).reduce((n, b) => n + (b.kind === 'watchtower' ? 15 : b.kind === 'shockMine' ? 3 : b.kind === 'wall' ? 1 : 0) * levelOfBuilding(b), 0);
 
 /** Count completed trips, heal, and advance the return-only raid clock. */
 export function onRaidReturn(p: WorldParty, deepest = p.deepest): GEvent[] {
@@ -76,13 +76,9 @@ function freeNear(p: WorldParty, at: Cell): Cell | undefined {
 }
 function finish(p: WorldParty, won: boolean, ev: GEvent[]): RaidLosses {
   const losses: RaidLosses = { ore: 0, crystal: 0, buildings: [] };
-  if (!won) {
-    losses.ore = Math.floor(p.ore * .3); losses.crystal = Math.floor(p.crystal * .3);
-    p.ore -= losses.ore; p.crystal -= losses.crystal;
-    losses.buildings = p.s.rng.shuffle(p.buildings).slice(0, p.s.rng.int(1, 2)).map(b => b.id);
-    for (const id of losses.buildings) removeBuilding(p, id);
-    p.podHp = 100;
-  }
+  // a raid costs repairs, never stored materials (spec 2026-10-08 §5): the buildings it broke, and a pod knocked down to a quarter when it fell
+  losses.buildings = p.buildings.filter(b => b.broken).map(b => b.id);
+  if (!won) p.podHp = Math.max(p.podHp, Math.round(POD_MAX / 4));
   for (const u of p.units) if (u.side === 'foe' && u.group === p.raid?.group) { const e = entOf(p, u.id)!; if (e.alive) u.reaped = true; e.alive = false; e.hp = 0; }
   const loot = p.raidLoot ?? { kills: 0, ore: 0, crystal: 0 };
   p.lastRaid = { won, injured: raise(p), buildings: [...losses.buildings], kills: loot.kills, ore: loot.ore, crystal: loot.crystal };

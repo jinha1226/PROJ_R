@@ -1,14 +1,16 @@
 import { canStep, DIRS, dist, idx, walkable, tileAt, type Cell } from '../grid/types';
 import type { WorldParty } from '../overworld/worldSim';
-import { footprint } from './buildings';
+import { footprint, type Building } from './buildings';
 
+/** a building that stands in a raider's way (palisades and mines are walked over; broken ones are rubble) */
+export const blocks = (b: Building): boolean => !b.broken && b.kind !== 'palisade' && b.kind !== 'shockMine';
 export const podReach = (p: WorldParty, c: Cell): boolean => [p.base, { x: p.base.x + 1, y: p.base.y }, { x: p.base.x, y: p.base.y + 1 }, { x: p.base.x + 1, y: p.base.y + 1 }].some(at => dist(c, at) <= 1);
 const cache = new WeakMap<WorldParty, { key: string; distances: Float64Array }>();
 export const resetRaidPath = (p: WorldParty): void => { cache.delete(p); };
 /** the costed map the raid paths over: breakable buildings stand as floor that costs eight steps to cross (break) */
 function trialOf(p: WorldParty) {
   const m = p.s.map, trial = { ...m, tiles: [...m.tiles] }, costs = new Map<number, number>();
-  for (const b of p.buildings) if (b.kind !== 'palisade') for (const c of footprint(b.kind, b.at)) {
+  for (const b of p.buildings) if (blocks(b)) for (const c of footprint(b.kind, b.at)) {
     trial.tiles[idx(m, c)] = 'floor'; costs.set(idx(m, c), 8);
   }
   return { trial, costs };
@@ -16,7 +18,7 @@ function trialOf(p: WorldParty) {
 
 /** Distance to the pod from every cell (reverse Dijkstra shared by the whole raid; Infinity where nothing leads). */
 export function raidField(p: WorldParty): Float64Array {
-  const m = p.s.map, key = p.buildings.map(b => b.id).join(',');
+  const m = p.s.map, key = p.buildings.map(b => `${b.id}${b.broken ? 'x' : ''}`).join(',');
   const entry = cache.get(p);
   if (entry && entry.key === key) return entry.distances;
   const { trial, costs } = trialOf(p);
