@@ -1,7 +1,6 @@
-// Draws the HUD's frames (9-slice PNGs) into src/ui/styles/img. Run: `node scripts/prepare-ui.mjs`.
-// The frames are told in characters, like the status bar's gauges ([####----]): a panel is +-----+ with | down its sides,
-// a button stands between [ and ]. They are drawn on the terminal font's own grid (a 6px cell, 1px strokes) and shown at
-// 1x, so a frame's dashes sit beside the text's as the same hand.
+// Draws the HUD's pixel-art frames (9-slice PNGs) into src/ui/styles/img. Run: `node scripts/prepare-ui.mjs`.
+// The frames keep the terminal's green; what changes is that a border is a drawn thing (an outline, a lit edge, a groove,
+// corner brackets, a cut corner) instead of a 1px CSS line. They are drawn at 1x and shown at 2x, nearest-neighbour.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
@@ -19,67 +18,37 @@ function png(w, h, px) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', head), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
-/** An image told as rows of characters: each character a colour (a space is the panel's fill). */
-function art(rows, colours, fill) {
-  const h = rows.length, w = rows[0].length, px = [];
-  for (const row of rows) { if (row.length !== w) throw new Error(`ragged art: "${row}"`); for (const ch of row) px.push(colours[ch] ?? fill); }
-  return png(w, h, px);
+/**
+ * A frame of `size` px a side whose border is told ring by ring from the outside in (`rings`), over `fill`.
+ * `bracket`: the corner's lit bracket, this many px along each arm, on ring `on`. `cut`: outer corner px cut away.
+ */
+function frame({ size, rings, fill, bracket = 0, on = 1, lit, cut = 0, rivet }) {
+  const px = [], last = size - 1, clear = [0, 0, 0, 0];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const d = Math.min(x, y, last - x, last - y), cx = Math.min(x, last - x), cy = Math.min(y, last - y);
+    let c = d < rings.length ? rings[d] : fill;
+    // a ring may be two colours: lit along the top and left, in shade along the bottom and right
+    if (Array.isArray(c[0])) c = (d === y && y <= last - y) || (d === x && x <= last - x) ? c[0] : c[1];
+    // the bracket: both arms of the corner on one ring, brighter than the line it sits on
+    if (bracket && d === on && cx < bracket && cy < bracket) c = lit;
+    if (rivet && cx === rivet[0] && cy === rivet[0]) c = rivet[1];
+    // the cut corner: the outermost px of each corner are gone, and the outline steps in round them
+    if (cx + cy < cut) c = clear; else if (cut && cx + cy === cut && d < 1) c = rings[0];
+    px.push(c);
+  }
+  return png(size, size, px);
 }
 
-const GREEN = { dim: hex('#2f7a4a'), lit: hex('#5dff8a'), fill: hex('#03140a', 232) };
-/**
- * A panel: `+` at each corner, `-` along the top and bottom (a 4px dash in a 6px cell), `|` down the sides (a 9px stroke in
- * a 12px line). 9-slice: corners 7x7, the top and bottom tiles 6px wide, the side tiles 12px tall (repeat: round).
- * `.` is the panel's fill, laid under the whole frame so the characters stand on the panel, not on the floor behind it.
- */
-const panel = (c, open = false) => art([
-  '....................',
-  '...+............+...',
-  '...+............+...',
-  '.+++++..----..+++++.',
-  '...+............+...',
-  '...+............+...',
-  '....................',
-  '....................',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '...|............|...',
-  '....................',
-  '....................',
-  '....................',
-  '...+............+...',
-  '...+............+...',
-  '.+++++..----..+++++.',
-  '...+............+...',
-  '...+............+...',
-  '....................',
-], { '+': c.lit, '-': c.dim, '|': c.dim, '.': open ? [0, 0, 0, 0] : c.fill }, c.fill);
-writeFileSync(new URL('panel.png', OUT), panel(GREEN));
-writeFileSync(new URL('panel-open.png', OUT), panel(GREEN, true));
+const ink = hex('#010603'), bright = hex('#5dff8a'), groove = hex('#0a2a14'), dim = hex('#124a26'), pale = hex('#9dffb8');
 
-/**
- * A button: it stands between brackets, as a gauge does. `[` and `]` are a stroke the button's whole height with a 3px
- * foot at top and bottom; the face between them is the fill. 9-slice: 5px left and right, 3px top and bottom.
- */
-const button = (c) => art([
-  '.............',
-  '.###.....###.',
-  '.#.........#.',
-  '.#.........#.',
-  '.#.........#.',
-  '.###.....###.',
-  '.............',
-], { '#': c.lit, '.': c.fill }, c.fill);
-writeFileSync(new URL('button.png', OUT), button({ lit: hex('#3fbf68'), fill: hex('#041a0c', 240) }));
-// lit (hover, queued): the face bright, the brackets dark on it
-writeFileSync(new URL('button-on.png', OUT), button({ lit: hex('#021006'), fill: hex('#5dff8a') }));
-// the touch pad's keys keep their own colours: attack red, wait pale
-writeFileSync(new URL('button-red.png', OUT), button({ lit: hex('#ff8a6a'), fill: hex('#1a0806', 240) }));
-writeFileSync(new URL('button-pale.png', OUT), button({ lit: hex('#e6ffb0'), fill: hex('#0a1a08', 240) }));
+// a panel: outline, the green line (lit top-left, in shade bottom-right), a groove, a dim inner line; bright corner brackets
+writeFileSync(new URL('panel.png', OUT), frame({ size: 24, rings: [ink, [hex('#2a9a50'), hex('#155a2c')], groove, dim], fill: hex('#03140a', 226), bracket: 7, on: 1, lit: bright, cut: 2, rivet: [3, pale] }));
+// the same frame with nothing behind it (a panel that keeps its own background)
+writeFileSync(new URL('panel-open.png', OUT), frame({ size: 24, rings: [ink, [hex('#2a9a50'), hex('#155a2c')], groove, dim], fill: [0, 0, 0, 0], bracket: 7, on: 1, lit: bright, cut: 2, rivet: [3, pale] }));
+// a button: outline, a raised edge, a flat face
+writeFileSync(new URL('button.png', OUT), frame({ size: 16, rings: [ink, [hex('#3fbf68'), hex('#0f4a22')], hex('#0a2a14')], fill: hex('#041a0c'), cut: 1 }));
+// the same pressed in or lit (hover, queued): the edge reversed, the face bright
+writeFileSync(new URL('button-on.png', OUT), frame({ size: 16, rings: [ink, [hex('#0f4a22'), hex('#9dffb8')], hex('#2a9a50')], fill: hex('#5dff8a'), cut: 1 }));
+// a bar's trough (health, experience): outline, an edge in shade on top (it is sunk), a dark bed
+writeFileSync(new URL('trough.png', OUT), frame({ size: 12, rings: [ink, [hex('#020c06'), hex('#1f7a3e')]], fill: hex('#06180c') }));
 console.log('ui frames written to', OUT.pathname);

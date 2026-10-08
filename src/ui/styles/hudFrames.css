@@ -1,37 +1,27 @@
 /*
- * The HUD's frames are told in characters, like the status bar's gauges ([####----]): a panel is +-----+ with | down its
- * sides, a button stands between [ and ]. They are 9-slice images (scripts/prepare-ui.mjs) drawn on the terminal font's own
- * grid and laid over the padding (border-image-width), so nothing inside a panel moves.
+ * The HUD's frames are drawn things: pixel-art 9-slice frames (scripts/prepare-ui.mjs) shown at 2x, nearest-neighbour.
+ * The colours are the terminal's own green; a border used to be a 1px CSS line and read as drawn by code.
+ * The image is laid over the padding (border-image-width), so nothing inside a panel moves.
  */
-.screen.world aside, .wh-br, .wl-box, .wh-party .sb, .wh-target {
-  border: 1px solid transparent; border-image: url('./img/panel.png') 7 fill / 7px round; image-rendering: pixelated;
+.screen.world aside, .wh-br, .wl-box, .wh-party .sb {
+  border: 1px solid transparent; border-image: url('./img/panel.png') 8 fill / 16px stretch; image-rendering: pixelated;
   background: none; box-shadow: 0 6px 18px #000a;
 }
-.wh-target { box-shadow: none; padding: 6px 14px; }
+/* a small strip takes the frame at 1x: its corners would swallow it at 2x */
+.wh-target { border: 1px solid transparent; border-image: url('./img/panel.png') 8 fill / 8px stretch; image-rendering: pixelated; background: none; }
 
-/* buttons stand between brackets; lit when hovered or queued */
-.wh-btns button, .wh-beacon, .pf-skill, .wl-box header button, .tp-btns button, .quick-slots button {
-  border: 1px solid transparent; border-image: url('./img/button.png') 3 5 fill / 6px 10px stretch; image-rendering: pixelated; background: none;
+/* buttons: a raised key, lit when hovered or queued */
+.wh-btns button, .wh-beacon, .pf-skill, .wl-box header button {
+  border: 1px solid transparent; border-image: url('./img/button.png') 5 fill / 10px stretch; image-rendering: pixelated; background: none;
 }
 .wh-btns button:hover:not(:disabled), .wh-beacon:hover:not(:disabled), .wl-box header button:hover, .pf-skill.queued {
   border-image-source: url('./img/button-on.png'); background: none; color: #021006; box-shadow: none;
 }
 .wh-btns button:disabled, .wh-beacon:disabled { background: none; opacity: 0.45; }
 .pf-skill.queued kbd, .pf-skill.queued .sn { color: #021006; }
-/* the touch pad's keys keep their own colours */
-.tp-btns [data-a="attack"] { border-image-source: url('./img/button-red.png'); }
-.tp-btns [data-a="wait"] { border-image-source: url('./img/button-pale.png'); }
 
-/* a panel's caption sits in its top line, as a title sits in a text window's border: +- 기록 -----+ */
-.wh-cap { position: absolute; top: -3px; left: 14px; right: 14px; margin: 0; border: 0; display: flex; justify-content: space-between; pointer-events: none; }
-.wh-cap, .wh-cap span { letter-spacing: 0.2em; }
-.wh-cap > span, .wh-cap-t { background: #03140a; padding: 0 5px; float: none; pointer-events: auto; font-weight: normal; }
-.wh-log { margin-top: 4px; }
-
-/* under the minimap: the floor, then the return beacon */
-.wh-top { padding: 0 2px; }
-.wh-top .st-row { justify-content: flex-start; flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
-.wh-beacon { display: block; width: 100%; margin-top: 6px; padding: 6px 8px; font: 12px 'GalmuriMono', monospace; color: #5dff8a; cursor: pointer; }
+/* under the minimap: where and when, then the return beacon */
+.wh-beacon { display: block; width: 100%; margin-top: 6px; padding: 5px 8px; color: #5dff8a; cursor: pointer; }
 .wh-beacon:disabled { cursor: default; }
 
 /* ---- one clone alone (the dungeon): a single status bar, no portrait, no detail panel ---- */
@@ -43,58 +33,82 @@
 /* the corner that held the beacon keeps only its buttons: no empty panel round them */
 .screen.world.hud-solo aside.wh-tr, .hud-solo aside.wh-tr { border-image: none; box-shadow: none; width: auto; padding: 0; }
 .hud-solo .wh-party { display: block; }
-.wh-party .sb { box-sizing: border-box; width: 440px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; font-family: 'GalmuriMono', monospace; }
-.sb-top { display: flex; align-items: baseline; gap: 8px; font-size: 13px; white-space: nowrap; margin-bottom: 4px; }
+.wh-party .sb { box-sizing: border-box; width: 470px; max-width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 16px 13px; }
+.sb-top { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; margin-bottom: 4px; }
 .sb-top b { font-weight: normal; color: var(--tint); }
 .sb-lv { color: #e6ffb0; }
 /*
- * The gauges are told in characters, as Jupiter Hell tells them: [########----]. One size of type across a row, and
- * three columns shared by both rows (label, gauge, value), so HP and XP line up to the pixel.
+ * Health and experience are bars in sunk troughs. Both rows share three columns (label, bar, value), so the bars are
+ * the same width and the number and the level-up button sit right after their bar, in line.
  */
-.sb-row { display: grid; grid-template-columns: 22px max-content 1fr; align-items: baseline; column-gap: 6px; font-size: 13px; line-height: 18px; white-space: nowrap; }
+.sb-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 84px; align-items: center; column-gap: 8px; line-height: 18px; white-space: nowrap; }
+.sb-row + .sb-row { margin-top: 3px; }
 .sb-row label { color: #34a85c; }
-.sb-cells { color: #2f7a4a; letter-spacing: 0; }
-.sb-cells i, .sb-cells u, .sb-cells s { font-style: normal; text-decoration: none; }
-.sb-cells s { color: #164a28; }
-.sb-row.hp .sb-cells i { color: #ffd24a; text-shadow: 0 0 6px #c8862a88; }
-.sb-row.hp .sb-cells u { color: #8fdcff; }
-.sb-row.xp .sb-cells i { color: #8ff0ff; }
-.sb.low .sb-row.hp .sb-cells i { color: #ff5a3a; text-shadow: 0 0 6px #a8241a; animation: wh-blink 0.8s steps(2) infinite; }
+.sb-bar { position: relative; box-sizing: border-box; border: 2px solid transparent; border-image: url('./img/trough.png') 2 fill / 4px stretch; image-rendering: pixelated; overflow: hidden; }
+.sb-row.hp .sb-bar { height: 14px; }
+.sb-row.xp .sb-bar { height: 10px; }
+.sb-bar i, .sb-bar u { position: absolute; top: 0; bottom: 0; }
+.sb-bar i { left: 0; }
+/* the fills are flat bands (a lit strip, the body, a shade), not gradients */
+.sb-row.hp .sb-bar i { background: linear-gradient(180deg, #fff0a8 0 2px, #ffd24a 2px 7px, #c8862a 7px); }
+.sb-row.hp .sb-bar u { background: linear-gradient(180deg, #e0f6ff 0 2px, #8fdcff 2px 7px, #4a9ac8 7px); }
+.sb-row.xp .sb-bar i { background: linear-gradient(180deg, #d8fbff 0 2px, #8ff0ff 2px 4px, #3fa8b8 4px); }
+.sb.low .sb-row.hp .sb-bar i { background: linear-gradient(180deg, #ffb09a 0 2px, #ff5a3a 2px 7px, #a8241a 7px); animation: wh-blink 0.8s steps(2) infinite; }
 .sb-num { color: #fff; text-shadow: 0 1px 0 #000; }
 .sb-row.xp .sb-num { color: #8fb39a; }
 .sb-num small { font-size: inherit; color: #8fb39a; }
 .sb-num em { font-style: normal; color: #8fdcff; margin-left: 6px; }
 .sb.low .sb-row.hp .sb-num { color: #ff8a7a; }
-.sb-row .pf-trait { justify-self: start; font-size: 12px; line-height: 16px; padding: 0 8px; }
+.sb-row .pf-trait { justify-self: start; line-height: 16px; padding: 0 8px; }
 /* the ultimates: keys the size of the touch pad's own */
 .sb-skills { display: flex; gap: 6px; }
 .sb .pf-skill { width: 66px; height: 48px; }
-.sb .pf-skill kbd { left: 9px; top: 6px; }
-.sb .pf-skill em { right: 9px; top: 6px; }
-.sb .pf-skill .sn { display: block; position: absolute; left: 8px; right: 8px; bottom: 8px; font-size: 11px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
-.pf-skill kbd { left: 7px; top: 5px; }
-.pf-skill em { right: 7px; top: 5px; }
-
-/* the surface's party frames wear the same frame over their own background; the chosen one is ringed in its colour */
-.wh-party .pf { border: 1px solid transparent; border-image: url('./img/panel-open.png') 7 / 7px round; image-rendering: pixelated; clip-path: none; }
-.wh-party .pf.on { box-shadow: 0 0 0 2px var(--tint), 0 0 16px color-mix(in srgb, var(--tint) 40%, transparent); }
-
+.sb .pf-skill .sn { display: block; position: absolute; left: 6px; right: 6px; bottom: 7px; font-size: 11px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
 /* a finger has no keys: a key's letter would only sit on the skill's name */
 @media (pointer: coarse) { .sb .pf-skill kbd { display: none; } .sb .pf-skill .sn { bottom: auto; top: 50%; transform: translateY(-50%); } }
 
-/* phones: every key along the bottom is one height (44px), the bar's ultimates among them */
+/* phones: every key along the bottom is one height, the bar's ultimates among them */
 @media (max-height: 520px) and (orientation: landscape) {
-  .wh-party .sb { width: 380px; padding: 8px 10px; gap: 8px; }
-  .sb-top, .sb-row { font-size: 12px; line-height: 16px; }
-  .sb .pf-skill { width: 58px; height: 44px; }
-  .wh-beacon { margin-top: 3px; padding: 4px 6px; font-size: 10px; }
+  .screen.world aside, .wh-br, .wh-party .sb { border-image-width: 8px; }
+  .wh-party .sb { width: 380px; padding: 7px 10px 8px; gap: 8px; }
+  .sb-row { grid-template-columns: 24px minmax(0, 1fr) 60px; column-gap: 6px; }
+  .sb-num em { display: none; }
+  .sb .pf-skill { width: 58px; height: 48px; }
+  .wh-beacon { margin-top: 3px; padding: 3px 6px; }
 }
 @media (orientation: portrait) and (max-width: 700px) {
-  .wh-party .sb { width: 100%; padding: 8px 10px; gap: 8px; }
-  .sb-top, .sb-row { font-size: 12px; line-height: 16px; }
+  .screen.world aside, .wh-br, .wh-party .sb { border-image-width: 8px; }
+  .wh-party .sb { width: 100%; padding: 7px 10px 8px; gap: 8px; }
+  .sb-row { grid-template-columns: 24px minmax(0, 1fr) 60px; column-gap: 6px; }
+  .sb-num em { display: none; }
   .sb .pf-skill { width: 58px; height: 44px; }
-  .wh-beacon { margin-top: 3px; padding: 4px 6px; font-size: 10px; }
-  .wh-target { padding: 5px 8px; }
+  .wh-beacon { margin-top: 3px; padding: 3px 6px; }
 }
-/* a quick slot's count sits inside its brackets */
-.quick-slots button small { right: 9px; bottom: 4px; }
+
+/* a key's letter sits inside the drawn edge, not under it */
+.pf-skill kbd { left: 6px; top: 5px; }
+.pf-skill em { right: 6px; top: 5px; }
+.wh-top { padding: 0 2px; }
+/* the surface's party frames wear the same drawn frame (at 1x, over their own background); the chosen one is ringed in its colour */
+.wh-party .pf { border: 1px solid transparent; border-image: url('./img/panel-open.png') 8 / 8px stretch; image-rendering: pixelated; clip-path: none; }
+.wh-party .pf.on { box-shadow: 0 0 0 2px var(--tint), 0 0 16px color-mix(in srgb, var(--tint) 40%, transparent); }
+
+/* under the minimap: floor and turn on one line */
+.wh-top .st-row { justify-content: flex-start; flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
+.wh-cap-t { font-weight: normal; }
+
+/*
+ * Two faces, each at the size it was drawn for (a pixel font set between its sizes smears):
+ * Neo둥근모 Code at 16px for what is read at a glance (the status bar, keys, captions, the floor),
+ * 갈무리 at 11px for what is read as text (the log, the foe's line, the small labels on a key).
+ */
+@font-face { font-family: 'NeoDGM'; src: url('/assets/fonts/NeoDGMCode.woff2') format('woff2'); font-display: swap; }
+.wh-party .sb, .wh-beacon, .wh-btns button, .wh-cap, .wh-top, .tp-btns button, .wl-box header, .sb .pf-trait {
+  font-family: 'NeoDGM', 'GalmuriMono', monospace; font-size: 16px; letter-spacing: 0;
+}
+.wh-cap { line-height: 18px; }
+.wh-cap span { font-size: 16px; }
+.wh-top { line-height: 20px; }
+.screen.world .wl-line, .wh-target, .wh-target *, .sb .pf-skill .sn, .sb .pf-skill kbd, .sb .pf-skill em { font-family: 'GalmuriMono', monospace; font-size: 11px; }
+.screen.world .wl-line { line-height: 17px; }
+.screen.world .wl-all .wl-line { line-height: 20px; }
