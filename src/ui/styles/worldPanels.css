@@ -147,10 +147,9 @@
   .tp-zone { bottom: calc(var(--log-bottom, 150px) + 104px); height: 30%; width: 64%; }
 }
 .pip-slot.soul button { font: 10px 'GalmuriMono', monospace; color: #021006; background: var(--tint); border: 0; padding: 2px 6px; cursor: pointer; }
-/* top centre: the floor and turn, then what the party holds */
-.wh-top { flex-direction: column; align-items: center; gap: 2px; }
-.wh-top .st-row { display: flex; gap: 12px; }
-.wh-top .st-res { font-size: 11px; color: #4f9f6a; }
+/* under the minimap: the floor and turn on one line, then (on the surface) what the party holds */
+.wh-top .st-row { display: flex; justify-content: space-between; gap: 4px 10px; flex-wrap: wrap; }
+.wh-top .st-res { margin-top: 2px; font-size: 10px; color: #4f9f6a; }
 .place-prompts button.off { background: #3a3a2a; color: #a8a080; box-shadow: none; animation: none; cursor: default; }
 .pg-stat b.up, .pip-rec dd b.up { font-weight: normal; color: #5dff8a; }
 .pip-slot.item { color: #e6ffb0; padding: 2px; overflow: hidden; } .pip-slot.item.use { color: #ffd76a; border-color: #5a4a1e; }

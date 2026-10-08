@@ -429,7 +429,7 @@ export class DelveScreen implements Screen {
     const p = this.p;
     // no mode banner: the top centre says floor and turn, the frames say whose turn it is
     const mode = '';
-    const status = statusLine(`지하 <b>${p.floor}층</b>`, p);
+    const status = statusLine(`지하 <b>${p.floor}층</b>`, p, false);
     const target = targetCardHtml(p, this.sel, cardTarget(p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined));
     const beacon = p.beacon ? { label: portalOpen(p) ? `포탈 ${Math.max(0, Math.ceil(p.beacon.closeAt - p.time))}` : `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
     this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon });

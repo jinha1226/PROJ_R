@@ -27,8 +27,8 @@ export class WorldHud {
   private toastUntil = 0;
 
   constructor(private readonly el: HTMLElement, private readonly a: HudActions) {
-    el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-top"></div><div class="wh-target"></div>
-      <aside class="wh-tl"><div class="wh-mini"></div></aside>
+    el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-target"></div>
+      <aside class="wh-tl"><div class="wh-mini"></div><div class="wh-top"></div></aside>
       <aside class="wh-bl" title="전체 기록 보기"><div class="wh-cap">기록 <span>▸ 전체</span></div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
         ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}${a.beacon ? '<button type="button" data-k="beacon">신호기</button>' : ''}
@@ -139,9 +139,12 @@ export class WorldHud {
   }
 }
 
-/** The top-centre lines: where and which turn, then what the party holds (ore, crystal, bio-matter against a body's cost, souls carried). */
-export function statusLine(place: string, p: RoamParty): string {
+/** Under the minimap: where and which turn, then (on the surface) what the party holds (ore, crystal, bio-matter against a body's cost, souls carried). */
+export function statusLine(place: string, p: RoamParty, holdings = true): string {
   const souls = p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : '';
-  return `<div class="st-row"><span>${place}</span><span>턴 <b>${Math.floor(p.time)}</b></span></div>`
+  const where = `<div class="st-row"><span>${place}</span><span>턴 <b>${Math.floor(p.time)}</b></span></div>`;
+  // in the dungeon only where and when (2026-10-08: one clone goes down, what it holds is in its own window)
+  if (!holdings) return where;
+  return where
     + `<div class="st-row st-res"><span>광석 <b>${p.ore}</b></span><span>마정석 <b>${p.crystal}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">생체 <b>${p.bio}</b></span>${souls}</div>`;
 }
