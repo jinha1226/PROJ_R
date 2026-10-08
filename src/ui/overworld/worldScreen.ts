@@ -6,6 +6,7 @@ import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placeProm
 import { WorkbenchScreen } from './workbench/workbenchScreen';
 import { BaseCamera } from './baseCamera';
 import { RaidControl } from './raidControl';
+import { SwarmView } from '../../view/overworld/swarmView';
 import { BasePanels, panelAt } from './basePanels';
 import { homeLife } from '../../sim/base/baseLife';
 import { printClone } from '../../sim/base/cloner';
@@ -94,6 +95,7 @@ export class WorldScreen implements Screen {
   private camera!: BaseCamera;
   private panels!: BasePanels;
   private raidCtl!: RaidControl;
+  private swarm = new SwarmView();
   private readonly result = Object.assign(document.createElement('div'), { className: 'pip-win menu-win', hidden: true });
 
   private readonly seed: number;
@@ -202,6 +204,7 @@ export class WorldScreen implements Screen {
       { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.message(t), exploreWants(this.p)); }
       this.prompts.update(this.rt, this.placePrompts());
       this.pad.update(dt, !!this.p.combat);
+      this.swarm.update(this.p, dt);
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
@@ -253,6 +256,7 @@ export class WorldScreen implements Screen {
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), undefined, { theme: 'world', look: this.p, nature: this.opts.nature }); this.rt.partyShow();
     this.rt.setZoom(this.zoom);
     this.rt.addOverlay(this.build.view.root);
+    this.swarm = new SwarmView(); this.rt.addOverlay(this.swarm.root);
     this.rt.pixelated = loadDot();
     this.pace();
     this.select(this.p.leader ?? 'hero');

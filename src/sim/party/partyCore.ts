@@ -55,7 +55,9 @@ export interface Unit {
   /** base mode: when an idle clone at home strolls again; a clone hurt in a raid (it skips the next trip) */
   idleAt?: number; injured?: boolean;
   /** a raid's fodder: moved by the horde (free coordinates sx, sy; its cell is where they fall), never by its own turns */
-  swarm?: boolean; sx?: number; sy?: number;
+  swarm?: boolean; sx?: number; sy?: number; hitAt?: number;
+  /** a raider whose fall has been paid for (raid loot) */
+  paid?: boolean;
   /** the warrior's spin (blade storm) and shout ending, its frenzy stacks and when it last hit */
   spinUntil?: number; shoutUntil?: number; frenzy?: number; frenzyAt?: number;
   /** a return shot under way (the empty body's return fire, rank 3) */
@@ -150,7 +152,8 @@ export const unitOf = (p: Party, id: string): Unit | undefined => p.units.find((
 export const alive = (p: Party, u: Unit): boolean => entOf(p, u.id)?.alive ?? false;
 export const posOf = (p: Party, u: Unit): Cell => entOf(p, u.id)!.pos;
 export const roll = (p: Party, r: [number, number]): number => p.s.rng.int(r[0], r[1]);
-export const occupied = (p: Party, c: Cell, self: string): boolean => p.units.some((u) => u.id !== self && alive(p, u) && same(posOf(p, u), c));
+/** whether something stands in the cell (a raid's fodder never blocks: the crowd is walked through) */
+export const occupied = (p: Party, c: Cell, self: string): boolean => p.units.some((u) => u.id !== self && !u.swarm && alive(p, u) && same(posOf(p, u), c));
 
 /** What a unit's basic attack is: the hero's weapon, or the foe's kind. */
 export function stats(u: Unit, t = 0, p?: Party): { dmg: [number, number]; range: number; atk: number; move: number } {

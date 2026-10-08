@@ -1,5 +1,7 @@
 import { raidTurn, towerTick } from '../base/raidAi';
 import { resolveRaid, type Raid } from '../base/raids';
+import { swarmTick } from '../base/swarm';
+import { payRaidKills } from '../base/raidLoot';
 import type { Building } from '../base/buildings';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import { newState } from '../grid/state';
@@ -25,7 +27,9 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   /** a raid night that has come but waits for the player to start it: its size and the edges it will come from (0 W, 1 E, 2 N, 3 S) */
   raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
   /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
-  lastRaid?: { won: boolean; injured: string[]; buildings: string[] };
+  lastRaid?: { won: boolean; injured: string[]; buildings: string[]; kills: number; ore: number; crystal: number };
+  /** the raiders still to step out (the horde's waves) and what this raid's kills have paid so far */
+  raidQueue?: import('../base/swarm').RaidSpawn[]; raidLoot?: { kills: number; ore: number; crystal: number };
   pod?: boolean }
 
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', archer: 'archer', brute: 'brute' };
@@ -72,7 +76,9 @@ export function worldTick(p: WorldParty, dt: number): GEvent[] {
   const t0 = p.time, hp = hpNow(p);
   const ev = tick(p, dt);
   ev.unshift(...pending);
+  swarmTick(p, dt, ev);
   towerTick(p, ev);
+  payRaidKills(p);
   resolveRaid(p, ev);
   // Delay the ordinary wipe/respawn rules until an unattended raid resolves.
   if (!p.raid || living(p).length) roamStep(p, hp, ev);

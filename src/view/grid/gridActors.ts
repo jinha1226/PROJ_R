@@ -51,6 +51,8 @@ export class GridActors {
   sync(s: GridState): void {
     this.lastState = s;
     for (const e of [s.hero, ...s.foes]) {
+      // a raid's fodder are drawn as one instanced horde (SwarmView), never as figures
+      if (e.swarm) continue;
       const existing = this.views.get(e.id);
       const hideBar = e.kind === 'hero' && !LOOK_BY_ID.has(e.id);
       if (existing) { this.bars.update(existing.bar, hideBar ? { ...e, alive: false } : e); continue; }

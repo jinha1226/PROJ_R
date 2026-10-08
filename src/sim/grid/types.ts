@@ -67,7 +67,7 @@ export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
 
 export type { Rng };
 
-export interface Ent { elite?: boolean; id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; statusSource?: Partial<Record<'burn' | 'poison', string>>; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
+export interface Ent { swarm?: boolean; elite?: boolean; id: string; kind: 'hero' | FoeKind; pos: Cell; hp: number; maxHp: number; nextAt: number; alive: boolean; awake: boolean; group: number; lastSeen?: Cell; stun?: number; status?: Statuses; statusSource?: Partial<Record<'burn' | 'poison', string>>; power?: number; turns?: number; summoned?: boolean; marked?: boolean; buffs?: Partial<Record<BuffKind, number>> }
 export interface Statuses { burn: number; freeze: number; poison: number }
 /** fire or a poison cloud on the floor until a game time */
 export interface TileFx { src?: string; pos: Cell; kind: 'fire' | 'poison' | 'steam'; until: number }

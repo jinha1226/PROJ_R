@@ -37,7 +37,8 @@ export class RaidBar {
       html = `<b class="rb-night">습격의 밤</b><span>${p.raidReady.sides.map((s) => SIDE[s]).join(' · ')}에서</span><span>규모 <b>${size}</b> / 방어력 <b class="${def >= size ? 'ok' : 'low'}">${def}</b></span>
         <button type="button" data-r="start">습격 시작</button>${def >= size * AUTO_MARGIN ? '<button type="button" data-r="auto">자동 방어</button>' : ''}`;
     } else if (p.raid) {
-      const left = p.units.filter((u: Unit) => u.group === p.raid!.group && alive(p, u)).length;
+      // the raiders still to come out of the dark count too
+      const left = p.units.filter((u: Unit) => u.group === p.raid!.group && alive(p, u)).length + (p.raidQueue?.length ?? 0);
       html = `<b class="rb-fight">습격</b><span>포드 <b class="${p.podHp < POD_MAX / 3 ? 'low' : ''}">${Math.max(0, Math.round(p.podHp))}/${POD_MAX}</b></span><span>남은 적 <b>${left}</b></span>`;
     }
     // the land darkens while a raid is near or under way
@@ -49,12 +50,14 @@ export class RaidBar {
   }
 }
 
-/** The result window's body after a raid: won or lost, the injured clones, the buildings lost. */
+/** The result window's body after a raid: won or lost, the kills and what they paid, the injured clones, the buildings lost. */
 export function raidResultHtml(p: WorldParty): string {
   const r = p.lastRaid;
   if (!r) return '';
   const name = (id: string) => { const u = p.units.find((x) => x.id === id); return u?.cls ? CLASSES[u.cls].name : id; };
-  const rows = [r.injured.length ? `<div class="menu-row"><span>부상</span><span>${r.injured.map(name).join(' · ')}</span></div>` : '',
+  const rows = [`<div class="menu-row"><span>처치</span><span>${r.kills}</span></div>`,
+    r.ore || r.crystal ? `<div class="menu-row"><span>얻은 자원</span><span>${[r.ore ? `광석 ${r.ore}` : '', r.crystal ? `마정석 ${r.crystal}` : ''].filter(Boolean).join(' · ')}</span></div>` : '',
+    r.injured.length ? `<div class="menu-row"><span>부상</span><span>${r.injured.map(name).join(' · ')}</span></div>` : '',
     r.buildings.length ? `<div class="menu-row"><span>잃은 건물</span><span>${r.buildings.length}</span></div>` : ''].join('');
   return `<div class="pip-frame menu-frame"><header><span class="pip-title">${r.won ? '습격 격퇴' : '포드 함락'}</span><button type="button" data-close>✕</button></header><div class="menu-body">${rows || '<div class="menu-row"><span>피해 없음</span></div>'}</div></div>`;
 }

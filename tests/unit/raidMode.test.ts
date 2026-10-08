@@ -12,7 +12,9 @@ import { dist } from '../../src/sim/grid/types';
 const raid = () => {
   const p = newSurface(42); p.ore = 300;
   startRaid(p);
-  for (const u of p.units.filter((x) => x.group === p.raid!.group)) { u.nextAt = 999; entOf(p, u.id)!.pos = { x: 1, y: 1 }; }
+  // only the raiders already out: the rest of the horde never comes
+  p.raidQueue = [];
+  for (const u of p.units.filter((x) => x.group === p.raid!.group)) { u.nextAt = 999; entOf(p, u.id)!.pos = { x: 1, y: 1 }; if (u.swarm) { u.sx = 1.5; u.sy = 1.5; } }
   return p;
 };
 const raiders = (p: ReturnType<typeof raid>) => p.units.filter((x) => x.group === p.raid!.group);
@@ -99,5 +101,5 @@ it('the raid’s end leaves a result for the window: won or lost, the injured, t
   worldTick(p, 0.1);
   expect(p.lastRaid?.won).toBe(true); expect(p.lastRaid?.injured).toEqual(['hero']);
   const html = raidResultHtml(p);
-  expect(html).toContain('격퇴'); expect(html).toContain('부상');
+  expect(html).toContain('격퇴'); expect(html).toContain('부상'); expect(html).toContain('처치');
 });

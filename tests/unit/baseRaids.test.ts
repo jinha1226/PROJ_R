@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newSurface, worldTick } from '../../src/sim/overworld/worldSim';
 import { upgradeDrill } from '../../src/sim/base/drill';
-import { autoDefend, defencePower, onRaidReturn, raidSize, startRaid } from '../../src/sim/base/raids';
+import { autoDefend, defencePower, onRaidReturn, RAID_REACH, raidSize, startRaid } from '../../src/sim/base/raids';
 import { place } from '../../src/sim/base/buildings';
 import { raidTurn } from '../../src/sim/base/raidAi';
 import { departSurface } from '../../src/sim/base/trips';
@@ -19,6 +19,8 @@ describe('raids', () => {
     expect(p.raid).toBeNull(); expect(p.raidReady?.size).toBe(raidSize(p));
     expect(p.units.some(u => u.side === 'foe')).toBe(false);
     startRaid(p); expect(p.raid?.size).toBe(raidSize(p)); expect(p.raidReady).toBeNull();
+    // the horde still at the edges goes too
+    p.raidQueue = [];
     for (const u of p.units.filter(u => u.group === p.raid!.group)) entOf(p, u.id)!.alive = false;
     expect(worldTick(p, .1).some(e => e.text === 'raidWon')).toBe(true);
     expect(p.raidsDone).toBe(1);
@@ -41,11 +43,11 @@ describe('raids', () => {
     const spawned = p.units.filter(u => u.group === p.raid!.group).map(u => edgeOf(entOf(p, u.id)!.pos));
     expect(spawned.every(e => sides.includes(e))).toBe(true);
   });
-  it('spawns awake raiders on connected map edges and advances toward the pod', () => {
+  it('spawns awake raiders out of the dark a little beyond the base and advances toward the pod', () => {
     const p = setup(); startRaid(p);
     const u = p.units.find(u => u.group === p.raid!.group)!;
     const e = entOf(p, u.id)!;
-    expect(e.pos.x === 0 || e.pos.y === 0 || e.pos.x === p.s.map.w - 1 || e.pos.y === p.s.map.h - 1).toBe(true);
+    expect(dist(e.pos, p.base)).toBeGreaterThanOrEqual(RAID_REACH - 3);
     expect(u.asleep).toBe(false); const before = dist(e.pos, p.base);
     worldTick(p, 3); expect(dist(e.pos, p.base)).toBeLessThan(before); expect(u.asleep).toBe(false);
   });
@@ -82,7 +84,7 @@ describe('raids', () => {
   it('towers shoot the nearest raider and use 1.5-turn cooldowns', () => {
     const p = setup(); place(p, 'watchtower', { x: 50, y: 45 }); startRaid(p);
     const u = p.units.find(u => u.group === p.raid!.group)!; const e = entOf(p, u.id)!;
-    e.pos = { x: 51, y: 45 }; u.nextAt = 100;
+    e.pos = { x: 51, y: 45 }; u.nextAt = 100; u.sx = 51.5; u.sy = 45.5; p.raidQueue = [];
     // the clone (now with a pistol) holds its fire so only the tower's shots count
     for (const h of p.units) if (h.side === 'hero') h.nextAt = 100;
     const hp = e.hp; const ev = worldTick(p, .1);
