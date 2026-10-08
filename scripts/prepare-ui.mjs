@@ -56,15 +56,26 @@ writeFileSync(new URL('button-atk.png', OUT), frame({ size: 16, rings: [ink, [he
 // a slot (the quick slots): sunk, an edge in shade on top, a dark bed; a thing lies in it, a key is pressed
 writeFileSync(new URL('slot.png', OUT), frame({ size: 16, rings: [ink, [hex('#020c06'), hex('#1f7a3e')], hex('#03100a')], fill: hex('#010804', 235) }));
 
-// corners alone: a key with no edge, only a bracket at each corner (the Pip-Boy's green, a dark dot round it so it reads
-// over a lit floor), nothing between them
+// corners alone: a key with no edge, only a bracket at each corner, nothing between them. The bracket is a small drawn
+// thing, lit from the top left: its corner dot cut away (a rounded turn), bright along the top and left of the key and
+// in shade along the bottom and right, a darker line inside it for depth, a dark dot round it all so it reads over a lit floor
 {
-  const size = 18, arm = 5, pip = hex('#1bff80'), dark = hex('#010603'), px = [];
-  const lit = (x, y) => { const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y); return (cy === 1 && cx >= 1 && cx <= arm) || (cx === 1 && cy >= 1 && cy <= arm); };
+  const size = 20, arm = 6, hi = hex('#9dffc8'), mid = hex('#1bff80'), low = hex('#0f9a50'), deep = hex('#0b5a30'), dark = hex('#010603'), px = [];
+  const at = (x, y) => {
+    const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y), top = y < size / 2, left = x < size / 2;
+    if (cx === 1 && cy === 1) return null; // the corner dot, cut
+    // the outer line: lit where it runs along the key's top or left edge
+    if (cy === 1 && cx > 1 && cx <= arm) return top ? (left ? hi : mid) : low;
+    if (cx === 1 && cy > 1 && cy <= arm) return left ? (top ? hi : mid) : low;
+    // the line inside it, shorter and darker
+    if ((cy === 2 && cx >= 2 && cx < arm) || (cx === 2 && cy >= 2 && cy < arm)) return deep;
+    return null;
+  };
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const c = at(x, y);
     let near = false;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near ||= x + dx >= 0 && y + dy >= 0 && x + dx < size && y + dy < size && lit(x + dx, y + dy);
-    px.push(lit(x, y) ? pip : near ? dark : [0, 0, 0, 0]);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near ||= x + dx >= 0 && y + dy >= 0 && x + dx < size && y + dy < size && !!at(x + dx, y + dy);
+    px.push(c ?? (near ? dark : [0, 0, 0, 0]));
   }
   writeFileSync(new URL('corners.png', OUT), png(size, size, px));
 }
