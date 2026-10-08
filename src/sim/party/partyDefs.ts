@@ -20,15 +20,17 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   knives: { name: '투척 단검', dmg: [4, 7], range: 4, atk: 1.0, look: 'dagger', note: '원거리' },
 };
 
+// A clone's body is a printed model: the classes are told as model lines (MODEL 0 the empty body, then a letter for what
+// it was built for: Warrior, Archer, Mage, Cleric, Rogue, Necromancer), on screen and in the log alike.
 export interface ClassDef { name: string; hp: number; move: number; weapons: WeaponId[]; passive: Passive; passiveName: string; magic?: boolean }
 export const CLASSES: Record<ClassId, ClassDef> = {
-  shell: { name: '빈 몸', hp: 40, move: 0.9, weapons: ['pistol'], passive: 'none', passiveName: '' },
-  warrior: { name: '전사', hp: 80, move: 0.9, weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
-  archer: { name: '궁수', hp: 40, move: 0.9, weapons: ['longbow', 'crossbow'], passive: 'firstShot', passiveName: '상처 없는 적에게 2배' },
-  mage: { name: '마법사', hp: 45, move: 1.0, weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
-  cleric: { name: '성직자', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'guardian', passiveName: '아군 위기 시 보호막', magic: true },
-  rogue: { name: '도적', hp: 55, move: 0.75, weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
-  necromancer: { name: '강령술사', hp: 45, move: 1, weapons: ['staff'], passive: 'none', passiveName: '강령술사', magic: true },
+  shell: { name: 'MODEL 0', hp: 40, move: 0.9, weapons: ['pistol'], passive: 'none', passiveName: '' },
+  warrior: { name: 'MODEL W', hp: 80, move: 0.9, weapons: ['swordShield', 'greataxe'], passive: 'counter', passiveName: '맞으면 가끔 반격' },
+  archer: { name: 'MODEL A', hp: 40, move: 0.9, weapons: ['longbow', 'crossbow'], passive: 'firstShot', passiveName: '상처 없는 적에게 2배' },
+  mage: { name: 'MODEL M', hp: 45, move: 1.0, weapons: ['staff', 'wand'], passive: 'shatter', passiveName: '언 적에게 2배', magic: true },
+  cleric: { name: 'MODEL C', hp: 50, move: 0.95, weapons: ['mace', 'symbol'], passive: 'guardian', passiveName: '아군 위기 시 보호막', magic: true },
+  rogue: { name: 'MODEL R', hp: 55, move: 0.75, weapons: ['daggers', 'knives'], passive: 'flank', passiveName: '다른 이를 노리는 적에게 1.6배' },
+  necromancer: { name: 'MODEL N', hp: 45, move: 1, weapons: ['staff'], passive: 'none', passiveName: '', magic: true },
 };
 export const BASE_CLASSES: BaseClass[] = ['warrior', 'archer', 'mage', 'cleric', 'rogue', 'necromancer'];
 

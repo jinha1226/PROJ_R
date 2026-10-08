@@ -24,7 +24,7 @@ it('the menu lists every class with its three branches as links', () => {
   const html = branchMenuHtml();
   for (const b of BRANCHES) expect(html).toContain(`?demo=branch&b=${b.id}`);
   expect(BRANCHES).toHaveLength(21);
-  for (const name of ['빈 몸', '전사', '마법사', '궁수', '성직자', '도적', '강령술사']) expect(html).toContain(`<b>${name}</b>`);
+  for (const name of ['MODEL 0', 'MODEL W', 'MODEL M', 'MODEL A', 'MODEL C', 'MODEL R', 'MODEL N']) expect(html).toContain(`<b>${name}</b>`);
 });
 
 it.each(BRANCHES.map((b) => b.id))('the %s demo fights on its own: foes fall, nothing throws', (b) => {

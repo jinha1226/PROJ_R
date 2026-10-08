@@ -40,18 +40,18 @@ it('the log tells a chain as it runs, in sentences: each effect and what it did,
     { t: 3, type: 'buff', src: u.id, text: 'chain', amount: 3 },
   ]);
   const told = log.lines.map((l) => l.text);
-  expect(told[0]).toBe('마법사가 고블린을 공격해 7 피해를 입혔다.');
+  expect(told[0]).toBe('MODEL M이 고블린을 공격해 7 피해를 입혔다.');
   expect(told[1]).toBe('고블린이 불타기 시작했다.');
-  expect(told[2]).toMatch(/^마법사의 운석이 발동했다\./);
+  expect(told[2]).toMatch(/^MODEL M의 운석이 발동했다\./);
   expect(told.slice(3, 6)).toEqual(['운석이 고블린 위로 떨어졌다.', '고블린이 12 피해를 입었다.', '고블린이 쓰러졌다.']);
-  expect(told[6]).toMatch(/^마법사의 화염 전이가 발동했다\./);
+  expect(told[6]).toMatch(/^MODEL M의 화염 전이가 발동했다\./);
   expect(told.slice(7)).toEqual(['증기 반응이 일어났다.']);
 });
 
 it('the log explains an effect the first time a clone sets it off, and only names it after', () => {
   const { p, u } = scene('mage'); const log = new WorldLog();
   log.read(p, [{ t: 1, type: 'buff', src: u.id, text: '화염 전이' }, { t: 2, type: 'buff', src: u.id, text: '화염 전이' }]);
-  expect(log.lines[0]!.text).toContain('('); expect(log.lines[1]!.text).toBe('마법사의 화염 전이가 발동했다.');
+  expect(log.lines[0]!.text).toContain('('); expect(log.lines[1]!.text).toBe('MODEL M의 화염 전이가 발동했다.');
 });
 
 it('the log is coloured: names by side, numbers by what they are, effects and states by their own colours; the full log keeps every line', () => {
@@ -62,12 +62,12 @@ it('the log is coloured: names by side, numbers by what they are, effects and st
     { t: 2, type: 'bump', src: f.id, dst: u.id }, { t: 2, type: 'hit', src: f.id, dst: u.id, amount: 4 },
   ]);
   const [blow, burn, fx, hurt] = log.lines.map((l) => l.html);
-  expect(blow).toContain('<i class="l-crit">치명타!</i>'); expect(blow).toContain('<i class="l-ally">마법사</i>가');
+  expect(blow).toContain('<i class="l-crit">치명타!</i>'); expect(blow).toContain('<i class="l-ally">MODEL M</i>이');
   expect(blow).toContain('<i class="l-foe">고블린</i>을'); expect(blow).toContain('<i class="l-dmg">7</i>');
   expect(burn).toContain('<i class="l-st-burn">불타기 시작했다</i>'); expect(fx).toContain('<i class="l-fx">화염 전이</i>가');
   expect(hurt).toContain('<i class="l-hurt">4</i>');
   // the plain text carries no marks
-  expect(log.lines[0]!.text).toBe('치명타! 마법사가 고블린을 공격해 7 피해를 입혔다.');
+  expect(log.lines[0]!.text).toBe('치명타! MODEL M이 고블린을 공격해 7 피해를 입혔다.');
   for (let k = 0; k < 40; k++) log.add(k, `줄 ${k}`);
   expect(log.html().match(/wl-line/g)).toHaveLength(12); expect(log.fullHtml().match(/wl-line/g)).toHaveLength(44);
   // a line added from outside is escaped
@@ -76,8 +76,11 @@ it('the log is coloured: names by side, numbers by what they are, effects and st
 
 it('Korean particles follow the last sound of the word', async () => {
   const { josa } = await import('../../src/ui/overworld/worldLog');
-  expect([josa('해골', '이/가'), josa('마법사', '이/가'), josa('고블린', '을/를'), josa('전사', '을/를'), josa('뼈 창', '이/가'), josa('화염 전이', '이/가')])
-    .toEqual(['해골이', '마법사가', '고블린을', '전사를', '뼈 창이', '화염 전이가']);
+  expect([josa('해골', '이/가'), josa('주술사', '이/가'), josa('고블린', '을/를'), josa('오우거', '을/를'), josa('뼈 창', '이/가'), josa('화염 전이', '이/가')])
+    .toEqual(['해골이', '주술사가', '고블린을', '오우거를', '뼈 창이', '화염 전이가']);
+  // a model's letter or number is read aloud: 엠 and 영 close, 더블유 and 에이 do not
+  expect([josa('MODEL M', '이/가'), josa('MODEL W', '이/가'), josa('MODEL 0', '을/를'), josa('MODEL A', '을/를'), josa('MODEL N', '은/는'), josa('MODEL C', '과/와'), josa('MODEL R', '과/와')])
+    .toEqual(['MODEL M이', 'MODEL W가', 'MODEL 0을', 'MODEL A를', 'MODEL N은', 'MODEL C와', 'MODEL R과']);
 });
 
 it('clones act at the same time: one clone\'s chain does not hold another clone\'s swing', () => {
@@ -124,7 +127,7 @@ it('one clone alone gets a single status bar: name, level, a health bar with its
   const { p, u } = scene('mage'); const e = entOf(p, u.id)!;
   e.hp = 30; e.maxHp = 60; u.shield = 6; u.level = 3;
   const html = soloBarHtml(p, u.id);
-  expect(html).toContain('마법사'); expect(html).toContain('Lv 3'); expect(html).toContain('30<small>/60</small>'); expect(html).toContain('<em>+6</em>');
+  expect(html).toContain('MODEL M'); expect(html).toContain('Lv 3'); expect(html).toContain('30<small>/60</small>'); expect(html).toContain('<em>+6</em>');
   // half the bar health, a tenth of it shield laid after
   expect(html).toContain('<i style="width:50%"></i><u style="left:50%;width:10%"></u>');
   expect(html.match(/class="sb-bar"/g)).toHaveLength(2);

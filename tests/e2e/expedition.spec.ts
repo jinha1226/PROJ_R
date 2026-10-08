@@ -8,7 +8,7 @@ test('the title drops a pod: an empty clone steps out beside it, the lab unfolds
   await page.click('[data-testid="to-grid"]');
   await expect(page.locator('.wh-mini canvas')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.wh-party .pf')).toHaveCount(1);
-  await expect(page.locator('.wh-party .pf')).toContainText('빈 몸');
+  await expect(page.locator('.wh-party .pf')).toContainText('MODEL 0');
   await expect(page.locator('.wh-top')).toContainText('턴');
   await expect(page.locator('.wh-log')).toContainText('포드가 착륙했다');
   // base mode: no clone under the hand, the base menu along the bottom

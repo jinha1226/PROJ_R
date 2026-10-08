@@ -11,9 +11,12 @@ const clock = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${S
 const KOREAN = /[가-힣]/;
 
 type Pair = '이/가' | '을/를' | '은/는' | '과/와';
-/** the Korean particle that fits a word's last sound (a word that does not end in Hangul takes the second) */
+/** letters and digits whose Korean reading ends in a closed sound (엘, 엠, 엔, 알; 영, 일, 삼, 육, 칠, 팔): MODEL M이, MODEL W가 */
+const CLOSED = new Set([...'LMNR013678']);
+/** the Korean particle that fits a word's last sound (a letter or a digit by how it is read; anything else takes the second) */
 function particle(word: string, pair: Pair): string {
-  const code = word.charCodeAt(word.length - 1) - 0xac00, closed = code >= 0 && code <= 11171 && code % 28 !== 0;
+  const last = word.charAt(word.length - 1), code = last.charCodeAt(0) - 0xac00;
+  const closed = code >= 0 && code <= 11171 ? code % 28 !== 0 : CLOSED.has(last.toUpperCase());
   const [a, b] = pair.split('/') as [string, string];
   return closed ? a : b;
 }

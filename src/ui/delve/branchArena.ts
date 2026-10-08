@@ -1,7 +1,7 @@
 import { newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { BRANCHES } from '../../sim/party/branches';
 import { entOf } from '../../sim/party/partyCore';
-import type { BaseClass } from '../../sim/party/partyDefs';
+import { CLASSES, type BaseClass, type ClassId } from '../../sim/party/partyDefs';
 import { gainXp, LEVEL_XP } from '../../sim/party/partyLevel';
 import { TRAITS } from '../../sim/party/traitDefs';
 import { clones, implant } from '../../sim/roam/roam';
@@ -27,9 +27,8 @@ export function branchArena(seed: number, key: string): DelveParty {
 /** The branches to choose from, by class: seven lines of three. */
 export function branchMenuHtml(): string {
   const lines = ['shell', 'warrior', 'mage', 'archer', 'cleric', 'rogue', 'necromancer'];
-  const name: Record<string, string> = { shell: '빈 몸', warrior: '전사', mage: '마법사', archer: '궁수', cleric: '성직자', rogue: '도적', necromancer: '강령술사' };
   return `<div class="branch-menu"><h2>갈래 데모</h2>${lines.map((l) => {
     const links = BRANCHES.filter((b) => b.line === l).map((b) => `<a href="?demo=branch&b=${b.id}">${b.name}</a>`).join('');
-    return `<div class="branch-line"><b>${name[l]}</b>${links}</div>`;
+    return `<div class="branch-line"><b>${CLASSES[l as ClassId].name}</b>${links}</div>`;
   }).join('')}</div>`;
 }
