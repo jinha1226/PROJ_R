@@ -22,7 +22,7 @@ export function mountLooksDemo(root: HTMLElement, lib: UalLibrary, base: string)
   scene.add(floor, new THREE.HemisphereLight('#8090b0', '#1a1410', 0.35));
   for (const x of [-3.5, 3.5]) { const torch = new THREE.PointLight('#ffb060', 22, 9, 1.6); torch.position.set(x, 2.2, -1.2); scene.add(torch); }
   const labels = document.createElement('div');
-  labels.style.cssText = "position:fixed;inset:0;pointer-events:none;font:11px 'GalmuriMono',monospace;color:#9fe8b0";
+  labels.style.cssText = "position:fixed;inset:0;pointer-events:none;font:11px 'Galmuri',monospace;color:#9fe8b0";
   root.appendChild(labels);
   const spots = LINEUP.map((_, i) => new THREE.Vector3((i - (LINEUP.length - 1) / 2) * GAP, 0, 0));
   const actors = LINEUP.map((cls, i) => {

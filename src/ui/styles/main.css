@@ -1,7 +1,9 @@
+/* One face for every letter in the game: Galmuri11 Bold (a dot face drawn at 11px). It is the only weight there is: a rule asking for bold gets this same face, never a smeared copy. */
+@font-face { font-family: 'Galmuri'; src: url('/assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
 :root {
   --bg: #1b1a1f; --panel: #26242c; --panel-2: #312e38; --line: #4a4552;
   --text: #ece6da; --muted: #a39d92; --accent: #e0a64a; --danger: #d0533f; --ally: #4aa3e0;
-  font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+  font-family: 'Galmuri', monospace;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }

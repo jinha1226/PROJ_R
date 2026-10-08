@@ -1,5 +1,4 @@
 /* Monitor skin for the grid sortie and the ship: a pixel monospace face, phosphor text, text gauges, square text keys (the game picture itself stays clear). */
-@font-face { font-family: 'GalmuriMono'; src: url('/assets/fonts/GalmuriMono11.woff2') format('woff2'); font-display: swap; }
 .screen.grid, .grid-result {
   --gold: #c8f0e0;
   --panel: #02080ad8;
@@ -11,7 +10,7 @@
   --t-ch: #62d4ff;
   --t-warn: #ffb54a;
   --t-bg: #02080ad8;
-  font-family: 'GalmuriMono', ui-monospace, monospace;
+  font-family: 'Galmuri', monospace;
   font-synthesis: none;
   -webkit-font-smoothing: none;
 }
@@ -50,7 +49,7 @@
 .grid.landscape .gh-target > span { display: inline-block; padding: 2px 6px 0; color: var(--t-fg); font-size: 12px; font-weight: normal; }
 .grid.landscape .gh-target .gh-intent { display: block; padding: 0 6px; color: var(--t-warn); font-size: 12px; }
 .grid.landscape .xzoom { top: calc(var(--hud-top) + 96px); gap: 4px; }
-.screen.grid .xzoom .btn, .screen.grid .grid-pixel { background: var(--t-bg) !important; border: 1px solid var(--t-line) !important; border-radius: 0 !important; min-width: 36px !important; min-height: 30px !important; height: 30px; padding: 0 6px; color: var(--t-fg); font: 12px 'GalmuriMono', monospace; box-shadow: none !important; }
+.screen.grid .xzoom .btn, .screen.grid .grid-pixel { background: var(--t-bg) !important; border: 1px solid var(--t-line) !important; border-radius: 0 !important; min-width: 36px !important; min-height: 30px !important; height: 30px; padding: 0 6px; color: var(--t-fg); font: 12px 'Galmuri', monospace; box-shadow: none !important; }
 
 /* bottom-centre: the suit, six bracketed cells */
 .grid.landscape .gh-suit { left: calc(var(--hud-left) + 236px); right: calc(var(--hud-right) + 280px); max-width: 430px; gap: 3px; }
@@ -80,7 +79,7 @@
 .grid.landscape .gt-fire em { color: var(--t-fg); }
 .grid.landscape .gt-fire small { color: var(--t-ch); }
 .grid.landscape .gt-prev::after { content: '◂ 표적'; } .grid.landscape .gt-next::after { content: '표적 ▸'; }
-.grid.landscape .gt-btn kbd { position: static; order: 3; margin-left: auto; display: inline; font: 12px 'GalmuriMono', monospace; color: var(--t-dim); background: none; border: 0; padding: 0; }
+.grid.landscape .gt-btn kbd { position: static; order: 3; margin-left: auto; display: inline; font: 12px 'Galmuri', monospace; color: var(--t-dim); background: none; border: 0; padding: 0; }
 .grid.landscape .gt-btn small:not(:empty) + kbd { margin-left: 6px; }
 .grid.landscape .gt-desktop .gt-btn:not(.gt-fire) small { display: none; }
 .screen.grid .gt-touch .gt-btn kbd { display: none; }
@@ -116,7 +115,7 @@
 /* ship deck HUD and labels */
 .screen.grid .ship-hud { background: var(--t-bg); border: 1px solid var(--t-line); border-radius: 0; clip-path: none; padding: 4px 8px; font-size: 12px; }
 .screen.grid .ship-hud b { color: var(--t-ch); font-size: 12px; font-weight: normal; }
-.screen.grid .grid-icon.label { border-radius: 0; clip-path: none; background: #02080ac8; border: 1px solid var(--t-line); color: var(--t-fg); font-family: 'GalmuriMono', monospace; font-weight: normal; letter-spacing: 0; }
+.screen.grid .grid-icon.label { border-radius: 0; clip-path: none; background: #02080ac8; border: 1px solid var(--t-line); color: var(--t-fg); font-family: 'Galmuri', monospace; font-weight: normal; letter-spacing: 0; }
 .grid.landscape .gt-desktop .gt-buttons { width: 290px; }
 .grid.landscape .gt-btn kbd::before { content: '['; } .grid.landscape .gt-btn kbd::after { content: ']'; }
 .grid.landscape .gt-btn::after { white-space: nowrap; }

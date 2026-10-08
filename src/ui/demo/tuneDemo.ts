@@ -15,7 +15,7 @@ const LINE: ClassId[] = ['shell', 'warrior', 'archer', 'mage', 'cleric', 'rogue'
 const GEAR = Object.entries(WEAPONS).filter(([, w]) => w.look !== 'none').filter(([, w], i, all) => all.findIndex(([, o]) => o.look === w.look) === i).map(([id]) => id as WeaponId);
 const MOVES: [string, UalAnim][] = [['서기', 'idle'], ['달리기', 'run'], ['휘두르기', 'swing'], ['찌르기', 'jab'], ['사격', 'shoot'], ['활', 'shootBow'], ['시전', 'cast'], ['피격', 'hit']];
 const CSS = `
-.tune-ui{position:fixed;left:10px;top:10px;bottom:10px;width:300px;overflow:auto;font:12px/1.5 'GalmuriMono',monospace;color:#9dffb8;background:#03140af0;border:1px solid #1f7a3e;padding:8px 10px;z-index:5}
+.tune-ui{position:fixed;left:10px;top:10px;bottom:10px;width:300px;overflow:auto;font:12px/1.5 'Galmuri',monospace;color:#9dffb8;background:#03140af0;border:1px solid #1f7a3e;padding:8px 10px;z-index:5}
 .tune-ui h3{margin:8px 0 4px;color:#e6ffb0;font-size:12px;letter-spacing:.15em}
 .tune-ui button{font:inherit;color:#9dffb8;background:#062012;border:1px solid #1f7a3e;padding:2px 6px;margin:0 3px 3px 0;cursor:pointer}
 .tune-ui button.on{background:#1f7a3e;color:#021006}

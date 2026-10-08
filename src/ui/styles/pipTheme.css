@@ -24,10 +24,10 @@
 .ui-pip .wb-grid { stroke: #1f7a3e40; }
 
 /* loading between screens: one terminal line in the middle of a dark tube */
-.ui-pip .loading:not([hidden]) { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #031208 0%, #010603 100%); color: #5dff8a; font: 16px 'GalmuriMono', ui-monospace, monospace; text-shadow: 0 0 4px #3dff7a99; }
+.ui-pip .loading:not([hidden]) { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #031208 0%, #010603 100%); color: #5dff8a; font: 16px 'Galmuri', monospace; text-shadow: 0 0 4px #3dff7a99; }
 .ui-pip .loading:not([hidden])::after { content: '▌'; margin-left: 4px; animation: pip-cursor 0.8s steps(1) infinite; }
 @keyframes pip-cursor { 50% { opacity: 0; } }
-.branch-menu { padding: 24px; color: #5dff8a; font-family: 'GalmuriMono', monospace; background: #02080a; min-height: 100vh; box-sizing: border-box; }
+.branch-menu { padding: 24px; color: #5dff8a; font-family: 'Galmuri', monospace; background: #02080a; min-height: 100vh; box-sizing: border-box; }
 .branch-menu h2 { font-weight: normal; margin: 0 0 16px; }
 .branch-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
 .branch-line b { width: 72px; font-weight: normal; color: #9dffb8; }

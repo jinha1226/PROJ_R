@@ -3,7 +3,7 @@
 /* ---- Pip window: gear and class tabs ---- */
 .pg, .pc { display: grid; gap: 6px; align-content: start; font-size: 12px; }
 .pg-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.pg-slot h5, .pc-line h5 { margin: 0 0 4px; font: 11px 'GalmuriMono', monospace; color: #34a85c; letter-spacing: 0.15em; display: flex; gap: 6px; align-items: center; }
+.pg-slot h5, .pc-line h5 { margin: 0 0 4px; font: 11px 'Galmuri', monospace; color: #34a85c; letter-spacing: 0.15em; display: flex; gap: 6px; align-items: center; }
 .pg-pack { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
 .pg-card { border: 1px solid #1f5a2e; background: #010a05; padding: 6px 8px; display: grid; gap: 3px; }
 .pg-card.empty { color: #2f5a3e; border-style: dashed; place-items: center; min-height: 60px; }
@@ -18,7 +18,7 @@
 .pg-trig { color: #ffd76a; font-size: 11px; }
 .pg-warn { color: #ff9a5a; font-size: 11px; }
 .pg-btns { display: flex; gap: 4px; }
-.pg-btns button, .pc-row button { font: 11px 'GalmuriMono', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 3px 8px; cursor: pointer; }
+.pg-btns button, .pc-row button { font: 11px 'Galmuri', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 3px 8px; cursor: pointer; }
 .pg-btns button:disabled { opacity: 0.35; cursor: default; }
 .pg-none { color: #2f5a3e; margin: 4px 0; }
 .pc-line { border-left: 2px solid var(--tint); padding-left: 8px; margin-bottom: 6px; color: var(--tint); }
@@ -37,13 +37,13 @@
 }
 
 /* ---- build panel (surface): a column on the right, the field stays clickable ---- */
-.build-panel { position: absolute; z-index: 9; right: 12px; top: 96px; width: 260px; max-height: calc(100% - 200px); overflow: auto; display: grid; gap: 8px; padding: 10px; font: 12px 'GalmuriMono', monospace; color: #9dffb8; background: linear-gradient(180deg, #03140af2, #010a05f2); border: 1px solid #1f7a3e; box-shadow: 0 0 18px #0a3a1a; }
+.build-panel { position: absolute; z-index: 9; right: 12px; top: 96px; width: 260px; max-height: calc(100% - 200px); overflow: auto; display: grid; gap: 8px; padding: 10px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: linear-gradient(180deg, #03140af2, #010a05f2); border: 1px solid #1f7a3e; box-shadow: 0 0 18px #0a3a1a; }
 .build-panel[hidden] { display: none; }
 .build-panel header { display: flex; gap: 8px; align-items: baseline; }
 .build-panel header span { color: #e6ffb0; font-size: 14px; letter-spacing: 0.2em; }
 .build-panel header small { color: #34a85c; font-size: 10px; }
 .build-panel header button { margin-left: auto; }
-.build-panel button { font: 12px 'GalmuriMono', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 5px 8px; cursor: pointer; text-align: left; }
+.build-panel button { font: 12px 'Galmuri', monospace; color: #5dff8a; background: #021006; border: 1px solid #1f7a3e; padding: 5px 8px; cursor: pointer; text-align: left; }
 .build-panel button:disabled { opacity: 0.4; cursor: default; }
 .build-panel button.on { background: #5dff8a; color: #021006; }
 .build-panel button.on em, .build-panel button.on small { color: #021006; }
@@ -61,13 +61,13 @@
 }
 
 /* ---- raid line (surface) and the night it brings ---- */
-.raid-bar { position: absolute; z-index: 7; left: 50%; top: 96px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 12px; font: 12px 'GalmuriMono', monospace; color: #ffb0a0; background: linear-gradient(180deg, #160604f0, #0a0201f0); border: 1px solid #a03a2a; box-shadow: 0 0 16px #ff3a2a44; white-space: nowrap; }
+.raid-bar { position: absolute; z-index: 7; left: 50%; top: 96px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 12px; font: 12px 'Galmuri', monospace; color: #ffb0a0; background: linear-gradient(180deg, #160604f0, #0a0201f0); border: 1px solid #a03a2a; box-shadow: 0 0 16px #ff3a2a44; white-space: nowrap; }
 .raid-bar[hidden] { display: none; }
 .raid-bar b { font-weight: normal; color: #ffe6c0; }
 .raid-bar b.ok { color: #5dff8a; }
 .raid-bar b.low { color: #ff5a4a; }
 .raid-bar .rb-night, .raid-bar .rb-fight { color: #ff5a4a; letter-spacing: 0.2em; animation: wh-blink 1.2s steps(2) infinite; }
-.raid-bar button { font: 12px 'GalmuriMono', monospace; color: #ffe6c0; background: #2a0804; border: 1px solid #ff6a4a; padding: 5px 10px; cursor: pointer; }
+.raid-bar button { font: 12px 'Galmuri', monospace; color: #ffe6c0; background: #2a0804; border: 1px solid #ff6a4a; padding: 5px 10px; cursor: pointer; }
 .raid-bar button[data-r="auto"] { color: #5dff8a; border-color: #1f7a3e; background: #021006; }
 /* night: a dark red-blue wash over the land (the HUD stays bright) */
 .screen.world.night .grid-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0a0a2a33, #04020ecc); mix-blend-mode: multiply; }
@@ -77,7 +77,7 @@
 
 /* ---- Pip window: roster tab ---- */
 .pr { grid-column: 1 / -1; display: grid; gap: 4px; align-content: start; }
-.pr-row { display: grid; grid-template-columns: 150px 120px 1fr auto auto; gap: 10px; align-items: center; text-align: left; font: 12px 'GalmuriMono', monospace; color: var(--tint); background: #010a05; border: 1px solid #1f5a2e; padding: 6px 8px; cursor: pointer; }
+.pr-row { display: grid; grid-template-columns: 150px 120px 1fr auto auto; gap: 10px; align-items: center; text-align: left; font: 12px 'Galmuri', monospace; color: var(--tint); background: #010a05; border: 1px solid #1f5a2e; padding: 6px 8px; cursor: pointer; }
 .pr-row:hover { border-color: #e6ffb0; }
 .pr-cls { display: flex; gap: 6px; align-items: center; }
 .pr-cls .cls-icon { width: 20px; height: 20px; }
@@ -92,7 +92,7 @@
 
 /* ---- what is on a unit: trigger buffs (green), statuses (red), turns left ---- */
 .u-chips { display: flex; flex-wrap: wrap; gap: 2px 3px; margin: 2px 0; }
-.u-chips i { font: 9px 'GalmuriMono', monospace; font-style: normal; padding: 0 3px; border: 1px solid; line-height: 13px; }
+.u-chips i { font: 9px 'Galmuri', monospace; font-style: normal; padding: 0 3px; border: 1px solid; line-height: 13px; }
 .u-chips i.good { color: #8ff0ff; border-color: #2a7a8a; background: #021014; }
 .u-chips i.bad { color: #ff8a7a; border-color: #8a2a1e; background: #140402; }
 .wh-target .u-chips { margin: 0; }
@@ -105,7 +105,7 @@
 
 /* ---- usable places in the field: a button over the shaft, lift or stairs ---- */
 .place-prompts { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
-.place-prompts button { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; font: 13px 'GalmuriMono', monospace; color: #021006; background: #ffd76a; border: 2px solid #021006; box-shadow: 0 0 0 1px #ffd76a, 0 0 14px #ffb04a99; padding: 6px 10px; cursor: pointer; white-space: nowrap; animation: pp-bob 1.2s ease-in-out infinite; }
+.place-prompts button { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; font: 13px 'Galmuri', monospace; color: #021006; background: #ffd76a; border: 2px solid #021006; box-shadow: 0 0 0 1px #ffd76a, 0 0 14px #ffb04a99; padding: 6px 10px; cursor: pointer; white-space: nowrap; animation: pp-bob 1.2s ease-in-out infinite; }
 @keyframes pp-bob { 50% { margin-top: -4px; } }
 
 /* ---- skills tab, Achra style: the name and where it comes from, then "condition: effect" with coloured keywords ---- */
@@ -124,7 +124,7 @@
 /* ---- quick slots: the pack's consumables, one tap each ---- */
 .quick-slots { position: absolute; z-index: 6; left: 50%; bottom: 104px; transform: translateX(-50%); display: flex; gap: 4px; }
 .quick-slots[hidden] { display: none; }
-.quick-slots button { position: relative; font: 11px 'GalmuriMono', monospace; color: #e6ffb0; background: #021006e6; border: 1px solid #1f7a3e; width: 40px; height: 40px; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.quick-slots button { position: relative; font: 11px 'Galmuri', monospace; color: #e6ffb0; background: #021006e6; border: 1px solid #1f7a3e; width: 40px; height: 40px; padding: 0; cursor: pointer; display: grid; place-items: center; }
 .quick-slots button .gi { width: 20px; height: 20px; }
 .quick-slots button small { position: absolute; right: 2px; bottom: 1px; font-size: 9px; color: #ffd76a; }
 /* the log tells more: ten lines on a desk screen, six on a phone */
@@ -146,7 +146,7 @@
   .wh-bl .wl-line:nth-last-child(n + 7) { display: none; }
   .tp-zone { bottom: calc(var(--log-bottom, 150px) + 104px); height: 30%; width: 64%; }
 }
-.pip-slot.soul button { font: 10px 'GalmuriMono', monospace; color: #021006; background: var(--tint); border: 0; padding: 2px 6px; cursor: pointer; }
+.pip-slot.soul button { font: 10px 'Galmuri', monospace; color: #021006; background: var(--tint); border: 0; padding: 2px 6px; cursor: pointer; }
 /* under the minimap: the floor and turn on one line, then (on the surface) what the party holds */
 .wh-top .st-row { display: flex; justify-content: space-between; gap: 4px 10px; flex-wrap: wrap; }
 .wh-top .st-res { margin-top: 2px; font-size: 10px; color: #4f9f6a; }
@@ -163,7 +163,7 @@
 .pip-res span { color: #2f7a4a; } .pip-res span.on { color: #5dff8a; }
 .pip-slot.soul small { font-size: 9px; color: var(--tint); opacity: 0.8; }
 /* the chain demo's turn-by-turn button */
-.step-next { position: absolute; z-index: 9; left: 50%; bottom: 128px; transform: translateX(-50%); font: 14px 'GalmuriMono', monospace; color: #021006; background: #5dff8a; border: 2px solid #021006; box-shadow: 0 0 0 1px #5dff8a; padding: 8px 18px; cursor: pointer; }
+.step-next { position: absolute; z-index: 9; left: 50%; bottom: 128px; transform: translateX(-50%); font: 14px 'Galmuri', monospace; color: #021006; background: #5dff8a; border: 2px solid #021006; box-shadow: 0 0 0 1px #5dff8a; padding: 8px 18px; cursor: pointer; }
 @media (orientation: portrait) and (max-width: 700px) { .step-next { bottom: auto; top: 96px; } }
 .pip-souls h3 small { color: #34a85c; font-size: 11px; }
 .pip-stone { display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; align-items: center; padding: 6px 8px; border: 1px solid #1f7a3e; border-left: 3px solid var(--tint, #5dff8a); margin-bottom: 6px; }
@@ -189,7 +189,7 @@
 
 /* raid mode: the ultimate bar along the bottom, the selection box */
 .world.raid-mode .tp, .world.raid-mode .place-prompts { display: none; }
-.ult-bar { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); bottom: 10px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; font: 12px 'GalmuriMono', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; }
+.ult-bar { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); bottom: 10px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; }
 .ult-bar[hidden] { display: none; }
 .ult-bar .ub-slots { display: flex; gap: 6px; }
 .ult-bar button { position: relative; display: grid; min-width: 82px; padding: 4px 6px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; }
@@ -204,7 +204,7 @@
 .world.raid-mode .quick-slots, .world.raid-mode .wh-br { display: none; }
 .world.raid-mode .ult-bar { bottom: 96px; }
 /* base mode's menu along the bottom; the building list opens above it */
-.base-menu { position: absolute; z-index: 9; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px 8px; font: 13px 'GalmuriMono', monospace; background: #03140af2; border: 1px solid #1f7a3e; }
+.base-menu { position: absolute; z-index: 9; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px 8px; font: 13px 'Galmuri', monospace; background: #03140af2; border: 1px solid #1f7a3e; }
 .base-menu[hidden] { display: none; }
 .base-menu button { display: flex; gap: 6px; align-items: baseline; padding: 5px 12px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; }
 .base-menu button small { color: #34a85c; font-size: 10px; }

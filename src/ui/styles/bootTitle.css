@@ -1,10 +1,9 @@
 /* The title as the ship's boot log on a phosphor tube. */
-@font-face { font-family: 'GalmuriMono'; src: url('/assets/fonts/GalmuriMono11.woff2') format('woff2'); font-display: swap; }
 .boot {
   --b-fg: #5dff8a; --b-dim: #34a85c; --b-line: #1f7a3e; --b-warn: #ffc94a; --b-err: #ff5a4a;
   position: fixed; inset: 0; overflow: hidden; display: grid; place-items: center;
   background: radial-gradient(ellipse at 50% 42%, #072a12 0%, #031208 45%, #010603 100%);
-  color: var(--b-fg); font-family: 'GalmuriMono', ui-monospace, monospace; text-shadow: 0 0 4px #3dff7a99;
+  color: var(--b-fg); font-family: 'Galmuri', monospace; text-shadow: 0 0 4px #3dff7a99;
   animation: boot-on 0.5s ease-out;
 }
 /* scanlines and the tube's dark edge */
@@ -15,7 +14,7 @@
 }
 .boot-tube { width: min(560px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 14px; }
 .boot-logo {
-  margin: 0; font: clamp(56px, 13vw, 112px)/1 'GalmuriMono', monospace; letter-spacing: 0.08em; color: var(--b-fg);
+  margin: 0; font: clamp(56px, 13vw, 112px)/1 'Galmuri', monospace; letter-spacing: 0.08em; color: var(--b-fg);
   text-shadow: 0 0 6px #3dff7acc, 0 0 22px #3dff7a66, 4px 4px 0 #0b3d1a;
 }
 .boot-sub { margin: -6px 0 6px; color: var(--b-dim); font-size: 14px; letter-spacing: 0.3em; }

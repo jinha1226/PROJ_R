@@ -1,7 +1,7 @@
 /* The workbench: a blueprint on the monitor — exploded line drawing left, parts and their modules right, materials along the bottom. */
 .wb {
   position: absolute; inset: 0; z-index: 30; display: grid; grid-template-rows: auto 1fr auto;
-  background: #02080af7; color: var(--t-fg); font-family: 'GalmuriMono', ui-monospace, monospace; font-size: 12px;
+  background: #02080af7; color: var(--t-fg); font-family: 'Galmuri', monospace; font-size: 12px;
   text-shadow: 0 0 4px #6fe0c844; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 .wb-head { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-bottom: 1px solid var(--t-line); }
@@ -27,8 +27,8 @@
 @keyframes wb-flash { 0%, 50% { fill: var(--t-ch); stroke: #fff; } 100% { fill: #0c1e20; } }
 .wb-guide { stroke: var(--t-line); stroke-width: 0.8; stroke-dasharray: 3 3; }
 .wb-part.sel .wb-guide { stroke: var(--t-warn); }
-.wb-call { font: 11px 'GalmuriMono', monospace; fill: var(--t-fg); }
-.wb-sub { font: 9px 'GalmuriMono', monospace; fill: var(--t-dim); }
+.wb-call { font: 11px 'Galmuri', monospace; fill: var(--t-fg); }
+.wb-sub { font: 9px 'Galmuri', monospace; fill: var(--t-dim); }
 .wb-part.sel .wb-call { fill: var(--t-warn); }
 .wb-part.fitted .wb-sub { fill: var(--t-ch); }
 .wb-hit { fill: transparent; stroke: none; cursor: pointer; }

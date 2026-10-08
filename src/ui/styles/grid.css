@@ -163,7 +163,7 @@
 .ghud-log .warn { color: #ffaaa0; }
 .gh-intent:empty { display: none; }
 .gt-btn { font-family: inherit; padding: 2px; cursor: pointer; }
-.gt-btn kbd { display: none; font: 9px sans-serif; color: #cbbf9f; }
+.gt-btn kbd { display: none; font: inherit; font-size: 9px; color: #cbbf9f; }
 .gt-desktop .gt-pad, .gt-desktop .gt-stick, .portrait .gt-desktop { display: none; }
 .gt-touch .gt-swap small { max-width: 54px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grid .xzoom .btn { min-width: 48px; min-height: 48px; }
