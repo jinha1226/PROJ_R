@@ -37,6 +37,8 @@ export const SOUL_GOLD = 0xffd76a;
 
 export interface View {
   actor: UalActor;
+  /** its entity is gone from the floor: the figure falls, lies a moment, sinks and is removed */
+  leaving?: boolean;
   bar: THREE.Group;
   /** visual position (metres) chasing the logical cell */
   x: number;
@@ -64,6 +66,8 @@ export interface View {
 /** a fallen foe lies this long (the fallen of a fight pile up), then sinks into the floor over this long and is gone (its blood stays) */
 export const SINK_AT = 6;
 export const SINK_SEC = 0.8;
+/** a figure whose entity has left the floor (a fallen or spent summon) lies this long before it sinks */
+export const LEAVE_AT = 1.4;
 /** how high a fallen body lies above the ground (the floor tiles' tops stand a little above zero) */
 export const BODY_LIFT = 0.12;
 /** how long a whirlwind spin takes (two full turns) */

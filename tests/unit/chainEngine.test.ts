@@ -70,3 +70,16 @@ it('no card, innate, resonance law, memory or gear effect is left to chance', as
   expect(defs.length).toBeGreaterThan(200);
   expect(defs.filter((d) => 'chance' in d)).toEqual([]);
 });
+
+it('a summon wears its own look: bone and spectral green, never a foe\'s colours or the foes\' red outline', async () => {
+  const { summonLook, SUMMON_RING, foeLook } = await import('../../src/view/grid/species');
+  const { LOOK } = await import('../../src/view/grid/gridActorBits');
+  const { RING } = await import('../../src/view/grid/pixelPass');
+  const sk = summonLook('skeleton'), bow = summonLook('archer'), golem = summonLook('golem');
+  for (const look of [sk, bow, golem]) { expect(look.ring).toBe(SUMMON_RING); expect(look.ring).not.toBe(RING.foe); }
+  for (const species of ['goblin', 'skeleton', 'orc'] as const) expect(foeLook(LOOK.minion, 'minion', species).body).not.toBe(sk.body);
+  expect(Object.values(RING)).not.toContain(SUMMON_RING);
+  expect(bow.weapon).toBe('crossbow'); expect(golem.scale).toBeGreaterThan(sk.scale * 1.4);
+  const master = { ...LOOK.hero, ring: RING.rogue };
+  expect(summonLook('mirror', master).ring).toBe(RING.rogue);
+});

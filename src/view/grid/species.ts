@@ -72,3 +72,17 @@ export function shapeBones(model: THREE.Object3D, shape: BodyShape): { bones: [T
   for (const [name, s] of bones) { const b = model.getObjectByName(name); if (b) list.push([b, s]); }
   return { bones: list, spine: model.getObjectByName('spine_02') };
 }
+
+/** the outline of a clone's own summons: a spectral green no class line and no foe wears */
+export const SUMMON_RING = '#19e3a4';
+/**
+ * A clone's own summon, told apart from every foe at a glance (2026-10-08: a raised skeleton wore the floor's foe look,
+ * goblin green on a goblin floor, with the foes' red outline). A skeleton is gaunt bone lit spectral green, bow or blade
+ * by its weapon; a golem is a great heap of the same bone; a shadow clone is its master in shadow.
+ */
+export function summonLook(what: 'skeleton' | 'archer' | 'golem' | 'mirror', master?: UalLook): UalLook {
+  if (what === 'mirror' && master) return { ...master, body: '#2a2238', trim: '#4a3a66', ring: master.ring };
+  const bone: UalLook = { body: '#eef6e6', trim: '#19a37c', scale: 0.92, weapon: what === 'archer' ? 'crossbow' : 'blade', idle: 'Idle_Loop', ring: SUMMON_RING };
+  if (what === 'golem') return { ...bone, weapon: 'none', scale: 1.5, shape: FAT, species: 'orc', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop' };
+  return { ...bone, scale: bone.scale * SIZE.skeleton, shape: SHAPES.skeleton, species: 'skeleton' };
+}

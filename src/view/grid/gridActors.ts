@@ -7,7 +7,7 @@ import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActo
 import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
 import { markFigure, RING } from './pixelPass';
-import { ABSORB_SEC, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, SPIN_SEC, type View } from './gridActorBits';
+import { ABSORB_SEC, LEAVE_AT, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, SPIN_SEC, type View } from './gridActorBits';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
@@ -52,6 +52,12 @@ export class GridActors {
   /** Creates models for entities that do not have one yet (reinforcements appear mid-run). */
   sync(s: GridState): void {
     this.lastState = s;
+    // a figure whose entity is gone from the floor (a summon that fell, or whose time ran out) falls and sinks away:
+    // it used to stand there for good
+    if (this.views.size) {
+      const here = new Set<string>([s.hero.id]); for (const e of s.foes) here.add(e.id);
+      for (const [id, v] of this.views) if (!here.has(id) && !v.leaving) { v.leaving = true; if (!v.dead) { v.dead = true; v.actor.setDead(); } v.deadFor ??= 0; }
+    }
     for (const e of [s.hero, ...s.foes]) {
       // a raid's fodder are drawn as one instanced horde (SwarmView), never as figures
       if (e.swarm) continue;
@@ -327,6 +333,7 @@ export class GridActors {
     // newly seen cells get their figures a few times a second
     this.resync -= dt;
     if (this.resync <= 0 && this.lastState) { this.resync = 0.25; this.sync(this.lastState); }
+    const left: string[] = [];
     for (const [vid, v] of this.views) {
       const step = frozen ? 0 : dt;
       const far = !!this.focus && Math.max(Math.abs(v.x / CELL - this.focus.x), Math.abs(v.z / CELL - this.focus.y)) > FAR_ANIM;
@@ -351,12 +358,13 @@ export class GridActors {
       }
       // a body lying flat sits a little above the floor tiles (flat on the ground it would sink inside them and vanish)
       if (v.dead && v.air <= 0) v.actor.root.position.y = Math.max(v.actor.root.position.y, BODY_LIFT);
-      if (v.deadFor !== undefined && !v.gone && !this.isAlly(vid)) {
+      if (v.deadFor !== undefined && !v.gone && (v.leaving || !this.isAlly(vid))) {
         v.deadFor += step;
         for (const c of v.actor.root.children) if (c.userData.pool) c.scale.setScalar(Math.min(1, 0.01 + v.deadFor / 0.5));
-        const k = Math.min(1, Math.max(0, (v.deadFor - SINK_AT) / SINK_SEC));
+        // a figure that has left the floor (a summon) does not lie about as long as a foe's body
+        const k = Math.min(1, Math.max(0, (v.deadFor - (v.leaving ? LEAVE_AT : SINK_AT)) / SINK_SEC));
         if (k > 0) v.actor.root.position.y = BODY_LIFT - 0.8 * k;
-        if (k >= 1) { v.gone = true; v.actor.root.visible = false; }
+        if (k >= 1) { v.gone = true; v.actor.root.visible = false; if (v.leaving) left.push(vid); }
       }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
       if (!v.dead) { v.actor.setWalking(this.walk); v.actor.setLocomotion(v.runHold > 0); }
@@ -365,6 +373,7 @@ export class GridActors {
       if (v.dead && !v.gone) v.actor.root.visible = true;
       v.actor.update(step);
     }
+    for (const id of left) this.rebuild(id);
   }
 
   /** A clone taking a soul: it lights up gold and casts for a moment, then stands up in its new look (see `update`). */

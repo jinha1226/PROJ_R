@@ -22,6 +22,7 @@ import { canAscend, canDescend, delveTick, descend, newDelve, type DelveParty } 
 import { takeParty, type Carry } from '../../sim/roam/carry';
 import { GridRuntime } from '../../view/grid/gridRuntime';
 import { LOOK_BY_ID } from '../../view/grid/gridActors';
+import { summonLook } from '../../view/grid/species';
 import type { DungeonKit } from '../../view/grid/dungeonKit';
 import type { UalLibrary } from '../../view/grid/ualActor';
 import { lookOf } from '../party/partyPick';
@@ -189,6 +190,8 @@ export class DelveScreen implements Screen {
   private live(ev: GEvent[], t0 = this.p.time): void {
     if (!ev.length) return;
     for (const e of ev) {
+      // a summon wears its own look from the moment it rises (never the floor's foe look)
+      if (e.type === 'summon' && e.dst) { this.dress(e.dst); continue; }
       if (e.type !== 'buff' || (e.text !== 'soul' && e.text !== 'print')) continue;
       const u = unitOf(this.p, e.dst!)!;
       LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
@@ -237,9 +240,17 @@ export class DelveScreen implements Screen {
     this.paused = false;
   }
 
+  /** A summon's look: bone and spectral green for a skeleton or a golem, its master in shadow for a clone. */
+  private dress(id: string): void {
+    const u = unitOf(this.p, id), master = u?.summoner ? unitOf(this.p, u.summoner) : undefined;
+    if (!u?.summoner) return;
+    LOOK_BY_ID.set(id, summonLook(u.golem ? 'golem' : u.mirror ? 'mirror' : u.weapon === 'longbow' ? 'archer' : 'skeleton', master?.cls && master.weapon ? lookOf(master.cls, master.weapon) : undefined));
+  }
+
   /** The floor's view (built again on each floor). */
   private view(): void {
     for (const u of clones(this.p)) LOOK_BY_ID.set(u.id, lookOf(u.cls!, u.weapon!));
+    for (const u of this.p.units) if (u.summoner) this.dress(u.id);
     this.rt?.dispose();
     this.stage.replaceChildren();
     this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), (e) => this.log.tell(this.p, e)); this.rt.partyShow();

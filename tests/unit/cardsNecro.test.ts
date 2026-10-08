@@ -3,6 +3,7 @@ import { damage, entOf, stepToward, strike, type Unit } from '../../src/sim/part
 import { action, emit } from '../../src/sim/party/triggers';
 import { applyStatus } from '../../src/sim/party/status';
 import { TRAITS } from '../../src/sim/party/traitDefs';
+import { awardXp } from '../../src/sim/party/partyLevel';
 import { ultSlots, useUltimate } from '../../src/sim/party/ultimate';
 import { corpsesNear } from '../../src/sim/party/corpses';
 import { tickGrounds } from '../../src/sim/delve/catalogEffects';
@@ -186,4 +187,12 @@ it('out of a fight the necromancer walks through its own summon (they swap place
   entOf(s.p, foe.id)!.alive = false; s.p.combat = false;
   expect(stepToward(s.p, s.u, at, 2, [])).toBe(true);
   expect(entOf(s.p, 'hero')!.pos).toEqual(at); expect(entOf(s.p, sk.id)!.pos).toEqual(from);
+});
+
+it('a summon gains no experience: only the necromancer levels from the kills', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 10, 6);
+  action(s.p, () => emit(s.p, 'wait', { t: 0, src: s.u, ev: [] }));
+  const sk = minions(s.p, s.u.id)[0]!, before = s.u.xp ?? 0;
+  awardXp(s.p, s.put(0, 6, 6, 1), []);
+  expect(sk.xp ?? 0).toBe(0); expect(sk.level ?? 1).toBe(1); expect(s.u.xp ?? 0).toBeGreaterThan(before);
 });

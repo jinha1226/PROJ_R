@@ -14,7 +14,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   crossbow: { name: '석궁', dmg: [12, 16], range: 5, atk: 1.9, look: 'crossbow', note: '강하지만 느림' },
   staff: { name: '지팡이', dmg: [5, 8], range: 5, atk: 1.3, look: 'staff', splash: true, note: '대상 주변에 튄다' },
   wand: { name: '완드', dmg: [3, 5], range: 6, atk: 0.7, look: 'wand', note: '약하지만 빠름' },
-  mace: { name: '철퇴와 방패', dmg: [6, 9], range: 1, atk: 1.1, look: 'mace', shield: true, stun: 0.2, note: '가끔 기절' },
+  mace: { name: '철퇴와 방패', dmg: [6, 9], range: 1, atk: 1.1, look: 'mace', shield: true, stun: 0.2, note: '다섯 번째 적중마다 기절' },
   symbol: { name: '성표', dmg: [4, 6], range: 4, atk: 1.2, look: 'symbol', note: '원거리 신성' },
   daggers: { name: '쌍단검', dmg: [4, 6], range: 1, atk: 0.6, look: 'dagger', note: '아주 빠름' },
   knives: { name: '투척 단검', dmg: [4, 7], range: 4, atk: 1.0, look: 'dagger', note: '원거리' },

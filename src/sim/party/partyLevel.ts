@@ -45,7 +45,8 @@ export function awardXp(p: Party, fallen: Unit, ev: GEvent[]): void {
   const n = (XP[fallen.foe ?? ''] ?? 4) * (at.elite ? 2 : 1) * (fallen.fodder ? 0.5 : 1);
   for (const u of p.units) {
     const e = entOf(p, u.id);
-    if (u.side !== 'hero' || !e || !alive(p, u)) continue;
+    // a summon learns nothing (it used to level up beside its master: level-up pops over skeletons, their health refitted as a clone's)
+    if (u.side !== 'hero' || u.summoner || !e || !alive(p, u)) continue;
     if ((p as { printHere?: boolean }).printHere && !u.wentDown) continue;
     if (Math.max(Math.abs(e.pos.x - at.pos.x), Math.abs(e.pos.y - at.pos.y)) <= 12) gainXp(p, u, n, ev);
   }

@@ -416,7 +416,8 @@ function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], 
     const around = w.cleave ? e.pos : te.pos;
     for (const f of p.units) if (f.side !== u.side && f !== target && alive(p, f) && dist(posOf(p, f), around) === 1) damage(p, t, u.id, f, Math.round(roll(p, st.dmg) / 2), ev);
   }
-  if (w?.stun && te.alive && p.s.rng.chance(w.stun)) target.nextAt = Math.max(target.nextAt, t + 1.2);
+  // a stunning weapon stuns on every nth blow that lands (no dice: `stun` is the share of blows, 0.2 = every fifth)
+  if (w?.stun && te.alive) { const tally = (u.tally ??= {}), n = (tally['무기 기절'] = (tally['무기 기절'] ?? 0) + 1); if (n % Math.round(1 / w.stun) === 0) target.nextAt = Math.max(target.nextAt, t + 1.2); }
   // a warrior struck in melee sometimes strikes straight back
 
 }
