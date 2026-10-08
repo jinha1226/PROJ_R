@@ -6,7 +6,7 @@ import { alive, damage, entOf, posOf, targetOf, type Party, type Unit } from './
 import { WEAPONS, type ClassId, type WeaponId } from './partyDefs';
 import type { Tag, WeaponFamily } from './buildTypes';
 import type { TriggerDef } from './triggers';
-import { heal, nearby, summon } from './kitEffects';
+import { heal, nearby } from './kitEffects';
 export type UltId = 'earthSlam' | 'arrowRain' | 'teleport' | 'sanctum' | 'shadowClone' | 'golem' | 'gravity';
 export interface Kit { innate: TriggerDef[]; ultimate: UltId | null; ultCd: number; proficient: WeaponFamily[] }
 export const FAMILY: Record<WeaponId, WeaponFamily | null> = { fists: null, pistol: 'gun', swordShield: 'sword', greataxe: 'great', longbow: 'bow', crossbow: 'crossbow', staff: 'staff', wand: 'staff', mace: 'mace', symbol: 'relic', daggers: 'dagger', knives: 'dagger' };
@@ -14,7 +14,7 @@ export { proficient } from '../delve/gear';
 import { proficient, worn } from '../delve/gear';
 import { CATALOG } from '../delve/catalog';
 import { counter } from './cardFx';
-import { consume, isCorpse } from './corpses';
+import { burst, BURST, canBurst } from './corpses';
 import { SHELL_INNATE } from './cardsShell';
 import { MAGE_INNATE } from './cardsMage';
 import { GOLEM_FALL } from './cardsNecro';
@@ -45,12 +45,11 @@ const rogue: TriggerDef[] = [
   { id: '배후 급소', when: 'beforeHit', test: (p,c) => !!c.target && targetOf(p,c.target,c.t)?.id !== c.src.id, run: (_p,c) => { c.src.attackMult = (c.src.attackMult ?? 1) * 1.6; } },
   { id: '잠행', when: 'kill', run: (_p,c) => { c.src.hiddenUntil = c.t + 1+T.stealth(c.src); } },
 ];
-/** the necromancer's innates (C3 spec §3.6): a fifth of kills raise a skeleton from the body; every other body bursts (bone damage, repeat) */
+/** the necromancer's innate (C3 spec §3.6): every body bursts (bone damage, repeat); the burst body can still be raised */
 const necromancer: TriggerDef[] = [
-  { id: '망자의 부름', when: 'kill', chance: 0.2, test: (p,c) => !!c.target && isCorpse(p,c.target), run: (p,c) => { if (summon(p,c.src,posOf(p,c.target!),c.t,c.ev)) consume(c.target!); } },
-  { id: '시체 폭발', when: 'kill', repeat: true, test: (p,c) => !!c.target && isCorpse(p,c.target), run: (p,c) => {
-    const body = c.target!, at = posOf(p, body), amount = Math.max(1, Math.round(entOf(p, body.id)!.maxHp * 0.15));
-    consume(body);
+  { id: '시체 폭발', when: 'kill', repeat: true, test: (p,c) => !!c.target && canBurst(p,c.target), run: (p,c) => {
+    const body = c.target!, at = posOf(p, body), amount = Math.max(1, Math.round(entOf(p, body.id)!.maxHp * BURST));
+    burst(body);
     for (const f of nearby(p, body, 1, 'foe')) if (dist(posOf(p, f), at) <= 1) damage(p, c.t, c.src.id, f, amount, c.ev, true, false, 'bone');
     // the cleric-necromancer combo: every burst shields the necromancer
     if (duoFor(p, c.src, 'lifeCycle')) addShield(c.src, 3, c.src);

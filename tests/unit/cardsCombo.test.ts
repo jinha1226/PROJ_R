@@ -52,7 +52,7 @@ it('blood offering: a foe the whirlwind kills bursts at once', () => {
   const { p, u, put, hp } = both('warrior', 'necromancer', { bloodOffering: 1 });
   const weak = put(0, 6, 6, 1), b = put(1, 7, 6);
   action(p, () => whirlwind(p, u, 1, []));
-  expect(entOf(p, weak.id)!.alive).toBe(false); expect(weak.raised).toBe(true); expect(hp(b)).toBeLessThan(999);
+  expect(entOf(p, weak.id)!.alive).toBe(false); expect(weak.burst).toBe(true); expect(hp(b)).toBeLessThan(999);
 });
 
 it('element trap: a snare going off lays the element cycle’s next element', () => {

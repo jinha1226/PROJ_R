@@ -3,7 +3,7 @@ import { alive, damage, entOf, posOf, stats, type Party, type Unit } from './par
 import { foesNear } from './cardFx';
 import { heal } from './kitEffects';
 import { linesOf } from './body';
-import { consume, isCorpse } from './corpses';
+import { burst, BURST, canBurst } from './corpses';
 import { card, rank, type TraitDef } from './traitTypes';
 import type { BaseClass } from './partyDefs';
 import type { TriggerDef } from './triggers';
@@ -28,9 +28,9 @@ const COMBOS: TraitDef[] = [
   duo('gap', '틈새', ['warrior', 'rogue'], 'any', ['치명'], '기절한 적 → 치명',
     { id: '틈새', when: 'beforeHit', test: (_p, c) => on(c.target, 'stun', c.t), run: (_p, c) => { c.src.nextCrit = true; } }),
   duo('bloodOffering', '피의 제물', ['warrior', 'necromancer'], 'any', ['출혈', '뼈'], '회오리 베기로 죽은 적의 시체가 즉시 폭발',
-    { id: '피의 제물', when: 'kill', repeat: true, test: (p, c) => !!c.src.whirling && !!c.target && isCorpse(p, c.target), run: (p, c) => {
-      const body = c.target!, at = posOf(p, body), amount = Math.max(1, Math.round(entOf(p, body.id)!.maxHp * 0.3));
-      consume(body);
+    { id: '피의 제물', when: 'kill', repeat: true, test: (p, c) => !!c.src.whirling && !!c.target && canBurst(p, c.target), run: (p, c) => {
+      const body = c.target!, at = posOf(p, body), amount = Math.max(1, Math.round(entOf(p, body.id)!.maxHp * BURST * 2));
+      burst(body);
       for (const f of foesNear(p, at, 1)) damage(p, c.t, c.src.id, f, amount, c.ev, true, false, 'bone');
     } }),
   duo('elemArrow', '원소 화살', ['archer', 'mage'], 'any', ['원거리'], '표식된 적이 원소 반응 → 곁의 적에게 표식',

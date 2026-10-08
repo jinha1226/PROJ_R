@@ -69,7 +69,7 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
 }
 
 // Whether an effect worked: the source unit in full (minus cooldown bookkeeping), and for everyone else a light fingerprint of
-// what effects change (health, life, place, shield, states, taunt, stealth, immunity, raised, sleep, aimed-at), plus counts of
+// what effects change (health, life, place, shield, states, taunt, stealth, immunity, raised, burst, sleep, aimed-at), plus counts of
 // units, burning ground and gravity wells. A full JSON of every unit was too slow with a horde on the floor.
 function effectState(p: Party, src: Unit): string {
   let h = 0;
@@ -79,7 +79,7 @@ function effectState(p: Party, src: Unit): string {
   for (const u of p.units) {
     if (u === src) continue;
     for (const k in u.status) { const st = u.status[k as StatusId]; if (st) { mix(st.until); mix(st.stacks ?? 0); } }
-    mix(u.shield); mix(u.tauntUntil); mix(u.hiddenUntil); mix(u.immuneUntil ?? 0); mix(u.raised ? 1 : 0); mix(u.asleep ? 1 : 0); mix(u.sighted?.length ?? 0); mix(u.nextAt);
+    mix(u.shield); mix(u.tauntUntil); mix(u.hiddenUntil); mix(u.immuneUntil ?? 0); mix(u.raised ? 1 : 0); mix(u.burst ? 1 : 0); mix(u.asleep ? 1 : 0); mix(u.sighted?.length ?? 0); mix(u.nextAt);
   }
   for (const e of [p.s.hero, ...p.s.foes]) { mix(e.hp); mix(e.alive ? 1 : 0); mix(e.pos.x); mix(e.pos.y); }
   return `${h}|${JSON.stringify({ ...src, trig: undefined, triggers: undefined })}`;

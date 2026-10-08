@@ -29,6 +29,18 @@ function spear(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], expose 
   return dead;
 }
 
+const legionCap = (r: number) => (r >= 2 ? 5 : 3);
+/** One more skeleton beside a cell (every other one an archer once the card is upgraded); false at the legion's cap. */
+const raise = (p: Party, u: Unit, at: Cell, t: number, ev: GEvent[], r: number): boolean =>
+  summon(p, u, at, t, ev, legionCap(r), { hp: 24, weapon: r >= 2 && minions(p, u).length % 2 === 1 ? 'longbow' : 'fists' });
+/** Where the legion rises as a fight opens: a step from the necromancer toward the nearest foe awake. */
+function front(p: Party, u: Unit): Cell {
+  const me = posOf(p, u), foe = p.units.filter((f) => f.side === 'foe' && alive(p, f) && !f.asleep).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+  if (!foe) return me;
+  const fp = posOf(p, foe), c = { x: me.x + Math.sign(fp.x - me.x), y: me.y + Math.sign(fp.y - me.y) };
+  return walkable(tileAt(p.s.map, c)) ? c : me;
+}
+
 /** A body left where a minion fell (grasp of the dead): a dead foe unit that gives no bio-matter or experience. */
 function leaveBody(p: Party, at: Cell): void {
   const e = spawnFoe(p.s, 'minion', at, false);
@@ -92,15 +104,21 @@ export const NECRO_CARDS: TraitDef[] = [
     ],
   }, '받은 피해 35%'), BONE),
   inBranch(card('boneAmp', '뼈 숙련', 'amp', ['뼈'], 'necromancer', '#뼈 1당 뼈 피해 ×1.12 (곱)', {}, '×1.16'), BONE),
-  // 군단: skeletons rising from every body
-  inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '3칸 안에 시체가 있으면 매 턴 해골(최대 3), 대기하면 하나 더', {
-    triggers: (r) => (['turn', 'wait'] as const).map((when): TriggerDef => ({ id: '해골 일으키기', when, test: (p, c) => fighting(p, c.src) && minions(p, c.src).length < (r >= 2 ? 5 : 3) && corpsesNear(p, posOf(p, c.src), 3).length > 0, run: (p, c) => {
-      const body = corpsesNear(p, posOf(p, c.src), 3)[0]!, archer = r >= 2 && minions(p, c.src).length % 2 === 1;
-      if (summon(p, c.src, posOf(p, body), c.t, c.ev, r >= 2 ? 5 : 3, { hp: 24, weapon: archer ? 'longbow' : 'fists' })) consume(body);
-    } })).concat(r >= 3 ? [{ id: '해골 폭발', when: 'summonDied', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
-      for (const f of foesNear(p, posOf(p, c.target!), 1)) damage(p, c.t, c.src.id, f, Math.max(1, Math.round(avg(p, c.src, c.t) * 0.8)), c.ev, true, false, 'bone');
-    } }] : []),
-  }, '해골 궁수 포함 최대 5', '해골이 죽음 → 그 시체가 바로 폭발'), LEGION, true),
+  // 군단: skeletons that stand up as the fight opens, and again from every body
+  inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '전투 진입 → 해골 2, 3칸 안 시체마다 매 턴 해골(최대 3), 전투 중 대기 → 하나 더', {
+    triggers: (r) => [
+      // the legion rises with the fight, between the necromancer and the foes: no body needed
+      { id: '해골 일으키기', when: 'combatStart', run: (p, c) => { const at = front(p, c.src); for (let k = 0; k < (r >= 2 ? 3 : 2); k++) raise(p, c.src, at, c.t, c.ev, r); } },
+      { id: '해골 일으키기', when: 'turn', test: (p, c) => fighting(p, c.src) && minions(p, c.src).length < legionCap(r) && corpsesNear(p, posOf(p, c.src), 3).length > 0, run: (p, c) => {
+        const body = corpsesNear(p, posOf(p, c.src), 3)[0]!;
+        if (raise(p, c.src, posOf(p, body), c.t, c.ev, r)) consume(body);
+      } },
+      { id: '해골 일으키기', when: 'wait', test: (p, c) => fighting(p, c.src), run: (p, c) => { raise(p, c.src, posOf(p, c.src), c.t, c.ev, r); } },
+      ...(r >= 3 ? [{ id: '해골 폭발', when: 'summonDied', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
+        for (const f of foesNear(p, posOf(p, c.target!), 1)) damage(p, c.t, c.src.id, f, Math.max(1, Math.round(avg(p, c.src, c.t) * 0.8)), c.ev, true, false, 'bone');
+      } } satisfies TriggerDef] : []),
+    ],
+  }, '진입 시 3, 해골 궁수 포함 최대 5', '해골이 죽음 → 그 시체가 바로 폭발'), LEGION, true),
   inBranch(card('deadGrasp', '망자의 손아귀', 'law', ['소환'], 'necromancer', '소환수가 죽음 → 그 자리에 시체 2구', {
     trigger: (r) => ({ id: '망자의 손아귀', when: 'summonDied', test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
       const at = posOf(p, c.target!); for (let k = 0; k < (r >= 2 ? 3 : 2); k++) leaveBody(p, at);

@@ -9,8 +9,8 @@ import type { GEvent } from '../../src/sim/grid/types';
 it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (cls) => {
   const p = partyRoom(), u = p.units[0]!, f = p.units[3]!, ally = p.units[1]!, ev: GEvent[] = [];
   u.cls = cls; u.weapon = { warrior: 'swordShield', archer: 'longbow', mage: 'staff', cleric: 'mace', rogue: 'daggers', necromancer: 'staff' }[cls] as typeof u.weapon;
-  // the necromancer also carries its golem's fall, the rogue its clones' blows, the cleric's hand of salvation answers its own crisis too
-  expect(sourcesOf(p,u)).toHaveLength(cls === 'necromancer' || cls === 'rogue' || cls === 'cleric' ? 3 : 2);
+  // the rogue also carries its clones' blows, the cleric's hand of salvation answers its own crisis too; the necromancer has one innate and its golem's fall
+  expect(sourcesOf(p,u)).toHaveLength(cls === 'rogue' || cls === 'cleric' ? 3 : 2);
   entOf(p,f.id)!.pos={x:4,y:4};entOf(p,p.units[4]!.id)!.pos={x:3,y:5};
   entOf(p,f.id)!.hp=entOf(p,f.id)!.maxHp=1000;
   entOf(p,ally.id)!.hp=1;u.nth=3;u.still=2;p.s.rng.chance=c=>c>.2;
@@ -28,10 +28,10 @@ it.each(BASE_CLASSES)('%s has two innates with their specific combat effects', (
     emit(p,'allyCrisis',{t:0,src:u,target:ally,ev});expect(entOf(p,ally.id)!.hp).toBe(23);
     emit(p,'combatStart',{t:0,src:u,ev});expect(p.units.filter(x=>x.side==='hero').map(x=>x.shield)).toEqual([10,10,10]);
   } else if(cls==='necromancer') {
-    // a kill: either a skeleton rises from the body or the body bursts on the foes beside it
+    // a kill: the body bursts on the foes beside it, and can still be raised
     const near=p.units[4]!; entOf(p,near.id)!.hp=entOf(p,near.id)!.maxHp=1000; entOf(p,f.id)!.alive=false;
     emit(p,'kill',{t:0,src:u,target:f,ev});
-    expect(f.raised).toBe(true);
+    expect(f.burst).toBe(true); expect(f.raised).toBeFalsy(); expect(entOf(p,near.id)!.hp).toBeLessThan(1000);
   } else {
     f.order={kind:'attack',target:ally.id};emit(p,'beforeHit',{t:0,src:u,target:f,ev});expect(u.attackMult).toBe(1.6);
     emit(p,'kill',{t:0,src:u,target:f,ev});expect(u.hiddenUntil).toBe(1);

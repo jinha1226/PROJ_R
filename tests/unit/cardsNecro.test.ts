@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { damage, entOf, strike, type Unit } from '../../src/sim/party/partyCore';
+import { damage, entOf, stepToward, strike, type Unit } from '../../src/sim/party/partyCore';
 import { action, emit } from '../../src/sim/party/triggers';
 import { applyStatus } from '../../src/sim/party/status';
 import { TRAITS } from '../../src/sim/party/traitDefs';
@@ -12,7 +12,7 @@ import type { GEvent } from '../../src/sim/grid/types';
 const hp = (p: ReturnType<typeof necroScene>['p'], f: Unit) => entOf(p, f.id)!.hp;
 const minions = (p: ReturnType<typeof necroScene>['p'], id: string) => p.units.filter((x) => x.summoner === id && entOf(p, x.id)?.alive);
 const turn = (p: ReturnType<typeof necroScene>['p'], u: Unit, t: number) => action(p, () => emit(p, 'turn', { t, src: u, ev: [] }));
-const kill = (s: ReturnType<typeof necroScene>, f: Unit) => { s.p.s.rng.chance = () => false; action(s.p, () => damage(s.p, 0, s.u.id, f, 9999, [], true)); };
+const kill = (s: ReturnType<typeof necroScene>, f: Unit) => { action(s.p, () => damage(s.p, 0, s.u.id, f, 9999, [], true)); };
 
 it('twelve necromancer cards in three branches, a signature each; the golem is its ultimate', () => {
   const cards = Object.values(TRAITS).filter((d) => d.pool === 'necromancer');
@@ -28,19 +28,53 @@ it('bone spear: a third of blows send a bone spear through every foe in line (hi
   expect(hp(s.p, b)).toBeLessThan(999); expect(hp(s.p, c)).toBeLessThan(999);
 });
 
-it('raise skeleton: with a body within three a skeleton rises every turn, up to three', () => {
-  // skeletons rise in a fight: a foe stands awake a way off
+it('raise skeleton: two skeletons stand up as the fight opens, between the necromancer and the foe, with no body about', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 6);
+  action(s.p, () => emit(s.p, 'combatStart', { t: 0, src: s.u, ev: [] }));
+  const sk = minions(s.p, s.u.id);
+  expect(sk).toHaveLength(2);
+  // the necromancer stands at (4,6), the foe to its right
+  for (const m of sk) expect(entOf(s.p, m.id)!.pos.x).toBeGreaterThanOrEqual(4);
+});
+
+it('raise skeleton: a burst body within three still gives a skeleton each turn, up to three', () => {
   const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 10);
-  for (let k = 0; k < 4; k++) { const f = s.put(k, 3 + k, 8, 1); kill(s, f); f.raised = false; }
-  for (const f of s.p.units.filter((x) => x.side === 'foe')) if (!entOf(s.p, f.id)!.alive) f.raised = false;
+  // the kills burst the bodies (the innate); they are raised all the same
+  for (let k = 0; k < 4; k++) { const f = s.put(k, 3 + k, 8, 1); kill(s, f); expect(f.burst).toBe(true); }
   for (let t = 1; t <= 5; t++) turn(s.p, s.u, t);
   expect(minions(s.p, s.u.id)).toHaveLength(3);
+  expect(s.p.units.filter((f) => f.side === 'foe' && f.raised && f.burst)).toHaveLength(3);
+});
+
+it('raise skeleton: waiting in a fight raises one more with no body; out of a fight it does not', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 };
+  action(s.p, () => emit(s.p, 'wait', { t: 0, src: s.u, ev: [] }));
+  expect(minions(s.p, s.u.id)).toHaveLength(0);
+  s.put(8, 10, 6);
+  for (let t = 1; t <= 5; t++) action(s.p, () => emit(s.p, 'wait', { t, src: s.u, ev: [] }));
+  expect(minions(s.p, s.u.id)).toHaveLength(3);
+});
+
+it('raise skeleton upgraded: three at the fight\'s start, five in all with archers among them', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 2 }; s.put(8, 11, 6);
+  action(s.p, () => emit(s.p, 'combatStart', { t: 0, src: s.u, ev: [] }));
+  expect(minions(s.p, s.u.id)).toHaveLength(3);
+  for (let t = 1; t <= 4; t++) action(s.p, () => emit(s.p, 'wait', { t, src: s.u, ev: [] }));
+  const sk = minions(s.p, s.u.id);
+  expect(sk).toHaveLength(5); expect(sk.some((m) => m.weapon === 'longbow')).toBe(true);
+});
+
+it('a minion\'s kill is its master\'s kill: the body bursts on the foes beside it', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 10);
+  action(s.p, () => emit(s.p, 'combatStart', { t: 0, src: s.u, ev: [] }));
+  const sk = minions(s.p, s.u.id)[0]!, a = s.put(0, 9, 6, 40), b = s.put(1, 10, 6, 999);
+  action(s.p, () => damage(s.p, 1, sk.id, a, 999, []));
+  expect(a.burst).toBe(true); expect(999 - hp(s.p, b)).toBe(20);
 });
 
 it('grasp of the dead: a fallen minion leaves two bodies', () => {
   const s = necroScene(); s.u.traits = { deadGrasp: 1, raiseSkeleton: 1 }; s.put(8, 11, 10);
-  const f = s.put(0, 6, 6, 1); kill(s, f); f.raised = false;
-  turn(s.p, s.u, 1);
+  action(s.p, () => emit(s.p, 'wait', { t: 0, src: s.u, ev: [] }));
   const sk = minions(s.p, s.u.id)[0]!, at = { ...entOf(s.p, sk.id)!.pos };
   action(s.p, () => damage(s.p, 2, 'trap', sk, 999, []));
   expect(corpsesNear(s.p, at, 0)).toHaveLength(2);
@@ -48,7 +82,7 @@ it('grasp of the dead: a fallen minion leaves two bodies', () => {
 
 it('soul link: a third of the harm the necromancer takes goes to the nearest minion', () => {
   const s = necroScene(); s.u.traits = { soulLink: 1, raiseSkeleton: 1 }; s.put(8, 11, 10);
-  const f = s.put(0, 5, 6, 1); kill(s, f); f.raised = false; turn(s.p, s.u, 1);
+  action(s.p, () => emit(s.p, 'wait', { t: 0, src: s.u, ev: [] }));
   const sk = minions(s.p, s.u.id)[0]!, e = entOf(s.p, 'hero')!; e.hp = e.maxHp = 1000; s.u.gear!.armor = null;
   const skHp = entOf(s.p, sk.id)!.hp;
   damage(s.p, 3, 'trap', s.u, 30, [], true);
@@ -83,7 +117,8 @@ it('poison burst: five stacks of poison burst at once and spread two to the neig
 it('golem: gathers the bodies near the cell into one big minion that draws foes, and bursts when it falls', () => {
   const s = necroScene();
   expect(useUltimate(s.p, 'hero', { x: 10, y: 6 }, 0)).toEqual([]);
-  for (let k = 0; k < 3; k++) { const f = s.put(k, 9 + k, 6, 1); kill(s, f); f.raised = false; }
+  // the bodies burst as they fall; the golem is made of them all the same
+  for (let k = 0; k < 3; k++) kill(s, s.put(k, 9 + k, 6, 1));
   const foe = s.put(4, 12, 8);
   expect(useUltimate(s.p, 'hero', { x: 10, y: 6 }, 0).length).toBeGreaterThan(0);
   const g = minions(s.p, s.u.id).find((x) => x.golem)!;
@@ -92,4 +127,15 @@ it('golem: gathers the bodies near the cell into one big minion that draws foes,
   const h = hp(s.p, foe);
   action(s.p, () => damage(s.p, 1, foe.id, g, 99999, []));
   expect(hp(s.p, foe)).toBeLessThan(h);
+});
+
+it('out of a fight the necromancer walks through its own summon (they swap places); in a fight the summon stands in the way', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; const foe = s.put(8, 10, 6);
+  action(s.p, () => emit(s.p, 'wait', { t: 0, src: s.u, ev: [] }));
+  const sk = minions(s.p, s.u.id)[0]!, at = { ...entOf(s.p, sk.id)!.pos }, from = { ...entOf(s.p, 'hero')!.pos };
+  s.p.combat = true;
+  expect(stepToward(s.p, s.u, at, 1, [])).toBe(false);
+  entOf(s.p, foe.id)!.alive = false; s.p.combat = false;
+  expect(stepToward(s.p, s.u, at, 2, [])).toBe(true);
+  expect(entOf(s.p, 'hero')!.pos).toEqual(at); expect(entOf(s.p, sk.id)!.pos).toEqual(from);
 });

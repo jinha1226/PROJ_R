@@ -104,6 +104,8 @@ export interface Unit {
   group?: number;
   /** a fallen foe whose bio-matter has been gathered */
   reaped?: boolean; raised?: boolean;
+  /** a body that has burst (it can still be raised), or a skeleton that has blown itself up */
+  burst?: boolean;
   /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */
   pendingKeystones?: number; level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
   /** when grit can hold a killing blow again */
@@ -194,8 +196,13 @@ export function stepToward(p: Party, u: Unit, to: Cell, t: number, ev: GEvent[])
     safeMap = { ...p.s.map, tiles: [...p.s.map.tiles] };
     for (const trap of p.s.traps) if (trap.found && !same(trap.pos, e.pos)) safeMap.tiles[idx(safeMap, trap.pos)] = 'wall';
   }
-  const next = (findPath(safeMap, e.pos, to, (c) => occupied(p, c, u.id)) ?? findPath(p.s.map, e.pos, to, (c) => occupied(p, c, u.id)))?.[0];
-  if (!next || occupied(p, next, u.id)) return false;
+  // out of a fight a clone walks through its own summons (they swap places): a golem lasts until it falls, and would wall a corridor
+  const mine = (c: Cell) => (p.combat === false && !u.summoner ? p.units.find((x) => x.summoner === u.id && alive(p, x) && same(posOf(p, x), c)) : undefined);
+  const blocked = (c: Cell) => occupied(p, c, u.id) && !mine(c);
+  const next = (findPath(safeMap, e.pos, to, blocked) ?? findPath(p.s.map, e.pos, to, blocked))?.[0];
+  if (!next || blocked(next)) return false;
+  const swap = mine(next);
+  if (swap) { ev.push({ t, type: 'move', src: swap.id, from: { ...next }, to: { ...e.pos } }); entOf(p, swap.id)!.pos = { ...e.pos }; }
   ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...next } });
   e.pos = next;
   u.moved = true; u.still = 0; movedStatus(p, u, t, ev); emit(p, 'moved', { t, src: u, ev });
@@ -284,6 +291,9 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     if (killer?.side === 'hero' && dst.side === 'foe') {
 
       emit(p, 'kill', { t, src: killer, target: dst, amount, over: Math.max(0, amount - prevHp), kind, ev });
+      // a minion's kill is its master's kill too (C3 spec §5): the master's 'on kill' cards answer it
+      const owner = killer.summoner ? unitOf(p, killer.summoner) : undefined;
+      if (owner && alive(p, owner)) emit(p, 'kill', { t, src: owner, target: dst, amount, over: Math.max(0, amount - prevHp), kind, ev });
       // mana flow: a kill takes seconds off the killer's skills
 
     }
