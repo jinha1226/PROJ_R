@@ -9,6 +9,7 @@ import { freshFight, memoryTriggers } from './memories';
 import { alive, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import type { StatusId } from './status';
+import { asBeat, nest } from './beat';
 import type { DamageKind } from './partyCore';
 export type Cond = 'hit' | 'crit' | 'kill' | 'struck' | 'block' | 'dodge' | 'crisis' | 'nth' | 'still' | 'moved' | 'allyHit' | 'allyCrisis' | 'combatStart' | 'statusApplied' | 'ultimate' | 'healed' | 'taunt' | 'allyUltimate' | 'beforeHit' | 'guard' | 'overflow' | 'fireball' | 'counter' | 'shieldBreak' | 'summonDied' | 'reaction' | 'wait' | 'reload' | 'attack' | 'damage' | 'damaged' | 'teleport' | 'summon' | 'turn' | 'miss';
 export interface Ctx { kind?: DamageKind; basic?: boolean; t: number; src: Unit; target?: Unit; amount?: number; status?: StatusId; reaction?: string; over?: number; depth: number; ev: GEvent[] }
@@ -51,10 +52,11 @@ export function emit(p: Party, cond: Cond, input: Omit<Ctx, 'depth'> & { depth?:
       c.src.trig[def.id] = c.t + (def.cd ?? 0) * (c.src.traits?.fanatic ? .5 : 1);
       const had = action.fired.has(key); action.fired.add(key);
       action.count++; action.depth++;
-      try { def.run(p, { ...c, depth: action.depth }); } finally { action.depth--; }
+      try { asBeat(c.ev, () => def.run(p, { ...c, depth: action.depth })); } finally { action.depth--; }
       if (effectState(p, c.src) !== before) {
         action.ev ??= c.ev; action.src ??= c.src.id; action.t = c.t;
-        c.ev.splice(eventAt, 0, { t: c.t, type: 'buff', src: c.src.id, dst: c.target?.id, text: def.id });
+        const name: GEvent = { t: c.t, type: 'buff', src: c.src.id, dst: c.target?.id, text: def.id };
+        c.ev.splice(eventAt, 0, name); nest(name);
       } else {
         if (!had) action.fired.delete(key);
         action.count--;

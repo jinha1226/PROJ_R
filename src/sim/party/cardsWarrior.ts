@@ -5,6 +5,7 @@ import { tagsOf, WHIRL_REACH } from './classKit';
 import { ampBase, card, inBranch, rank, type TraitDef } from './traitTypes';
 import { dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import type { TriggerDef } from './triggers';
+import { asBeat } from './beat';
 
 const WHIRL = 'warrior:whirl', FRENZY = 'warrior:frenzy', SHOUT = 'warrior:shout';
 const WHIRL_CARDS = ['bladeStorm', 'bloodVortex', 'rendWounds', 'bladeAmp'];
@@ -26,12 +27,15 @@ export function whirlwind(p: Party, u: Unit, t: number, ev: GEvent[], o: { at?: 
   // a whirlwind under way (the warrior-necromancer combo reads it for the kills it makes)
   u.whirling = true;
   try {
-    for (const f of foesNear(p, at, reach)) {
-      const fp = posOf(p, f); if (Math.hypot(fp.x - at.x, fp.y - at.y) > reach + 0.5) continue;
-      // the whirlwind's blades are hits (spec §1.5)
-      freeHit(p, u, f, amount, 'physical', t, ev);
-      if (bleeds && alive(p, f)) applyStatus(p, u, f, 'bleed', t, ev, o.bleed ?? 1);
-    }
+    // one sweep of the blade: every cut lands at once (told together, before what each sets off)
+    asBeat(ev, () => {
+      for (const f of foesNear(p, at, reach)) {
+        const fp = posOf(p, f); if (Math.hypot(fp.x - at.x, fp.y - at.y) > reach + 0.5) continue;
+        // the whirlwind's blades are hits (spec §1.5)
+        freeHit(p, u, f, amount, 'physical', t, ev);
+        if (bleeds && alive(p, f)) applyStatus(p, u, f, 'bleed', t, ev, o.bleed ?? 1);
+      }
+    });
   } finally { u.whirling = false; }
 }
 

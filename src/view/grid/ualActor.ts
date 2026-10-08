@@ -341,10 +341,14 @@ export class UalActor {
   }
 
   /** A steady glow for a status (frozen blue, poisoned green, burning orange); null clears it. */
-  setTint(color: string | null): void {
+  setTint(color: string | null, strength = 0.45): void {
     this.tint.set(color ?? '#000000');
-    if (color) this.tint.multiplyScalar(0.45);
+    if (color) this.tint.multiplyScalar(strength);
   }
+
+  private iced = false;
+  /** Frozen solid: the figure holds whatever pose it was caught in until it thaws. */
+  setIced(on: boolean): void { this.iced = on; }
 
   setDead(): void {
     if (this.dead) return;
@@ -367,7 +371,7 @@ export class UalActor {
   }
 
   update(dt: number): void {
-    this.mixer.update(dt);
+    this.mixer.update(this.iced && !this.dead ? 0 : dt);
     // the species build rides on top of whatever the clip set this frame
     for (const [b, k] of this.shaped) b.scale.copy(k);
     // only on a fresh pose: a frame where no clip touched the spine must not stack another hunch

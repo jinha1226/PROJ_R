@@ -86,8 +86,20 @@ export function effectCue(k: CueKit, e: GEvent): boolean {
     if (!at) return false;
     k.fx.drop(at, () => {
       k.particles.vfx.fire('blast', at, '#ff7a2a'); k.fx.transient.burst(at.x, at.z, '#ff7a2a', 1.1, 0.35);
-      k.fx.flash(at, '#ff8a2a', 46, 0.35, 9); k.fx.shake(0.12, 0.2);
+      // the ground takes it: the whole screen jolts
+      k.fx.flash(at, '#ff8a2a', 46, 0.35, 9); k.fx.shake(0.32, 0.42);
     });
+    return true;
+  }
+  // a blizzard: ice out of the sky all over the ground it covers, shard after shard for a moment (its hits wait for the first: playback.ts)
+  if (e.type === 'buff' && e.text === 'blizzard' && e.to) {
+    const c = toWorld(e.to.x, e.to.y), reach = (e.amount ?? 2) * CELL, n = Math.round(8 + reach * 3);
+    for (let i = 0; i < n; i++) {
+      // spread over the disc without clumps (the golden angle), the middle first
+      const a = i * 2.39996, r = reach * Math.sqrt((i + 0.5) / n), at = c.clone().set(c.x + Math.cos(a) * r, 0, c.z + Math.sin(a) * r);
+      k.fx.drop(at, () => { k.particles.vfx.fire('frost', at, '#e8f6ff'); if (i % 3 === 0) k.fx.transient.burst(at.x, at.z, '#bfe8ff', 0.45, 0.25); }, '#8fd0ff', 0.08 + (i / n) * 0.34, '#e8f6ff', 0.16);
+    }
+    k.fx.flash(c, '#9fd8ff', 20, 0.4, reach * 2); k.fx.shake(0.2, 0.14);
     return true;
   }
   // fire leaping from a body: a ring where it fell, then (below) a streak of flame to every foe it sets alight

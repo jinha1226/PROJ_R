@@ -7,6 +7,7 @@ import { UalActor, type UalAnim, type UalLibrary, type UalLook } from './ualActo
 import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
 import { markFigure, RING } from './pixelPass';
+import { IceBlocks } from './iceBlock';
 import { ABSORB_SEC, LEAVE_AT, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, SPIN_SEC, type View } from './gridActorBits';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
@@ -47,7 +48,7 @@ export class GridActors {
   focus: { x: number; y: number } | null = null;
   private resync = 0;
 
-  constructor(private readonly lib: UalLibrary) {}
+  constructor(private readonly lib: UalLibrary) { this.root.add(this.ice.root); }
 
   /** Creates models for entities that do not have one yet (reinforcements appear mid-run). */
   sync(s: GridState): void {
@@ -231,10 +232,14 @@ export class GridActors {
 
   /** Status glow from the sim: frozen, poisoned, burning. */
   setStatus(id: string, st: { burn: number; freeze: number; poison: number } | undefined): void {
-    const v = this.views.get(id);
+    const v = this.views.get(id), iced = !!st && st.freeze > 0 && !!v && !v.dead;
+    // frozen: the figure holds the pose it was caught in, pale with frost, in a block of ice
+    this.ice.set(id, iced);
     if (!v || v.dead) return;
-    v.actor.setTint(!st ? null : st.freeze > 0 ? '#5ab4ff' : st.burn > 0 ? '#ff7a2a' : st.poison > 0 ? '#7ad04a' : null);
+    v.actor.setIced(iced);
+    v.actor.setTint(!st ? null : iced ? '#1f66c0' : st.burn > 0 ? '#ff7a2a' : st.poison > 0 ? '#7ad04a' : null, iced ? 1 : 0.45);
   }
+  private readonly ice = new IceBlocks();
 
   /** Just the flash (the knock-back motion carries the rest): red on a clone, none on a foe (it bleeds instead). */
   flashOnly(id: string | undefined): void {
@@ -395,6 +400,7 @@ export class GridActors {
       v.actor.update(step);
     }
     for (const id of left) this.rebuild(id);
+    this.ice.place((id) => { const v = this.views.get(id); return !v || v.dead ? null : v.actor.root.visible ? { x: v.x + v.ox, z: v.z + v.oz } : undefined; });
     // the reticle rides under its foe, turning, breathing a little
     if (this.reticle) {
       const v = this.target ? this.views.get(this.target) : undefined;

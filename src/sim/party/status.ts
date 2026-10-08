@@ -3,6 +3,7 @@ import { mods } from './traitMods';
 import { alive, damage, posOf, type Party, type Unit } from './partyCore';
 import { dist, type GEvent } from '../grid/types';
 import { emit } from './triggers';
+import { asBeat, own } from './beat';
 import { resonant } from './resonance';
 import { markMult } from './cardsRanged';
 import { bleedCap } from './cardsWarrior';
@@ -23,27 +24,30 @@ export function applyStatus(p: Party, src: Unit, target: Unit, id: StatusId, t: 
   if((id==='shock'||id==='bleed') && target.status.bleed && (target.status.shock?.until??0)>t) {target.status.bleed.stacks=2;react(p,src,target,id,'혈전',t,ev);}
   emit(p, 'statusApplied', { t, src, target, status: id, ev });
   if (!spread && (id === 'burn' || id === 'poison') && (target.status.burn?.until ?? 0) > t && (target.status.poison?.until ?? 0) > t) {
-    react(p, src, target, id, '독연 폭발', t, ev);
-    for (const f of p.units) if (f !== target && f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, target)) <= 1) applyStatus(p, src, f, 'poison', t, ev, 2, true);
+    react(p, src, target, id, '독연 폭발', t, ev, () => {
+      for (const f of p.units) if (f !== target && f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, target)) <= 1) applyStatus(p, src, f, 'poison', t, ev, 2, true);
+    });
   }
   elemental(p, src, target, id, t, ev);
 }
 const on = (u: Unit, id: StatusId, t: number) => (u.status[id]?.until ?? 0) > t;
 /** A reaction: its mark for the screen, and an event effects can hang on. */
-function react(p: Party, src: Unit, target: Unit, id: StatusId, name: string, t: number, ev: GEvent[]): void {
-  ev.push({ t, type: 'react', src: src.id, dst: target.id, text: name });
-  emit(p, 'reaction', { t, src, target, status: id, reaction: name, ev });
+function react(p: Party, src: Unit, target: Unit, id: StatusId, name: string, t: number, ev: GEvent[], then?: () => void): void {
+  const e: GEvent = { t, type: 'react', src: src.id, dst: target.id, text: name };
+  // a reaction that strikes is a beat of its own (its harm shows with it); one that only leaves its mark is told with the effect that caused it
+  if (then) asBeat(ev, () => { emit(p, 'reaction', { t, src, target, status: id, reaction: name, ev }); then(); }, e);
+  else { ev.push(own(e)); emit(p, 'reaction', { t, src, target, status: id, reaction: name, ev }); }
 }
 /** The elements meeting on one foe: burn and chill make steam, burn and shock overload, chill and shock leave it exposed. Both states go. */
 function elemental(p: Party, src: Unit, target: Unit, id: StatusId, t: number, ev: GEvent[]): void {
   const pair = (a: StatusId, b: StatusId) => (id === a || id === b) && on(target, a, t) && on(target, b, t);
   const boost = 1 + (mods(src).react ?? 0), round = p.units.filter((f) => f.side === target.side && alive(p, f) && dist(posOf(p, f), posOf(p, target)) <= 1);
   if (pair('burn', 'chill')) {
-    delete target.status.burn; delete target.status.chill; react(p, src, target, id, '증기', t, ev);
-    for (const f of round) { f.blindUntil = Math.max(f.blindUntil ?? 0, t + 2); damage(p, t, src.id, f, Math.round(6 * boost), ev, true); }
+    delete target.status.burn; delete target.status.chill;
+    react(p, src, target, id, '증기', t, ev, () => { for (const f of round) { f.blindUntil = Math.max(f.blindUntil ?? 0, t + 2); damage(p, t, src.id, f, Math.round(6 * boost), ev, true); } });
   } else if (pair('burn', 'shock')) {
-    delete target.status.burn; delete target.status.shock; react(p, src, target, id, '과부하', t, ev);
-    for (const f of round) damage(p, t, src.id, f, Math.round(10 * boost), ev, true);
+    delete target.status.burn; delete target.status.shock;
+    react(p, src, target, id, '과부하', t, ev, () => { for (const f of round) damage(p, t, src.id, f, Math.round(10 * boost), ev, true); });
   } else if (pair('chill', 'shock')) {
     delete target.status.chill; delete target.status.shock; react(p, src, target, id, '초전도', t, ev);
     applyStatus(p, src, target, 'exposed', t, ev);

@@ -16,25 +16,30 @@ const SWING_HOLD = 0.15;
 const CHAIN_GAP = 0.04;
 /** ...but one clone's chain never holds its show longer than this */
 const CHAIN_MAX = 0.6;
-/** party fights: one blast's hits and the states it leaves pop one after another (a blast ripples out, a chain crackles along) */
-const RIPPLE = 0.02;
-/** party fights: a meteor's hits wait for the rock to land */
-const METEOR_FALL = 0.09;
-/** party fights: a fall holds the rest of that clone's show this long (a chain of kills must not drag) */
+/** party fights: what falls from the sky (a meteor, a blizzard's first ice) lands before its hits show */
+const FALL = 0.09;
+const FALLS = new Set(['운석 낙하', 'blizzard']);
+/** party fights: a fall holds that clone's next effect this long (a chain of kills must not drag) */
 const FALL_HOLD = 0.05;
-const STATE_POP = new Set(['burn', 'chill', 'freeze', 'shock', 'poison', 'bleed', 'mark', 'exposed', 'stun']);
 /** party fights: how long a figure takes to walk one cell (a swing or shot waits for the step before it to land, so nobody slides while attacking) */
 const STEP_SEC = 0.24;
 /** party fights: when the show falls this far behind, it plays faster until it catches up */
 const BEHIND = 0.9;
 const korean = (s?: string) => !!s && /[가-힣]/.test(s);
-/** In a party fight, how long the rest of the show waits after this event (an attack's wind-up, a chain's beat, a fall). */
+/**
+ * A party fight is told in beats. A beat opens with an attack, a named effect or a reaction, and everything it does shows
+ * with it, at once: the harm it deals to every foe it reaches, the states it leaves, who falls. (A whirlwind's numbers
+ * come up with the blade, not one foe after another once it has passed.)
+ */
+const opens = (ev: GEvent): boolean => ev.type === 'bump' || ev.type === 'shoot' || ev.type === 'react' || (ev.type === 'buff' && korean(ev.text));
+/** what holds a beat's own harm back, not only the beats after: a swing still on its way, a rock still falling */
+const lands = (ev: GEvent): boolean => ev.type === 'bump' || ev.type === 'shoot' || (ev.type === 'buff' && FALLS.has(ev.text ?? ''));
+/** In a party fight, how long this event holds the same clone's show (see `opens`, `lands`). */
 function partyHold(ev: GEvent): number {
   if (ev.type === 'bump' || ev.type === 'shoot') return SWING_HOLD;
-  if (ev.type === 'buff' && ev.text === '운석 낙하') return METEOR_FALL;
+  if (ev.type === 'buff' && FALLS.has(ev.text ?? '')) return FALL;
   if ((ev.type === 'buff' && korean(ev.text)) || ev.type === 'react') return CHAIN_GAP;
   if (ev.type === 'die') return FALL_HOLD;
-  if (ev.type === 'hit' || (ev.type === 'buff' && STATE_POP.has(ev.text ?? ''))) return RIPPLE;
   return 0;
 }
 
@@ -57,8 +62,8 @@ export class Playback {
   private cues: Cue[] = [];
   private now = 0;
   private rate = 1;
-  /** per clone: the moment (sim time) whose chain is being spaced out, and how much it has held so far */
-  private chains = new Map<string, { at: number; held: number }>();
+  /** per clone: the moment (sim time) whose chain is being spaced out, how much it has held so far, and whether a fall already held this beat */
+  private chains = new Map<string, { at: number; held: number; fell: boolean }>();
 
   /** party: the party screens' pacing (attacks play out, chains in sequence); otherwise the grid game's quick overlapping show */
   constructor(private readonly party = false) {}
@@ -111,9 +116,18 @@ export class Playback {
       out.push(ev);
       if (this.party) {
         if (ev.type === 'move') this.walked.set(ev.src ?? '', this.now);
-        // only this clone's later cues wait: the others go on acting at the same time
+        // only this clone's later cues wait (the others go on acting at the same time), and of those only from its next
+        // beat on: what this beat does shows with it — unless the blow or the rock has yet to land
         const hold = this.partyHold(ev), who = ev.src ?? '';
-        if (hold) { for (const c of this.cues) if ((c.ev.src ?? '') === who && c.ev.type !== 'move') c.at += hold; this.cues.sort((a, b) => a.at - b.at); }
+        if (hold) {
+          let later = lands(ev);
+          for (const c of this.cues) {
+            if ((c.ev.src ?? '') !== who || c.ev.type === 'move') continue;
+            later ||= opens(c.ev);
+            if (later) c.at += hold;
+          }
+          this.cues.sort((a, b) => a.at - b.at);
+        }
         continue;
       }
       const hold = holdAfter(ev);
@@ -125,12 +139,15 @@ export class Playback {
   }
 
   private partyHold(ev: GEvent): number {
-    const h = partyHold(ev);
-    if (h !== CHAIN_GAP && h !== RIPPLE) return h;
-    const who = ev.src ?? '', c = this.chains.get(who);
-    const chain = c && c.at === ev.t ? c : { at: ev.t, held: 0 };
+    const h = partyHold(ev), who = ev.src ?? '', c = this.chains.get(who);
+    const chain = c && c.at === ev.t ? c : { at: ev.t, held: 0, fell: false };
+    this.chains.set(who, chain);
+    if (opens(ev)) chain.fell = false;
+    if (h !== CHAIN_GAP && h !== FALL_HOLD) return h;
+    // however many fall in one beat, the next beat waits for them once
+    if (h === FALL_HOLD) { if (chain.fell) return 0; chain.fell = true; }
     const step = Math.min(h, Math.max(0, CHAIN_MAX - chain.held));
-    chain.held += step; this.chains.set(who, chain);
+    chain.held += step;
     return step;
   }
 
