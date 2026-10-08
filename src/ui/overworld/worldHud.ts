@@ -31,7 +31,7 @@ export class WorldHud {
   constructor(private readonly el: HTMLElement, private readonly a: HudActions) {
     el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-target"></div>
       <aside class="wh-tl"><div class="wh-mini"></div><div class="wh-top"></div>${a.beacon ? '<button type="button" data-k="beacon" class="wh-beacon">신호기</button>' : ''}</aside>
-      <aside class="wh-bl" title="전체 기록 보기"><div class="wh-cap">기록 <span>▸ 전체</span></div><div class="wh-log"></div></aside>
+      <aside class="wh-bl" title="전체 기록 보기"><div class="wh-cap"><b class="wh-cap-t">기록</b><span>▸ 전체</span></div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
         ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}
         <button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
