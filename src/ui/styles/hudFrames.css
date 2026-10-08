@@ -292,6 +292,6 @@
   .hud-solo .quick-slots svg { shape-rendering: crispEdges; }
   .hud-solo .cs-card.lit, .hud-solo .cs-ult.lit, .hud-solo .cs-ult.queued { text-shadow: none; }
   .hud-solo .quick-slots button small { right: 7px; bottom: 6px; }
-  /* a card going dark: its light drains through the plate's dots; its name is readable again at once */
-  .hud-solo .cs-card { transition: background-color 0.4s; }
+  /* a card goes dark at once: a fade through the plate's dots left its name unreadable for a moment */
+  .hud-solo .cs-card { transition: none; }
 }
