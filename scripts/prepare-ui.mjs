@@ -56,13 +56,25 @@ writeFileSync(new URL('button-atk.png', OUT), frame({ size: 16, rings: [ink, [he
 // a slot (the quick slots): sunk, an edge in shade on top, a dark bed; a thing lies in it, a key is pressed
 writeFileSync(new URL('slot.png', OUT), frame({ size: 16, rings: [ink, [hex('#020c06'), hex('#1f7a3e')], hex('#03100a')], fill: hex('#010804', 235) }));
 
-// corners alone: a key with no edge, only a bracket at each corner (the Pip-Boy's green), nothing between them
+// corners alone: a key with no edge, only a bracket at each corner (the Pip-Boy's green, a dark dot round it so it reads
+// over a lit floor), nothing between them
 {
-  const size = 16, arm = 5, pip = hex('#1bff80'), px = [];
+  const size = 18, arm = 5, pip = hex('#1bff80'), dark = hex('#010603'), px = [];
+  const lit = (x, y) => { const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y); return (cy === 1 && cx >= 1 && cx <= arm) || (cx === 1 && cy >= 1 && cy <= arm); };
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-    const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y);
-    px.push((cy === 0 && cx < arm) || (cx === 0 && cy < arm) ? pip : [0, 0, 0, 0]);
+    let near = false;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near ||= x + dx >= 0 && y + dy >= 0 && x + dx < size && y + dy < size && lit(x + dx, y + dy);
+    px.push(lit(x, y) ? pip : near ? dark : [0, 0, 0, 0]);
   }
   writeFileSync(new URL('corners.png', OUT), png(size, size, px));
 }
+// dither: shade told in dots, as the game's own picture is (an ordered 4x4 pattern), never a smooth fade
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const dots = (w, h, color, cover) => { const px = []; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) px.push(BAYER[(y % 4) * 4 + (x % 4)] < cover(y) ? color : [0, 0, 0, 0]); return png(w, h, px); };
+// a key's plate: three dots in four dark
+writeFileSync(new URL('plate.png', OUT), dots(4, 4, hex('#041009'), () => 12));
+// the shade under the top of the screen thinning out downward, band by band; and its mirror for the bottom
+const BANDS = [15, 14, 12, 10, 8, 6, 4, 2, 1], BAND = 5, night = hex('#05060c');
+writeFileSync(new URL('shade-down.png', OUT), dots(4, BANDS.length * BAND, night, (y) => BANDS[Math.floor(y / BAND)]));
+writeFileSync(new URL('shade-up.png', OUT), dots(4, BANDS.length * BAND, night, (y) => BANDS[BANDS.length - 1 - Math.floor(y / BAND)]));
 console.log('ui frames written to', OUT.pathname);

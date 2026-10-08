@@ -269,4 +269,27 @@
   /* a tapped card's line under the top strip wraps: a name, then what it does */
   .hud-solo .wh-target { flex-wrap: wrap; white-space: normal; gap: 2px 8px; right: 6px; background: #05060cd0; padding: 5px 8px; line-height: 15px; }
   .hud-solo .wh-target .cs-info { color: var(--pip-dim); }
+
+  /*
+   * The picture is told in dots, and so is this: shade thins out in an ordered dither (never a smooth fade), a plate is
+   * a dither of dark dots with stepped corners, a bracket is two dots thick with a dark dot round it, a letter throws a
+   * hard shadow, a key pressed drops two dots.
+   */
+  .hud-solo::before, .hud-solo::after { image-rendering: pixelated; opacity: 0.94; }
+  .hud-solo::before { height: 150px; background: linear-gradient(#05060c, #05060c) 0 0 / 100% 60px no-repeat, url('./img/shade-down.png') 0 60px / 8px 90px repeat-x; }
+  .hud-solo::after { height: 220px; background: linear-gradient(#05060c, #05060c) 0 100% / 100% 130px no-repeat, url('./img/shade-up.png') 0 0 / 8px 90px repeat-x; }
+  .hud-solo, .hud-solo .wl-line { text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 0 2px 0 #000; }
+  .hud-solo .tp-btns button, .hud-solo .tp-btns [data-a="attack"], .hud-solo .quick-slots button, .hud-solo .wh-beacon, .hud-solo .wh-menu, .hud-solo .wh-menu:hover,
+  .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"], .hud-solo .sb-row .pf-trait, .hud-solo .cs-ult {
+    border-image: url('./img/corners.png') 7 / 14px stretch; background: url('./img/plate.png') 0 0 / 8px 8px !important; image-rendering: pixelated;
+  }
+  .hud-solo .sb-row .pf-trait, .hud-solo .wh-beacon { border-image-width: 7px; }
+  .hud-solo .cs-card { background: url('./img/plate.png') 0 0 / 8px 8px; image-rendering: pixelated;
+    clip-path: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px), 0 2px, 2px 2px); }
+  .hud-solo .cs-ult.queued, .hud-solo .cs-ult.lit { background: var(--pip) !important; }
+  .hud-solo .cs-card.lit { background: var(--pip); }
+  .hud-solo .tp-btns button:active, .hud-solo .cs-ult:active, .hud-solo .quick-slots button:active, .hud-solo .wh-menu:active { transform: translateY(2px); filter: none; }
+  .hud-solo .quick-slots svg { shape-rendering: crispEdges; }
+  .hud-solo .cs-card.lit, .hud-solo .cs-ult.lit, .hud-solo .cs-ult.queued { text-shadow: none; }
+  .hud-solo .quick-slots button small { right: 7px; bottom: 6px; }
 }
