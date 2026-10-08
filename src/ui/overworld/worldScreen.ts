@@ -202,7 +202,7 @@ export class WorldScreen implements Screen {
       const free = base || (raid && !this.raidCtl.driving);
       // in a raid a mouse drag picks clones (a box); a finger still drags the view
       this.camera.on = free; this.camera.mouse = base; this.camera.update(dt);
-      if (this.rt) { this.rt.freeAim = free ? this.camera.aim : null; if (this.raidCtl.driving) this.rt.focusId = this.raidCtl.driving; }
+      if (this.rt) { this.rt.actors.walk = base; this.rt.freeAim = free ? this.camera.aim : null; if (this.raidCtl.driving) this.rt.focusId = this.raidCtl.driving; }
       this.build.setDocked(base && this.building);
       this.menuBar.update(base, this.building);
       this.el.classList.toggle('base-mode', base);

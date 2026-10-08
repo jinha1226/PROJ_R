@@ -32,6 +32,12 @@ const CLIP: Record<Exclude<UalAnim, 'idle' | 'hit' | 'swing'>, string> = {
   dash: 'Sword_Dash_RM', leapUp: 'NinjaJump_Start', leapLand: 'NinjaJump_Land', finisher: 'Sword_Regular_C', shove: 'Shield_OneShot', bash: 'Melee_Hook', shoot: 'Pistol_Shoot', shootBow: 'Bow_Shoot', cast: 'Spell_Simple_Shoot', throw: 'OverhandThrow',
   reload: 'Pistol_Reload', knockback: 'Hit_Knockback', death: 'Death01', interact: 'Chest_Open', drink: 'Consume', pickup: 'Squat_Pickup',
 };
+/** the walk on the base ground plays this much quicker: the figures cover cells at the errand pace */
+const WALK_PACE = 2;
+/** Which loop moves a figure: the base ground walks (the whole walk), elsewhere the jog — legs only under the held stance unless the look runs whole. */
+export function gait(look: Pick<UalLook, 'run' | 'fullRun'>, walking: boolean): { clip: string; whole: boolean } {
+  return walking ? { clip: 'Walk_Loop', whole: true } : { clip: look.run ?? CLIP.run, whole: !!look.fullRun };
+}
 /** bones the legs-only half of a run drives (the rest follows the held stance) */
 const LEG_BONES = /^(root|pelvis|thigh_[lr]|calf_[lr]|foot_[lr]|ball_[lr]|ball_leaf_[lr])$/;
 /** melee swings rotate through these so a fight does not repeat one motion */
@@ -128,6 +134,7 @@ export class UalActor {
   /** the upper-body stance layered over a legs-only run */
   private upper: THREE.AnimationAction | null = null;
   private loop: 'idle' | 'run' = 'idle';
+  private walking = false;
   private swing = 0;
   private idleClip: string;
   private busy = false;
@@ -219,11 +226,12 @@ export class UalActor {
 
   /** Idle, or a run: a legs-only jog under the held stance when both halves exist (and the look keeps a stance), else the whole jog. */
   private loopOn(running: boolean, speed: number, fade: number): void {
-    const legs = `${this.runClip}__legs`;
+    const g = gait(this.look, this.walking);
+    const legs = `${g.clip}__legs`;
     const up = this.lib.clips.get(`${this.idleClip}__upper`);
-    if (!running || !up || !this.lib.clips.has(legs) || this.look.fullRun) {
+    if (!running || !up || !this.lib.clips.has(legs) || g.whole) {
       this.dropUpper(fade);
-      this.start(running ? this.runClip : this.idleClip, true, running ? speed : 1, fade);
+      this.start(running ? g.clip : this.idleClip, true, running ? (this.walking ? WALK_PACE : speed) : 1, fade);
       return;
     }
     this.start(legs, true, speed, fade);
@@ -237,8 +245,11 @@ export class UalActor {
     this.upper = null;
   }
 
-  private get runClip(): string {
-    return this.look.run ?? CLIP.run;
+  /** Walking on the base ground instead of jogging (see `gait`). */
+  setWalking(on: boolean): void {
+    if (on === this.walking) return;
+    this.walking = on;
+    if (this.loop === 'run' && !this.busy && !this.dead) this.loopOn(true, 1.5, 0.15);
   }
 
   /** Puts a different weapon in the right hand (and, with `idle`, the stance that goes with it). */
@@ -286,7 +297,7 @@ export class UalActor {
     if ((anim === 'hit' || anim === 'knockback') && this.busyKind && this.busyKind !== 'hit' && this.busyKind !== 'knockback') return;
     const name = anim === 'hit' ? (Math.random() < 0.5 ? 'Hit_Chest' : 'Hit_Head')
       : anim === 'swing' ? SWINGS[this.swing++ % SWINGS.length]!
-      : anim === 'idle' ? this.idleClip : anim === 'run' ? this.runClip : CLIP[anim];
+      : anim === 'idle' ? this.idleClip : anim === 'run' ? gait(this.look, this.walking).clip : CLIP[anim];
     const loop = anim === 'idle' || anim === 'run';
     this.busy = !loop;
     this.busyKind = loop ? null : anim;

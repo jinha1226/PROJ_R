@@ -41,6 +41,8 @@ export class GridActors {
 
   /** walking pace in cells per second (a live game slows it to match how often its units step) */
   walkSpeed?: number;
+  /** figures walk instead of jogging (the base ground) */
+  walk = false;
   /** the cell the camera looks at: figures are built near it or on seen cells, and far ones stop animating */
   focus: { x: number; y: number } | null = null;
   private resync = 0;
@@ -358,7 +360,7 @@ export class GridActors {
         if (k >= 1) { v.gone = true; v.actor.root.visible = false; }
       }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;
-      if (!v.dead) v.actor.setLocomotion(v.runHold > 0);
+      if (!v.dead) { v.actor.setWalking(this.walk); v.actor.setLocomotion(v.runHold > 0); }
       // far from the camera a figure keeps its place but stops animating (and a far body is not drawn)
       if (far) { if (v.dead) v.actor.root.visible = false; continue; }
       if (v.dead && !v.gone) v.actor.root.visible = true;
