@@ -90,11 +90,28 @@ it('raise skeleton: a skeleton strikes as it rises when a foe is in its reach', 
   expect(ev.some((e) => e.type === 'bump' && e.src === sk.id && e.dst === b.id)).toBe(true);
 });
 
-it('raise skeleton: at the legion\'s cap a kill leaves the body for a later turn', () => {
-  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; s.put(8, 11, 10);
-  for (let k = 0; k < 4; k++) kill(s, s.put(k, 3 + k, 9, 1));
-  expect(minions(s.p, s.u.id)).toHaveLength(3);
-  expect(corpsesNear(s.p, { x: 6, y: 9 }, 0)).toHaveLength(1);
+it('raise skeleton: with the legion full, a kill sends the oldest skeleton to blow itself up on the nearest foe, and the body rises in its place', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 1 }; const far = s.put(8, 9, 6, 999);
+  for (let t = 0; t < 3; t++) action(s.p, () => emit(s.p, 'wait', { t, src: s.u, ev: [] }));
+  const before = minions(s.p, s.u.id), oldest = before[0]!;
+  expect(before).toHaveLength(3);
+  const ev: GEvent[] = [];
+  action(s.p, () => damage(s.p, 3, s.u.id, s.put(0, 3, 9, 1), 99, ev, true));
+  const after = minions(s.p, s.u.id);
+  expect(after).toHaveLength(3); expect(after).not.toContain(oldest); expect(oldest.burst).toBe(true);
+  expect(ev.some((e) => e.text === '해골 자폭')).toBe(true);
+  // it ran beside the foe and its burst reached it
+  expect(hp(s.p, far)).toBeLessThan(999);
+  expect(after.some((m) => entOf(s.p, m.id)!.pos.x === 3 && entOf(s.p, m.id)!.pos.y === 9)).toBe(true);
+});
+
+it('raise skeleton at rank three: a skeleton that blew itself up does not burst a second time', () => {
+  const s = necroScene(); s.u.traits = { raiseSkeleton: 3 }; const far = s.put(8, 9, 6, 999);
+  for (let t = 0; t < 5; t++) action(s.p, () => emit(s.p, 'wait', { t, src: s.u, ev: [] }));
+  expect(minions(s.p, s.u.id)).toHaveLength(5);
+  const ev: GEvent[] = [];
+  action(s.p, () => damage(s.p, 6, s.u.id, s.put(0, 3, 9, 1), 99, ev, true));
+  expect(ev.filter((e) => e.type === 'hit' && e.dst === far.id)).toHaveLength(1);
 });
 
 it('grasp of the dead: a fallen minion leaves two bodies', () => {

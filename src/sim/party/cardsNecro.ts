@@ -1,6 +1,6 @@
 import { applyStatus } from './status';
 import { addShield } from './shield';
-import { alive, canHit, damage, entOf, freeHit, posOf, stats, strike, type Party, type Unit } from './partyCore';
+import { alive, canHit, damage, entOf, freeHit, occupied, posOf, stats, strike, type Party, type Unit } from './partyCore';
 import { fighting, foesNear } from './cardFx';
 import { tagsOf } from './classKit';
 import { beyond } from './cardsRanged';
@@ -8,10 +8,10 @@ import { summon } from './kitEffects';
 import { consume, corpsesNear, isCorpse } from './corpses';
 import { duoFor } from './cardsCombo';
 import { ampBase, card, inBranch, rank, type TraitDef } from './traitTypes';
-import { dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
+import { DIRS, dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
 import { spawnFoe } from '../grid/foes';
 import { blank } from '../roam/roam';
-import type { TriggerDef } from './triggers';
+import { emit, type TriggerDef } from './triggers';
 
 const avg = (p: Party, u: Unit, t: number) => { const [lo, hi] = stats(u, t, p).dmg; return (lo + hi) / 2; };
 const BONE = 'necromancer:bone', LEGION = 'necromancer:legion', PLAGUE = 'necromancer:plague';
@@ -39,6 +39,33 @@ function front(p: Party, u: Unit): Cell {
   if (!foe) return me;
   const fp = posOf(p, foe), c = { x: me.x + Math.sign(fp.x - me.x), y: me.y + Math.sign(fp.y - me.y) };
   return walkable(tileAt(p.s.map, c)) ? c : me;
+}
+
+/** A skeleton's burst: bone damage to the foes beside the spot. */
+const boneBlast = (p: Party, u: Unit, at: Cell, t: number, ev: GEvent[]): void => {
+  for (const f of foesNear(p, at, 1)) damage(p, t, u.id, f, Math.max(1, Math.round(avg(p, u, t) * 0.8)), ev, true, false, 'bone');
+};
+/**
+ * The legion is full and another body wants to rise: the oldest skeleton runs to the nearest foe within six and blows itself up.
+ * False when there is no skeleton or no foe to run at.
+ */
+function detonate(p: Party, u: Unit, t: number, ev: GEvent[]): boolean {
+  const sk = minions(p, u).sort((a, b) => (a.summonedUntil ?? 0) - (b.summonedUntil ?? 0))[0];
+  if (!sk) return false;
+  const e = entOf(p, sk.id)!, near = (a: Unit, b: Unit) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos);
+  const foe = foesNear(p, e.pos, 6).filter((f) => !f.asleep).sort(near)[0];
+  if (!foe) return false;
+  const fp = posOf(p, foe);
+  if (dist(e.pos, fp) > 1) {
+    const spot = DIRS.map((d) => ({ x: fp.x + d.x, y: fp.y + d.y })).filter((c) => walkable(tileAt(p.s.map, c)) && !occupied(p, c, sk.id)).sort((a, b) => dist(a, e.pos) - dist(b, e.pos))[0];
+    if (spot) { ev.push({ t, type: 'move', src: sk.id, from: { ...e.pos }, to: { ...spot } }); e.pos = spot; }
+  }
+  const at = { ...e.pos };
+  sk.burst = true; e.alive = false; e.hp = 0;
+  ev.push({ t, type: 'die', src: sk.id, dst: sk.id, to: at }, { t, type: 'buff', src: u.id, dst: sk.id, text: '해골 자폭' });
+  emit(p, 'summonDied', { t, src: u, target: sk, ev });
+  boneBlast(p, u, at, t, ev);
+  return true;
 }
 
 /** A body left where a minion fell (grasp of the dead): a dead foe unit that gives no bio-matter or experience. */
@@ -105,12 +132,16 @@ export const NECRO_CARDS: TraitDef[] = [
   }, '받은 피해 35%'), BONE),
   inBranch(card('boneAmp', '뼈 숙련', 'amp', ['뼈'], 'necromancer', '#뼈 1당 뼈 피해 ×1.12 (곱)', {}, '×1.16'), BONE),
   // 군단: skeletons that stand up as the fight opens, and again from every body
-  inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '전투 진입 → 해골 2 · 처치 → 그 시체가 해골로 일어남 · 해골은 일어나며 즉시 공격 · 3칸 안 남은 시체도 매 턴 해골(최대 3) · 전투 중 대기 → 하나 더', {
+  inBranch(card('raiseSkeleton', '해골 일으키기', 'law', ['소환'], 'necromancer', '전투 진입 → 해골 2(최대 3) · 처치 → 그 시체가 해골로 일어나 즉시 공격, 자리가 없으면 가장 오래된 해골이 돌진해 자폭(주변 1칸 뼈 피해) · 3칸 안 시체는 매 턴 해골로 · 전투 중 대기 → 하나 더', {
     triggers: (r) => [
       // the legion rises with the fight, between the necromancer and the foes: no body needed
       { id: '해골 일으키기', when: 'combatStart', run: (p, c) => { const at = front(p, c.src); for (let k = 0; k < (r >= 2 ? 3 : 2); k++) raise(p, c.src, at, c.t, c.ev, r); } },
-      // a kill: the body stands up where it fell (a body the legion has no room for stays, for a later turn or a golem)
-      { id: '해골 일으키기', when: 'kill', repeat: true, test: (p, c) => !!c.target && isCorpse(p, c.target), run: (p, c) => { if (raise(p, c.src, posOf(p, c.target!), c.t, c.ev, r, true)) consume(c.target!); } },
+      // a kill: the body stands up where it fell
+      { id: '해골 일으키기', when: 'kill', repeat: true, test: (p, c) => !!c.target && isCorpse(p, c.target), run: (p, c) => {
+        const body = c.target!, up = () => raise(p, c.src, posOf(p, body), c.t, c.ev, r, true);
+        // no room in the legion: its oldest skeleton blows itself up on the foes, and the body takes its place
+        if (up() || (detonate(p, c.src, c.t, c.ev) && up())) consume(body);
+      } },
       // a skeleton strikes as it rises, if a foe is in its reach
       { id: '해골 강습', when: 'summon', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
         const sk = c.target!, at = posOf(p, sk), foe = foesNear(p, at, stats(sk, c.t, p).range).filter((f) => !f.asleep && canHit(p, sk, f)).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0];
@@ -121,8 +152,8 @@ export const NECRO_CARDS: TraitDef[] = [
         if (raise(p, c.src, posOf(p, body), c.t, c.ev, r, true)) consume(body);
       } },
       { id: '해골 일으키기', when: 'wait', test: (p, c) => fighting(p, c.src), run: (p, c) => { raise(p, c.src, posOf(p, c.src), c.t, c.ev, r); } },
-      ...(r >= 3 ? [{ id: '해골 폭발', when: 'summonDied', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror, run: (p, c) => {
-        for (const f of foesNear(p, posOf(p, c.target!), 1)) damage(p, c.t, c.src.id, f, Math.max(1, Math.round(avg(p, c.src, c.t) * 0.8)), c.ev, true, false, 'bone');
+      ...(r >= 3 ? [{ id: '해골 폭발', when: 'summonDied', repeat: true, test: (_p, c) => !!c.target && !c.target.golem && !c.target.mirror && !c.target.burst, run: (p, c) => {
+        boneBlast(p, c.src, posOf(p, c.target!), c.t, c.ev);
       } } satisfies TriggerDef] : []),
     ],
   }, '진입 시 3, 해골 궁수 포함 최대 5', '해골이 죽음 → 그 시체가 바로 폭발'), LEGION, true),
