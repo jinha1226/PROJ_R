@@ -286,6 +286,7 @@ export class GridRuntime {
         break;
       }
       case 'reload': a.anim(e.src, 'reload'); break;
+      case 'pickup': a.anim(e.src, 'pickup'); break;
       case 'die': { a.die(e.dst, at(e.src)); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); this.fx.hitStop(feel().killStop); if (e.dst) this.strikes.kill(e.dst, p); } break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
