@@ -328,7 +328,7 @@ export class GridRuntime {
     for (const e of this.playback.update(this.fx.frozen ? 0 : scaled)) this.cue(e);
     // flames on everything that burns, a few embers at a time
     this.emberAt -= scaled;
-    if (this.emberAt <= 0 && this.burning.size) { this.emberAt = 0.09; for (const id of this.burning) { const at = this.actors.pos(id); if (at && this.actors.shown(id)) this.particles.embers(at, 2); } }
+    if (this.emberAt <= 0 && this.burning.size) { this.emberAt = 0.07; for (const id of this.burning) { const at = this.actors.pos(id); if (at && this.actors.shown(id)) this.particles.embers(at, 3); } }
     this.fx.update(dt);
     this.pops.update(dt);
     if (this.terrain instanceof ShipTerrain) this.terrain.update(dt);

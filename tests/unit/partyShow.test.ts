@@ -29,7 +29,7 @@ it('the grid game keeps its quick overlapping show', () => {
   expect(seen[1]!.at - seen[0]!.at).toBeLessThan(0.05);
 });
 
-it('the log tells a chain as it runs, in sentences: each effect, what it did, and how long the chain ran', () => {
+it('the log tells a chain as it runs, in sentences: each effect and what it did, with no count to close it', () => {
   const { p, u, foes } = scene('mage'); const log = new WorldLog(), f = foes[0]!;
   log.read(p, [
     { t: 3, type: 'shoot', src: u.id, dst: f.id }, { t: 3, type: 'hit', src: u.id, dst: f.id, amount: 7 },
@@ -45,13 +45,33 @@ it('the log tells a chain as it runs, in sentences: each effect, what it did, an
   expect(told[2]).toMatch(/^마법사의 운석이 발동했다\./);
   expect(told.slice(3, 6)).toEqual(['운석이 고블린 위로 떨어졌다.', '고블린이 12 피해를 입었다.', '고블린이 쓰러졌다.']);
   expect(told[6]).toMatch(/^마법사의 화염 전이가 발동했다\./);
-  expect(told.slice(7)).toEqual(['증기 반응이 일어났다.', '연쇄가 3번 이어졌다.']);
+  expect(told.slice(7)).toEqual(['증기 반응이 일어났다.']);
 });
 
 it('the log explains an effect the first time a clone sets it off, and only names it after', () => {
   const { p, u } = scene('mage'); const log = new WorldLog();
   log.read(p, [{ t: 1, type: 'buff', src: u.id, text: '화염 전이' }, { t: 2, type: 'buff', src: u.id, text: '화염 전이' }]);
   expect(log.lines[0]!.text).toContain('('); expect(log.lines[1]!.text).toBe('마법사의 화염 전이가 발동했다.');
+});
+
+it('the log is coloured: names by side, numbers by what they are, effects and states by their own colours; the full log keeps every line', () => {
+  const { p, u, foes } = scene('mage'); const log = new WorldLog(), f = foes[0]!;
+  log.read(p, [
+    { t: 1, type: 'shoot', src: u.id, dst: f.id }, { t: 1, type: 'hit', src: u.id, dst: f.id, amount: 7, crit: true },
+    { t: 1, type: 'buff', src: u.id, dst: f.id, text: 'burn' }, { t: 1, type: 'buff', src: u.id, dst: f.id, text: '화염 전이' },
+    { t: 2, type: 'bump', src: f.id, dst: u.id }, { t: 2, type: 'hit', src: f.id, dst: u.id, amount: 4 },
+  ]);
+  const [blow, burn, fx, hurt] = log.lines.map((l) => l.html);
+  expect(blow).toContain('<i class="l-crit">치명타!</i>'); expect(blow).toContain('<i class="l-ally">마법사</i>가');
+  expect(blow).toContain('<i class="l-foe">고블린</i>을'); expect(blow).toContain('<i class="l-dmg">7</i>');
+  expect(burn).toContain('<i class="l-st-burn">불타기 시작했다</i>'); expect(fx).toContain('<i class="l-fx">화염 전이</i>가');
+  expect(hurt).toContain('<i class="l-hurt">4</i>');
+  // the plain text carries no marks
+  expect(log.lines[0]!.text).toBe('치명타! 마법사가 고블린을 공격해 7 피해를 입혔다.');
+  for (let k = 0; k < 40; k++) log.add(k, `줄 ${k}`);
+  expect(log.html().match(/wl-line/g)).toHaveLength(12); expect(log.fullHtml().match(/wl-line/g)).toHaveLength(44);
+  // a line added from outside is escaped
+  log.add(99, 'a <b> c'); expect(log.lines[log.lines.length - 1]!.html).toBe('a &lt;b&gt; c');
 });
 
 it('Korean particles follow the last sound of the word', async () => {

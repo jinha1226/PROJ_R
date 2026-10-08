@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { Vfx } from '../fx/vfx';
 
 const DEBRIS = 96;
-const SPARKS = 480;
+const SPARKS = 240;
+const FLAMES = 600;
 const DROPS = 120;
 const GRAVITY = 9;
 
@@ -22,7 +23,10 @@ export class GridParticles {
   private readonly chips: THREE.InstancedMesh;
   private readonly bits: Bit[] = [];
   private readonly sparkGeo = new THREE.BufferGeometry();
-  private readonly sparks: { p: THREE.Vector3; v: THREE.Vector3; life: number; total: number; c: THREE.Color; g?: number }[] = [];
+  private readonly sparks: { p: THREE.Vector3; v: THREE.Vector3; life: number; total: number; c: THREE.Color }[] = [];
+  /** flames on the burning: big bright points of their own (a spark's size is lost against a torch-lit floor) */
+  private readonly flameGeo = new THREE.BufferGeometry();
+  private readonly flames: { p: THREE.Vector3; v: THREE.Vector3; life: number; total: number }[] = [];
   private readonly drops: THREE.InstancedMesh;
   private readonly blobs: Bit[] = [];
   private readonly m = new THREE.Matrix4();
@@ -41,7 +45,11 @@ export class GridParticles {
     this.drops.count = 0;
     this.drops.frustumCulled = false;
     for (let i = 0; i < DROPS; i++) this.blobs.push({ alive: false, p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0, spin: 0 });
-    this.root.add(this.chips, spark, this.drops, this.vfx.root);
+    this.flameGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(FLAMES * 3), 3));
+    this.flameGeo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(FLAMES * 3), 3));
+    const flame = new THREE.Points(this.flameGeo, new THREE.PointsMaterial({ size: 0.34, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    flame.frustumCulled = false;
+    this.root.add(this.chips, spark, flame, this.drops, this.vfx.root);
   }
 
   /** Bone chips bursting from a hit skeleton (more when it falls apart). */
@@ -67,12 +75,12 @@ export class GridParticles {
     }
   }
 
-  /** Flames licking up a burning body: embers born over its height that rise and die out (orange into yellow). */
-  embers(at: THREE.Vector3, n = 2): void {
-    for (let k = 0; k < n && this.sparks.length < SPARKS; k++) {
-      const total = 0.35 + Math.random() * 0.3, c = new THREE.Color(Math.random() < 0.6 ? '#ff7a1a' : '#ffd24a');
-      this.sparks.push({ p: new THREE.Vector3(at.x + (Math.random() - 0.5) * 0.5, 0.3 + Math.random() * 1.2, at.z + (Math.random() - 0.5) * 0.5),
-        v: new THREE.Vector3((Math.random() - 0.5) * 0.5, 1.4 + Math.random() * 1.4, (Math.random() - 0.5) * 0.5), life: total, total, c, g: -0.12 });
+  /** Flames licking up a burning body: tongues born over its height that rise, white-hot at first, then yellow, orange and red as they die. */
+  embers(at: THREE.Vector3, n = 3): void {
+    for (let k = 0; k < n && this.flames.length < FLAMES; k++) {
+      const total = 0.4 + Math.random() * 0.35;
+      this.flames.push({ p: new THREE.Vector3(at.x + (Math.random() - 0.5) * 0.55, 0.25 + Math.random() * 1.3, at.z + (Math.random() - 0.5) * 0.55),
+        v: new THREE.Vector3((Math.random() - 0.5) * 0.6, 1.6 + Math.random() * 1.6, (Math.random() - 0.5) * 0.6), life: total, total });
     }
   }
 
@@ -111,13 +119,26 @@ export class GridParticles {
     for (let i = this.sparks.length - 1; i >= 0; i--) {
       const s = this.sparks[i]!;
       s.life -= dt;
-      s.v.y -= GRAVITY * (s.g ?? 0.6) * dt;
+      s.v.y -= GRAVITY * 0.6 * dt;
       s.p.addScaledVector(s.v, dt);
       if (s.life <= 0) this.sparks.splice(i, 1);
     }
     this.sparks.forEach((s, i) => { pos.setXYZ(i, s.p.x, s.p.y, s.p.z); const k = s.life / s.total; col.setXYZ(i, s.c.r * k, s.c.g * k, s.c.b * k); });
     this.sparkGeo.setDrawRange(0, this.sparks.length);
     pos.needsUpdate = col.needsUpdate = true;
+    const fp = this.flameGeo.getAttribute('position') as THREE.BufferAttribute, fc = this.flameGeo.getAttribute('color') as THREE.BufferAttribute;
+    for (let i = this.flames.length - 1; i >= 0; i--) {
+      const f = this.flames[i]!;
+      f.life -= dt; f.v.y += 1.2 * dt; f.p.addScaledVector(f.v, dt);
+      if (f.life <= 0) this.flames.splice(i, 1);
+    }
+    this.flames.forEach((f, i) => {
+      // white-hot, then yellow, then orange, then a red that fades out
+      const k = f.life / f.total, c = k > 0.75 ? [1, 0.96, 0.75] : k > 0.45 ? [1, 0.8, 0.22] : k > 0.2 ? [1, 0.42, 0.08] : [0.8 * (k / 0.2), 0.12 * (k / 0.2), 0.02];
+      fp.setXYZ(i, f.p.x, f.p.y, f.p.z); fc.setXYZ(i, c[0]!, c[1]!, c[2]!);
+    });
+    this.flameGeo.setDrawRange(0, this.flames.length);
+    fp.needsUpdate = fc.needsUpdate = true;
     let d = 0;
     for (const b of this.blobs) {
       if (!b.alive) continue;
@@ -138,6 +159,7 @@ export class GridParticles {
   dispose(): void {
     this.chips.geometry.dispose();
     this.sparkGeo.dispose();
+    this.flameGeo.dispose();
     this.drops.geometry.dispose();
     this.vfx.dispose();
   }
