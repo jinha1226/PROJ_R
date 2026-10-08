@@ -1,5 +1,5 @@
 import type { Party } from '../../sim/party/partyCore';
-import { detailHtml, partyFramesHtml } from './partyFrames';
+import { detailHtml, partyFramesHtml, soloBarHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
 import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
 
@@ -16,7 +16,9 @@ export interface HudActions { menu(): void; stat(): void; bag(): void; select(id
   /** open the level-up trait choice for a clone */
   traits?: (id: string) => void;
   /** the build panel (the surface only) */
-  build?: () => void }
+  build?: () => void;
+  /** one clone alone (the dungeon): a single status bar along the bottom, no party frames and no detail panel */
+  solo?: boolean }
 
 /**
  * The screen's frame, laid out like Jupiter Hell: the minimap top left, floor/turn/bio top centre, the log bottom left,
@@ -28,10 +30,10 @@ export class WorldHud {
 
   constructor(private readonly el: HTMLElement, private readonly a: HudActions) {
     el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-target"></div>
-      <aside class="wh-tl"><div class="wh-mini"></div><div class="wh-top"></div></aside>
+      <aside class="wh-tl"><div class="wh-mini"></div><div class="wh-top"></div>${a.beacon ? '<button type="button" data-k="beacon" class="wh-beacon">신호기</button>' : ''}</aside>
       <aside class="wh-bl" title="전체 기록 보기"><div class="wh-cap">기록 <span>▸ 전체</span></div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
-        ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}${a.beacon ? '<button type="button" data-k="beacon">신호기</button>' : ''}
+        ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}
         <button type="button" data-k="menu" class="wh-menu">☰</button></div></aside>
       <aside class="wh-br"></aside>
       <div class="wh-party"></div>`);
@@ -53,6 +55,8 @@ export class WorldHud {
       if (t.closest('[data-traits]') && frame) a.traits?.(frame.dataset.hero!);
     };
     el.querySelector('.wh-party')!.addEventListener('click', party);
+    el.querySelector('.wh-tl')!.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-k="beacon"]')) a.beacon?.(); });
+    if (a.solo) el.classList.add('hud-solo');
     // the corner log opens the whole of it: a window over the game, the newest at the bottom
     el.querySelector('.wh-bl')!.addEventListener('click', () => this.openLog());
     el.querySelector('.wh-br')!.addEventListener('click', (e) => {
@@ -129,13 +133,13 @@ export class WorldHud {
     this.put('.wh-log', view.log.html());
     this.log = view.log;
     if (this.full) this.fillLog();
-    if (this.put('.wh-party', partyFramesHtml(p, ids, sel))) {
+    if (this.put('.wh-party', this.a.solo ? soloBarHtml(p, sel) : partyFramesHtml(p, ids, sel))) {
       // on an upright phone the log sits just above the portraits, however tall they come out
       const party = this.el.querySelector<HTMLElement>('.wh-party')!;
       const top = party.getBoundingClientRect().top;
       if (top > 0) this.el.style.setProperty('--log-bottom', `${Math.round(this.el.getBoundingClientRect().bottom - top + 4)}px`);
     }
-    this.put('.wh-br', detailHtml(p, sel));
+    this.put('.wh-br', this.a.solo ? '' : detailHtml(p, sel));
   }
 }
 

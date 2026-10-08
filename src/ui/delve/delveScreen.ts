@@ -42,6 +42,7 @@ import '../styles/gridSf.css';
 import '../styles/partyScreen.css';
 import '../styles/worldHud.css';
 import '../styles/worldPanels.css';
+import '../styles/hudFrames.css';
 
 /** game time per real second at normal speed */
 const RATE = 3.6;
@@ -103,7 +104,7 @@ export class DelveScreen implements Screen {
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
-      beacon: () => this.beacon(),
+      beacon: () => this.beacon(), solo: true,
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });

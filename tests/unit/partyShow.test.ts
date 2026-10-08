@@ -117,3 +117,18 @@ it('a clone that steps and then shoots finishes the step before the shot (no sli
   const seen = drain(pb), step = seen.find((s) => s.ev.type === 'move')!, shot = seen.find((s) => s.ev.type === 'shoot')!;
   expect(shot.at - step.at).toBeGreaterThanOrEqual(0.2);
 });
+
+it('one clone alone gets a single status bar: name, level, health with its shield, experience and its ultimates, no portrait', async () => {
+  const { soloBarHtml } = await import('../../src/ui/overworld/partyFrames');
+  const { entOf } = await import('../../src/sim/party/partyCore');
+  const { p, u } = scene('mage'); const e = entOf(p, u.id)!;
+  e.hp = 30; e.maxHp = 60; u.shield = 6; u.level = 3;
+  const html = soloBarHtml(p, u.id);
+  expect(html).toContain('마법사'); expect(html).toContain('Lv 3'); expect(html).toContain('30<small>/60</small>'); expect(html).toContain('<em>+6</em>');
+  expect(html).toContain('width:50%'); expect(html).toContain('left:50%;width:10%');
+  expect(html).toContain('data-skill='); expect(html).not.toContain('pf-face');
+  // a level-up waiting for its card shows the button, a hurt clone is flagged
+  u.picks = 1; e.hp = 10;
+  const low = soloBarHtml(p, u.id);
+  expect(low).toContain('data-traits'); expect(low).toContain('class="sb low"');
+});

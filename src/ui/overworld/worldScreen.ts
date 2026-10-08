@@ -51,6 +51,7 @@ import '../styles/partyScreen.css';
 import '../styles/worldScreen.css';
 import '../styles/worldHud.css';
 import '../styles/worldPanels.css';
+import '../styles/hudFrames.css';
 
 /** game time per real second at normal speed */
 const RATE = 3.6;
