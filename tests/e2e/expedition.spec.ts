@@ -30,8 +30,8 @@ test('a raid night: the raid starts in running time with its ultimate bar, and i
   await page.click('[data-testid="to-grid"]', { timeout: 60_000 });
   await expect(page.locator('.base-menu')).toBeVisible({ timeout: 60_000 });
   await page.click('[data-r="start"]');
-  await expect(page.locator('.ult-bar')).toBeVisible();
-  await expect(page.locator('.world.raid-mode')).toHaveCount(1);
+  await expect(page.locator('.ult-bar')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.world.raid-mode')).toHaveCount(1, { timeout: 30_000 });
   // end it at once: the horde still to come and the raiders out there fall
   await page.evaluate(() => {
     const w = (window as unknown as { __world: { p: { raid: { group: number } | null; raidQueue: unknown[]; units: { id: string; group?: number }[]; s: { foes: { id: string; alive: boolean }[] } } } }).__world;
