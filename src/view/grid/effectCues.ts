@@ -91,6 +91,15 @@ export function effectCue(k: CueKit, e: GEvent): boolean {
     });
     return true;
   }
+  // a volley: a fan of arrows off one draw, either side of the shot that set it off (the arrows that strike fly with them: playback.ts)
+  if (e.type === 'buff' && e.text === '다중 사격') {
+    const from = k.at(e.src), to = k.at(e.dst);
+    if (!from || !to) return false;
+    const aim = Math.atan2(to.z - from.z, to.x - from.x);
+    for (const turn of [-0.5, -0.25, 0.25, 0.5]) k.fx.bolt(from, from.clone().set(from.x + Math.cos(aim + turn) * 5 * CELL, from.y, from.z + Math.sin(aim + turn) * 5 * CELL), () => undefined, 1);
+    k.fx.flash(from, '#ffd890', 26, 0.1, 5);
+    return true;
+  }
   // a blizzard: ice out of the sky all over the ground it covers, shard after shard for a moment (its hits wait for the first: playback.ts)
   if (e.type === 'buff' && e.text === 'blizzard' && e.to) {
     const c = toWorld(e.to.x, e.to.y), reach = (e.amount ?? 2) * CELL, n = Math.round(8 + reach * 3);

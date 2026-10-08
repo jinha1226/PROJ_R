@@ -31,11 +31,14 @@ const korean = (s?: string) => !!s && /[가-힣]/.test(s);
  * with it, at once: the harm it deals to every foe it reaches, the states it leaves, who falls. (A whirlwind's numbers
  * come up with the blade, not one foe after another once it has passed.)
  */
-const opens = (ev: GEvent): boolean => ev.type === 'bump' || ev.type === 'shoot' || ev.type === 'react' || (ev.type === 'buff' && korean(ev.text));
+/** one arrow of a volley: loosed with the rest off a single draw, no beat of its own */
+const loose = (ev: GEvent): boolean => ev.type === 'shoot' && ev.text === 'volley';
+const opens = (ev: GEvent): boolean => ev.type === 'bump' || (ev.type === 'shoot' && !loose(ev)) || ev.type === 'react' || (ev.type === 'buff' && korean(ev.text));
 /** what holds a beat's own harm back, not only the beats after: a swing still on its way, a rock still falling */
-const lands = (ev: GEvent): boolean => ev.type === 'bump' || ev.type === 'shoot' || (ev.type === 'buff' && FALLS.has(ev.text ?? ''));
+const lands = (ev: GEvent): boolean => ev.type === 'bump' || (ev.type === 'shoot' && !loose(ev)) || (ev.type === 'buff' && FALLS.has(ev.text ?? ''));
 /** In a party fight, how long this event holds the same clone's show (see `opens`, `lands`). */
 function partyHold(ev: GEvent): number {
+  if (loose(ev)) return 0;
   if (ev.type === 'bump' || ev.type === 'shoot') return SWING_HOLD;
   if (ev.type === 'buff' && FALLS.has(ev.text ?? '')) return FALL;
   if ((ev.type === 'buff' && korean(ev.text)) || ev.type === 'react') return CHAIN_GAP;

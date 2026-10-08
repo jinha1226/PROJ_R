@@ -79,6 +79,8 @@
 @media (pointer: coarse) { .sb .pf-skill kbd, .wh-ults .pf-skill kbd { display: none; } .sb .pf-skill .sn, .wh-ults .pf-skill .sn { bottom: auto; top: 50%; transform: translateY(-50%); } }
 /* the ultimates as keys of their own, where the clone is, and gauges told in characters: only an upright phone shows them (see below) */
 .wh-ults, .sb-place, .sb-cells, .card-strip { display: none; }
+/* the dungeon is played by touching the field itself (a cell to walk to, a foe to strike, a held finger to look): no stick under the thumb */
+.hud-solo .tp-zone { display: none; }
 
 /* phones: every key along the bottom is one height, the bar's ultimates among them */
 @media (max-height: 520px) and (orientation: landscape) {

@@ -92,3 +92,12 @@ it('a meteor jolts the screen where it lands; a blizzard rains shards over the g
   expect(ice.root.children).toHaveLength(1); expect(ice.root.children[0]!.position.x).toBe(3);
   ice.set('f1', false); expect(ice.root.children).toHaveLength(0);
 }, 30_000);
+
+it('a volley is loosed off one draw: its arrows fly together, each harm told with its arrow, none waiting for the one before', () => {
+  const pb = new Playback(true), shot = (dst: string): GEvent => ({ t: 1, type: 'shoot', src: 'c1', dst, text: 'volley' });
+  pb.push([{ t: 1, type: 'shoot', src: 'c1', dst: 'a', text: 'bow' }, hit('a'), named('다중 사격'), shot('b'), hit('b'), shot('c'), hit('c'), shot('d'), hit('d')], 1);
+  const seen = drain(pb), at = (i: number) => seen[i]!.at;
+  // the shot that set it off plays out first; then the whole volley in one instant
+  expect(at(1) - at(0)).toBeGreaterThanOrEqual(0.13);
+  expect(at(8) - at(2)).toBeLessThan(0.011);
+});

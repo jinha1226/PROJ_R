@@ -14,8 +14,9 @@ const marked = (u: Unit | undefined, t: number) => !!u && (u.status.mark?.until 
 const avg = (p: Party, u: Unit, t: number) => { const [lo, hi] = stats(u, t, p).dmg; return ((lo + hi) / 2) * levelDmg(u); };
 const nearest = (p: Party, at: Cell, r: number, not?: Unit) => foesNear(p, at, r).filter((f) => f !== not).sort((a, b) => dist(posOf(p, a), at) - dist(posOf(p, b), at))[0];
 /** an arrow loosed by an effect: a hit (free) at a share of the archer's blow, marking what it hits when asked */
-const arrow = (p: Party, u: Unit, f: Unit, share: number, t: number, ev: GEvent[], mark = false) => {
-  ev.push({ t, type: 'shoot', src: u.id, dst: f.id, from: { ...posOf(p, u) }, to: { ...posOf(p, f) }, text: 'bow' });
+const arrow = (p: Party, u: Unit, f: Unit, share: number, t: number, ev: GEvent[], mark = false, volley = false) => {
+  // one of a volley flies with the rest off a single draw (the screen looses them together); any other arrow is a shot of its own
+  ev.push({ t, type: 'shoot', src: u.id, dst: f.id, from: { ...posOf(p, u) }, to: { ...posOf(p, f) }, text: volley ? 'volley' : 'bow' });
   freeHit(p, u, f, Math.max(1, Math.round(avg(p, u, t) * share)), 'physical', t, ev);
   if (mark && alive(p, f)) applyStatus(p, u, f, 'mark', t, ev);
 };
@@ -40,7 +41,7 @@ export const ARCHER_CARDS: TraitDef[] = [
       } },
       { id: '다중 사격', when: 'hit', test: (p, c) => !!c.basic && (c.src.volleyUntil ?? 0) > c.t && ranged(p, c.src), run: (p, c) => {
         // only what the archer can see and shoot: no sleeping camps, nothing behind walls
-        for (const f of foesNear(p, posOf(p, c.src), r >= 2 ? 6 : 4)) if (f !== c.target && !f.asleep && canHit(p, c.src, f, r >= 2 ? 6 : 4)) arrow(p, c.src, f, 0.6, c.t, c.ev, true);
+        for (const f of foesNear(p, posOf(p, c.src), r >= 2 ? 6 : 4)) if (f !== c.target && !f.asleep && canHit(p, c.src, f, r >= 2 ? 6 : 4)) arrow(p, c.src, f, 0.6, c.t, c.ev, true, true);
       } },
     ],
   }, '6칸', '난사 중 처치 → 가장 가까운 적에게 화살 한 발 더'), VOLLEY, true),

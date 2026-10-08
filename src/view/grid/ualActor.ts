@@ -22,6 +22,8 @@ export interface UalLook { body: string; trim: string; scale: number; weapon: We
   fullRun?: boolean; block?: BlockLook; outfit?: OutfitLook;
   /** the dot look's outline colour (a party class line's colour) */
   ring?: string;
+  /** a light of its own, whatever lights the room (a raised skeleton stays bone white under torchlight) */
+  glow?: string;
   /** a weapon in the left hand too (twin daggers) */
   off?: WeaponLook; suit?: boolean; armor?: boolean; shape?: BodyShape; species?: Species;
   /** hand-tuned height and breadth against the base mannequin (`figureTune.json`) */
@@ -144,6 +146,7 @@ export class UalActor {
   private flashTotal = 1;
   private flashColor = new THREE.Color();
   private readonly tint = new THREE.Color(0, 0, 0);
+  private readonly glow = new THREE.Color(0, 0, 0);
   private hand: THREE.Object3D | undefined;
   private offHand: THREE.Object3D | undefined;
   private held: THREE.Object3D | null = null;
@@ -193,6 +196,7 @@ export class UalActor {
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
+    if (look.glow) this.glow.set(look.glow);
     if (look.off) this.setOffhand(look.off);
     if (look.shield) {
       const s = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.32), new THREE.MeshStandardMaterial({ color: '#5a4a3a', roughness: 0.8 }));
@@ -378,7 +382,9 @@ export class UalActor {
     if (this.hunch && !this.hunch[0].quaternion.equals(this.hunched)) this.hunched.copy(this.hunch[0].quaternion.multiply(this.hunch[1]));
     if (this.flashLeft > 0) this.flashLeft = Math.max(0, this.flashLeft - dt);
     const k = this.flashLeft / this.flashTotal;
-    for (const m of this.mats) m.emissive.copy(this.tint).lerp(this.flashColor, k * 0.9);
+    // a state's tint shows over the figure's own glow
+    const base = this.tint.r + this.tint.g + this.tint.b > 0 ? this.tint : this.glow;
+    for (const m of this.mats) m.emissive.copy(base).lerp(this.flashColor, k * 0.9);
   }
 
   dispose(): void {

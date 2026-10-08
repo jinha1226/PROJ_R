@@ -77,12 +77,13 @@ export function shapeBones(model: THREE.Object3D, shape: BodyShape): { bones: [T
 export const SUMMON_RING = '#19e3a4';
 /**
  * A clone's own summon, told apart from every foe at a glance (2026-10-08: a raised skeleton wore the floor's foe look,
- * goblin green on a goblin floor, with the foes' red outline). A skeleton is gaunt bone lit spectral green, bow or blade
+ * goblin green on a goblin floor, with the foes' red outline). A skeleton is gaunt bone, stark white with a cold light of its own and a spectral green outline, bow or blade
  * by its weapon; a golem is a great heap of the same bone; a shadow clone is its master in shadow.
  */
 export function summonLook(what: 'skeleton' | 'archer' | 'golem' | 'mirror', master?: UalLook): UalLook {
   if (what === 'mirror' && master) return { ...master, body: '#2a2238', trim: '#4a3a66', ring: master.ring };
-  const bone: UalLook = { body: '#eef6e6', trim: '#19a37c', scale: 0.92, weapon: what === 'archer' ? 'crossbow' : 'blade', idle: 'Idle_Loop', ring: SUMMON_RING };
+  // bone white that stays white: torchlight turned plain bone the colour of a goblin's hide, so it carries a cold light of its own
+  const bone: UalLook = { body: '#f4f8ff', trim: '#19a37c', glow: '#8fa6c4', scale: 0.92, weapon: what === 'archer' ? 'crossbow' : 'blade', idle: 'Idle_Loop', ring: SUMMON_RING };
   if (what === 'golem') return { ...bone, weapon: 'none', scale: 1.5, shape: FAT, species: 'orc', idle: 'Zombie_Idle_Loop', run: 'Zombie_Walk_Fwd_Loop' };
   return { ...bone, scale: bone.scale * SIZE.skeleton, shape: SHAPES.skeleton, species: 'skeleton' };
 }
