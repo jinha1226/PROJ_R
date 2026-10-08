@@ -352,7 +352,8 @@ export class UalActor {
     // a body on its back reads like a raised-arms pose from above: darken it so the dead read as dead
     for (const m of this.mats) m.color.multiplyScalar(0.6); // dimmed, not blacked out: a body that still reads on a dark floor
     this.dropUpper(0.05);
-    this.start(CLIP.death, false, 1.3, 0.05);
+    // at the clip's own pace: a heavy fall, not a quick flop
+    this.start(CLIP.death, false, 1, 0.05);
   }
 
   /** Cuts a part off at a bone (it and everything below it shrink away); returns where it was and the body colour, or null. */

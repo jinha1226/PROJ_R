@@ -285,7 +285,7 @@ export class GridActors {
     return this.kinds.get(id) ?? 'minion';
   }
 
-  /** Falls: thrown back from the killer as it drops, then (a foe) sinks into the floor and is gone, its blood left behind. */
+  /** Falls: pushed back from the killer as it goes down, then (a foe) sinks into the floor and is gone, its blood left behind. */
   die(id: string | undefined, from?: THREE.Vector3): void {
     const v = this.v(id);
     if (!v || v.dead) return;
@@ -294,8 +294,7 @@ export class GridActors {
     v.actor.setDead();
     if (from) this.nudge(v, from, -SHOVE * 2.4);
     if (this.isAlly(id)) return;
-    // a foe is thrown up as it drops, and a pool of blood spreads where it lies (a small body still reads as a kill)
-    v.air = LEAP_SEC;
+    // a foe goes down where it stands (no toss into the air: a hop made a death read as light), and a pool of blood spreads where it lies
     const pool = new THREE.Mesh(new THREE.CircleGeometry(0.3, 14), new THREE.MeshBasicMaterial({ color: '#4a0808', transparent: true, opacity: 0.75, depthWrite: false }));
     pool.rotation.x = -Math.PI / 2; pool.position.y = 0.02 - BODY_LIFT; pool.scale.setScalar(0.01); pool.userData.pool = true;
     v.actor.root.add(pool);
