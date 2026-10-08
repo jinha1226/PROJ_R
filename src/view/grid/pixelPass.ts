@@ -6,7 +6,7 @@ export const ENDESGA32 = ['#be4a2f', '#d77643', '#ead4aa', '#e4a672', '#b86f50',
   '#262b44', '#181425', '#ff0044', '#68386c', '#b55088', '#f6757a', '#e8b796', '#c28569'];
 
 /** The game's dot look: about 270 pixels across the short side, Endesga 32, a light dither. */
-export const DOT_LOOK: PixelLook = { lines: 270, palette: ENDESGA32, dither: 0.1, lift: 0.62 };
+export const DOT_LOOK: PixelLook = { lines: 270, palette: ENDESGA32, dither: 0.1, lift: 0.62, ground: { contrast: 0.6, dim: 0.84, dither: 0.7 } };
 
 /** The render layer that marks figures for the dot look's outlines. */
 export const FIGURE_LAYER = 2;
@@ -26,6 +26,12 @@ export interface PixelLook {
   dither?: number;
   /** a gamma under 1 raises the shadows before the palette snap */
   lift?: number;
+  /**
+   * What is not a figure (floor, walls, props) is pressed flat so the figures stand out on it: its mid tones drawn toward
+   * one another (`contrast` under 1), the whole a little darker (`dim`), its dither quieter (`dither`). The dark stays
+   * black and what is bright (a torch, a blast) stays bright.
+   */
+  ground?: { contrast: number; dim: number; dither: number };
 }
 
 /**
@@ -52,10 +58,11 @@ export class PixelPass {
     const n = palVec.length;
     const mat = new THREE.ShaderMaterial({
       uniforms: { mask: { value: this.mask.texture }, tex: { value: this.target.texture }, depth: { value: this.target.depthTexture }, texel: { value: new THREE.Vector2(1, 1) }, levels: { value: 28 },
-        pal: { value: n ? palVec : [new THREE.Vector3()] }, spread: { value: look.dither ?? 0.09 }, lift: { value: look.lift ?? 1 } },
+        pal: { value: n ? palVec : [new THREE.Vector3()] }, spread: { value: look.dither ?? 0.09 }, lift: { value: look.lift ?? 1 },
+        ground: { value: new THREE.Vector3(look.ground?.contrast ?? 1, look.ground?.dim ?? 0.88, look.ground?.dither ?? 1) } },
       defines: { PAL_N: Math.max(1, n), USE_PAL: n ? 1 : 0 },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-      fragmentShader: `uniform sampler2D tex; uniform sampler2D depth; uniform vec2 texel; uniform float levels; uniform vec3 pal[PAL_N]; uniform float spread; uniform float lift; uniform sampler2D mask; varying vec2 vUv;
+      fragmentShader: `uniform sampler2D tex; uniform sampler2D depth; uniform vec2 texel; uniform float levels; uniform vec3 pal[PAL_N]; uniform float spread; uniform float lift; uniform vec3 ground; uniform sampler2D mask; varying vec2 vUv;
         vec3 ringAt(vec2 o) { return texture2D(mask, vUv + o).rgb; }
         float dz(vec2 o) { return texture2D(depth, vUv + o * texel).x; }
         float bayer(vec2 p) {
@@ -79,8 +86,14 @@ export class PixelPass {
             // figures are drawn clean and bright (no dither, shadows lifted more); the ground sits a touch darker behind them
             vec3 fig = ringAt(vec2(0.0));
             bool isFig = fig.r + fig.g + fig.b >= 0.02;
-            vec3 base = pow(clamp(gl_FragColor.rgb, 0.0, 1.0), vec3(isFig ? lift * 0.8 : lift)) * (isFig ? 1.0 : 0.88);
-            vec3 c = base + (bayer(floor(vUv / texel)) - 0.5) * (isFig ? 0.0 : spread * smoothstep(0.03, 0.1, lum));
+            vec3 base = pow(clamp(gl_FragColor.rgb, 0.0, 1.0), vec3(isFig ? lift * 0.8 : lift));
+            if (!isFig) {
+              // the ground pressed flat: mid tones drawn toward one another, the dark left black, the bright left bright
+              float gl = max(max(base.r, base.g), base.b);
+              vec3 pressed = (base - 0.24) * ground.x + 0.24;
+              base = mix(mix(base, pressed, smoothstep(0.04, 0.2, gl)) * ground.y, base * 0.88, smoothstep(0.7, 0.97, gl));
+            }
+            vec3 c = base + (bayer(floor(vUv / texel)) - 0.5) * (isFig ? 0.0 : spread * ground.z * smoothstep(0.03, 0.1, lum));
             vec3 best = pal[0]; float bd = 1e9;
             for (int k = 0; k < PAL_N; k++) {
               vec3 e = (c - pal[k]) * vec3(0.55, 0.75, 0.4);

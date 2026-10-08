@@ -110,14 +110,14 @@ export class DelveScreen implements Screen {
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
-      stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
+      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
       beacon: () => this.beacon(), solo: true,
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
-    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
+    this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev), true);
     this.el.appendChild(this.prompts.el);
     this.el.appendChild(this.quick.el);
     this.el.appendChild(this.cards.el);
@@ -132,7 +132,7 @@ export class DelveScreen implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('gear'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
     this.el.appendChild(this.pad.el);
     if (this.opts.stepped) {
       const next = document.createElement('button');
@@ -329,8 +329,8 @@ export class DelveScreen implements Screen {
     if (k === 'escape' && this.aiming !== null) { this.aiming = null; return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
-    // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k' || k === 'j') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : k === 'j' ? 'soul' : 'gear'); return; }
+    // C the record, K the skills, E what is worn, I the bag (down here there is no roster and no soul-stone tab: stones lie in the bag)
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'k') { this.togglePip(k === 'c' ? 'stat' : k === 'k' ? 'skill' : k === 'i' ? 'bag' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); else this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];

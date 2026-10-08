@@ -124,7 +124,7 @@ export class WorldScreen implements Screen {
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
-      stat: () => this.togglePip('stat'), bag: () => this.togglePip('gear'),
+      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
       build: () => this.build.toggle(),
       select: (id) => this.select(id),
       skill: (id, slot) => queueUltimate(this.p, id || this.sel, undefined, slot),
@@ -173,7 +173,7 @@ export class WorldScreen implements Screen {
     this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
     this.el.appendChild(this.quick.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('gear'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
+    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), wait: () => this.stop(), bag: () => this.togglePip('bag'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent) });
     this.el.appendChild(this.pad.el);
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
@@ -379,7 +379,7 @@ export class WorldScreen implements Screen {
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
-    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k' || k === 'j') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : k === 'j' ? 'soul' : 'gear'); return; }
+    if (k === 'c' || k === 'i' || k === 'e' || k === 'l' || k === 'k' || k === 'j') { this.togglePip(k === 'c' ? 'stat' : k === 'l' ? 'roster' : k === 'k' ? 'skill' : k === 'j' ? 'soul' : k === 'i' ? 'bag' : 'gear'); return; }
     if (this.pip.open) return;
     if (k === ' ') { e.preventDefault(); this.paused = !this.paused; }
     const pick = this.ids()[Number(k) - 1];

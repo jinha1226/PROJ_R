@@ -58,14 +58,17 @@ export function gearHtml(p: RoamParty, u: Unit | undefined): string {
   return `<section class="pg"><div class="pg-slots">${slots}</div>${packHtml(p, u)}</section>`;
 }
 
-/** The pack: gear compared with what the chosen clone wears (equip, sacrifice), consumables to use. */
-export function packHtml(p: RoamParty, u: Unit | undefined): string {
+/** One thing from the pack in full: a consumable to use, or gear compared with what the chosen clone wears (equip, sacrifice). */
+export function packItemHtml(p: RoamParty, u: Unit | undefined, it: RoamParty['pack'][number]): string {
   const gear = u?.gear;
-  const pack = p.pack.map((it) => {
-    if (!('def' in it)) return `<div class="pg-card use"><div class="pg-head"><b>${itemName(it)}</b>${it.charges === undefined ? '' : `<small>${it.charges}회</small>`}</div><div class="pg-stat">${richText(CONSUMABLE_TEXT[it.consumable])}</div><div class="pg-btns"><button type="button" data-item="${it.id}" data-action="use">사용</button></div></div>`;
-    if (!u || !gear) return `<div class="pg-card"><div class="pg-head"><b>${itemName(it)}</b></div></div>`;
-    const slot = CATALOG[it.def]!.slot, worn = gear[slot];
-    return card(it, u, worn ?? undefined, `<button type="button" data-item="${it.id}" data-action="equip">착용</button><button type="button" data-item="${it.id}" data-action="sacrifice" ${worn ? '' : 'disabled'} title="같은 칸 장비에 수치 ${Math.round(sacrificeRate(p) * 100)}%를 더함">희생</button>`);
-  }).join('');
+  if (!('def' in it)) return `<div class="pg-card use"><div class="pg-head"><b>${itemName(it)}</b>${it.charges === undefined ? '' : `<small>${it.charges}회</small>`}</div><div class="pg-stat">${richText(CONSUMABLE_TEXT[it.consumable])}</div><div class="pg-btns"><button type="button" data-item="${it.id}" data-action="use">사용</button></div></div>`;
+  if (!u || !gear) return `<div class="pg-card"><div class="pg-head"><b>${itemName(it)}</b></div></div>`;
+  const slot = CATALOG[it.def]!.slot, worn = gear[slot];
+  return card(it, u, worn ?? undefined, `<button type="button" data-item="${it.id}" data-action="equip">착용</button><button type="button" data-item="${it.id}" data-action="sacrifice" ${worn ? '' : 'disabled'} title="같은 칸 장비에 수치 ${Math.round(sacrificeRate(p) * 100)}%를 더함">희생</button>`);
+}
+
+/** The pack as a list (the gear tab): every item in full. */
+export function packHtml(p: RoamParty, u: Unit | undefined): string {
+  const pack = p.pack.map((it) => packItemHtml(p, u, it)).join('');
   return `<h4>가방 <small>${p.pack.length}/${PACK_SIZE}</small></h4><div class="pg-pack">${pack || '<p class="pg-none">비어 있음</p>'}</div>`;
 }

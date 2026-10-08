@@ -315,3 +315,26 @@
   /* a card's tile is as wide as its short name (two or three letters); a few tiles share the row out, many slide */
   .hud-solo .cs-card, .hud-solo .cs-cards.few .cs-card { flex: 1 0 auto; width: auto; min-width: 28px; padding: 0 3px; }
 }
+
+/*
+ * The record window. One clone alone has no list of clones beside its record, so the record takes the whole width.
+ * The bag is one grid of everything carried; a slot is a key (it is tapped to see what the thing is), the chosen one lit.
+ */
+.pip-body > :only-child, .pip-rec.wide { grid-column: 1 / -1; }
+button.pip-slot { position: relative; font: 11px 'Galmuri', monospace; color: #9dffb8; padding: 2px; cursor: pointer; align-content: center; gap: 2px; overflow: hidden; }
+.pip-slot .gi { width: 22px; height: 22px; }
+.pip-slot span { display: block; max-width: 100%; line-height: 12px; overflow: hidden; }
+.pip-slot b { position: absolute; right: 3px; bottom: 2px; font-weight: normal; color: #ffd76a; text-shadow: 0 1px 0 #000; }
+.pip-slot.res { color: #8ff0ff; }
+.pip-slot.on { border-color: #e6ffb0; box-shadow: inset 0 0 0 2px #e6ffb0; }
+.pip-pick { margin-top: 10px; display: grid; gap: 6px; }
+.pip-pick .pg-none { margin: 0; }
+.pip-count { margin: 8px 0 0; font-size: 11px; color: #34a85c; }
+
+@media (orientation: portrait) and (max-width: 700px) {
+  /* an upright phone has the height: the record window takes it, so the bag's grid and the thing chosen under it show together */
+  .pip-frame { height: min(640px, 80vh); }
+  .pip-grid { gap: 4px; }
+}
+/* the demo's step key steps aside while the record window is open */
+.pip-win:not([hidden]) ~ .step-next { display: none; }
