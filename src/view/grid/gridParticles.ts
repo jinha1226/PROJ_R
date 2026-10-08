@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Vfx } from '../fx/vfx';
 
 const DEBRIS = 96;
-const SPARKS = 160;
+const SPARKS = 480;
 const DROPS = 120;
 const GRAVITY = 9;
 
@@ -22,7 +22,7 @@ export class GridParticles {
   private readonly chips: THREE.InstancedMesh;
   private readonly bits: Bit[] = [];
   private readonly sparkGeo = new THREE.BufferGeometry();
-  private readonly sparks: { p: THREE.Vector3; v: THREE.Vector3; life: number; total: number; c: THREE.Color }[] = [];
+  private readonly sparks: { p: THREE.Vector3; v: THREE.Vector3; life: number; total: number; c: THREE.Color; g?: number }[] = [];
   private readonly drops: THREE.InstancedMesh;
   private readonly blobs: Bit[] = [];
   private readonly m = new THREE.Matrix4();
@@ -67,6 +67,15 @@ export class GridParticles {
     }
   }
 
+  /** Flames licking up a burning body: embers born over its height that rise and die out (orange into yellow). */
+  embers(at: THREE.Vector3, n = 2): void {
+    for (let k = 0; k < n && this.sparks.length < SPARKS; k++) {
+      const total = 0.35 + Math.random() * 0.3, c = new THREE.Color(Math.random() < 0.6 ? '#ff7a1a' : '#ffd24a');
+      this.sparks.push({ p: new THREE.Vector3(at.x + (Math.random() - 0.5) * 0.5, 0.3 + Math.random() * 1.2, at.z + (Math.random() - 0.5) * 0.5),
+        v: new THREE.Vector3((Math.random() - 0.5) * 0.5, 1.4 + Math.random() * 1.4, (Math.random() - 0.5) * 0.5), life: total, total, c, g: -0.12 });
+    }
+  }
+
   /** Blood sprayed away from the blow; drops spatter flat on the floor and fade. */
   blood(at: THREE.Vector3, n: number, from?: THREE.Vector3): void {
     const away = from ? at.clone().sub(from).setY(0).normalize() : new THREE.Vector3();
@@ -102,7 +111,7 @@ export class GridParticles {
     for (let i = this.sparks.length - 1; i >= 0; i--) {
       const s = this.sparks[i]!;
       s.life -= dt;
-      s.v.y -= GRAVITY * 0.6 * dt;
+      s.v.y -= GRAVITY * (s.g ?? 0.6) * dt;
       s.p.addScaledVector(s.v, dt);
       if (s.life <= 0) this.sparks.splice(i, 1);
     }

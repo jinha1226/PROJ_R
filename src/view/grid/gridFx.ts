@@ -59,7 +59,7 @@ export class GridFx {
   }
 
   /** A burning rock falling out of the sky onto a spot, a tail of fire behind it; `done` runs as it lands. */
-  drop(at: THREE.Vector3, done: () => void, color = '#ff7a2a', sec = 0.14): void {
+  drop(at: THREE.Vector3, done: () => void, color = '#ff7a2a', sec = 0.1): void {
     const to = at.clone().setY(0.25), from = to.clone().add(new THREE.Vector3(-1.3 * CELL, 8, -0.9 * CELL));
     const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.24, 0), new THREE.MeshBasicMaterial({ color: '#ffe6b0' }));
     const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.02, 1, 6, 1, true).translate(0, -0.5, 0), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false }));

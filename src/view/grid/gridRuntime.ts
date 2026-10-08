@@ -191,6 +191,21 @@ export class GridRuntime {
   }
   /** The party screens' pacing: attacks play out and chains show one effect at a time (the screen waits for the show in a fight). */
   partyShow(): void { this.partyPace = true; this.playback = new Playback(true); setActionPace(1.5); }
+  /**
+   * Party fights: the states each unit stands in right now (burning, frozen, poisoned). They get a steady glow, and the
+   * burning have flames licking up them for as long as they burn (a burn used to show only the moment it was laid).
+   */
+  partyStates(list: { id: string; burn: boolean; freeze: boolean; poison: boolean }[]): void {
+    const now = new Set<string>();
+    this.burning.clear();
+    for (const st of list) {
+      now.add(st.id); if (st.burn) this.burning.add(st.id);
+      this.actors.setStatus(st.id, { burn: st.burn ? 1 : 0, freeze: st.freeze ? 1 : 0, poison: st.poison ? 1 : 0 });
+    }
+    for (const id of this.stated) if (!now.has(id)) this.actors.setStatus(id, undefined);
+    this.stated = now;
+  }
+  private readonly burning = new Set<string>(); private stated = new Set<string>(); private emberAt = 0;
   get busy(): boolean {
     return this.playback.busy;
   }
@@ -201,7 +216,8 @@ export class GridRuntime {
     this.terrain.shade(s);
     this.items.sync(s);
     this.elements.sync(s);
-    for (const e of [s.hero, ...s.foes]) this.actors.setStatus(e.id, e.status);
+    // a party's units carry their own states (see `partyStates`); the grid game's are on its entities
+    if (!this.partyPace) for (const e of [s.hero, ...s.foes]) this.actors.setStatus(e.id, e.status);
     const g = s.hero.gear;
     // a figure with its own look (the party demo) keeps the weapon it was given
     if (!LOOK_BY_ID.has('hero')) this.actors.setWeapon('hero', heroLook(activeWeapon(g)?.group, this.terrain instanceof ShipTerrain), heroLook(g.hands[g.active === 0 ? 1 : 0]?.group, this.terrain instanceof ShipTerrain));
@@ -310,6 +326,9 @@ export class GridRuntime {
     this.clock += dt;
     const scaled = dt * this.fx.timeScale;
     for (const e of this.playback.update(this.fx.frozen ? 0 : scaled)) this.cue(e);
+    // flames on everything that burns, a few embers at a time
+    this.emberAt -= scaled;
+    if (this.emberAt <= 0 && this.burning.size) { this.emberAt = 0.09; for (const id of this.burning) { const at = this.actors.pos(id); if (at && this.actors.shown(id)) this.particles.embers(at, 2); } }
     this.fx.update(dt);
     this.pops.update(dt);
     if (this.terrain instanceof ShipTerrain) this.terrain.update(dt);

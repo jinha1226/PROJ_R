@@ -4,7 +4,7 @@ import type { Screen } from '../../app/router';
 import { GridSim } from '../../sim/grid/gridSim';
 import { findPath } from '../../sim/grid/path';
 import { dist, idx, same, walkable, tileAt, type Cell, type GEvent } from '../../sim/grid/types';
-import { entOf, unitOf } from '../../sim/party/partyCore';
+import { alive, entOf, unitOf, type Unit } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import { cardTarget, targetCardHtml } from '../overworld/targetCard';
 import { tapCell } from './tapCell';
@@ -159,6 +159,8 @@ export class DelveScreen implements Screen {
       }
       this.pad.update(dt, !!this.p.combat);
       this.props?.update(dt);
+      // the states the units stand in, for their steady looks (a burning foe burns on screen for as long as it burns)
+      if (this.rt) { const t = this.p.time, on = (u: Unit, id: 'burn' | 'freeze' | 'poison') => (u.status[id]?.until ?? 0) > t; this.rt.partyStates(this.p.units.filter((u) => alive(this.p, u) && (on(u, 'burn') || on(u, 'freeze') || on(u, 'poison'))).map((u) => ({ id: u.id, burn: on(u, 'burn'), freeze: on(u, 'freeze'), poison: on(u, 'poison') }))); }
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.miningCue.update(this.p, this.rt);
       this.quick.update();

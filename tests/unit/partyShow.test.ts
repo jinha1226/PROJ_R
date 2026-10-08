@@ -13,13 +13,13 @@ it('in a party fight a swing plays out before the blow it caused shows', () => {
   expect(hit.at - swing.at).toBeGreaterThanOrEqual(0.13);
 });
 
-it('a chain shows one effect after another, but one clone\'s chain stays under a second', () => {
+it('a chain shows one effect after another, but one clone\'s chain stays well under a second', () => {
   const pb = new Playback(true);
   const names = ['원소 순환', '증기', '연소 폭발', '연쇄 반응', '과부하', '번개 사슬', '연소 폭발 ', '증기 ', '과부하 ', '독연 폭발', '원소 순환 ', '연쇄 반응 ', '증기  ', '과부하  '];
   pb.push(names.map((text): GEvent => ({ t: 2, type: 'buff', src: 'c1', text })), 2);
   const seen = drain(pb);
-  expect(seen[1]!.at - seen[0]!.at).toBeGreaterThanOrEqual(0.035);
-  expect(seen[seen.length - 1]!.at - seen[0]!.at).toBeLessThanOrEqual(1);
+  expect(seen[1]!.at - seen[0]!.at).toBeGreaterThanOrEqual(0.02);
+  expect(seen[seen.length - 1]!.at - seen[0]!.at).toBeLessThanOrEqual(0.7);
 });
 
 it('the grid game keeps its quick overlapping show', () => {

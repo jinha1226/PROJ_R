@@ -13,13 +13,15 @@ interface Cue { at: number; ev: GEvent }
 /** party fights: a swing or a shot holds that clone's next cues until its (quickened) blow lands */
 const SWING_HOLD = 0.15;
 /** party fights: each effect of a clone's chain shows this long after the one before... */
-const CHAIN_GAP = 0.06;
+const CHAIN_GAP = 0.04;
 /** ...but one clone's chain never holds its show longer than this */
-const CHAIN_MAX = 0.9;
+const CHAIN_MAX = 0.6;
 /** party fights: one blast's hits and the states it leaves pop one after another (a blast ripples out, a chain crackles along) */
-const RIPPLE = 0.035;
+const RIPPLE = 0.02;
 /** party fights: a meteor's hits wait for the rock to land */
-const METEOR_FALL = 0.13;
+const METEOR_FALL = 0.09;
+/** party fights: a fall holds the rest of that clone's show this long (a chain of kills must not drag) */
+const FALL_HOLD = 0.05;
 const STATE_POP = new Set(['burn', 'chill', 'freeze', 'shock', 'poison', 'bleed', 'mark', 'exposed', 'stun']);
 /** party fights: how long a figure takes to walk one cell (a swing or shot waits for the step before it to land, so nobody slides while attacking) */
 const STEP_SEC = 0.24;
@@ -31,7 +33,7 @@ function partyHold(ev: GEvent): number {
   if (ev.type === 'bump' || ev.type === 'shoot') return SWING_HOLD;
   if (ev.type === 'buff' && ev.text === '운석 낙하') return METEOR_FALL;
   if ((ev.type === 'buff' && korean(ev.text)) || ev.type === 'react') return CHAIN_GAP;
-  if (ev.type === 'die') return 0.12;
+  if (ev.type === 'die') return FALL_HOLD;
   if (ev.type === 'hit' || (ev.type === 'buff' && STATE_POP.has(ev.text ?? ''))) return RIPPLE;
   return 0;
 }

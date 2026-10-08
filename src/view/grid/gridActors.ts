@@ -113,6 +113,12 @@ export class GridActors {
     return v && !v.dead ? v.actor.root : undefined;
   }
 
+  /** whether a figure stands on screen (built, alive, on a cell the party sees) */
+  shown(id: string): boolean {
+    const v = this.views.get(id);
+    return !!v && !v.dead && v.actor.root.visible;
+  }
+
   pos(id: string): THREE.Vector3 | undefined {
     const v = this.views.get(id);
     return v ? new THREE.Vector3(v.x + v.ox, 0, v.z + v.oz) : undefined;
