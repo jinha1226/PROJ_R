@@ -1,21 +1,27 @@
 import { expect, it } from 'vitest';
-import { blinkOn, cardInfoHtml, cardMark, cardStripHtml, cardsLit, cardsOf } from '../../src/ui/overworld/cardStrip';
+import { blinkOn, cardInfoHtml, cardLabel, cardMark, cardStripHtml, cardsLit, cardsOf } from '../../src/ui/overworld/cardStrip';
 import { scene } from './support/cardScene';
 
-it('a card is marked by the head of its name\'s last word', () => {
-  expect(cardMark('화염 전이')).toBe('전이'); expect(cardMark('운석')).toBe('운석'); expect(cardMark('블리자드')).toBe('블리');
+it('every card has a short name for its tile: two or three letters, no space, no two alike; the full name is kept for everything else', async () => {
+  const { TRAITS } = await import('../../src/sim/party/traitDefs');
+  const { CARD_SHORT } = await import('../../src/ui/overworld/cardShort');
+  const ids = Object.values(TRAITS).map((d) => d.id);
+  expect(ids.filter((id) => !CARD_SHORT[id])).toEqual([]);
+  expect(Object.keys(CARD_SHORT).filter((id) => !ids.includes(id))).toEqual([]);
+  for (const s of Object.values(CARD_SHORT)) expect(s).toMatch(/^[가-힣]{2,3}$/);
+  expect(new Set(Object.values(CARD_SHORT)).size).toBe(Object.keys(CARD_SHORT).length);
+  expect(cardLabel('fireSpread')).toBe('전이'); expect(TRAITS.fireSpread!.name).toBe('화염 전이');
+  // a card nobody named yet falls back to the head of its name's last word
+  expect(cardMark('화염 전이')).toBe('전이'); expect(cardMark('블리자드')).toBe('블리');
 });
 
-it('the strip shows the ultimate as a key and every card held, by name while they are few and by mark once they are many', () => {
+it('the strip is two rows: the ultimate as a key, and under it every card held in one line, each by its short name', () => {
   const { p, u } = scene('mage');
-  u.traits = { meteor: 2, fireSpread: 1 };
-  expect(cardsOf(u)).toEqual(['meteor', 'fireSpread']);
-  const few = cardStripHtml(p, u.id);
-  expect(few).toMatch(/^<div class="cs-ults"><button type="button" class="cs-ult[^"]*" data-skill="0" data-name="순간이동"><span>순간이동<\/span><\/button><\/div><div class="cs-cards few">/);
-  expect(few).toContain('class="cs-cards few"'); expect(few).toContain('data-card="fireSpread" title="화염 전이">화염 전이<');
-  u.traits = { meteor: 1, fireSpread: 1, fireball: 1, fireAmp: 1, blizzard: 1 };
-  const many = cardStripHtml(p, u.id);
-  expect(many).toContain('class="cs-cards"'); expect(many).toContain('data-card="fireSpread" title="화염 전이">전이<');
+  u.traits = { meteor: 2, fireSpread: 1, blizzard: 1 };
+  expect(cardsOf(u)).toEqual(['meteor', 'fireSpread', 'blizzard']);
+  const html = cardStripHtml(p, u.id);
+  expect(html).toMatch(/^<div class="cs-ults"><button type="button" class="cs-ult[^"]*" data-skill="0" data-name="순간이동"><span>순간이동<\/span><\/button><\/div><div class="cs-cards">/);
+  expect(html).toContain('data-card="fireSpread" title="화염 전이">전이<'); expect(html).toContain('data-card="blizzard" title="블리자드">눈보라<');
   // an ultimate cooling down shows the turns left
   u.souls![0]!.ultReady = p.time + 3;
   expect(cardStripHtml(p, u.id)).toMatch(/cs-ult wait[^>]*><span>순간이동<\/span><em>3<\/em>/);

@@ -4,17 +4,17 @@ import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 import { traitText } from '../../sim/party/traitText';
 import { ULT_NAMES, ultSlots } from '../../sim/party/ultimate';
 import { richText } from './richText';
+import { CARD_SHORT } from './cardShort';
 
 /** a card blinks each time it fires: lit, a beat dark, lit again (ms from the moment it fired) */
 const BLINK: [number, number][] = [[0, 170], [250, 420]];
 const BLINK_END = 420;
 /** events a card throws under a name of their own, each a firing of that card (every rock of a meteor shower, every skeleton blown) */
 const ALSO: Record<string, TraitId> = { '운석 낙하': 'meteor', '해골 자폭': 'raiseSkeleton' };
-/** up to this many cards are told by name; more are told by their marks (the row is one line) */
-const FEW = 4;
-
-/** A card's two-letter mark on its tile: the head of its name's last word (화염 전이 → 전이, 운석 → 운석, 블리자드 → 블리). */
+/** A card with no short name of its own is marked by the head of its name's last word (화염 전이 → 전이). */
 export const cardMark = (name: string): string => [...name.trim().split(/\s+/).pop()!].slice(0, 2).join('');
+/** What a card's tile says: its short name (two or three letters); the full name stays in the log and the descriptions. */
+export const cardLabel = (id: TraitId): string => CARD_SHORT[id] ?? cardMark(TRAITS[id]?.name ?? id);
 /** every name an effect of a card is told under (the card's own, and each trigger of each of its ranks), by card */
 let byEffect: Map<string, TraitId[]> | undefined;
 function cardsNamed(text: string): TraitId[] {
@@ -43,10 +43,8 @@ export function cardStripHtml(p: Party, id: string): string {
     const left = Math.max(0, s.ready - p.time), q = u.ultQueued && u.ultSlot === s.slot, name = ULT_NAMES[s.ult];
     return `<button type="button" class="cs-ult${q ? ' queued' : ''}${left > 0 || !e.alive ? ' wait' : ''}" data-skill="${s.slot}" data-name="${name}"><span>${name}</span>${left > 0 ? `<em>${Math.ceil(left)}</em>` : ''}</button>`;
   }).join('');
-  // a few cards have room for their whole names; more than that and each is its two-letter mark
-  const held = cardsOf(u), few = held.length <= FEW;
-  const cards = held.map((c) => `<button type="button" class="cs-card" data-card="${c}" title="${TRAITS[c]!.name}">${few ? TRAITS[c]!.name : cardMark(TRAITS[c]!.name)}</button>`).join('');
-  return `<div class="cs-ults">${ults}</div><div class="cs-cards${few ? ' few' : ''}">${cards}</div>`;
+  const cards = cardsOf(u).map((c) => `<button type="button" class="cs-card" data-card="${c}" title="${TRAITS[c]!.name}">${cardLabel(c)}</button>`).join('');
+  return `<div class="cs-ults">${ults}</div><div class="cs-cards">${cards}</div>`;
 }
 
 /** What a card is, for the line shown when its tile is tapped: its name, its rank, what it does. */

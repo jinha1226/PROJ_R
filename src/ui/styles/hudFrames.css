@@ -310,3 +310,8 @@
 .screen.world .gpop { font: normal 22px 'Galmuri', monospace; letter-spacing: 0; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000, 0 4px #000; }
 .screen.world .grid-icon { font: normal 22px 'Galmuri', monospace; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
 .screen.world .step-next { font: normal 11px 'Galmuri', monospace; }
+
+@media (orientation: portrait) and (max-width: 700px) {
+  /* a card's tile is as wide as its short name (two or three letters); a few tiles share the row out, many slide */
+  .hud-solo .cs-card, .hud-solo .cs-cards.few .cs-card { flex: 1 0 auto; width: auto; min-width: 28px; padding: 0 3px; }
+}
