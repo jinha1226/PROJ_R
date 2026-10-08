@@ -1,3 +1,4 @@
+@font-face { font-family: 'GalmuriBold'; src: url('/assets/fonts/Galmuri11-Bold.woff2') format('woff2'); font-display: swap; }
 /*
  * The HUD's frames are drawn things: pixel-art 9-slice frames (scripts/prepare-ui.mjs) shown at 2x, nearest-neighbour.
  * The colours are the terminal's own green; a border used to be a 1px CSS line and read as drawn by code.
@@ -19,6 +20,17 @@
 }
 .wh-btns button:disabled, .wh-beacon:disabled { background: none; opacity: 0.45; }
 .pf-skill.queued kbd, .pf-skill.queued .sn { color: #021006; }
+
+/*
+ * The touch keys are drawn keys like the rest of the HUD (they were 1px lines in three colours beside drawn frames):
+ * one frame, one colour of lettering, attack the one red key and a little wider. A quick slot is sunk, a thing lying
+ * in it, where a key stands up to be pressed.
+ */
+.tp-btns button { border: 1px solid transparent; border-image: url('./img/button.png') 5 fill / 10px stretch; image-rendering: pixelated; background: none; color: #9dffb8; padding: 0; }
+.tp-btns [data-a="attack"] { border-color: transparent; border-image-source: url('./img/button-atk.png'); color: #ffe0d0; }
+.tp-btns [data-a="act"].wait { border-color: transparent; color: #9dffb8; }
+.tp-btns button:active { filter: brightness(1.5); }
+.quick-slots button { border: 1px solid transparent; border-image: url('./img/slot.png') 5 fill / 10px stretch; image-rendering: pixelated; background: none; }
 
 /* under the minimap: where and when, then the return beacon */
 .wh-beacon { display: block; width: 100%; margin-top: 6px; padding: 5px 8px; font: 12px 'GalmuriMono', monospace; color: #5dff8a; cursor: pointer; }
@@ -66,8 +78,8 @@
 .sb .pf-skill .sn, .wh-ults .pf-skill .sn { display: block; position: absolute; left: 6px; right: 6px; bottom: 7px; font-size: 11px; color: #9dffb8; white-space: nowrap; overflow: hidden; text-align: center; }
 /* a finger has no keys: a key's letter would only sit on the skill's name */
 @media (pointer: coarse) { .sb .pf-skill kbd, .wh-ults .pf-skill kbd { display: none; } .sb .pf-skill .sn, .wh-ults .pf-skill .sn { bottom: auto; top: 50%; transform: translateY(-50%); } }
-/* the ultimates as keys of their own, and where the clone is: only an upright phone shows them (see below) */
-.wh-ults, .sb-place { display: none; }
+/* the ultimates as keys of their own, where the clone is, and gauges told in characters: only an upright phone shows them (see below) */
+.wh-ults, .sb-place, .sb-cells, .card-strip { display: none; }
 
 /* phones: every key along the bottom is one height, the bar's ultimates among them */
 @media (max-height: 520px) and (orientation: landscape) {
@@ -89,38 +101,44 @@
   .wh-party .sb { font-size: 12px; }
 
   /*
-   * One clone on an upright phone. Everything to read is one strip along the top: the minimap with the beacon under it,
-   * the status bar beside it (the floor and the menu on its first line). Everything to press is one row along the
-   * bottom: quick slots, the ultimates, attack / wait / bag. The log sits just above that row.
+   * One clone on an upright phone. Along the top, what is read: the minimap where a roguelike keeps the hero's face,
+   * the beacon under it; the status bar beside it; the menu a small key alone in the screen's corner. Along the
+   * bottom, what is pressed: quick slots, the ultimates, attack / wait / bag, and the log just above them.
    */
-  .hud-solo { --strip: 92px; --key: 54px; --log-bottom: 58px; }
-  .hud-solo aside.wh-tl { left: 6px; top: 6px; width: 70px; height: var(--strip); padding: 5px; }
-  .hud-solo .wh-mini canvas { width: 60px; height: 60px; border: 0; }
+  .hud-solo { --map: 66px; --strip: calc(var(--map) + 37px); --key: 54px; --log-bottom: 58px; }
+  .hud-solo aside.wh-tl { left: 6px; top: 6px; width: calc(var(--map) + 10px); height: var(--strip); padding: 5px; }
+  .hud-solo .wh-mini canvas { width: var(--map); height: var(--map); border: 0; }
   .hud-solo .wh-top { display: none; }
-  .hud-solo .wh-beacon { margin-top: 3px; height: 19px; padding: 0; font-size: 10px; line-height: 17px; border-image-width: 5px; }
-  .hud-solo .wh-party { left: 80px; right: 6px; top: 6px; bottom: auto; width: auto; transform: none; display: block; }
-  .hud-solo .wh-party .sb { width: 100%; height: var(--strip); grid-template-columns: minmax(0, 1fr); align-content: center; padding: 5px 10px 6px; }
+  .hud-solo .wh-beacon { margin-top: 3px; height: 24px; padding: 0; font-size: 11px; line-height: 22px; white-space: nowrap; overflow: hidden; border-image-width: 5px; }
+  .hud-solo .wh-party { left: calc(var(--map) + 20px); right: 44px; top: 6px; bottom: auto; width: auto; transform: none; display: block; }
+  .hud-solo .wh-party .sb { width: 100%; height: var(--strip); grid-template-columns: minmax(0, 1fr); align-content: center; padding: 6px 10px 7px; }
   .hud-solo .sb-skills { display: none; }
-  .hud-solo .sb-top { min-height: 26px; align-items: center; gap: 8px; margin-bottom: 3px; padding-right: 42px; overflow: hidden; }
+  .hud-solo .sb-top { min-height: 22px; align-items: center; gap: 8px; margin-bottom: 5px; overflow: hidden; }
   .hud-solo .sb-place { display: block; margin-left: auto; color: #6fbf88; }
   .hud-solo .sb-row { line-height: 20px; }
+  .hud-solo .sb-row + .sb-row { margin-top: 5px; }
   .hud-solo .sb-row.hp .sb-bar { height: 16px; }
   .hud-solo .sb-row.xp .sb-bar { height: 12px; }
-  /* the menu: a key in the bar's first line; the stairs' button hangs under the strip when there are stairs */
-  .hud-solo aside.wh-tr { left: auto; right: 12px; top: 11px; z-index: 7; }
-  .hud-solo .wh-menu { width: 36px; height: 26px; min-height: 0; padding: 0; }
-  .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"] { position: absolute; right: -6px; top: calc(var(--strip) + 1px); white-space: nowrap; }
-  .hud-solo .wh-btns [data-k="descend"] ~ [data-k="ascend"] { top: calc(var(--strip) + 39px); }
+  .hud-solo aside.wh-tr { left: auto; right: 6px; top: 6px; z-index: 7; }
+  .hud-solo .wh-menu { width: 34px; min-width: 0; height: 34px; min-height: 0; padding: 0; }
+  /* the stairs' button hangs under the strip when there are stairs */
+  .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"] { position: absolute; right: 0; top: calc(var(--strip) + 6px); white-space: nowrap; }
+  .hud-solo .wh-btns [data-k="descend"] ~ [data-k="ascend"] { top: calc(var(--strip) + 44px); }
   /* a foe's card (shown while it is looked at) hangs under the strip */
   .hud-solo .wh-target { left: 6px; right: auto; top: calc(var(--strip) + 12px); max-width: calc(100% - 12px); justify-content: flex-start; }
   /* the demo's step key stands clear of the card */
   .hud-solo .step-next { top: calc(var(--strip) + 46px); }
-  /* the bottom row, right to left: three buttons, the ultimates, then what is left for the quick slots */
-  .hud-solo .tp-btns { grid-template-columns: repeat(3, var(--key)); }
-  .hud-solo .wh-ults { display: flex; gap: 4px; position: absolute; z-index: 8; bottom: 6px; right: calc(var(--key) * 3 + 18px); }
-  .hud-solo .wh-ults .pf-skill { width: var(--key); height: 44px; }
+  /* four lines of the log */
+  .hud-solo .wh-bl .wl-line { display: block; }
+  .hud-solo .wh-bl .wl-line:nth-last-child(n + 5) { display: none; }
+  /* the bottom row, right to left: attack (the wide red key), wait, bag; the ultimates; then what is left for the quick slots */
+  .hud-solo .tp-btns { grid-template-columns: 62px 50px 50px; }
+  .hud-solo .tp-btns button { height: 46px; font-size: 12px; }
+  .hud-solo .wh-ults { display: flex; gap: 4px; position: absolute; z-index: 8; bottom: 6px; right: 180px; }
+  .hud-solo .wh-ults .pf-skill { width: var(--key); height: 46px; }
   .hud-solo .wh-ults .pf-skill .sn { left: 4px; right: 4px; }
-  .hud-solo .quick-slots { right: calc(var(--key) * 3 + 18px + var(--ults, 0) * (var(--key) + 4px)); }
+  .hud-solo .quick-slots { right: calc(184px + var(--ults, 0) * (var(--key) + 4px)); }
+  .hud-solo .quick-slots button { width: 46px; height: 46px; }
 }
 /* a narrow window with a mouse has no touch buttons: the ultimates take the corner */
 @media (orientation: portrait) and (max-width: 700px) and (pointer: fine) {
@@ -139,3 +157,116 @@
 /* under the minimap: floor and turn on one line */
 .wh-top .st-row { justify-content: flex-start; flex-wrap: nowrap; gap: 8px; white-space: nowrap; }
 .wh-cap-t { font-weight: normal; }
+
+/*
+ * FRAMELESS (upright phone, one clone): no drawn frames at all. What is read floats over the game with a dark edge to
+ * its letters, on a shade that deepens toward the screen's top and bottom; what is pressed is a flat dark plate.
+ */
+@media (orientation: portrait) and (max-width: 700px) {
+  .hud-solo::before, .hud-solo::after { content: ''; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; }
+  .hud-solo::before { top: 0; height: 150px; background: linear-gradient(180deg, #05060cf0 0, #05060cb0 55%, transparent); }
+  .hud-solo::after { bottom: 0; height: 210px; background: linear-gradient(0deg, #05060cf5 0, #05060cc0 60%, transparent); }
+  .screen.world.hud-solo aside, .hud-solo .wh-party .sb, .hud-solo .wh-target { border-image-source: none; border-color: transparent; background: none; box-shadow: none; }
+  .hud-solo, .hud-solo .wl-line { text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000; }
+  /* the top: map, then the bar's three lines, the menu a bare sign in the corner */
+  .hud-solo aside.wh-tl { padding: 0; width: var(--map); }
+  .hud-solo .wh-mini canvas { background: none; mix-blend-mode: lighten; }
+  .hud-solo .wh-mini { background: #00000080; }
+  .hud-solo .wh-party { left: calc(var(--map) + 16px); right: 40px; }
+  .hud-solo .wh-party .sb { padding: 0; align-content: start; height: auto; }
+  .hud-solo .sb-top { min-height: 20px; margin-bottom: 4px; }
+  .hud-solo .wh-menu, .hud-solo .wh-menu:hover { border-image-source: none; background: none !important; color: #9dffb8 !important; font-size: 18px !important; width: 30px; height: 30px; }
+  /* plates: flat, dark, no edge; attack the one warm plate */
+  .hud-solo .wh-beacon, .hud-solo .tp-btns button, .hud-solo .wh-ults .pf-skill, .hud-solo .quick-slots button, .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"] { border: 0; border-image-source: none; background: #0c1a14e0; text-shadow: none; }
+  .hud-solo .tp-btns [data-a="attack"] { background: #7a231ce8; color: #ffe6d8; }
+  .hud-solo .quick-slots button { background: #000000a8; box-shadow: inset 0 0 0 2px #0c1a14; }
+  .hud-solo .wh-beacon { margin-top: 5px; }
+  /* the log: lines over the shade, no box; its caption gone */
+  .hud-solo .wh-bl { padding: 0 2px; left: 8px; right: 8px; }
+  .hud-solo .wl-line b { color: #4f8f66; }
+  /* heavy lettering at the face's own size (11px: every dot of it lands on the screen's), and the gauges told in characters */
+  .hud-solo, .hud-solo button, .hud-solo .sb, .hud-solo .wl-line, .hud-solo .pf-skill .sn { font-family: 'GalmuriBold', 'GalmuriMono', monospace; font-size: 11px; }
+  .hud-solo .sb-bar { display: none; }
+  .hud-solo .sb-cells { display: block; overflow: hidden; white-space: nowrap; color: #34a85c; }
+  .sb-cells i, .sb-cells u, .sb-cells s { font-style: normal; text-decoration: none; }
+  .sb-cells s { color: #17402a; }
+  .sb-row.hp .sb-cells i { color: #ffd24a; }
+  .sb-row.hp .sb-cells u { color: #8fdcff; }
+  .sb-row.xp .sb-cells i { color: #6fe0f0; }
+  .sb.low .sb-row.hp .sb-cells i { color: #ff5a3a; animation: wh-blink 0.8s steps(2) infinite; }
+  .hud-solo .sb-row { grid-template-columns: 18px auto minmax(0, 1fr); line-height: 16px; }
+  .hud-solo .sb-row + .sb-row { margin-top: 2px; }
+  .hud-solo .sb-top { min-height: 16px; margin-bottom: 3px; }
+  .hud-solo .wh-bl .wl-line { font-size: 11px; line-height: 15px; }
+
+  /*
+   * No minimap for now, and one colour of lettering: the Pip-Boy's green, bright for what matters and dim for the rest.
+   * Colour is kept for the gauges alone (health, shield, experience; a foe's health on its card). What is chosen or
+   * pressed first is told the Pip-Boy's way, inverted: a green plate with dark letters (attack, a level-up waiting).
+   */
+  .hud-solo { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; color: var(--pip); }
+  .hud-solo .wh-mini { display: none; }
+  .hud-solo .wh-party { left: 8px; right: 44px; }
+  .hud-solo aside.wh-tl { left: 8px; top: 64px; width: auto; height: auto; }
+  .hud-solo .wh-beacon { margin: 0; width: 62px; color: var(--pip); }
+  .hud-solo .sb-top b, .hud-solo .sb-lv, .hud-solo .sb-place, .hud-solo .sb-num, .hud-solo .sb-num small, .hud-solo .sb-num em, .hud-solo .sb.low .sb-row.hp .sb-num { color: var(--pip); }
+  .hud-solo .sb-row label, .hud-solo .sb-cells, .hud-solo .sb-row.xp .sb-num { color: var(--pip-dim); }
+  .hud-solo .sb-cells s { color: var(--pip-dark); }
+  .hud-solo .wh-menu, .hud-solo .wh-menu:hover { color: var(--pip) !important; }
+  .hud-solo .tp-btns button, .hud-solo .wh-ults .pf-skill, .hud-solo .wh-ults .pf-skill .sn, .hud-solo .quick-slots button, .hud-solo .quick-slots button small, .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"] { color: var(--pip); }
+  .hud-solo .wh-ults .pf-skill.queued .sn { color: #021006; }
+  .hud-solo .wh-target, .hud-solo .wh-target b { color: var(--pip); }
+
+  /*
+   * Every key is told by its corners alone: a bracket at each corner of a faint plate, nothing along its sides. Attack
+   * is a key like the others; a key that is on (an ultimate queued) is the one green plate. The log keeps its colours.
+   */
+  .hud-solo .tp-btns button, .hud-solo .tp-btns [data-a="attack"], .hud-solo .wh-ults .pf-skill, .hud-solo .quick-slots button, .hud-solo .wh-beacon, .hud-solo .wh-menu, .hud-solo .wh-menu:hover,
+  .hud-solo .wh-btns [data-k="descend"], .hud-solo .wh-btns [data-k="ascend"], .hud-solo .sb-row .pf-trait {
+    border: 1px solid transparent; border-image: url('./img/corners.png') 6 / 12px stretch; image-rendering: pixelated; background: #06140c99 !important; color: var(--pip) !important; box-shadow: none; text-shadow: none;
+  }
+  .hud-solo .sb-row .pf-trait { border-image-width: 6px; padding: 0 8px; line-height: 16px; }
+  .hud-solo .wh-ults .pf-skill.queued { background: var(--pip) !important; color: #021006 !important; }
+  .hud-solo .wh-ults .pf-skill.queued .sn { color: #021006; }
+  .hud-solo .wh-beacon:disabled { opacity: 0.5; }
+  /* the menu: a key a thumb can find, alone in the corner; the beacon under the place it leaves from */
+  .hud-solo aside.wh-tr { right: 6px; top: 6px; }
+  .hud-solo .wh-menu, .hud-solo .wh-menu:hover { width: 42px; height: 42px; font-size: 22px !important; line-height: 38px; }
+  .hud-solo .wh-party { right: 56px; }
+  .hud-solo aside.wh-tl { left: auto; right: 56px; top: 28px; }
+  .hud-solo .wh-beacon { width: 64px; height: 28px; line-height: 26px; }
+
+  /* the beacon: a small key in the bar, under the place it leaves from, the size of the level-up key; the log a little higher */
+  .hud-solo aside.wh-tl { right: 56px; top: 27px; }
+  .hud-solo .wh-beacon { width: auto; height: 18px; padding: 0 8px; line-height: 16px; border-image-width: 6px; }
+  .hud-solo { --log-bottom: 70px; --key: 52px; }
+  /* four keys of one size: the ultimate, attack, wait, bag */
+  .hud-solo .tp-btns { grid-template-columns: repeat(3, var(--key)); }
+  .hud-solo .wh-ults { right: calc(var(--key) * 3 + 18px); }
+  .hud-solo .quick-slots { right: calc(var(--key) * 3 + 22px + var(--ults, 0) * (var(--key) + 4px)); }
+
+  /*
+   * The bottom row, left to right: the healing draught; the build (the ultimate as a wide key, and under it one row of
+   * every card, each lit when it fires); wait and bag. A foe is attacked by tapping it: no attack key.
+   */
+  .hud-solo .wh-ults, .hud-solo .tp-btns [data-a="attack"] { display: none; }
+  .hud-solo .tp-btns { grid-template-columns: repeat(2, var(--key)); }
+  .hud-solo .quick-slots { right: auto; overflow: visible; }
+  .hud-solo { --row: 52px; --log-bottom: 76px; }
+  .hud-solo .tp-btns button, .hud-solo .quick-slots button { height: var(--row); }
+  .hud-solo .quick-slots button { width: 46px; }
+  .hud-solo .card-strip { display: grid; grid-template-rows: 28px 22px; gap: 2px; position: absolute; z-index: 8; left: 56px; right: calc(var(--key) * 2 + 18px); bottom: 6px; height: var(--row); }
+  .hud-solo .cs-ults { display: flex; gap: 4px; min-width: 0; }
+  .hud-solo .cs-ult { flex: 1; min-width: 0; position: relative; padding: 0 8px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; overflow: hidden; cursor: pointer;
+    border: 1px solid transparent; border-image: url('./img/corners.png') 6 / 12px stretch; image-rendering: pixelated; background: #06140c99; color: var(--pip); text-shadow: none; }
+  .hud-solo .cs-ult em { font-style: normal; }
+  .hud-solo .cs-ult.wait { color: var(--pip-dim); }
+  .hud-solo .cs-ult.queued, .hud-solo .cs-ult.lit, .hud-solo .cs-card.lit { background: var(--pip); color: #021006; transition: none; }
+  .hud-solo .cs-cards { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .hud-solo .cs-cards::-webkit-scrollbar { display: none; }
+  .hud-solo .cs-card { flex: none; width: 26px; padding: 0; border: 0; background: #06140c99; color: var(--pip-dim); text-shadow: none; line-height: 22px; text-align: center; white-space: nowrap; overflow: hidden; cursor: pointer; transition: background 0.4s, color 0.4s; }
+  .hud-solo .cs-cards.few .cs-card { flex: 1; width: auto; min-width: 0; }
+  /* a tapped card's line under the top strip wraps: a name, then what it does */
+  .hud-solo .wh-target { flex-wrap: wrap; white-space: normal; gap: 2px 8px; right: 6px; background: #05060cd0; padding: 5px 8px; line-height: 15px; }
+  .hud-solo .wh-target .cs-info { color: var(--pip-dim); }
+}

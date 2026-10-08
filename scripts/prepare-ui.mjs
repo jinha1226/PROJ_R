@@ -51,4 +51,18 @@ writeFileSync(new URL('button.png', OUT), frame({ size: 16, rings: [ink, [hex('#
 writeFileSync(new URL('button-on.png', OUT), frame({ size: 16, rings: [ink, [hex('#0f4a22'), hex('#9dffb8')], hex('#2a9a50')], fill: hex('#5dff8a'), cut: 1 }));
 // a bar's trough (health, experience): outline, an edge in shade on top (it is sunk), a dark bed
 writeFileSync(new URL('trough.png', OUT), frame({ size: 12, rings: [ink, [hex('#020c06'), hex('#1f7a3e')]], fill: hex('#06180c') }));
+// the attack key: the same raised key in the attack's red, its face filled (the one key a thumb looks for)
+writeFileSync(new URL('button-atk.png', OUT), frame({ size: 16, rings: [ink, [hex('#ff9a7a'), hex('#5a1410')], hex('#8a2a20')], fill: hex('#5a1812'), cut: 1 }));
+// a slot (the quick slots): sunk, an edge in shade on top, a dark bed; a thing lies in it, a key is pressed
+writeFileSync(new URL('slot.png', OUT), frame({ size: 16, rings: [ink, [hex('#020c06'), hex('#1f7a3e')], hex('#03100a')], fill: hex('#010804', 235) }));
+
+// corners alone: a key with no edge, only a bracket at each corner (the Pip-Boy's green), nothing between them
+{
+  const size = 16, arm = 5, pip = hex('#1bff80'), px = [];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y);
+    px.push((cy === 0 && cx < arm) || (cx === 0 && cy < arm) ? pip : [0, 0, 0, 0]);
+  }
+  writeFileSync(new URL('corners.png', OUT), png(size, size, px));
+}
 console.log('ui frames written to', OUT.pathname);

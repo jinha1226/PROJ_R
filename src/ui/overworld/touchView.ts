@@ -1,5 +1,7 @@
 /** phones and tablets: shadows off, a lower resolution, bigger buttons */
 export const coarsePointer = (): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+/** an upright phone: its bottom row has no attack key (a foe is tapped), so no foe wears the key's mark */
+export const phoneUpright = (): boolean => typeof matchMedia === 'function' && matchMedia('(orientation: portrait) and (max-width: 700px)').matches;
 
 /** A good starting view height (in cells) for the screen's shape: an upright phone sees more rows, a short landscape phone fewer. */
 export function startZoom(base: number): number {

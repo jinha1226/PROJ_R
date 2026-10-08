@@ -33,7 +33,8 @@ import { pickTrait, rerollOffer } from '../../sim/party/partyLevel';
 import type { TraitId } from '../../sim/party/traitDefs';
 import { WorldHud, statusLine } from '../overworld/worldHud';
 import { WorldLog } from '../overworld/worldLog';
-import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
+import { Pinch, coarsePointer, phoneUpright, startZoom } from '../overworld/touchView';
+import { CardStrip } from '../overworld/cardStrip';
 import { DelveMinimap } from './delveMinimap';
 import { DelveProps } from '../../view/delve/delveProps';
 import { HOLD_MS, TouchPad } from '../overworld/touchPad';
@@ -81,7 +82,10 @@ export class DelveScreen implements Screen {
   private press: { x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
   private held = false;
   private readonly miningCue = new MiningCue();
-  private readonly quick = new QuickSlots(() => this.p, () => this.sel, (ev) => this.live(ev));
+  private readonly quick = new QuickSlots(() => this.p, () => this.sel, (ev) => this.live(ev), ['potion']);
+  /** the build along the bottom (an upright phone): the ultimate and the cards, each lit as it fires; a tapped card tells what it is for a while */
+  private readonly cards = new CardStrip(() => this.p, () => this.sel, { ult: (slot) => this.skill(this.sel, slot), info: (html) => { this.cardInfo = { html, until: performance.now() + 6000 }; } });
+  private cardInfo: { html: string; until: number } | null = null;
   private readonly explorer = new AutoExplore();
   private readonly prompts = new PlacePrompts();
   /** whether the last tick moved anyone (followers still catching up keep time going) */
@@ -116,6 +120,7 @@ export class DelveScreen implements Screen {
     this.pip = new PipWindow(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.prompts.el);
     this.el.appendChild(this.quick.el);
+    this.el.appendChild(this.cards.el);
     this.el.appendChild(this.pip.el);
     this.picker = new TraitPicker(() => this.p, (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), () => { this.paused = this.pausedBeforePip; }, (id) => this.live(rerollOffer(this.p, id)));
     this.el.appendChild(this.picker.el);
@@ -180,6 +185,7 @@ export class DelveScreen implements Screen {
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.miningCue.update(this.p, this.rt);
       this.quick.update();
+      this.cards.update();
       { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.hud.toast(t), exploreWants(this.p)); }
       this.placePrompts();
       this.marks();
@@ -271,7 +277,7 @@ export class DelveScreen implements Screen {
     for (const u of this.p.units) if (u.summoner) this.dress(u.id);
     this.rt?.dispose();
     this.stage.replaceChildren();
-    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), (e) => this.log.tell(this.p, e)); this.rt.partyShow();
+    this.rt = new GridRuntime(this.stage, GridSim.fromState(this.p.s), this.lib, this.kit, coarsePointer(), (e) => { this.log.tell(this.p, e); this.cards.flash(e); }); this.rt.partyShow();
     this.rt.setZoom(this.zoom);
     this.rt.pixelated = loadDot();
     // a light touch of glow: torches and lamps bleed a little, nothing blows out
@@ -404,7 +410,7 @@ export class DelveScreen implements Screen {
 
   /** On a clone: choose it. On its turn a click is its action (a step toward, or a blow); otherwise an order. */
   private click(e: PointerEvent): void {
-    this.inspect = null;
+    this.inspect = null; this.cardInfo = null;
     if (this.opts.stepped) { this.paused = false; return; }
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
@@ -437,7 +443,7 @@ export class DelveScreen implements Screen {
     const me = unitOf(this.p, this.sel), e = me && entOf(this.p, me.id), o = me?.order, m = this.p.s.map, h = this.hover;
     this.rt.showAim(null, true);
     // the foe the attack key would strike wears a mark (on a touch screen, where the key is; with a mouse only a foe it was told to go for)
-    this.rt.markTarget(coarsePointer() || o?.kind === 'attack' ? this.attackTarget()?.id : undefined);
+    this.rt.markTarget((coarsePointer() && !phoneUpright()) || o?.kind === 'attack' ? this.attackTarget()?.id : undefined);
     const hoverWalk = h && e?.alive && this.p.s.seen[idx(m, h)] && walkable(tileAt(m, h)) && !same(h, e.pos) && !this.unitAt(h) ? findPath(m, e.pos, h) : null;
     this.rt.showPath(hoverWalk ?? (o?.kind === 'move' && e?.alive ? findPath(m, e.pos, o.cell) : null));
   }
@@ -470,7 +476,8 @@ export class DelveScreen implements Screen {
     // a foe's card shows only when it is looked at: a long press on a touch screen, the mouse over it otherwise
     if (this.inspect && (performance.now() > this.inspect.until || !entOf(p, this.inspect.id)?.alive)) this.inspect = null;
     const looked = this.inspect ? unitOf(p, this.inspect.id) : this.hover ? this.unitAt(this.hover) : undefined;
-    const target = targetCardHtml(p, this.sel, looked?.side === 'foe' ? looked : undefined);
+    if (this.cardInfo && performance.now() > this.cardInfo.until) this.cardInfo = null;
+    const target = this.cardInfo?.html ?? targetCardHtml(p, this.sel, looked?.side === 'foe' ? looked : undefined);
     const beacon = p.beacon ? { label: portalOpen(p) ? `포탈 ${Math.max(0, Math.ceil(p.beacon.closeAt - p.time))}` : `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
     this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon, place: `지하 ${p.floor}층` });
   }

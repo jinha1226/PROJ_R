@@ -29,7 +29,8 @@ export class QuickSlots {
   readonly el = document.createElement('div');
   private html = '';
 
-  constructor(private readonly p: () => RoamParty, private readonly sel: () => string, private readonly live: (ev: GEvent[]) => void) {
+  /** `only`: the kinds this row shows (the dungeon's row keeps to the healing draught; the rest stay in the bag) */
+  constructor(private readonly p: () => RoamParty, private readonly sel: () => string, private readonly live: (ev: GEvent[]) => void, private readonly only?: ConsumableId[]) {
     this.el.className = 'quick-slots';
     this.el.addEventListener('click', (e) => {
       const id = (e.target as HTMLElement).closest<HTMLElement>('[data-q]')?.dataset.q;
@@ -39,7 +40,7 @@ export class QuickSlots {
 
   update(): void {
     const kinds = new Map<ConsumableId, { id: string; n: number }>();
-    for (const it of this.p().pack) if ('consumable' in it) { const k = kinds.get(it.consumable); kinds.set(it.consumable, { id: k?.id ?? it.id, n: (k?.n ?? 0) + (it.charges ?? 1) }); }
+    for (const it of this.p().pack) if ('consumable' in it && (!this.only || this.only.includes(it.consumable))) { const k = kinds.get(it.consumable); kinds.set(it.consumable, { id: k?.id ?? it.id, n: (k?.n ?? 0) + (it.charges ?? 1) }); }
     const html = [...kinds].map(([c, k]) => `<button type="button" data-q="${k.id}" title="${CONSUMABLES[c]} · ${CONSUMABLE_TEXT[c]}" style="color:${ICON[c][1]}">${icon(ICON[c][0])}<small>${k.n}</small></button>`).join('');
     if (html === this.html) return;
     this.html = html;

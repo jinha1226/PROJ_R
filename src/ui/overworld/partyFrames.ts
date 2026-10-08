@@ -44,6 +44,14 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
   }).join('');
 }
 
+/** how many characters a gauge told in characters is wide */
+export const GAUGE = 18;
+/** A gauge told in characters, as Jupiter Hell tells one: `[######======]` — filled, a second kind laid after it (a shield), what is missing dim. */
+function gauge(filled: number, extra = 0): string {
+  const f = Math.max(0, Math.min(GAUGE, filled)), x = Math.max(0, Math.min(GAUGE - f, extra));
+  return `<span class="sb-cells">[<i>${'#'.repeat(f)}</i><u>${'#'.repeat(x)}</u><s>${'#'.repeat(GAUGE - f - x)}</s>]</span>`;
+}
+
 /**
  * One clone alone (the dungeon): a single bar along the bottom — who and what level, the states it is in, then two
  * gauges: health (its shield laid after it) and experience (a level-up waiting for its card shows the button beside
@@ -54,11 +62,13 @@ export function soloBarHtml(p: Party, id: string, place = ''): string {
   if (!u || !e) return '';
   const lv = levelOf(u), xp = u.xp ?? 0, from = LEVEL_XP[lv - 1]!, to = LEVEL_XP[lv] ?? from, k = lv >= MAX_LEVEL ? 1 : Math.max(0, Math.min(1, (xp - from) / Math.max(1, to - from)));
   const hp = Math.max(0, Math.min(1, e.hp / e.maxHp)), shield = Math.min(1 - hp, u.shield / e.maxHp);
+  // the same two gauges told in characters (the stylesheet shows one telling or the other): a living clone always keeps one mark
+  const cells = e.hp <= 0 ? 0 : Math.max(1, Math.round(hp * GAUGE)), hpCells = gauge(cells, Math.round(shield * GAUGE)), xpCells = gauge(Math.round(k * GAUGE));
   return `<div class="sb${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
     <div class="sb-main">
       <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${unitChips(u, p.time)}${place ? `<span class="sb-place">${place}</span>` : ''}</div>
-      <div class="sb-row hp"><label>HP</label><div class="sb-bar"><i style="width:${hp * 100}%"></i><u style="left:${hp * 100}%;width:${shield * 100}%"></u></div><span class="sb-num">${e.hp}<small>/${e.maxHp}</small>${u.shield > 0 ? `<em>+${u.shield}</em>` : ''}</span></div>
-      <div class="sb-row xp"><label>XP</label><div class="sb-bar"><i style="width:${k * 100}%"></i></div>${u.picks ? '<button type="button" class="pf-trait" data-traits>특성</button>' : `<span class="sb-num">${lv >= MAX_LEVEL ? 'MAX' : `${Math.floor(k * 100)}%`}</span>`}</div>
+      <div class="sb-row hp"><label>HP</label><div class="sb-bar"><i style="width:${hp * 100}%"></i><u style="left:${hp * 100}%;width:${shield * 100}%"></u></div>${hpCells}<span class="sb-num">${e.hp}<small>/${e.maxHp}</small>${u.shield > 0 ? `<em>+${u.shield}</em>` : ''}</span></div>
+      <div class="sb-row xp"><label>XP</label><div class="sb-bar"><i style="width:${k * 100}%"></i></div>${xpCells}${u.picks ? '<button type="button" class="pf-trait" data-traits>특성</button>' : `<span class="sb-num">${lv >= MAX_LEVEL ? 'MAX' : `${Math.floor(k * 100)}%`}</span>`}</div>
     </div>
     <div class="sb-skills">${skillTiles(u, p.time, e.alive, false)}</div></div>`;
 }
@@ -66,7 +76,10 @@ export function soloBarHtml(p: Party, id: string, place = ''): string {
 /** The lone clone's ultimates as keys of their own (an upright phone puts them in the action row, beside attack). */
 export function soloSkillsHtml(p: Party, id: string): string {
   const u = unitOf(p, id), e = entOf(p, id);
-  return u && e ? skillTiles(u, p.time, e.alive, false) : '';
+  if (!u || !e) return '';
+  const keys = skillTiles(u, p.time, e.alive, false);
+  // one ultimate: its key is named for what it is, a word the size of the keys beside it (the skill's own name stays as the key's title)
+  return ultSlots(u).length === 1 ? keys.replace(/<span class="sn">[^<]*<\/span>/, '<span class="sn">궁극기</span>') : keys;
 }
 
 /** The chosen clone in full at the bottom right: emblem, weapon and engraving, big skill buttons. */
