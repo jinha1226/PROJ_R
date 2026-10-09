@@ -94,3 +94,18 @@ it('the pod stands in the way but does not block sight (no dark wedge behind it 
     expect(t).toBe('chasm');
   }
 });
+
+it('the pod\'s ground ends two rows south of it: nothing past the edge can be walked on, the clones start north of it, and the horde\'s way to the dome never goes round the south', async () => {
+  const { POD_SOUTH } = await import('../../src/sim/overworld/worldGen');
+  const { siegeField } = await import('../../src/sim/base/siegePath');
+  const p = newSurface(3), m = p.s.map, edge = p.base.y + POD_SOUTH;
+  expect(m.start.y).toBe(edge); expect(m.tiles[idx(m, m.start)]).toBe('floor');
+  for (let y = edge + 1; y < m.h; y++) for (let x = 0; x < m.w; x++) expect(m.tiles[y * m.w + x]).not.toBe('floor');
+  const field = siegeField(p);
+  for (let y = edge + 1; y < m.h; y++) for (let x = 0; x < m.w; x++) expect(field[y * m.w + x]).toBe(-1);
+  // souls that would have lain south of the edge lie north of it
+  for (const s of p.souls) expect(s.pos.y).toBeLessThanOrEqual(edge);
+  // the land that has no pod is whole
+  const w = generateWorld(3);
+  expect(w.map.tiles[idx(w.map, { x: w.base.x + 6, y: w.base.y + 6 })]).not.toBe('chasm');
+});

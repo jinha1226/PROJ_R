@@ -52,6 +52,8 @@ export class GridRuntime {
   focusId = 'hero';
   /** a camera free of the clones (the base's): it aims at this cell instead of following the focus */
   freeAim: { x: number; y: number } | null = null;
+  /** a screen that sets the view itself (the base, seen cut open): the camera's tilt (radians) and the height it looks at — null: the usual tilt, at the ground */
+  tilt: { elevation: number; y: number } | null = null;
   /** a fight watched from above with nobody under the hand (the besieged base): no catch of breath on a blow, no red edge when a clone is struck, no jolt */
   calm = false;
   /** the world map's glow pass */
@@ -393,11 +395,14 @@ export class GridRuntime {
     const half = (this.height * this.zoomMul * (1 - 0.07 * Math.sin((this.punch / 0.16) * Math.PI))) / 2;
     Object.assign(cam, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
     cam.updateProjectionMatrix();
-    const c = this.center.clone().add(this.fx.jolt());
-    if (this.pixelated) this.pixel.snap(c, half, ELEVATION);
-    cam.position.set(c.x, Math.sin(ELEVATION) * CAM_DIST, c.z + Math.cos(ELEVATION) * CAM_DIST);
+    const c = this.center.clone().add(this.fx.jolt()), el = this.tilt?.elevation ?? ELEVATION;
+    if (this.pixelated) this.pixel.snap(c, half, el);
+    c.y += this.tilt?.y ?? 0;
+    cam.position.set(c.x, c.y + Math.sin(el) * CAM_DIST, c.z + Math.cos(el) * CAM_DIST);
     cam.lookAt(c);
   }
+  /** Nothing south of this line (world z) is drawn: the land seen cut open there (null: all of it is drawn). */
+  cutSouth(z: number | null): void { this.h.renderer.clippingPlanes = z === null ? [] : [new THREE.Plane(new THREE.Vector3(0, 0, -1), z)]; }
   /** Extra things a screen draws in the scene (a dungeon floor's souls, shrine, floor items). */
   addOverlay(o: THREE.Object3D): void { this.h.scene.add(o); }
   /** The pod falls from the sky (the pod's ground only); false if there is no pod. */

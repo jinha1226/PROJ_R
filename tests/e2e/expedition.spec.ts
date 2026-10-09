@@ -11,8 +11,8 @@ test('the title drops a pod: an empty clone steps out beside it, the base unfold
   await expect(page.locator('.wh-party .pf')).toContainText('MODEL 0');
   await expect(page.locator('.wh-top')).toContainText('턴');
   await expect(page.locator('.wh-log')).toContainText('포드가 착륙했다');
-  // base mode: no clone under the hand, the base's bar along the bottom
-  await expect(page.locator('.ult-bar')).toBeVisible({ timeout: 60_000 });
+  // base mode: no clone under the hand, the clones' row under the dome's gauge
+  await expect(page.locator('.clone-row')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.world.base-mode')).toHaveCount(1);
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');
@@ -28,7 +28,7 @@ test('the besieged base: the waves come and are counted, and a broken dome throw
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('./?seed=3&lvl&debug&wave=3');
   await page.click('[data-testid="to-grid"]', { timeout: 60_000 });
-  await expect(page.locator('.ult-bar')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('.clone-row')).toBeVisible({ timeout: 60_000 });
   // the mode changes on a frame, and a software renderer's frame can take seconds
   await expect(page.locator('.world.base-mode')).toHaveCount(1, { timeout: 30_000 });
   await expect(page.locator('.siege-bar')).toContainText('돔', { timeout: 30_000 });

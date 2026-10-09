@@ -14,6 +14,8 @@ export class DomeView {
   private readonly whole = new THREE.Color('#0a58d8');
   private readonly spent = new THREE.Color('#d01020');
   private r = 0;
+  /** how far the view has swung down to the base's side (0 from above → 1 side-on) */
+  side = 0;
   private flare = 0;
   private lastHp = -1;
   /** seconds since the dome broke (the wave running outward), or -1 */
@@ -53,6 +55,7 @@ export class DomeView {
     const c = this.spent.clone().lerp(this.whole, Math.max(0, Math.min(1, hp / max)));
     (this.ring.material as THREE.MeshBasicMaterial).color.copy(c);
     (this.shell.material as THREE.MeshBasicMaterial).color.copy(c);
-    (this.shell.material as THREE.MeshBasicMaterial).opacity = 0.03 + this.flare * 0.1;
+    // (seen from the side the shell is the dome's whole outline: it is drawn stronger there)
+    (this.shell.material as THREE.MeshBasicMaterial).opacity = 0.03 + this.side * 0.14 + this.flare * 0.1;
   }
 }

@@ -60,6 +60,9 @@ export function noise(seed: number): (x: number, y: number) => number {
 
 export const near = (a: Cell, b: Cell): number => Math.hypot(a.x - b.x, a.y - b.y);
 
+/** the pod's ground: how many rows south of the pod's own the land goes on before its edge */
+export const POD_SOUTH = 2;
+
 /** The land round the crashed ship: woods, rocky hills, a river with fords, ruins, and goblin camps that grow stronger farther out. */
 export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World {
   const N = WORLD_SIZE, rng = createRng((seed ^ 0x77a1d) >>> 0);
@@ -91,7 +94,7 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
   // the pod drills down where it landed (it is the shaft); its lab unfolds beside it, the clone printer first
   const drill = opts.pod ? { ...base } : undefined;
   const cloner = opts.pod ? { x: base.x - 3, y: base.y } : undefined;
-  const map: GridMap = { w: N, h: N, tiles: ground.map((g) => TILE[g]), rooms: [], start: { x: base.x, y: base.y + 3 }, exits: [], chests: [], spawns: [], barrels: [] };
+  const map: GridMap = { w: N, h: N, tiles: ground.map((g) => TILE[g]), rooms: [], start: { x: base.x, y: base.y + (opts.pod ? POD_SOUTH : 3) }, exits: [], chests: [], spawns: [], barrels: [] };
   // the pod is a small capsule: in the way, but nothing to hide behind (the crashed ship stays a wall)
   if (opts.pod) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) map.tiles[idx(map, { x: base.x + dx!, y: base.y + dy! })] = 'chasm';
   connect(map, ground, camps.map((c) => c.pos));
@@ -100,9 +103,17 @@ export function generateWorld(seed: number, opts: { pod?: boolean } = {}): World
     PACKS[camp.tier].forEach((kind, i) => map.spawns.push({ kind, pos: cells[i % cells.length]!, group: camp.group, elite: camp.tier === 3 && i === 5 }));
   }
   const souls = placeSouls(rng, map, base, ruins, camps);
+  // (the pod's ground ends just south of it: a soul that fell there lies as far to the north instead)
+  if (opts.pod) for (const soul of souls) {
+    if (soul.pos.y <= base.y + POD_SOUTH) continue;
+    const want = { x: soul.pos.x, y: Math.max(2, 2 * base.y - soul.pos.y) };
+    soul.pos = ring(want, 3).concat([want]).filter((c) => c.x > 0 && c.y > 0 && c.x < N - 1 && c.y <= base.y && map.tiles[idx(map, c)] === 'floor' && !souls.some((o) => o !== soul && o.pos.x === c.x && o.pos.y === c.y)).sort((p, q) => near(p, want) - near(q, want))[0] ?? want;
+  }
   // a soul walled in by rubble still has a way to it
   connect(map, ground, souls.map((x) => x.pos));
   const strays = opts.pod ? [] : placeStrays(rng, map, base, souls);
+  // the pod came down on a ledge: the ground ends just south of it (the base is seen cut open there), and nothing walks past the edge
+  if (opts.pod) for (let y = base.y + POD_SOUTH + 1; y < N; y++) for (let x = 0; x < N; x++) map.tiles[y * N + x] = 'chasm';
   return { map, ground, camps, base, souls, lights, strays, drill, cloner, pod: opts.pod };
 }
 

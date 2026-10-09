@@ -13,6 +13,7 @@ import { printClone } from '../../sim/base/cloner';
 import { implantCarried } from '../../sim/roam/roam';
 
 import { startFloors } from '../../sim/base/drill';
+import { POD_SOUTH } from '../../sim/overworld/worldGen';
 import { loadDot, saveDot } from '../../app/gridPreferences';
 import * as THREE from 'three';
 import type { Screen } from '../../app/router';
@@ -142,17 +143,11 @@ export class WorldScreen implements Screen {
     this.siegeBar = new SiegeBar(() => this.p);
     this.el.appendChild(this.siegeBar.el);
     this.el.appendChild(this.prompts.el);
-    this.panels = new BasePanels(() => this.p, {
-      send: (id, floor) => this.sendDown(id, floor), print: () => this.live(printClone(this.p)),
-      implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench(), live: (ev) => this.live(ev),
-    }, () => this.opts.keptFloor);
+    this.panels = new BasePanels(() => this.p, { print: () => this.live(printClone(this.p)), implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench() });
     this.el.appendChild(this.panels.el);
-    this.bar = new AbilityBar(() => this.p, {
-      speed: () => this.speed, setSpeed: (v) => { this.speed = v; this.pace(); },
-      paused: () => this.paused, pause: () => { this.paused = !this.paused; }, say: (t) => this.message(t), go: () => this.sheet.toggle(), under: () => this.sheet.open,
-    });
+    this.bar = new AbilityBar(() => this.p, { say: (t) => this.message(t) });
     this.sheet = new FloorSheet(() => this.p, { send: (id, floor) => this.sendDown(id, floor), live: (ev) => this.live(ev), able: () => !!this.opts.onDrill }, () => this.opts.keptFloor);
-    this.el.append(this.sheet.el, this.bar.bar, this.bar.row);
+    this.el.append(this.sheet.el, this.bar.row);
     this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
     this.el.appendChild(this.quick.el);
@@ -161,6 +156,7 @@ export class WorldScreen implements Screen {
     this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
     this.camera = new BaseCamera(this.stage, () => this.zoom, () => this.p.s.map);
+    this.sheet.attach(this.stage);
     // a pointer-up that ends a pinch or a drag is not a click
     this.stage.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch' || this.pinch.tapped) this.click(e); });
     this.stage.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') this.hover = this.rt?.cellAt(e.clientX, e.clientY) ?? null; });
@@ -183,8 +179,8 @@ export class WorldScreen implements Screen {
       this.bar.on = base; this.bar.update();
       // the camera roams free over the base (a mouse drag or a finger moves it)
       this.camera.on = base; this.camera.mouse = base; this.camera.update(dt);
-      // the ground is cut under the base: the floors' sheet holds the view where the cut is
-      this.sheet.frame(dt, base, this.rt, this.camera, this.stage.clientHeight, this.zoom);
+      // the base is seen cut open: the floors' sheet holds the view over it, or swings it down to face the cut
+      this.build.view.dome.side = this.sheet.frame(dt, base, this.rt, this.camera, this.stage.clientHeight, this.zoom);
       if (this.rt) { this.rt.freeAim = base ? this.camera.aim : null; this.rt.calm = base; }
       this.el.classList.toggle('base-mode', base);
       this.handOver();
@@ -252,7 +248,7 @@ export class WorldScreen implements Screen {
     // the besieged base is seen from farther off: the horde's whole way down is in view
     if (this.p.pod) this.zoom = Math.min(26, startZoom(14) * 1.25);
     this.rt.setZoom(this.zoom);
-    this.rt.addOverlay(this.build.view.root);
+    this.rt.addOverlay(this.build.view.root); this.rt.addOverlay(this.sheet.view.root);
     this.swarm = new SwarmView(); this.rt.addOverlay(this.swarm.root);
     this.rt.pixelated = loadDot();
     this.pace();
@@ -383,7 +379,9 @@ export class WorldScreen implements Screen {
       // base mode: an ultimate being aimed goes where the tap says; else a module opens its panel, a clone its record
       if (this.bar.tap(c)) return;
       const hit = panelAt(this.p, c), who = this.unitAt(c);
-      if (hit) this.panels.show(hit);
+      // the core, or the cut ground south of it: down to the floors
+      if (hit?.kind === 'pod' || c.y > this.p.base.y + POD_SOUTH) this.sheet.toggle();
+      else if (hit) this.panels.show(hit.kind);
       else if (who?.side === 'hero') { this.select(who.id); this.togglePip('stat'); }
       return;
     }

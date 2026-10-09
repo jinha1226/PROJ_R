@@ -1,61 +1,30 @@
 /*
- * The ground under the base, cut open (spec 2026-10-09 §1): a sheet that covers the screen from the cut down. Its top edge
- * is the ground's lip; under it the floors lie in bands of dithered earth, one colour of earth per zone, the lift's shaft
- * running down through them from under the core. A floor someone has stood on has a gallery cut through it; where the
- * lift stops there is a platform on the shaft. Frameless, in the Pip-Boy's green, like the rest of the base's screen.
+ * The floors' lines over the base's cross-section (spec 2026-10-09 §1). The cut face itself is painted in the scene
+ * (strataView.ts); this lays over it, floor by floor, what cannot be read off the picture: the floor's number and zone on
+ * the rock above its room, what the lift does there, and — on a tapped floor — the keys that send a clone down to it or
+ * drive the shaft on. Frameless, in the Pip-Boy's green. It takes the finger only once the view faces the cut.
  */
-.strata { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --fr: 30px; --lip: 22px; --shaft: 50%;
-  position: absolute; z-index: 8; left: 0; right: 0; top: var(--cut, 100%); bottom: 0; padding-bottom: 56px; box-sizing: border-box;
-  display: flex; flex-direction: column; overflow: hidden; background: #05060c; color: var(--pip-dim);
-  font: 11px/1 'Galmuri', monospace; text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000; user-select: none; touch-action: none; cursor: pointer; }
+.strata { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --y0: 100vh; --fh: 120px;
+  position: absolute; z-index: 5; inset: 0; overflow: hidden; pointer-events: none; color: var(--pip-dim);
+  font: 11px/1 'Galmuri', monospace; text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 0 2px 0 #000; user-select: none; touch-action: none; }
 .strata[hidden] { display: none; }
+.strata.open { pointer-events: auto; cursor: pointer; }
 
-/* the lip: the ground's edge, the shaft's mouth under the core, how deep anyone has been */
-.fl-lip { position: relative; flex: 0 0 var(--lip); box-sizing: border-box; border-top: 2px solid var(--pip-dim); display: flex; align-items: center; justify-content: flex-end; padding: 0 8px;
-  background: repeating-conic-gradient(#12301c 0 25%, #0000 0 50%) 0 0 / 4px 4px, #081409; }
-.fl-deep { color: var(--pip); white-space: nowrap; }
-.fl-lip::before, .fl-shaft { content: ''; position: absolute; left: calc(var(--shaft) - 4px); width: 8px; box-sizing: border-box; top: 0; border: solid var(--pip-dim); border-width: 0 1px; background: #010302; }
-.fl-lip::before { bottom: 0; }
+.fl-row { position: absolute; left: 0; right: 0; top: calc(var(--y0) + var(--n) * var(--fh)); height: var(--fh); box-sizing: border-box; padding: 5px 10px 0; display: flex; justify-content: space-between; align-items: flex-start; }
+.fl-name { color: var(--pip); white-space: nowrap; }
+.fl-tag { white-space: nowrap; }
+.fl-row.dark .fl-name { color: var(--pip-dim); opacity: 0.7; }
+.fl-row.sel .fl-tag { color: var(--pip); }
+.fl-row.kept .fl-tag { color: #ffd23a; }
+.fl-row.next .fl-tag { animation: wh-blink 1.2s steps(2) infinite; }
 
-.fl-list { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; scrollbar-width: none; }
-.fl-list::-webkit-scrollbar { display: none; }
-.strata.open .fl-list { overflow-y: auto; touch-action: pan-y; }
-/* the shaft goes as deep as the lift's last stop */
-.fl-shaft { z-index: 1; height: calc((var(--stops, 1) - 0.5) * var(--fr)); }
-
-.fl-row { position: relative; height: var(--fr); box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-bottom: 1px solid #0008;
-  background: repeating-conic-gradient(var(--soil-b) 0 25%, #0000 0 50%) 0 0 / 4px 4px, var(--soil-a); }
-.fl-row.z-cave { --soil-a: #0a1a10; --soil-b: #11301b; }
-.fl-row.z-crypt { --soil-a: #0a1222; --soil-b: #122038; }
-.fl-row.z-ruins { --soil-a: #1b150a; --soil-b: #2e2410; }
-/* nobody has been this deep: the earth is only dark */
-.fl-row.dark { filter: brightness(0.6); }
-/* a gallery through a floor someone has stood on */
-.fl-row.reached::before { content: ''; position: absolute; left: calc(var(--shaft) - 64px); width: 128px; top: 9px; bottom: 9px; background: #010302; border: solid var(--pip-dark); border-width: 1px 0; }
-.fl-row.boss.reached::before { left: calc(var(--shaft) - 64px); width: 150px; top: 5px; bottom: 5px; }
-/* the lift's platform at a stop (lit: where a clone sent now would go); a kept floor's beacon */
-.fl-row:is(.stop, .kept)::after { content: ''; position: absolute; z-index: 2; left: calc(var(--shaft) - 9px); width: 16px; top: 8px; bottom: 8px; box-sizing: border-box; border: 1px solid var(--pip-dim); background: #021006; }
-.fl-row.sel::after { border-color: var(--pip); background: var(--pip); }
-.fl-row.kept::after { border-color: #ffd23a; background: #ffd23a; }
-.fl-n { flex: 0 0 16px; }
-.fl-what { color: var(--pip); white-space: nowrap; }
-.fl-tags { position: relative; z-index: 3; margin-left: auto; white-space: nowrap; }
-.fl-row.sel .fl-tags { color: var(--pip); }
-.fl-row.kept .fl-tags { color: #ffd23a; }
-
-/* the foot (open only): where a clone would go, and a key per clone at home */
-.fl-foot { flex: 0 0 auto; display: none; gap: 4px; align-items: center; padding: 6px; overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--pip-dark); }
-.strata.open .fl-foot { display: flex; }
-.fl-dest { flex: 0 0 auto; padding: 0 6px 0 2px; color: var(--pip); white-space: nowrap; }
-.strata button { flex: 0 0 auto; height: 26px; padding: 0 8px; font: inherit; color: var(--pip); text-shadow: none; white-space: nowrap; cursor: pointer;
+/* a tapped floor's keys, under what the lift does there */
+.fl-pop { position: absolute; right: 6px; top: 24px; display: flex; gap: 4px; align-items: center; max-width: calc(100% - 16px); padding: 4px 6px; background: #05060ce6; color: var(--pip); white-space: nowrap; }
+.fl-pop span { padding: 0 4px; }
+.strata button { flex: 0 0 auto; height: 38px; min-width: 64px; padding: 0 10px; font: inherit; color: var(--pip); text-shadow: none; white-space: nowrap; cursor: pointer;
   border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: url('./img/plate.png') 0 0 / 8px 8px; }
-.strata .fl-foot button { flex: 1 0 auto; height: 38px; }
 .strata button:disabled { opacity: 0.45; cursor: default; }
 .strata button:active:not(:disabled) { transform: translateY(2px); }
 
-/* the surface with the sheet open: only its top strip is seen — the log makes way */
+/* facing the cut, the log makes way */
 .world.under .wh-bl { display: none; }
-/* a wide screen keeps its boxed log: it stands on the ground's edge */
-@media not ((orientation: portrait) and (max-width: 700px)) {
-  .world.base-mode .wh-bl { bottom: calc(100% - var(--cut, 100%) + 10px); }
-}

@@ -177,6 +177,8 @@ export class PixelPass {
   snap(target: THREE.Vector3, halfHeight: number, elevation: number): void {
     const step = (2 * halfHeight) / Math.max(1, this.target.height);
     target.x = Math.round(target.x / step) * step;
+    // (seen nearly side-on the ground's depth hardly moves the picture: nothing to snap)
+    if (Math.sin(elevation) < 0.2) return;
     const sz = step / Math.sin(elevation);
     target.z = Math.round(target.z / sz) * sz;
   }
