@@ -1,5 +1,7 @@
 import { BaseTools, baseLabels } from './baseTools';
-import { SiegeBar, overPanel, siegeNote, tryOutState } from './siegeBar';
+import { SiegeBar, overPanel, shardLine, siegeNote, tryOutState } from './siegeBar';
+import { TreeWindow } from './treeWindow';
+import { ShardView } from '../../view/overworld/shardView';
 import { QuickSlots } from './quickSlots';
 import { AutoExplore, exploreWants } from '../delve/explore';
 import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placePrompt';
@@ -100,6 +102,8 @@ export class WorldScreen implements Screen {
   private panels!: BasePanels;
   private bar!: AbilityBar;
   private sheet!: FloorSheet;
+  private readonly tree = new TreeWindow(() => this.p);
+  private shards = new ShardView();
   private swarm = new SwarmView();
 
   private readonly seed: number;
@@ -145,9 +149,9 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.prompts.el);
     this.panels = new BasePanels(() => this.p, { print: () => this.live(printClone(this.p)), implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench() });
     this.el.appendChild(this.panels.el);
-    this.bar = new AbilityBar(() => this.p, { say: (t) => this.message(t) });
+    this.bar = new AbilityBar(() => this.p, { say: (t) => this.message(t), tree: () => this.tree.toggle() });
     this.sheet = new FloorSheet(() => this.p, { send: (id, floor) => this.sendDown(id, floor), live: (ev) => this.live(ev), able: () => !!this.opts.onDrill }, () => this.opts.keptFloor);
-    this.el.append(this.sheet.el, this.bar.row);
+    this.el.append(this.sheet.el, this.bar.row, this.tree.el);
     this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
     this.el.appendChild(this.quick.el);
@@ -197,12 +201,12 @@ export class WorldScreen implements Screen {
       { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.message(t), exploreWants(this.p)); }
       this.prompts.update(this.rt, this.placePrompts());
       this.pad.update(dt, !!this.p.combat);
-      this.swarm.update(this.p, dt);
+      this.swarm.update(this.p, dt); this.shards.update(this.p, dt); this.tree.update();
       this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.bench.open);
-      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p, true, base && this.p.siege ? shardLine(this.p) : undefined), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };
@@ -231,6 +235,7 @@ export class WorldScreen implements Screen {
       if (e.type === 'pickup' && e.text === 'soul') this.message('영혼 회수');
       if (e.type === 'drop') this.alert(`drop${e.src}`, '영혼 소멸');
       if (e.type === 'dead') { this.message('전멸'); this.over.hidden = false; }
+      if (e.text === 'domeShot' && e.from && e.to) this.build.view.dome.bolt(e.from, e.to, e.from.x === this.p.base.x + 0.5 && e.from.y === this.p.base.y + 0.5);
       const note = siegeNote(e);
       if (note) { this.message(note); this.log.add(this.p.time, note, 'warn'); }
     }
@@ -250,6 +255,7 @@ export class WorldScreen implements Screen {
     this.rt.setZoom(this.zoom);
     this.rt.addOverlay(this.build.view.root); this.rt.addOverlay(this.sheet.view.root);
     this.swarm = new SwarmView(); this.rt.addOverlay(this.swarm.root);
+    this.shards = new ShardView(); this.rt.addOverlay(this.shards.root);
     this.rt.pixelated = loadDot();
     this.pace();
     this.select(this.p.leader ?? 'hero');
@@ -347,6 +353,7 @@ export class WorldScreen implements Screen {
     if (k === 'escape' && this.bench.open) { this.bench.close(); return; }
     if (k === 'escape' && this.panels.open) { this.panels.close(); return; }
     if (k === 'escape' && this.sheet.open) { this.sheet.toggle(); return; }
+    if (k === 'escape' && this.tree.open) { this.tree.close(); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record

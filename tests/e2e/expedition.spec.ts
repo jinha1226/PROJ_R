@@ -32,7 +32,7 @@ test('the besieged base: the waves come and are counted; a broken dome throws th
   // the mode changes on a frame, and a software renderer's frame can take seconds
   await expect(page.locator('.world.base-mode')).toHaveCount(1, { timeout: 30_000 });
   await expect(page.locator('.siege-bar')).toContainText('돔', { timeout: 30_000 });
-  type World = { skip(n: number): void; p: { siege: { wave: number; domeHp: number; downUntil: number; phase: string }; units: { group?: number }[] } };
+  type World = { skip(n: number): void; p: { shards: number; tree?: { domeHp?: number }; siege: { wave: number; domeHp: number; downUntil: number; phase: string }; units: { group?: number }[] } };
   // time runs on: the third wave steps out
   await page.evaluate(() => (window as unknown as { __world: World }).__world.skip(20));
   expect(await page.evaluate(() => (window as unknown as { __world: World }).__world.p.siege.wave)).toBeGreaterThanOrEqual(3);
@@ -49,5 +49,11 @@ test('the besieged base: the waves come and are counted; a broken dome throws th
   await page.locator('.siege-start').click();
   await expect(page.locator('.siege-start')).toBeHidden({ timeout: 30_000 });
   expect(await page.evaluate(() => (window as unknown as { __world: World }).__world.p.siege.phase)).not.toBe('held');
+  // the skill tree: its key opens the sheet, a tap on a node buys a level with shards
+  await page.evaluate(() => { (window as unknown as { __world: World }).__world.p.shards = 100; });
+  await page.locator('.clone-row [data-tree]').click();
+  await expect(page.locator('.tree-win')).toBeVisible({ timeout: 30_000 });
+  await page.locator('.tree-win [data-node="domeHp"]').click({ timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __world: World }).__world.p.tree?.domeHp), { timeout: 30_000 }).toBe(1);
   expect(errors).toEqual([]);
 });

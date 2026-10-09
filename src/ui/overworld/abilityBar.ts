@@ -4,7 +4,8 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { queueUltimate, ULT_NAMES, ULT_REACH, ultSlots } from '../../sim/party/ultimate';
 import type { WorldParty } from '../../sim/overworld/worldSim';
 import type { UltId } from '../../sim/party/classKit';
-import { REVIVE } from '../../sim/base/siege';
+import { reviveTime } from '../../sim/base/siege';
+import { anyNodeAffordable } from '../../sim/base/tree';
 
 /** the clones at the base, in the order they were made (the fallen too: their place in the bar stays, dimmed) */
 export const raidClones = (p: WorldParty): string[] => p.units.filter((u) => u.side === 'hero' && !u.summoner).map((u) => u.id);
@@ -18,7 +19,7 @@ export const ULT_SHORT: Record<UltId, string> = { earthSlam: '대지격', arrowR
  * The clones' row under the dome's gauge: one tile per clone — its name and health (told in cells; a fallen one, how long
  * until it rises), then its ultimates, each with its cooldown (turns left); the one being aimed lit, one already on its way
  * marked. A tile is pressed as a whole: its ultimate that is ready (a clone of two souls has a key for each). At the row's
- * end, Auto: the clones fire their own ultimates.
+ * end, the skill tree's key (lit when something in it can be bought) and Auto: the clones fire their own ultimates.
  */
 export function cloneRowHtml(p: WorldParty, aiming: { id: string; slot: number } | null): string {
   return raidClones(p).map((id) => {
@@ -27,10 +28,12 @@ export function cloneRowHtml(p: WorldParty, aiming: { id: string; slot: number }
       const left = Math.ceil(s.ready - p.time), on = aiming?.id === id && aiming.slot === s.slot, queued = u.ultQueued && (u.ultSlot ?? 0) === s.slot;
       return `<button type="button" data-ult="${id}:${s.slot}" class="${on ? 'on' : queued ? 'queued' : ''}" ${left > 0 || !up ? 'disabled' : ''}><span class="ub-full">${ULT_NAMES[s.ult]}</span><span class="ub-short">${ULT_SHORT[s.ult]}</span>${left > 0 && up ? `<em>${left}</em>` : ''}</button>`;
     }).join('');
-    const rise = u.downAt === undefined ? '' : ` ${Math.max(0, Math.ceil((u.downAt + REVIVE - p.time) / SEC))}초`;
+    const rise = u.downAt === undefined ? '' : ` ${Math.max(0, Math.ceil((u.downAt + reviveTime(p) - p.time) / SEC))}초`;
     return `<div class="ub-clone${up ? '' : ' down'}${up && e!.hp < e!.maxHp * 0.35 ? ' low' : ''}" data-clone="${id}"><div class="ub-who"><b><span class="ub-full">${CLASSES[u.cls!].name.slice(0, -1)}</span>${CLASSES[u.cls!].name.slice(-1)}</b><span class="ub-hp">${up ? `<i>${'#'.repeat(full)}</i><s>${'#'.repeat(CELLS - full)}</s>` : `쓰러짐${rise}`}</span></div><div class="ub-keys">${keys}</div></div>`;
-  }).join('') + `<button type="button" data-auto class="ub-auto${p.siege?.auto ? ' on' : ''}">자동</button>`;
+  }).join('');
 }
+/** The keys at the row's end: the skill tree (lit when something in it can be bought) and Auto. */
+export const rowKeysHtml = (p: WorldParty): string => `<button type="button" data-tree class="ub-auto ub-tree${anyNodeAffordable(p) ? ' can' : ''}">강화</button><button type="button" data-auto class="ub-auto${p.siege?.auto ? ' on' : ''}">자동</button>`;
 
 /**
  * The base's hands (spec 2026-10-09 "idle defence"): the fight runs itself. The player fires the clones' ultimates — a tap
@@ -43,13 +46,19 @@ export class AbilityBar {
   aiming: { id: string; slot: number } | null = null;
   on = false;
   private rowHtml = '';
+  private keysHtml = '';
+  /** the tiles change with every blow; the keys are kept apart so a finger on one is never left on a key that was just redrawn */
+  private readonly tiles = document.createElement('div');
+  private readonly keys = document.createElement('div');
 
-  constructor(private readonly p: () => WorldParty, private readonly view: { say: (text: string) => void }) {
+  constructor(private readonly p: () => WorldParty, private readonly view: { say: (text: string) => void; tree: () => void }) {
     this.row.className = 'clone-row'; this.row.hidden = true;
+    this.tiles.className = 'cr-tiles'; this.keys.className = 'cr-keys'; this.row.append(this.tiles, this.keys);
     this.row.addEventListener('click', (e) => {
       const t = e.target as HTMLElement, tile = t.closest<HTMLElement>('[data-clone]');
       this.rowHtml = '';
-      if (t.closest('[data-auto]')) { const s = this.p().siege; if (s) { s.auto = !s.auto; this.aiming = null; } return; }
+      if (t.closest('[data-tree]')) { this.view.tree(); return; }
+      if (t.closest('[data-auto]')) { const s = this.p().siege; if (s) { s.auto = !s.auto; this.aiming = null; } this.keysHtml = ''; return; }
       // a key is that ultimate; anywhere else on the tile, the clone's first ultimate that is ready
       const key = t.closest<HTMLElement>('button[data-ult]') ?? tile?.querySelector<HTMLElement>('button[data-ult]:not(:disabled)');
       if (!key || key.hasAttribute('disabled')) return;
@@ -84,7 +93,8 @@ export class AbilityBar {
     this.row.hidden = !this.on;
     if (!this.on) return;
     if (this.aiming && !this.reach) this.aiming = null;
-    const row = cloneRowHtml(this.p(), this.aiming);
-    if (row !== this.rowHtml) { this.rowHtml = row; this.row.innerHTML = row; }
+    const row = cloneRowHtml(this.p(), this.aiming), keys = rowKeysHtml(this.p());
+    if (row !== this.rowHtml) { this.rowHtml = row; this.tiles.innerHTML = row; }
+    if (keys !== this.keysHtml) { this.keysHtml = keys; this.keys.innerHTML = keys; }
   }
 }

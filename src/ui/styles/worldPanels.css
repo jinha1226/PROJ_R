@@ -189,3 +189,12 @@
 .siege-bar .sg-wave.held { color: #ff5a4a; }
 /* facing the floors the key waits: it belongs to the picture above */
 .world.under .siege-start { display: none; }
+
+/* the base's first line: the shards held (gold), what comes in a second, what is dealt a second */
+.st-shards .sh-have, .st-shards .sh-have b { color: #ffd23a; }
+/* the skill tree's key at the row's end: lit when something can be bought */
+.clone-row .ub-tree.can { color: #ffd23a; border-color: #ffd23a; animation: wh-blink 1.2s steps(2) infinite; }
+/* facing the floors, or with the tree open over it, the siege's start key and the log make way */
+.world.under .tree-win { display: none; }
+
+.clone-row .cr-tiles, .clone-row .cr-keys { display: flex; gap: 8px; align-items: flex-end; }

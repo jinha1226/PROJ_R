@@ -10,7 +10,7 @@ export class BaseView {
   readonly modules: ModuleViews;
   readonly dome = new DomeView();
 
-  constructor(base: string) { this.modules = new ModuleViews(base); this.root.add(this.modules.root, this.dome.root); }
+  constructor(base: string) { this.modules = new ModuleViews(base); this.root.add(this.modules.root, this.dome.root, this.dome.streaks); }
 
   /** The scene is made to match the base: the modules where they stand, the dome as strong as it is. */
   sync(p: WorldParty, dt = 0): void {

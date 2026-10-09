@@ -1,6 +1,8 @@
 import { siegeTurn } from '../base/siegeAi';
 import { siegeTick, startSiege, type Siege, type SiegeSpawn } from '../base/siege';
 import { placeModules, type BaseUpgrade, type Module } from '../base/modules';
+import type { Drop } from '../base/shards';
+import type { NodeId } from '../base/tree';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import { newState } from '../grid/state';
 import { dist, idx, type Cell, type GEvent } from '../grid/types';
@@ -29,6 +31,10 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   modules?: Module[]; upgrades?: Partial<Record<BaseUpgrade, number>>;
   /** the siege of the base (the pod's ground only) and the raiders of the coming wave still to step out */
   siege?: Siege; siegeQueue?: SiegeSpawn[];
+  /** shards: held, and lying on the ground (shards.ts); the skill tree bought with them (tree.ts) */
+  shards: number; drops?: Drop[]; nextDrop?: number; tree?: Partial<Record<NodeId, number>>;
+  /** the floor's own clock when the clone now below went down (what the base earns meanwhile is counted from it) */
+  awayAt?: number;
   pod?: boolean }
 
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', archer: 'archer', brute: 'brute' };
@@ -43,7 +49,7 @@ function fromWorld(w: World, seed: number): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, deepest: 1, away: false, baseEvents: [], drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, deepest: 1, away: false, baseEvents: [], shards: 0, drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'pistol', gear: starterGear('shell', () => nextItemId(p)) });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);

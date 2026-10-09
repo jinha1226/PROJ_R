@@ -7,6 +7,8 @@ import { connect } from '../overworld/worldGen';
 import type { WorldParty } from '../overworld/worldSim';
 import { inDome, resetSiegePath, rimOf } from './siegePath';
 import { swarmTick } from './swarm';
+import { bountyOf, collectShards, dropShards, fetchDrop, gunTick, readings, waveCleared } from './shards';
+import { worth } from './tree';
 
 /**
  * The siege (spec 2026-10-09, "idle defence"): the base stands under an energy dome. The land is quiet until a clone
@@ -31,6 +33,10 @@ export interface Siege {
   phase: 'quiet' | 'gap' | 'wave' | 'held';
   /** when the wave now out stepped out */
   waveAt?: number;
+  /** shards come in since the last reading, and over the wave now out; the readings themselves, per turn: what comes in, what is dealt; the pace the base earns at, wave by wave (what it goes on earning while a clone is below) */
+  gained?: number; waveGain?: number; income?: number; dps?: number; pace?: number;
+  /** when the dome's gun may fire next */
+  gunAt?: number;
 }
 /** one raider waiting to step out at the north edge */
 export interface SiegeSpawn { at: number; kind: 'fodder' | 'brute' | 'archer' | 'general'; cell: Cell; wave: number }
@@ -51,9 +57,11 @@ export const FALL_BACK = 0.35, GO_OUT = 0.8, MEND = 0.05 / SEC, REVIVE = 12 * SE
 /** how far before the dome a melee clone goes for a foe */
 export const FRONT_GUARD = 6;
 
-/** the dome's strength and reach (the defence upgrades will raise them: they are read off the base, not off the table) */
-export const domeMax = (p: WorldParty): number => (p.siege ? DOME.hp : 0);
-export const domeR = (p: WorldParty): number => (p.pod ? DOME.r : 0);
+/** the dome's strength and reach, as the base's skill tree has made them */
+export const domeMax = (p: WorldParty): number => (p.siege ? Math.round(DOME.hp * worth(p, 'domeHp')) : 0);
+export const domeR = (p: WorldParty): number => (p.pod ? DOME.r + worth(p, 'domeSize') : 0);
+/** how long a fallen clone lies before it rises (never less than three seconds) */
+export const reviveTime = (p: WorldParty): number => Math.max(3 * SEC, REVIVE * worth(p, 'cloneRevive'));
 export const domeUp = (p: WorldParty): boolean => !!p.siege && !p.siege.downUntil;
 
 /** What wave n is made of: how many fodder, how tough and how hard-hitting everything in it is. */
@@ -96,7 +104,7 @@ export function spawnRaider(p: WorldParty, s: SiegeSpawn, ev: GEvent[]): void {
   const e = spawnFoe(p.s, s.kind === 'fodder' ? 'minion' : s.kind === 'general' ? 'champion' : s.kind, { ...s.cell }, true);
   e.group = SIEGE_GROUP;
   e.hp = e.maxHp = Math.max(1, Math.round((s.kind === 'fodder' ? FODDER_HP : FOES[foe].hp * 0.6) * w.hp));
-  const u: Unit = { ...blank(), id: e.id, side: 'foe', foe, foeScale: w.dmg, asleep: false, alertUntil: Infinity, group: SIEGE_GROUP, nextAt: p.time, raider: true, lean: true };
+  const u: Unit = { ...blank(), id: e.id, side: 'foe', foe, foeScale: w.dmg, asleep: false, alertUntil: Infinity, group: SIEGE_GROUP, nextAt: p.time, raider: true, lean: true, bounty: bountyOf(s.kind, s.wave) };
   if (s.kind === 'fodder') { e.swarm = true; Object.assign(u, { swarm: true, fodder: true, nextAt: Infinity, sx: s.cell.x + 0.5, sy: s.cell.y + 0.5 }); }
   p.units.push(u);
   ev.push({ t: p.time, type: 'summon', dst: e.id, to: { ...s.cell } });
@@ -162,13 +170,14 @@ function spot(p: WorldParty, at: Cell, inside: boolean, self: string, taken: Cel
 function clonesTick(p: WorldParty, dt: number, ev: GEvent[]): void {
   const t = p.time, b = p.base, r = domeR(p), up = domeUp(p), taken: Cell[] = [];
   const squad = clones(p);
+  const calm = !p.siegeQueue?.length && !p.units.some((f) => f.side === 'foe' && f.group === SIEGE_GROUP && alive(p, f)), after = new Set<number>();
   let nr = 0, nm = 0;
   for (const u of squad) {
     const e = entOf(p, u.id);
     if (!e) continue;
     if (!e.alive) {
       u.downAt ??= t;
-      if (t < u.downAt + REVIVE) continue;
+      if (t < u.downAt + reviveTime(p)) continue;
       e.alive = true; e.hp = Math.ceil(e.maxHp / 2); e.pos = spot(p, p.s.map.start, true, u.id, taken);
       u.downAt = undefined; u.fallBack = false; u.station = undefined; u.order = null; u.nextAt = t;
       ev.push({ t, type: 'buff', dst: u.id, src: u.id, text: 'revive', to: { ...e.pos } });
@@ -187,6 +196,14 @@ function clonesTick(p: WorldParty, dt: number, ev: GEvent[]): void {
     }
     const want = u.station.cell, guard = mode === 'front' ? FRONT_GUARD : 0;
     taken.push(want);
+    // nothing to fight: a clone that is fit goes out for the nearest shards (it is called back the moment a raider steps out)
+    const heap = calm && mode !== 'in' && !u.ultQueued ? fetchDrop(p, e.pos, after) : undefined;
+    if (heap) {
+      after.add(heap.id);
+      const cell = { x: Math.round(heap.x), y: Math.round(heap.y) };
+      if (!(u.order?.kind === 'move' && same(u.order.cell, cell))) u.order = { kind: 'move', cell };
+      continue;
+    }
     // an ultimate on its way is not called off by the drill
     if (u.ultQueued) continue;
     const o = u.order;
@@ -204,7 +221,12 @@ function reap(p: WorldParty): void {
   let gone = false;
   for (const u of p.units) {
     if (u.side !== 'foe' || u.group !== SIEGE_GROUP || alive(p, u)) continue;
-    if (u.goneAt === undefined) { u.goneAt = t + 10; s.kills++; }
+    if (u.goneAt === undefined) {
+      u.goneAt = t + 10; s.kills++;
+      // what it leaves lies where it fell
+      const at = u.sx !== undefined ? { x: u.sx - 0.5, y: u.sy! - 0.5 } : entOf(p, u.id)?.pos;
+      if (at) dropShards(p, at.x, at.y, (u.bounty ?? 0) * worth(p, 'bounty'));
+    }
     else if (t >= u.goneAt) gone = true;
   }
   if (!gone) return;
@@ -219,13 +241,14 @@ export function siegeTick(p: WorldParty, dt: number, ev: GEvent[]): void {
   if (!s || p.away) return;
   const t = p.time;
   p.manualUlts = !s.auto;
+  p.boost = { out: worth(p, 'cloneDmg'), taken: worth(p, 'cloneGuard'), ult: worth(p, 'cloneUlt') };
   if (s.downUntil && t >= s.downUntil) {
     s.downUntil = 0; s.domeHp = domeMax(p);
     ev.push({ t, type: 'buff', text: 'domeUp' });
   }
   // (blows land in the horde's step and in the elites' own turns: a dome brought to nothing gives before it can mend)
   if (!s.downUntil && s.domeHp <= 0) breach(p, ev);
-  if (!s.downUntil) s.domeHp = Math.min(domeMax(p), s.domeHp + DOME.regen * dt);
+  if (!s.downUntil) s.domeHp = Math.min(domeMax(p), s.domeHp + DOME.regen * worth(p, 'domeRegen') * dt);
   if (s.phase === 'gap' && t >= s.nextAt) {
     s.wave++; s.best = Math.max(s.best, s.wave); s.phase = 'wave'; s.nextAt = Infinity; s.waveAt = t;
     p.siegeQueue = planWave(p, s.wave, t);
@@ -234,12 +257,15 @@ export function siegeTick(p: WorldParty, dt: number, ev: GEvent[]): void {
   if (s.phase === 'wave') {
     while (p.siegeQueue?.length && p.siegeQueue[0]!.at <= t) spawnRaider(p, p.siegeQueue.shift()!, ev);
     swarmTick(p, dt, ev);
+    gunTick(p, ev);
     if (s.domeHp <= 0) breach(p, ev);
     // the last of the wave has fallen: a breath, then the next
-    else if (!p.siegeQueue?.length && !p.units.some((u) => u.side === 'foe' && u.group === SIEGE_GROUP && alive(p, u))) { s.phase = 'gap'; s.nextAt = t + WAVE_GAP; }
+    else if (!p.siegeQueue?.length && !p.units.some((u) => u.side === 'foe' && u.group === SIEGE_GROUP && alive(p, u))) { s.phase = 'gap'; s.nextAt = t + WAVE_GAP; waveCleared(p, WAVE_GAP, ev); }
     else if (t - (s.waveAt ?? t) > WAVE_LIMIT) for (const u of raiders(p)) { const e = entOf(p, u.id); if (e?.alive) { e.alive = false; e.hp = 0; u.goneAt = t; } }
   }
   reap(p);
+  collectShards(p);
+  readings(p, dt);
   clonesTick(p, dt, ev);
 }
 

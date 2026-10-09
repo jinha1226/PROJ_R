@@ -18,6 +18,7 @@
   .world.base-mode .wh-top { margin: 0; padding: 0; color: var(--pip-dim); font-size: 11px; }
   .world.base-mode .wh-top .st-row { display: flex; gap: 10px; line-height: 16px; white-space: nowrap; }
   .world.base-mode .wh-top b, .world.base-mode .wh-top .bio b { color: var(--pip); }
+  .world.base-mode .wh-top .sh-have, .world.base-mode .wh-top .sh-have b { color: #ffd23a; }
   .world.base-mode .wh-target { display: none; }
   .world.base-mode aside.wh-tr { left: auto; right: 6px; top: 6px; width: auto; }
   .world.base-mode .wh-menu, .world.base-mode .wh-menu:hover { width: 42px; height: 42px; padding: 0; font-size: 22px !important; line-height: 38px; }
@@ -49,8 +50,14 @@
   .clone-row button em { margin: 0; color: inherit; }
   .clone-row button.queued { color: #ffd23a !important; }
 
-  /* Auto, at the row's end: as tall as a tile's key, set against the row's far side */
-  .clone-row .ub-auto { flex: 0 0 52px; height: 30px; margin: 16px 0 0 auto; padding: 0; }
+  /* the tree's key and Auto, at the row's end: as tall as a tile's key, set against the row's far side */
+  .clone-row .cr-tiles { display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .clone-row .cr-keys { display: flex; gap: 4px; flex: 0 0 auto; margin-left: auto; }
+  .clone-row .ub-auto { flex: 0 0 52px; height: 30px; margin: 16px 0 0 0; padding: 0; }
+  .world.base-mode .clone-row .ub-tree.can { color: #ffd23a !important; }
+
+  /* what is called out (a wave cleared, a dome broken) is said under the clones' row, clear of its keys */
+  .world.base-mode .wh-toast { top: 22%; font-size: 16px !important; }
 
   /* the log: its last lines along the screen's foot, over the cut ground (a tap opens the whole of it) */
   .world.base-mode .wh-bl { left: 8px; right: 8px; bottom: 6px; padding: 0 2px; }

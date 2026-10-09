@@ -295,7 +295,9 @@ export class GridRuntime {
         // a foe bleeds where it is struck (no white flash); a clone flinches with a red flash and the screen's edge
         const p = at(e.dst), ally = a.isAlly(e.dst);
         // a blow on something built (the pod, a module): sparks where it stands, and the game does not catch its breath for it
-        if (!p && e.to) { this.particles.vfx.fire('hit', cellVec(e.to).setY(0.9), '#ffb02a'); break; }
+        if (!p && e.to && e.dst === 'dome') { this.particles.vfx.fire('hit', cellVec(e.to).setY(0.9), '#ffb02a'); break; }
+        // one of the horde's small fry (drawn in a batch, not a figure of its own): what the blow was worth, where it stands
+        if (!p && e.to) { if (e.amount) this.fx.number(String(e.amount), 'dmg', cellVec(e.to), 1.1); break; }
         if (e.crit) a.knock(e.dst, at(e.src)); else a.hurt(e.dst, at(e.src));
         if (p) {
           this.fx.number(`${e.amount}${e.crit ? '!' : ''}`, e.crit ? 'crit' : ally ? 'ally-hurt' : 'dmg', p);

@@ -33,15 +33,16 @@ it('a tap on the core or a module finds its panel; bare ground none', () => {
 });
 
 it('the clones\' row: a tile each with its health and ultimates — a cooldown counts down, the aimed one is lit, a fallen clone is dimmed and tells when it rises; Auto at its end', async () => {
-  const { cloneRowHtml } = await import('../../src/ui/overworld/abilityBar');
+  const { cloneRowHtml, rowKeysHtml } = await import('../../src/ui/overworld/abilityBar');
   const p = newSurface(4), other = print(p, undefined, [], p.s.map.start)!;
   let row = cloneRowHtml(p, { id: 'hero', slot: 0 });
   expect(row).toMatch(/data-clone="hero"/); expect(row).toMatch(/data-ult="hero:0" class="on"/); expect(row).toContain('중력탄');
-  expect(row).toMatch(/data-auto class="ub-auto">자동/);
+  expect(rowKeysHtml(p)).toMatch(/data-auto class="ub-auto">자동/); expect(rowKeysHtml(p)).toMatch(/data-tree class="ub-auto ub-tree">강화/);
+  p.shards = 50; expect(rowKeysHtml(p)).toContain('ub-tree can'); p.shards = 0;
   unitOf(p, 'hero')!.ultReady = p.time + 7; entOf(p, other.id)!.alive = false; unitOf(p, other.id)!.downAt = p.time; p.siege!.auto = true;
   row = cloneRowHtml(p, null);
   expect(row).toMatch(/data-ult="hero:0" class="" disabled/); expect(row).toContain('<em>7</em>');
-  expect(row).toContain('ub-clone down'); expect(row).toContain('쓰러짐 12초'); expect(row).toMatch(/data-auto class="ub-auto on"/);
+  expect(row).toContain('ub-clone down'); expect(row).toContain('쓰러짐 12초'); expect(rowKeysHtml(p)).toMatch(/data-auto class="ub-auto on"/);
 });
 
 it('the floors under the base: the lift\'s stops and its next one with its price, how deep anyone has been, a kept floor; a tapped stop offers the clones to send, the next stop the shaft\'s price', async () => {
@@ -92,4 +93,23 @@ it('the siege\'s lines: quiet, the next wave counted down, the wave out and how 
   expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 10 })).toBe('파도 10 · 오우거 2'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 20 })).toContain('장군'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeUp' })).toBe('돔 재가동');
   expect(siegeNote({ t: 0, type: 'buff', text: 'gather', amount: 6 })).toContain('광석 6 · 생체 4'); expect(siegeNote({ t: 0, type: 'hit' })).toBeUndefined();
   expect(baseLabels(p).map((l) => l.text)).toEqual(['연구실', '숙소', '작업장 · 고장']);
+});
+
+it('the tree\'s sheet: three columns; a node tells its level, what it gives now and next, and its price; one whose turn has not come names what it waits for; the base\'s first line tells the shards and the readings', async () => {
+  const { treeHtml, nodeHtml } = await import('../../src/ui/overworld/treeWindow');
+  const { nodeOf } = await import('../../src/sim/base/tree');
+  const { shardLine, siegeNote } = await import('../../src/ui/overworld/siegeBar');
+  const { big } = await import('../../src/ui/overworld/bigNum');
+  const p = newSurface(4);
+  expect(treeHtml(p).match(/class="tr-col"/g)).toHaveLength(3); expect(treeHtml(p).match(/tr-node/g)).toHaveLength(13);
+  expect(nodeHtml(p, nodeOf('domeHp'))).toMatch(/data-node="domeHp" disabled/); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('◆ 10'); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('강도 +12%');
+  expect(nodeHtml(p, nodeOf('gun'))).toContain('돔 강도 2단계 필요'); expect(nodeHtml(p, nodeOf('gun'))).not.toContain('data-node');
+  p.shards = 2500; p.tree = { domeHp: 2, domeSize: 6 };
+  expect(nodeHtml(p, nodeOf('domeHp'))).toMatch(/class="tr-node can" data-node="domeHp" >/); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('Lv 2'); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('강도 +25% → +40%');
+  expect(nodeHtml(p, nodeOf('gun'))).toContain('가까운 적 포격 · 피해 6'); expect(nodeHtml(p, nodeOf('domeSize'))).toContain('최대'); expect(nodeHtml(p, nodeOf('domeSize'))).toContain('반지름 +3칸');
+  expect(treeHtml(p)).toContain('◆ <b>2.5K</b>');
+  p.siege!.income = 12 / 3.6; p.siege!.dps = 1500 / 3.6;
+  expect(shardLine(p)).toContain('◆ <b>2.5K</b>'); expect(shardLine(p)).toContain('+12/초'); expect(shardLine(p)).toContain('피해 <b>1.5K</b>/초');
+  expect([big(0), big(999.9), big(1000), big(12345), big(123456), big(2.5e6), big(7e9)]).toEqual(['0', '999', '1.0K', '12.3K', '123K', '2.5M', '7.0B']);
+  expect(siegeNote({ t: 0, type: 'buff', text: 'waveClear:12', amount: 340 })).toBe('파도 12 클리어 · 파편 +340'); expect(siegeNote({ t: 0, type: 'buff', text: 'awayShards', amount: 1240 })).toBe('부재 중 파편 +1.2K');
 });

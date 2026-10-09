@@ -1,4 +1,5 @@
 import { domeMax, domeUp, raiders, resumeSiege, waveOf } from '../../sim/base/siege';
+import { big } from './bigNum';
 import { GATHER } from '../../sim/base/modules';
 import type { GEvent } from '../../sim/grid/types';
 import { alive } from '../../sim/party/partyCore';
@@ -28,6 +29,12 @@ export function siegeHtml(p: WorldParty): string {
   return `${wave}<span class="sg-dome${hp < max / 3 ? ' low' : ''}">돔 [<i>${'#'.repeat(full)}</i><s>${'#'.repeat(CELLS - full)}</s>] ${hp}</span>`;
 }
 
+/** The base's own line at the very top: the shards held and what comes in a second, and what the base deals a second. */
+export function shardLine(p: WorldParty): string {
+  const s = p.siege, per = (x?: number) => big((x ?? 0) * SEC);
+  return `<div class="st-row st-shards"><span class="sh-have">◆ <b>${big(p.shards)}</b></span><span>+${per(s?.income)}/초</span><span>피해 <b>${per(s?.dps)}</b>/초</span></div>`;
+}
+
 /** The siege's lines under the base's status, and — while it is stopped at a broken dome — the key that calls the wave again. */
 export class SiegeBar {
   readonly el = document.createElement('div');
@@ -50,6 +57,8 @@ export class SiegeBar {
 /** The log/toast line for a siege event, or undefined for other events. */
 export function siegeNote(e: GEvent): string | undefined {
   if (e.type === 'buff' && e.text === 'domeBreak') return `돔 붕괴 · 에너지파가 무리를 밀어냈다 · 파도 ${e.amount}에서 멈춤`;
+  if (e.type === 'buff' && e.text?.startsWith('waveClear:')) return `파도 ${e.text.slice(10)} 클리어 · 파편 +${big(e.amount ?? 0)}`;
+  if (e.type === 'buff' && e.text === 'awayShards') return `부재 중 파편 +${big(e.amount ?? 0)}`;
   if (e.type === 'buff' && e.text === 'siegeStart') return '드릴 소리가 놈들을 불렀다 · 첫 파도가 온다';
   // a wave that brings more than fodder is called out
   if (e.type === 'buff' && e.text === 'wave') { const w = waveOf(e.amount ?? 1); return w.general ? `파도 ${e.amount} · 장군이 온다` : w.brutes ? `파도 ${e.amount} · 오우거 ${w.brutes}` : undefined; }

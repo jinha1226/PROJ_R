@@ -6,6 +6,7 @@ import { startDelve } from './drill';
 import { applySf } from './workshop';
 import { gatherHome, upgradeOn } from './modules';
 import { rouseSiege } from './siege';
+import { awayIncome } from './shards';
 import { living } from '../roam/roam';
 import { entOf } from '../party/partyCore';
 
@@ -19,7 +20,7 @@ function healHome(p: WorldParty): void {
 export function departSurface(p: WorldParty, seed: number, carry: Carry, floor = 1): DelveParty | null {
   if (p.away || !carry.clones.length) return null;
   const delve = startDelve(p, seed, carry, floor);
-  if (delve) p.away = true;
+  if (delve) { p.away = true; p.awayAt = delve.time; }
   return delve;
 }
 /** Return events are queued for the existing worldTick consumer and also returned to callers. */
@@ -35,6 +36,7 @@ export function returnToSurface(p: WorldParty, carry: Carry): GEvent[] {
   const ev: GEvent[] = [];
   // (the event carries the ore; the bio-matter is in step with it: GATHER)
   if (got) ev.push({ t: p.time, type: 'buff', text: 'gather', amount: got.ore });
+  awayIncome(p, carry.time - (p.awayAt ?? carry.time), ev);
   rouseSiege(p, ev);
   p.baseEvents.push(...ev);
   return ev;
@@ -46,6 +48,7 @@ export function beaconReturn(p: WorldParty, carry: Carry): GEvent[] {
   p.away = false; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
   healHome(p);
   const ev: GEvent[] = [];
+  awayIncome(p, carry.time - (p.awayAt ?? carry.time), ev);
   rouseSiege(p, ev);
   p.baseEvents.push(...ev);
   return ev;

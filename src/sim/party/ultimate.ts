@@ -59,7 +59,7 @@ function castUltimate(p: Party,id: string,cell: Cell | undefined,slot: number): 
   // the blood pact is paid only for an ultimate that went off
   if(pact) entOf(p,id)!.hp-=pact;
   ev.push({t,type:'buff',src:id,dst:id,text:ULT_NAMES[ult]});
-  const next=u.traits?.bloodPact?t:t+s.cd*T.cd(u)*G.cd(u);
+  const next=u.traits?.bloodPact?t:t+s.cd*T.cd(u)*G.cd(u)*(p.boost?.ult??1);
   if (soulsOf(u).length) soulsOf(u)[slot]!.ultReady=next; else u.ultReady=next;
   u.ultQueued=false;u.nextAt=Math.max(u.nextAt,t+0.6);
   emit(p,'ultimate',{t,src:u,ev});return ev;

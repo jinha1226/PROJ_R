@@ -1,0 +1,34 @@
+/*
+ * The skill tree's sheet: frameless, in the Pip-Boy's green, over the lower part of the base's screen. Three columns —
+ * dome, clones, income — each a chain of nodes joined by a line; a node that can be bought is bright, one that cannot
+ * yet is dim, one whose turn has not come is only named.
+ */
+.tree-win { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; max-height: 62%; display: flex; flex-direction: column;
+  background: #05060cf2; border-top: 2px solid var(--pip-dim); color: var(--pip-dim); font: 11px/1.25 'Galmuri', monospace; user-select: none; }
+.tree-win[hidden] { display: none; }
+.tree-win header { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-bottom: 1px solid var(--pip-dark); }
+.tr-title { color: var(--pip); }
+.tr-have { margin-left: auto; color: #ffd23a; }
+.tr-have b { font-weight: normal; }
+.tree-win header button { width: 36px; height: 30px; font: inherit; color: var(--pip); background: none; border: 1px solid var(--pip-dark); cursor: pointer; }
+.tr-cols { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; max-width: 760px; width: 100%; box-sizing: border-box; margin: 0 auto; }
+.tr-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tr-col h4 { margin: 0; font: inherit; color: var(--pip); text-align: center; }
+.tr-node { position: relative; display: grid; gap: 2px; min-height: 58px; padding: 5px 6px; text-align: left; font: inherit; color: var(--pip-dim); cursor: pointer;
+  border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: url('./img/plate.png') 0 0 / 8px 8px; }
+/* the line from the node before it */
+.tr-node + .tr-node::before { content: ''; position: absolute; left: 50%; top: -9px; width: 2px; height: 8px; background: var(--pip-dark); }
+.tr-node b { display: flex; justify-content: space-between; gap: 4px; font-weight: normal; color: var(--pip); white-space: nowrap; overflow: hidden; }
+.tr-node b i { font-style: normal; color: var(--pip-dim); }
+.tr-node small { font-size: 11px; color: var(--pip-dim); overflow: hidden; }
+.tr-node em { font-style: normal; color: #ffd23a; }
+.tr-node:disabled { cursor: default; }
+.tr-node:disabled em { color: #7a6a2a; }
+.tr-node:disabled b { color: var(--pip-dim); }
+.tr-node.shut { opacity: 0.5; }
+.tr-node.shut small { color: var(--pip-dim); }
+.tr-node.top em { color: var(--pip-dim); }
+.tr-node.can { box-shadow: inset 0 0 0 1px var(--pip-dark); }
+.tr-node.can:active { transform: translateY(2px); }
+.tr-node.bought { animation: tr-flash 0.25s steps(3); }
+@keyframes tr-flash { 0% { background: var(--pip); } 100% { background: url('./img/plate.png') 0 0 / 8px 8px; } }

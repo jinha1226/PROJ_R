@@ -74,6 +74,8 @@ export interface Unit {
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
+  /** a raider: the shards it leaves where it falls (before the base's own bonus) */
+  bounty?: number;
   sighted?: string[]; pierceNext?: boolean;
   /** rounds still loaded hot since the last reload (the empty body's innate) */
   hotRounds?: number; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
@@ -129,6 +131,10 @@ export interface Unit {
 export interface Party {
   /** the base: the clones' ultimates are the player's to fire (no clone reaches for its own) unless Auto is on */
   manualUlts?: boolean;
+  /** the base's skill tree at work on its ground: what the clones' blows are multiplied by, the share of a blow they take, the share of an ultimate's wait left */
+  boost?: { out: number; taken: number; ult: number };
+  /** damage dealt to foes is added up here when someone keeps count (the base's readings) */
+  tally?: { dmg: number };
   foeAction?: (u: Unit, t: number, ev: GEvent[]) => number | undefined;
   grounds?: {at:Cell;by:string;until:number;next:number;kind?:'burn'|'poison';r?:number}[];
   /** gravity wells pulling foes in (the empty body's ultimate) */
@@ -262,7 +268,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if (attacker?.traits && (attacker.traits.fireAmp || attacker.traits.boltAmp || attacker.traits.coldAmp)) amount = Math.round(amount * elementAmp(attacker, dst, kind, t));
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
-    amount=Math.round(amount*G.dmg(attacker)*vulnerable);
+    amount=Math.round(amount*G.dmg(attacker)*vulnerable*(p.boost?.out??1));
   }
   // holy mastery (cleric), multiplied
   if (attacker?.traits?.holyAmp) amount = Math.round(amount * holyAmp(attacker, kind));
@@ -276,7 +282,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     dst.lastHitBy = src; dst.lastHitAt = t; dst.hitters = [...(dst.hitters ?? []).filter((h) => t - h.t < 1 && h.id !== src), { id: src, t }];
   }
   if (dst.side === 'hero') {
-    amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst));
+    amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst)*(p.boost?.taken??1));
     // soul link (necromancer): the nearest minion takes three tenths of the harm
     const bond = rank(dst, 'soulLink') && amount > 1 ? p.units.filter((x) => x.summoner === dst.id && alive(p, x)).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos))[0] : undefined;
     if (bond) { const share = Math.round(amount * (rank(dst, 'soulLink') >= 2 ? 0.45 : 0.3)); amount -= share; damage(p, t, src, bond, share, ev, true); }
@@ -303,6 +309,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if(dst.traits?.immortal && amount>=e.hp && !dst.immortalUsed) {dst.immortalUsed=true;dst.immuneUntil=t+3;amount=0;}
   const prevHp = e.hp;
   e.hp = Math.max(0, e.hp - amount); dst.lowHp = e.hp < e.maxHp/2;
+  if (p.tally && dst.side === 'foe') p.tally.dmg += prevHp - e.hp;
   ev.push({ t, type: 'hit', src, dst: dst.id, amount, to: { ...e.pos } });
   const dealer = unitOf(p, src), dealt = dealer?.side === 'hero' && dst.side === 'foe' && amount > 0;
   if (e.hp <= 0) {

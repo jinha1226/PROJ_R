@@ -51,7 +51,7 @@ export class Expedition {
   private async down(c: Carry, floor = 1): Promise<void> {
     const { DelveScreen } = await import('../ui/delve/delveScreen');
     let party = this.kept;
-    if (party) { reenter(party, c); this.surface.away = true; this.kept = undefined; }
+    if (party) { reenter(party, c); this.surface.away = true; this.surface.awayAt = party.time; this.kept = undefined; }
     else party = departSurface(this.surface, this.seed * 131 + this.trips + 1, c, floor) ?? undefined;
     if (!party) { rejoin(this.surface, c, this.surface.drill ?? this.surface.base); return; }
     this.trips++;
