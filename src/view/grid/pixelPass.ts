@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { fattenMat } from './stubFigure';
 
 /** Endesga 32 (lospec.com, free to use): a 32-colour palette made for dark, readable pixel art. */
 export const ENDESGA32 = ['#be4a2f', '#d77643', '#ead4aa', '#e4a672', '#b86f50', '#733e39', '#3e2731', '#a22633', '#e43b44', '#f77622', '#feae34', '#fee761',
@@ -163,8 +164,10 @@ export class PixelPass {
     scene.traverse((o) => {
       const m = o as THREE.Mesh, ring = o.userData.ring as string | undefined;
       if (!m.isMesh || !ring || !o.layers.isEnabled(FIGURE_LAYER)) return;
-      let paint = this.paints.get(ring);
-      if (!paint) { paint = new THREE.MeshBasicMaterial({ color: ring }); this.paints.set(ring, paint); }
+      // (a fattened figure's mask is fattened with it)
+      const fat = (o.userData.fat as number | undefined) ?? 0, key = fat ? `${ring}|${fat.toFixed(5)}` : ring;
+      let paint = this.paints.get(key);
+      if (!paint) { paint = new THREE.MeshBasicMaterial({ color: ring }); if (fat) fattenMat(paint, fat); this.paints.set(key, paint); }
       swapped.push([m, m.material]);
       m.material = paint;
     });

@@ -11,6 +11,7 @@ import { shapeBones, type BodyShape, type Species } from './species';
 import { buildSpeciesParts } from './speciesParts';
 import { OutfitKit, type OutfitLook } from './outfitKit';
 import { squatClip } from './squatClip';
+import { fatten, figTry, flatten, legDrop, stubShape } from './stubFigure';
 
 const HEIGHT = 1.6;
 /** the mannequin is slim: widen it a little so figures read at a distance */
@@ -183,16 +184,20 @@ export class UalActor {
     if (look.suit && look.armor !== false) { const parts = buildSuitArmor(model); this.mats.push(...parts.mats); this.lamps = parts.lights; }
     if (look.species) this.mats.push(...buildSpeciesParts(model, look.species, look.body));
     if (look.outfit && lib.outfits) this.mats.push(...lib.outfits.dress(model, look.outfit, look.body, '#ffcf9a', 0.4));
-    if (look.shape) {
-      const { bones, spine } = shapeBones(model, look.shape);
+    // (the try-out builds: one flat colour, a stubby body)
+    const fig = look.block ? null : figTry(), shape = fig ? stubShape(look.shape, fig) : look.shape;
+    if (fig?.flat) flatten(this.mats, fig.flat === 1 ? look.ring ?? look.body : undefined);
+    if (fig) { model.position.y -= legDrop(model, fig.limb); fatten(model, fig.fat); }
+    if (shape) {
+      const { bones, spine } = shapeBones(model, shape);
       this.shaped = bones;
       // hunch about the body's side-to-side axis, expressed in the spine's own frame at rest
       const rel = spine ? spine.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(model.getWorldQuaternion(new THREE.Quaternion())) : null;
-      if (spine && rel) this.hunch = [spine, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0).applyQuaternion(rel), look.shape.hunch)];
+      if (spine && rel && shape.hunch) this.hunch = [spine, new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0).applyQuaternion(rel), shape.hunch)];
     }
     // a dark one-pixel shell keeps the figure apart from the floor once pixelated
     // lit figures carry only a hairline outline (the toon look keeps the heavy one)
-    if (!look.block) addOutlines(model, figureLit() ? 0.012 : 0.03);
+    if (!look.block) addOutlines(model, (figureLit() ? 0.012 : 0.03) + (fig?.fat ?? 0));
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
@@ -358,6 +363,7 @@ export class UalActor {
     if (this.dead) return;
     this.dead = true;
     // a body on its back reads like a raised-arms pose from above: darken it so the dead read as dead
+    for (const m of this.mats) (m.userData.own as THREE.Color | undefined)?.multiplyScalar(0.3);
     for (const m of this.mats) m.color.multiplyScalar(0.6); // dimmed, not blacked out: a body that still reads on a dark floor
     this.dropUpper(0.05);
     // at the clip's own pace: a heavy fall, not a quick flop
@@ -384,7 +390,9 @@ export class UalActor {
     const k = this.flashLeft / this.flashTotal;
     // a state's tint shows over the figure's own glow
     const base = this.tint.r + this.tint.g + this.tint.b > 0 ? this.tint : this.glow;
-    for (const m of this.mats) m.emissive.copy(base).lerp(this.flashColor, k * 0.9);
+    // (a flat figure's part glows with its own colour: see stubFigure.ts)
+    const tinted = base === this.tint;
+    for (const m of this.mats) m.emissive.copy(tinted ? base : (m.userData.own as THREE.Color | undefined) ?? base).lerp(this.flashColor, k * 0.9);
   }
 
   dispose(): void {
