@@ -1,59 +1,47 @@
 /*
- * The base by day and the raid by night on an upright phone (spec 2026-10-09 §7), in the dungeon's frameless style:
- * nothing is boxed. What is read floats over the picture in the Pip-Boy's green with a hard dark edge, on a dithered
- * shade at the screen's top and bottom; what is pressed is a dithered plate told by its corner brackets; what is on
- * is the one green plate. Colour is kept for the gauges (the core, a clone's health) and for the raid's own red.
+ * The besieged base on an upright phone (spec 2026-10-09 §7), in the dungeon's frameless style: nothing is boxed. What is
+ * read floats over the picture in the Pip-Boy's green with a hard dark edge, on a dithered shade at the screen's top and
+ * bottom; what is pressed is a dithered plate told by its corner brackets; what is on is the one green plate. Colour is
+ * kept for the gauges (the dome, a clone's health).
  */
 @media (orientation: portrait) and (max-width: 700px) {
-  .world:is(.base-mode, .raid-mode) { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --row: 52px; --log-bottom: 66px !important; color: var(--pip); }
-  .world.base-mode:has(.base-hint:not([hidden])) { --log-bottom: 84px !important; }
-  .world.raid-mode { --log-bottom: 76px !important; }
-  .world:is(.base-mode, .raid-mode), .world:is(.base-mode, .raid-mode) button, .world:is(.base-mode, .raid-mode) .wl-line { font-family: 'Galmuri', monospace; font-size: 11px; }
-  .world:is(.base-mode, .raid-mode), .world:is(.base-mode, .raid-mode) .wl-line { text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 0 2px 0 #000; }
-  .world:is(.base-mode, .raid-mode)::before, .world:is(.base-mode, .raid-mode)::after { content: ''; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; image-rendering: pixelated; opacity: 0.94; }
-  .world:is(.base-mode, .raid-mode)::before { top: 0; height: 150px; background: linear-gradient(#05060c, #05060c) 0 0 / 100% 60px no-repeat, url('./img/shade-down.png') 0 60px / 8px 90px repeat-x; }
-  .world:is(.base-mode, .raid-mode)::after { bottom: 0; height: 220px; background: linear-gradient(#05060c, #05060c) 0 100% / 100% 130px no-repeat, url('./img/shade-up.png') 0 0 / 8px 90px repeat-x; }
-  .screen.world:is(.base-mode, .raid-mode) aside { border-image-source: none; border-color: transparent; background: none; box-shadow: none; }
-  .world:is(.base-mode, .raid-mode) :is(.wh-mini, .wh-party, .wh-br, .tp, .quick-slots, .wh-cap, .wh-mode) { display: none; }
+  .world.base-mode { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --row: 44px; --log-bottom: 124px !important; color: var(--pip); }
+    .world.base-mode, .world.base-mode button, .world.base-mode .wl-line { font-family: 'Galmuri', monospace; font-size: 11px; }
+  .world.base-mode, .world.base-mode .wl-line { text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 0 2px 0 #000; }
+  .world.base-mode::before, .world.base-mode::after { content: ''; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; image-rendering: pixelated; opacity: 0.94; }
+  .world.base-mode::before { top: 0; height: 150px; background: linear-gradient(#05060c, #05060c) 0 0 / 100% 60px no-repeat, url('./img/shade-down.png') 0 60px / 8px 90px repeat-x; }
+  .world.base-mode::after { bottom: 0; height: 220px; background: linear-gradient(#05060c, #05060c) 0 100% / 100% 130px no-repeat, url('./img/shade-up.png') 0 0 / 8px 90px repeat-x; }
+  .screen.world.base-mode aside { border-image-source: none; border-color: transparent; background: none; box-shadow: none; }
+  .world.base-mode :is(.wh-mini, .wh-party, .wh-br, .tp, .quick-slots, .wh-cap, .wh-mode) { display: none; }
 
   /* the top: where and what is held, the next raid under it; the menu a key in the corner */
-  .world:is(.base-mode, .raid-mode) aside.wh-tl { left: 8px; top: 8px; width: auto; right: 56px; padding: 0; }
-  .world:is(.base-mode, .raid-mode) .wh-top { margin: 0; padding: 0; color: var(--pip-dim); font-size: 11px; }
-  .world:is(.base-mode, .raid-mode) .wh-top .st-row { display: flex; gap: 10px; line-height: 16px; white-space: nowrap; }
-  .world:is(.base-mode, .raid-mode) .wh-top b, .world:is(.base-mode, .raid-mode) .wh-top .bio b { color: var(--pip); }
-  .world:is(.base-mode, .raid-mode) .st-raid b.warn { color: #ff5a4a; }
-  .world.raid-mode aside.wh-tl, .world:is(.base-mode, .raid-mode) .wh-target { display: none; }
-  .world:is(.base-mode, .raid-mode) aside.wh-tr { left: auto; right: 6px; top: 6px; width: auto; }
-  .world:is(.base-mode, .raid-mode) .wh-menu, .world:is(.base-mode, .raid-mode) .wh-menu:hover { width: 42px; height: 42px; padding: 0; font-size: 22px !important; line-height: 38px; }
+  .world.base-mode aside.wh-tl { left: 8px; top: 8px; width: auto; right: 56px; padding: 0; }
+  .world.base-mode .wh-top { margin: 0; padding: 0; color: var(--pip-dim); font-size: 11px; }
+  .world.base-mode .wh-top .st-row { display: flex; gap: 10px; line-height: 16px; white-space: nowrap; }
+  .world.base-mode .wh-top b, .world.base-mode .wh-top .bio b { color: var(--pip); }
+  .world.base-mode .wh-target { display: none; }
+  .world.base-mode aside.wh-tr { left: auto; right: 6px; top: 6px; width: auto; }
+  .world.base-mode .wh-menu, .world.base-mode .wh-menu:hover { width: 42px; height: 42px; padding: 0; font-size: 22px !important; line-height: 38px; }
 
   /* every key: a dithered plate with a bracket at each corner; the one that is on, a green plate */
-  .world:is(.base-mode, .raid-mode) :is(.wh-menu, .base-menu button, .ult-bar button, .raid-bar button) {
+  .world.base-mode :is(.wh-menu, .ult-bar button) {
     border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated;
     background: url('./img/plate.png') 0 0 / 8px 8px !important; color: var(--pip) !important; box-shadow: none; text-shadow: none; }
-  .world:is(.base-mode, .raid-mode) :is(.base-menu button, .ult-bar button):is(.on) { background: var(--pip) !important; color: #021006 !important; }
-  .world:is(.base-mode, .raid-mode) :is(.wh-menu, .base-menu button, .ult-bar button, .raid-bar button):active { transform: translateY(2px); }
+  .world.base-mode .ult-bar button.on { background: var(--pip) !important; color: #021006 !important; }
+  .world.base-mode :is(.wh-menu, .ult-bar button):active { transform: translateY(2px); }
 
-  /* the day's keys along the bottom, the tool's line over them */
-  .base-menu { left: 6px; right: 6px; bottom: 6px; transform: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0; background: none; border: 0; }
-  .base-menu button { height: var(--row); padding: 0; justify-content: center; align-items: center; white-space: nowrap; }
-  .base-hint { left: 8px; right: 8px; bottom: 64px; transform: none; padding: 0; background: none; border: 0; gap: 8px; color: var(--pip-dim); white-space: nowrap; overflow: hidden; }
-  .base-hint b { color: var(--pip); }
+  /* the siege under the base's own lines: the wave and how many are out, then the dome told in cells */
+  .siege-bar { left: 8px; right: 56px; top: 42px; transform: none; padding: 0; background: none; border: 0; box-shadow: none; justify-content: flex-start; flex-wrap: wrap; gap: 2px 10px; color: var(--pip-dim); font-size: 11px; line-height: 16px; white-space: nowrap; }
+  .siege-bar b { color: var(--pip); }
+  .siege-bar .sg-dome { flex-basis: 100%; }
+  .siege-bar .sg-dome s { color: var(--pip-dark); }
 
-  /* the raid's line under the top: a night that has come and its start key; in the fight, the core and the count */
-  .raid-bar { left: 8px; right: 8px; top: 62px; transform: none; padding: 0; background: none; border: 0; box-shadow: none; justify-content: flex-start; flex-wrap: wrap; gap: 4px 10px; color: var(--pip); font-size: 11px; white-space: nowrap; }
-  .world.raid-mode .raid-bar { top: 8px; right: 56px; line-height: 16px; }
-  .world.raid-mode .raid-bar .rb-core { flex-basis: 100%; }
-  .raid-bar b { color: var(--pip); }
-  .raid-bar .rb-night, .raid-bar .rb-fight { color: #ff5a4a; letter-spacing: 0; }
-  .raid-bar button[data-r="start"] { margin-left: auto; height: 34px; padding: 0 14px; color: #ffb02a !important; }
-  .raid-bar .rb-core s { color: var(--pip-dark); opacity: 1; }
-
-  /* the night's bar: each clone's name and health over its ultimates; one speed key (pressed, it steps on) and the pause */
-  .world.raid-mode .ult-bar { left: 6px; right: 6px; bottom: 6px; transform: none; padding: 0; background: none; border: 0; gap: 4px; align-items: end; }
-  .ult-bar .ub-slots { flex: 1; min-width: 0; gap: 4px; overflow-x: auto; scrollbar-width: none; }
-  .ult-bar .ub-slots::-webkit-scrollbar { display: none; }
+  /* the bar along the bottom: each clone's name and health over its ultimates; under them the keys (down, Auto, speed, pause) */
+  .world.base-mode .ult-bar { left: 6px; right: 6px; bottom: 6px; transform: none; padding: 0; background: none; border: 0; gap: 4px; flex-direction: column; align-items: stretch; }
   .ult-bar .ub-full { display: none; }
   .ult-bar .ub-short { display: inline; }
+  .ult-bar .ub-slots { gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .ult-bar .ub-slots::-webkit-scrollbar { display: none; }
   .ub-clone { flex: 1 0 0; min-width: 62px; gap: 2px; grid-template-rows: 14px 36px; }
   .ub-who { gap: 4px; line-height: 14px; overflow: hidden; }
   .ub-who b { color: var(--pip); }
@@ -61,14 +49,13 @@
   .ult-bar .ub-keys button { flex: 1 1 0; min-width: 0; height: 36px; padding: 0; display: grid; align-content: center; justify-items: center; line-height: 13px; overflow: hidden; }
   .ult-bar button em { margin: 0; color: inherit; }
   .ult-bar button.queued { color: #ffd23a !important; }
-  .ult-bar .ub-side { gap: 4px; align-items: end; }
-  .ult-bar .ub-side button { width: 44px; height: 36px; padding: 0; }
+  .ult-bar .ub-side { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .ult-bar .ub-side button { height: var(--row); padding: 0; }
   .ult-bar .ub-side [data-speed]:not(.on) { display: none; }
-  .world:is(.base-mode, .raid-mode) .ult-bar .ub-side [data-speed].on { background: url('./img/plate.png') 0 0 / 8px 8px !important; color: var(--pip) !important; }
+  .world.base-mode .ult-bar .ub-side [data-speed].on { background: url('./img/plate.png') 0 0 / 8px 8px !important; color: var(--pip) !important; }
 
   /* the log: lines over the shade, no box */
-  .world:is(.base-mode, .raid-mode) .wh-bl { left: 8px; right: 8px; padding: 0 2px; }
-  .world:is(.base-mode, .raid-mode) .wh-bl .wl-line { font-size: 11px; line-height: 15px; }
-  .world:is(.base-mode, .raid-mode) .wl-line b { color: #4f8f66; }
-  .pd-label.post { font-size: 11px; }
+  .world.base-mode .wh-bl { left: 8px; right: 8px; padding: 0 2px; }
+  .world.base-mode .wh-bl .wl-line { font-size: 11px; line-height: 15px; }
+  .world.base-mode .wl-line b { color: #4f8f66; }
 }

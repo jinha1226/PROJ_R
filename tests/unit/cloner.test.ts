@@ -30,12 +30,11 @@ it('bio-matter alone prints nothing: a body is printed only when the player asks
   implantCarried(p, fresh.id, 0); expect(fresh.cls).toBe('mage');
 });
 
-it('no body without the bio-matter, in a fight, or past the clone limit', () => {
+it('no body without the bio-matter or past the beds (the besieged base prints in the middle of its fight)', () => {
   const p = newSurface(4); calm(p);
   entOf(p, 'hero')!.pos = { x: p.cloner!.x, y: p.cloner!.y + 1 };
   p.bio = BODY_COST - 1; expect(canPrintClone(p)).toBe(false);
-  p.bio = 999; p.combat = true; expect(canPrintClone(p)).toBe(false);
-  p.combat = false;
+  p.bio = 999; p.combat = true; expect(canPrintClone(p)).toBe(true);
   // two beds to begin with; a bed more, a clone more; no lab or no quarters, no body
   for (let i = 1; i < 5; i++) printClone(p);
   expect(cloneCap(p)).toBe(2); expect(clones(p)).toHaveLength(2); expect(canPrintClone(p)).toBe(false);

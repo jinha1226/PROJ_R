@@ -7,14 +7,15 @@ import type { UltId } from '../../sim/party/classKit';
 
 /** the clones at the base, in the order they were made (the fallen too: their place in the bar stays, dimmed) */
 export const raidClones = (p: WorldParty): string[] => p.units.filter((u) => u.side === 'hero' && !u.summoner).map((u) => u.id);
-export const RAID_SPEEDS = [1, 2, 4];
+export const BASE_SPEEDS = [1, 2, 4];
 const CELLS = 6;
 /** an ultimate's name on its key where room is short (an upright phone): two or three letters, the key only */
 export const ULT_SHORT: Record<UltId, string> = { earthSlam: '대지격', arrowRain: '화살비', teleport: '점멸', sanctum: '결계', shadowClone: '분신', golem: '골렘', gravity: '중력탄' };
 
 /**
- * The ability bar: one group per clone — its name and health (told in cells), then its ultimates, each with its cooldown
- * (turns left); the one being aimed lit, one already on its way marked. Then the speeds and the pause.
+ * The base's bar: one group per clone — its name and health (told in cells), then its ultimates, each with its cooldown
+ * (turns left); the one being aimed lit, one already on its way marked. Then the keys: send a clone down, Auto (the clones
+ * fire their own ultimates), the speed, the pause.
  */
 export function ultBarHtml(p: WorldParty, aiming: { id: string; slot: number } | null, speed: number, paused = false): string {
   const groups = raidClones(p).map((id) => {
@@ -25,33 +26,35 @@ export function ultBarHtml(p: WorldParty, aiming: { id: string; slot: number } |
     }).join('');
     return `<div class="ub-clone${up ? '' : ' down'}${up && e!.hp < e!.maxHp * 0.35 ? ' low' : ''}"><div class="ub-who"><b><span class="ub-full">${CLASSES[u.cls!].name.slice(0, -1)}</span>${CLASSES[u.cls!].name.slice(-1)}</b><span class="ub-hp">${up ? `<i>${'#'.repeat(full)}</i><s>${'#'.repeat(CELLS - full)}</s>` : '쓰러짐'}</span></div><div class="ub-keys">${keys}</div></div>`;
   }).join('');
-  return `<div class="ub-slots">${groups}</div><div class="ub-side">${RAID_SPEEDS.map((v) => `<button type="button" data-speed="${v}" class="${speed === v ? 'on' : ''}">${v}×</button>`).join('')}<button type="button" data-pause class="${paused ? 'on' : ''}">${paused ? '재개' : '정지'}</button></div>`;
+  return `<div class="ub-slots">${groups}</div><div class="ub-side"><button type="button" data-go>원정</button><button type="button" data-auto class="${p.siege?.auto ? 'on' : ''}">Auto</button>${BASE_SPEEDS.map((v) => `<button type="button" data-speed="${v}" class="${speed === v ? 'on' : ''}">${v}×</button>`).join('')}<button type="button" data-pause class="${paused ? 'on' : ''}">${paused ? '재개' : '정지'}</button></div>`;
 }
 
 /**
- * A raid's hands (spec 2026-10-09 §2.2): the fight runs itself, each clone at its post. The player fires the clones'
- * ultimates — a tap on one in the bar, then a tap on the ground within its reach — and sets the speed. Nothing else.
+ * The base's hands (spec 2026-10-09 "idle defence"): the fight runs itself. The player fires the clones' ultimates — a tap
+ * on one in the bar, then a tap on the ground within its reach — or leaves them to Auto; sends a clone down; sets the speed.
  */
-export class RaidControl {
+export class AbilityBar {
   readonly bar = document.createElement('div');
   aiming: { id: string; slot: number } | null = null;
   on = false;
   private html = '';
 
-  constructor(private readonly p: () => WorldParty, private readonly view: { speed: () => number; setSpeed: (v: number) => void; paused: () => boolean; pause: () => void; say: (text: string) => void }) {
+  constructor(private readonly p: () => WorldParty, private readonly view: { speed: () => number; setSpeed: (v: number) => void; paused: () => boolean; pause: () => void; say: (text: string) => void; go: () => void }) {
     this.bar.className = 'ult-bar'; this.bar.hidden = true;
     this.bar.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('button'); if (!b) return;
       if (b.dataset.ult) { const [id, slot] = b.dataset.ult.split(':'), a = this.aiming; this.aiming = a && a.id === id && a.slot === Number(slot) ? null : { id: id!, slot: Number(slot) }; }
       // the speed that is on, pressed again, steps to the next (an upright phone shows only that one key)
-      if (b.dataset.speed) { const v = Number(b.dataset.speed); this.view.setSpeed(v === this.view.speed() ? RAID_SPEEDS[(RAID_SPEEDS.indexOf(v) + 1) % RAID_SPEEDS.length]! : v); }
+      if (b.dataset.speed) { const v = Number(b.dataset.speed); this.view.setSpeed(v === this.view.speed() ? BASE_SPEEDS[(BASE_SPEEDS.indexOf(v) + 1) % BASE_SPEEDS.length]! : v); }
       if (b.hasAttribute('data-pause')) this.view.pause();
+      if (b.hasAttribute('data-go')) this.view.go();
+      if (b.hasAttribute('data-auto')) { const s = this.p().siege; if (s) { s.auto = !s.auto; this.aiming = null; } }
       this.html = '';
     });
     addEventListener('keydown', (e) => { if (this.on && e.key === 'Escape' && this.aiming) { this.aiming = null; this.html = ''; e.stopImmediatePropagation(); } });
   }
 
-  /** the raid is over (or the screen leaves it): nothing aimed */
+  /** the screen leaves the base: nothing aimed */
   reset(): void { this.aiming = null; this.html = ''; }
 
   /** the ultimate being aimed: who casts it, from where, how far it reaches (null: none, or its caster fell) */

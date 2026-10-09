@@ -318,6 +318,14 @@ export class GridActors {
   }
 
   /** Falls: pushed back from the killer as it goes down, then (a foe) sinks into the floor and is gone, its blood left behind. */
+  /** A fallen figure stands again (a clone risen at the base): its body is cleared away and a fresh one is built where the entity now is. */
+  revive(id: string): void {
+    const v = this.views.get(id);
+    if (!v) return;
+    this.root.remove(v.actor.root); this.views.delete(id);
+    if (this.lastState) this.sync(this.lastState);
+  }
+
   die(id: string | undefined, from?: THREE.Vector3): void {
     const v = this.v(id);
     if (!v || v.dead) return;

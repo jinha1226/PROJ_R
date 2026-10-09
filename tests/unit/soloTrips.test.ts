@@ -59,11 +59,10 @@ it('a run that dies brings back no souls; the body that died had its souls lost'
   expect(soulsOf(clones(p).find((u) => u.id === 'hero')!)).toEqual([]);
 });
 
-it('riding up by beacon does not move the raid schedule', () => {
+it('riding up by beacon does not count as a trip done', () => {
   const { p, b } = twoAtDrill();
-  p.raidClock = 0;
   const d = departSurface(p, 3, takeClone(p, b.id))!;
   expect(beaconReturn(p, takeParty(d))).toEqual([]);
-  expect(p.raidClock).toBe(0); expect(p.trips).toBe(0); expect(p.away).toBe(false);
+  expect(p.trips).toBe(0); expect(p.away).toBe(false);
   expect(living(p).map((u) => u.id).sort()).toEqual([b.id, 'hero'].sort());
 });

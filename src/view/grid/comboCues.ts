@@ -103,8 +103,11 @@ export function comboCue(k: CueKit, e: GEvent): boolean {
     case 'read': { a.anim(e.src, 'interact'); const p = k.at(e.src); if (p) k.particles.spray(p, '#f3e6b0', 14); return true; }
     case 'buff': {
       // three or more effects in one action: a chain, counted over the clone that set it off
-      // a clone at home working the wreck: a swing of the pick and a spark where it lands
-      if (e.text === 'work') { a.anim(e.src, 'mine'); const q = k.at(e.src); if (q) k.particles.vfx.fire('hit', q.clone().setY(0.5), '#ffb02a'); return true; }
+      // the base's dome gives: the ground jumps and the sky flashes (the ring of light is the dome's own: domeView)
+      if (e.text === 'domeBreak') { k.fx.shake(0.5, 0.6); if (e.to) k.fx.flash(new THREE.Vector3(e.to.x * CELL, 0, e.to.y * CELL), '#bff2ff', 60, 0.6, 18); return true; }
+      if (e.text === 'domeUp') return true;
+      // a fallen clone rises by the pod: it stands again where it is put
+      if (e.text === 'revive') { if (e.dst && e.to) { a.revive(e.dst); k.particles.vfx.fire('magic', new THREE.Vector3(e.to.x * CELL, 0, e.to.y * CELL)); } return true; }
       if (e.text === 'chain') { const q = k.at(e.src); if (q) { k.fx.number(`연쇄 ×${e.amount ?? 3}`, 'crit', q, 2.8); if ((e.amount ?? 0) >= 6) k.fx.shake(0.12, 0.16); } return true; }
       // a trigger, an ultimate or a promotion carries its own Korean name: its effect lands where it lands, its name over whoever set it off
       const named = !BUFF_LABEL[e.text ?? ''] && !!e.text && /[가-힣]/.test(e.text);

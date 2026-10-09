@@ -15,7 +15,6 @@ export function upgradeDrill(p: WorldParty, ev: GEvent[] = []): boolean {
   if (!canUpgradeDrill(p)) return false;
   const cost = drillCost(++p.drillLevel)!;
   p.ore -= cost.ore; p.crystal -= cost.crystal;
-  p.raidClock ??= 0;
   ev.push({ t: p.time, type: 'buff', text: 'drill' });
   return true;
 }

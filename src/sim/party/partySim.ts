@@ -97,14 +97,12 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   }
   if (u.order?.kind === 'hold') {
     const me = e.pos, spot = u.order.cell;
-    // at a post in a raid the elites in reach come first (they are the ones that break the walls), then whatever is nearest
-    const rank = (x: Unit) => dist(posOf(p, x), me) - (u.order?.kind === 'hold' && u.order.fixed && !x.swarm ? 100 : 0);
-    const inReach = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && canHit(p, u, x)).sort((a, b) => rank(a) - rank(b))[0];
+    const inReach = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && canHit(p, u, x)).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
     if (inReach) { strike(p, u, inReach, t, ev); return st.atk; }
     // a fighter guards the ground round its spot: it steps out to meet a foe that comes near, then goes back
-    // (never from a post in a raid: there it is a wall, and a wall does not walk off)
-    if (st.range <= 1 && !u.order.fixed) {
-      const near = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && dist(posOf(p, x), spot) <= GUARD).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
+    const guard = u.order.guard ?? GUARD;
+    if (st.range <= 1 && guard > 0) {
+      const near = p.units.filter((x) => x.side !== u.side && alive(p, x) && !x.asleep && dist(posOf(p, x), spot) <= guard).sort((a, b) => dist(posOf(p, a), me) - dist(posOf(p, b), me))[0];
       if (near && stepToward(p, u, posOf(p, near), t, ev)) return st.move;
       if (!near && !same(me, spot) && stepToward(p, u, spot, t, ev)) return st.move;
     }
@@ -159,13 +157,6 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
     const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; }
     // a companion lets a refused skill go (it picks again when it is worth it); the player's own queued skill waits for a target
     if(u.id!==p.manual && !p.manualUlts) u.ultQueued=false;
-  }
-  // a clone off its post in a raid (its own leap or blink took it out): it goes straight back — the wall closes again
-  if (u.order?.kind === 'hold' && u.order.fixed && !same(posOf(p, u), u.order.cell) && !occupied(p, u.order.cell, u.id)) {
-    const e = entOf(p, u.id)!;
-    ev.push({ t: p.time, type: 'move', src: u.id, from: { ...e.pos }, to: { ...u.order.cell }, text: 'leap' });
-    e.pos = { ...u.order.cell }; u.nextAt = p.time + 0.4;
-    p.onMovement?.(ev.slice(start), ev); return;
   }
   u.nextAt = p.time + turn(p, u, p.time, ev) * ((u.status.chill?.until ?? 0) > p.time ? 1.5 : 1);
   p.onMovement?.(ev.slice(start), ev);

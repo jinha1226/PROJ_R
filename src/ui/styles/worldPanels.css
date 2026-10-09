@@ -36,19 +36,14 @@
   .pg-pack { grid-template-columns: 1fr; }
 }
 
-/* ---- raid line (surface) and the night it brings ---- */
-.raid-bar { position: absolute; z-index: 7; left: 50%; top: 96px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; padding: 6px 12px; font: 12px 'Galmuri', monospace; color: #ffb0a0; background: linear-gradient(180deg, #160604f0, #0a0201f0); border: 1px solid #a03a2a; box-shadow: 0 0 16px #ff3a2a44; white-space: nowrap; }
-.raid-bar[hidden] { display: none; }
-.raid-bar b { font-weight: normal; color: #ffe6c0; }
-.raid-bar b.ok { color: #5dff8a; }
-.raid-bar b.low { color: #ff5a4a; }
-.raid-bar .rb-night, .raid-bar .rb-fight { color: #ff5a4a; letter-spacing: 0.2em; animation: wh-blink 1.2s steps(2) infinite; }
-.raid-bar button { font: 12px 'Galmuri', monospace; color: #ffe6c0; background: #2a0804; border: 1px solid #ff6a4a; padding: 5px 10px; cursor: pointer; }
-/* night: a dark red-blue wash over the land (the HUD stays bright) */
-.screen.world.night .grid-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, #0a0a2a33, #04020ecc); mix-blend-mode: multiply; }
-@media (orientation: portrait) and (max-width: 700px) {
-  .raid-bar { top: 90px; left: 6px; right: 6px; transform: none; flex-wrap: wrap; white-space: normal; justify-content: center; gap: 4px 10px; }
-}
+/* ---- the siege's lines at the top of the base ---- */
+.siege-bar { position: absolute; z-index: 7; left: 50%; top: 14px; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; padding: 6px 12px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; white-space: nowrap; }
+.siege-bar[hidden] { display: none; }
+.siege-bar b { font-weight: normal; color: #e6ffb0; }
+.siege-bar small { margin-left: 6px; color: #34a85c; }
+.siege-bar .sg-dome i { font-style: normal; color: #5ae0ff; }
+.siege-bar .sg-dome s { text-decoration: none; opacity: 0.25; }
+.siege-bar .sg-dome.low i, .siege-bar .sg-dome.down b { color: #ff5a4a; }
 
 /* ---- Pip window: roster tab ---- */
 .pr { grid-column: 1 / -1; display: grid; gap: 4px; align-content: start; }
@@ -161,18 +156,12 @@
 .base-frame .menu-row > button:only-child { flex: 1; }
 /* base mode: the selected clone's card goes (a click opens the clone's own window) */
 .world.base-mode .wh-br { display: none; }
-.base-hint { position: absolute; z-index: 9; left: 50%; bottom: 60px; transform: translateX(-50%); display: flex; gap: 10px; align-items: baseline; padding: 4px 10px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; white-space: nowrap; pointer-events: none; }
-.base-hint[hidden] { display: none; }
-.base-hint b { font-weight: normal; color: #e6ffb0; }
-.pd-label.post { color: #5ae0ff; text-shadow: 0 0 2px #000, 0 1px 0 #000; }
-.pd-label.post.on { color: #ffd23a; }
 /* a module's name over it by day; a broken one in the raid's red */
 .pd-label.mod { color: #9dffb8; text-shadow: 1px 0 #000, -1px 0 #000, 0 1px #000, 0 -1px #000, 0 2px #000; }
 .pd-label.mod.off { color: #ff5a4a; }
 .base-frame .warn { color: #ff5a4a; font-weight: normal; }
 
-/* raid mode: the ability bar along the bottom */
-.world.raid-mode .tp, .world.raid-mode .place-prompts { display: none; }
+/* the base's bar along the bottom: the clones' ultimates and the keys */
 .ult-bar { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); bottom: 10px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; }
 .ult-bar[hidden] { display: none; }
 .ult-bar .ub-slots { display: flex; gap: 8px; }
@@ -193,18 +182,3 @@
 .ult-bar .ub-short { display: none; }
 .ult-bar .ub-side { display: flex; gap: 4px; align-items: center; }
 .ult-bar .ub-side button { min-width: 0; }
-.world.raid-mode .quick-slots, .world.raid-mode .wh-br { display: none; }
-.world.raid-mode .ult-bar { bottom: 96px; }
-/* base mode's keys along the bottom */
-.base-menu { position: absolute; z-index: 9; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px 8px; font: 13px 'Galmuri', monospace; background: #03140af2; border: 1px solid #1f7a3e; }
-.base-menu[hidden] { display: none; }
-.base-menu button { display: flex; gap: 6px; align-items: baseline; padding: 5px 12px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; }
-.base-menu button small { color: #34a85c; font-size: 10px; }
-.base-menu button.on { background: #1f7a3e; color: #021006; }
-.world.base-mode .wh-bl { bottom: 96px; }
-.st-raid { color: #9dffb8; }
-.st-raid b { font-weight: normal; color: #e6ffb0; }
-.st-raid b.warn { color: #ff5a4a; }
-.raid-bar .rb-core i { font-style: normal; color: #5ae0ff; }
-.raid-bar .rb-core s { text-decoration: none; opacity: 0.25; }
-.raid-bar .rb-core.low i { color: #ff5a4a; }

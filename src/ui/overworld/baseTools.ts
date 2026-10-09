@@ -1,60 +1,22 @@
-import { barricadeCap, buildingsAt, canPlace, pickUp, place } from '../../sim/base/buildings';
-import { canMoveModule, footprint, moveModule, type ModuleId } from '../../sim/base/modules';
-import { canPost, setPost } from '../../sim/base/posts';
-import { same, type Cell, type GEvent } from '../../sim/grid/types';
-import { alive, entOf, stats, unitOf } from '../../sim/party/partyCore';
-import { CLASSES } from '../../sim/party/partyDefs';
+import type { Cell } from '../../sim/grid/types';
 import type { WorldParty } from '../../sim/overworld/worldSim';
-import { living } from '../../sim/roam/roam';
-import type { GridRuntime } from '../../view/grid/gridRuntime';
 import { BaseView } from '../../view/overworld/baseView';
 import { MODULE_NAMES } from './basePanels';
 import '../styles/baseHud.css';
 
-/** what is done to the base's ground by day: laying barricades, giving the clones their posts, moving a module */
-export type BaseTool = 'wall' | 'post' | 'move';
-
-/** the letter a clone's post is marked with (MODEL W → W) */
-export const postLetter = (p: WorldParty, id: string): string => CLASSES[unitOf(p, id)?.cls ?? 'shell'].name.slice(-1);
-
-/** The line over the base keys: what the tool in hand does and how much of it is left. */
-export function toolHint(p: WorldParty, tool: BaseTool | null, picked: string | null, moving: ModuleId | null = null): string {
-  if (tool === 'move') return moving ? `<b>${MODULE_NAMES[moving]}</b><span>옮길 자리를 누른다</span>` : '';
-  if (tool === 'wall') return `<b>바리케이드 ${p.buildings.length}/${barricadeCap(p)}</b><span>땅을 눌러 놓고 · 다시 눌러 거둔다</span>`;
-  if (tool !== 'post') return '';
-  const u = picked ? unitOf(p, picked) : undefined;
-  if (!u) return '<b>자리</b><span>클론을 누르고 · 설 칸을 누른다</span>';
-  const r = stats(u, p.time, p).range;
-  return `<b>${CLASSES[u.cls!].name}</b><span>${r > 1 ? `사거리 ${r}` : '근접'} · 설 칸을 누른다${u.post ? ' · 제 자리를 누르면 해제' : ''}</span>`;
+/** What is written over the base's ground: each module's name (and that the workshop is still broken). */
+export function baseLabels(p: WorldParty): { at: Cell; y: number; text: string; on: boolean; cls: string }[] {
+  return (p.modules ?? []).map((m) => ({ at: { x: m.at.x + 0.5, y: m.at.y + 0.5 }, y: 2.1, text: `${MODULE_NAMES[m.id]}${m.broken ? ' · 고장' : ''}`, on: false, cls: m.broken ? ' mod off' : ' mod' }));
 }
 
-/** What is written over the base's ground by day: each module's name (and that it is broken), each post's letter (the picked clone's lit). */
-export function baseLabels(p: WorldParty, picked: string | null): { at: Cell; y: number; text: string; on: boolean; cls: string }[] {
-  const mods = (p.modules ?? []).map((m) => ({ at: { x: m.at.x + 0.5, y: m.at.y + 0.5 }, y: 2.1, text: `${MODULE_NAMES[m.id]}${m.broken ? ' · 고장' : ''}`, on: false, cls: m.broken ? ' mod off' : ' mod' }));
-  const posts = living(p).filter((u) => u.post).map((u) => ({ at: u.post!, y: 0.1, text: postLetter(p, u.id), on: u.id === picked, cls: ' post' }));
-  return [...mods, ...posts];
-}
-
-/**
- * The base's ground by day (spec 2026-10-09 §2.1): with the barricade tool a tap lays one or takes one up; with the post tool
- * a tap on a clone picks it and a tap on a cell is where it will stand at night; a module being moved goes where the next
- * tap says. Also the start-floor choice at the shaft.
- */
+/** What the screen keeps for the base: the figures on its ground (modules, the dome) and the start-floor choice at the shaft. */
 export class BaseTools {
-  readonly el = document.createElement('div');
   readonly view: BaseView;
-  tool: BaseTool | null = null;
-  /** the clone whose post is being chosen; the module being moved */
-  picked: string | null = null;
-  moving: ModuleId | null = null;
-  private html = '';
   private readonly floors = document.createElement('div');
   private pickFloor: ((f: number) => void) | null = null;
 
-  constructor(private readonly p: () => WorldParty, private readonly say: (text: string) => void, private readonly live: (ev: GEvent[]) => void) {
+  constructor(private readonly p: () => WorldParty) {
     this.view = new BaseView(import.meta.env.BASE_URL);
-    this.el.className = 'base-hint';
-    this.el.hidden = true;
     this.floors.className = 'pip-win menu-win';
     this.floors.hidden = true;
     this.floors.addEventListener('click', (e) => {
@@ -63,62 +25,11 @@ export class BaseTools {
     });
   }
 
-  /** the hint line and the floor chooser, for the screen to mount */
-  get parts(): HTMLElement[] { return [this.el, this.floors]; }
-  get open(): boolean { return this.tool !== null; }
+  /** the floor chooser, for the screen to mount */
+  get parts(): HTMLElement[] { return [this.floors]; }
   get choosing(): boolean { return !this.floors.hidden; }
 
-  /** Takes a tool in hand (the same one again puts it down). */
-  pick(tool: 'wall' | 'post'): void { this.tool = this.tool === tool ? null : tool; this.picked = null; this.moving = null; }
-  /** a module is taken up: the next tap on the ground sets it down */
-  move(id: ModuleId): void { this.tool = 'move'; this.moving = id; this.picked = null; }
-  close(): void { this.tool = null; this.picked = null; this.moving = null; }
-
-  /** A tap on the base's ground with a tool in hand (`figure`: the clone whose figure the tap landed on, if any). True when the tap was the tool's. */
-  click(c: Cell, figure?: string): boolean {
-    const p = this.p();
-    if (!this.tool || p.raid) return false;
-    if (this.tool === 'move') {
-      const ev: GEvent[] = [];
-      if (this.moving && moveModule(p, this.moving, c, ev)) { this.live(ev); this.close(); } else this.say('놓을 수 없는 자리');
-      return true;
-    }
-    if (this.tool === 'wall') {
-      const b = buildingsAt(p, c), ev: GEvent[] = [];
-      if (b) pickUp(p, b.id);
-      else if (place(p, c, ev)) this.live(ev);
-      else this.say(p.buildings.length >= barricadeCap(p) ? '바리케이드가 없다' : '놓을 수 없는 자리');
-      return true;
-    }
-    const who = living(p).find((u) => u.id === figure) ?? living(p).find((u) => same(entOf(p, u.id)!.pos, c)) ?? (this.picked ? undefined : living(p).find((u) => u.post && same(u.post, c)));
-    if (who && who.id !== this.picked) { this.picked = who.id; return true; }
-    if (!this.picked) return true;
-    if (!setPost(p, this.picked, c)) this.say('설 수 없는 자리');
-    return true;
-  }
-
-  /** The tool's marks on the field: the cell under the cursor (green where it would work), the picked clone's reach. True while it owns the marks. */
-  marks(rt: GridRuntime, hover: Cell | null): boolean {
-    const p = this.p();
-    if (!this.tool || p.raid) { rt.showReach(null, 0); return false; }
-    rt.showPath(null);
-    if (this.tool === 'move') { rt.showReach(null, 0); rt.showAim(hover && this.moving ? footprint(hover) : null, !!hover && !!this.moving && canMoveModule(p, this.moving, hover)); return true; }
-    if (this.tool === 'wall') { rt.showReach(null, 0); rt.showAim(hover ? [hover] : null, !!hover && (!!buildingsAt(p, hover) || canPlace(p, hover))); return true; }
-    const u = this.picked ? unitOf(p, this.picked) : undefined;
-    if (!u || !alive(p, u)) { this.picked = null; rt.showAim(null, true); rt.showReach(null, 0); return true; }
-    // the reach is drawn from where the clone would stand: the cell pointed at, else its post, else where it is now
-    const ok = !!hover && canPost(p, u.id, hover), from = (ok ? hover : null) ?? u.post ?? entOf(p, u.id)!.pos;
-    rt.showAim(hover ? [hover] : null, ok);
-    rt.showReach(from, Math.max(1, stats(u, p.time, p).range));
-    return true;
-  }
-
-  update(dt = 0): void {
-    const p = this.p();
-    this.view.sync(p.buildings, p.modules, dt);
-    const html = p.raid ? '' : toolHint(p, this.tool, this.picked, this.moving);
-    if (html !== this.html) { this.html = html; this.el.innerHTML = html; this.el.hidden = !html; }
-  }
+  update(dt = 0): void { const p = this.p(); this.view.sync(p, dt); }
 
   /** At the shaft with deeper starts open: ask which floor to begin on. */
   chooseFloor(floors: number[], pick: (f: number) => void): void {

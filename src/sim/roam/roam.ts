@@ -31,6 +31,8 @@ export interface RoamParty extends Party {
   base: Cell;
   /** when the base wakes a new empty body after the last clone fell (if it has the stuff for one) */
   rewakeAt?: number;
+  /** cells always in sight (by index), whoever stands where */
+  watch?: number[];
   /** bio-matter gathered from the fallen: what new bodies are printed from */
   bio: number;
   /** every clone fell and there was not enough bio-matter for another body (or, below ground, nobody is left to come back) */
@@ -76,6 +78,8 @@ export function look(p: RoamParty): void {
   const s = p.s;
   s.visible = new Set();
   for (const u of living(p)) for (const k of computeFov(s.map, entOf(p, u.id)!.pos, p.sight)) s.visible.add(k);
+  // ground kept under watch whoever stands where (the besieged base watches the horde's whole way in)
+  for (const k of p.watch ?? []) s.visible.add(k);
   for (const k of s.visible) s.seen[k] = 1;
 }
 
@@ -147,9 +151,10 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
   if (named && p.combat) return;
   const t = p.time;
   // a clone that falls is gone, soul and all (no stone is left to recover)
-  // a raid at the base takes no souls: the downed rise when it ends (raids.finish)
-  if (!named && (p as { raid?: unknown }).raid) return;
-  for (const u of clones(p)) if (!named && !alive(p, u) && soulsOf(u).length) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.souls = []; }
+  // the siege at the base takes no souls and no bodies: a clone that falls there rises again (siege.ts). Only with no clone
+  // left at all (the last one fell below) does the rule further down print a new body
+  const sieged = !!(p as { siege?: unknown }).siege && clones(p).length > 0;
+  if (!sieged) for (const u of clones(p)) if (!named && !alive(p, u) && soulsOf(u).length) { ev.push({ t, type: 'drop', src: u.id, text: 'soulLost' }); u.souls = []; }
   for (const soul of p.souls) {
     if (soul.taken || Boolean(soul.hero) !== named) continue;
     const by = living(p).find((u) => dist(entOf(p, u.id)!.pos, soul.pos) <= 1);
@@ -162,7 +167,7 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
     p.carried.push(carried);
   }
   // the last clone fell: one more empty body if the stuff is there, else it is over
-  if (!named && !living(p).length && !p.over) {
+  if (!named && !sieged && !living(p).length && !p.over) {
     if (!p.printHere || p.bio < BODY_COST) { p.over = true; ev.push({ t, type: 'dead', text: p.printHere ? 'wiped' : 'lost' }); return; }
     p.rewakeAt ??= t + 3;
     if (t >= p.rewakeAt) { p.rewakeAt = undefined; p.bio -= BODY_COST; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
@@ -206,8 +211,8 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   }
   for (const f of p.units) if (f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) > LEASH && t >= (f.alertUntil ?? 0)) f.asleep = true;
   const was = p.combat;
-  // a raid is one fight from its first raider to its last (the lulls between waves are no rest)
-  p.combat = !!(p as { raid?: unknown }).raid || p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
+  // the siege of the base is one fight without end (the lulls between waves are no rest)
+  p.combat = !!(p as { siege?: unknown }).siege || p.units.some((f) => f.side === 'foe' && !f.asleep && alive(p, f) && nearest(p, entOf(p, f.id)!.pos) <= ENGAGE);
   if (!was && p.combat) for (const u of living(p)) emit(p, 'combatStart', { t, src: u, ev });
   if (!p.combat) for (const u of living(p)) {u.crisisUsed = false;u.immortalUsed=false;}
   souls(p, ev, true);

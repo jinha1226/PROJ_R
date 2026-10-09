@@ -8,8 +8,6 @@ export function approachUltimate(p: Party, u: Unit, ev: GEvent[]): boolean {
   if (!s || !u.ultCell) return false;
   const e = entOf(p, u.id)!;
   if (dist(e.pos, u.ultCell) <= ULT_REACH[s.ult]) return false;
-  // a clone held to its post (a raid) never walks to cast: what was aimed out of reach is let go
-  if (u.order?.kind === 'hold' && u.order.fixed) { u.ultQueued = false; return false; }
   if (stepToward(p, u, u.ultCell, p.time, ev)) { u.nextAt = p.time + stats(u, p.time, p).move; return true; }
   // no way closer: let it go
   u.ultQueued = false;

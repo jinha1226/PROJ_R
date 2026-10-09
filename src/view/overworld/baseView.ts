@@ -1,51 +1,27 @@
 import * as THREE from 'three';
-import type { Building } from '../../sim/base/buildings';
-import type { Module } from '../../sim/base/modules';
+import { domeMax, domeR, domeUp } from '../../sim/base/siege';
+import type { WorldParty } from '../../sim/overworld/worldSim';
+import { DomeView } from './domeView';
 import { ModuleViews } from './moduleView';
 
-/**
- * What stands on the base's ground: its modules (moduleView.ts) and its barricades — a low plated block with a warning
- * strip, low enough to shoot over, chunky enough to read at the dot look's size. A broken one lies flat until the raid is over.
- */
+/** What stands on the base's ground: its modules (moduleView.ts) and the dome over them (domeView.ts). */
 export class BaseView {
   readonly root = new THREE.Group();
-  private readonly shown = new Map<string, THREE.Object3D>();
-  private readonly plate = new THREE.MeshStandardMaterial({ color: '#566270', roughness: 0.7, metalness: 0.25 });
-  private readonly dark = new THREE.MeshStandardMaterial({ color: '#2a323c', roughness: 0.8, metalness: 0.2 });
-  private readonly strip = new THREE.MeshBasicMaterial({ color: '#ffb02a' });
   readonly modules: ModuleViews;
+  readonly dome = new DomeView();
 
-  constructor(base: string) { this.modules = new ModuleViews(base); this.root.add(this.modules.root); }
+  constructor(base: string) { this.modules = new ModuleViews(base); this.root.add(this.modules.root, this.dome.root); }
 
-  /** Builds and drops figures so the scene matches the base's barricades and modules. */
-  sync(buildings: Building[], modules: Module[] = [], dt = 0): void {
-    this.modules.sync(modules, dt);
-    const live = new Set(buildings.map((b) => b.id));
-    for (const [id, o] of this.shown) if (!live.has(id)) { this.root.remove(o); this.shown.delete(id); }
-    for (const b of buildings) if (!this.shown.has(b.id)) { const o = this.make(); o.position.set(b.at.x, 0, b.at.y); this.root.add(o); this.shown.set(b.id, o); }
-    for (const b of buildings) { const o = this.shown.get(b.id); if (o) o.scale.y = b.broken ? 0.25 : 1; }
-  }
-
-  /** One barricade, standing on its cell's middle. */
-  make(): THREE.Object3D {
-    const g = new THREE.Group();
-    const box = (w: number, h: number, d: number, m: THREE.Material, x = 0, y = 0, z = 0) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-      mesh.position.set(x, y + h / 2, z);
-      mesh.castShadow = mesh.receiveShadow = true;
-      g.add(mesh);
-    };
-    // a dark foot, a plated block, a warning strip round its top: nothing thin (thin parts vanish at the dot look's size)
-    box(0.94, 0.12, 0.94, this.dark);
-    box(0.82, 0.3, 0.82, this.plate, 0, 0.12);
-    box(0.86, 0.08, 0.86, this.strip, 0, 0.42);
-    box(0.74, 0.1, 0.74, this.plate, 0, 0.5);
-    return g;
+  /** The scene is made to match the base: the modules where they stand, the dome as strong as it is. */
+  sync(p: WorldParty, dt = 0): void {
+    this.modules.sync(p.modules ?? [], dt);
+    const s = p.siege;
+    this.dome.root.visible = !!s && this.modules.up;
+    if (s) this.dome.sync({ x: p.base.x + 1, y: p.base.y + 1 }, domeR(p), s.domeHp, domeMax(p), domeUp(p), dt);
   }
 
   dispose(): void {
     this.modules.dispose();
     this.root.clear();
-    this.shown.clear();
   }
 }

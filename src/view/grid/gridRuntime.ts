@@ -52,6 +52,8 @@ export class GridRuntime {
   focusId = 'hero';
   /** a camera free of the clones (the base's): it aims at this cell instead of following the focus */
   freeAim: { x: number; y: number } | null = null;
+  /** a fight watched from above with nobody under the hand (the besieged base): no catch of breath on a blow, no red edge when a clone is struck, no jolt */
+  calm = false;
   /** the world map's glow pass */
   private bloom?: Bloom;
   actors: GridActors;
@@ -298,6 +300,7 @@ export class GridRuntime {
           this.particles.vfx.fire(e.crit ? 'crit' : 'hit', p, ally ? '#ff5a3a' : '#c81e1e');
           if (!ally) this.gore(p, e.crit ? 12 : 7, at(e.src));
         }
+        if (this.calm) break;
         this.fx.hitStop(feel().hitStop);
         if (ally) this.fx.hurt();
         if (e.crit) this.punch = 0.16;
@@ -311,7 +314,7 @@ export class GridRuntime {
       }
       case 'reload': a.anim(e.src, 'reload'); break;
       case 'pickup': a.anim(e.src, 'pickup'); break;
-      case 'die': { a.die(e.dst, at(e.src)); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); this.fx.hitStop(feel().killStop); if (e.dst) this.strikes.kill(e.dst, p); } break; }
+      case 'die': { a.die(e.dst, at(e.src)); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); if (!this.calm) this.fx.hitStop(feel().killStop); if (e.dst) this.strikes.kill(e.dst, p); } break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'energy': if (e.to) this.fx.energy(cellVec(e.to), e.amount ?? 0); break;

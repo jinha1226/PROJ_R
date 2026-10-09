@@ -11,8 +11,8 @@ test('the title drops a pod: an empty clone steps out beside it, the base unfold
   await expect(page.locator('.wh-party .pf')).toContainText('MODEL 0');
   await expect(page.locator('.wh-top')).toContainText('턴');
   await expect(page.locator('.wh-log')).toContainText('포드가 착륙했다');
-  // base mode: no clone under the hand, the base menu along the bottom
-  await expect(page.locator('.base-menu')).toBeVisible({ timeout: 60_000 });
+  // base mode: no clone under the hand, the base's bar along the bottom
+  await expect(page.locator('.ult-bar')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.world.base-mode')).toHaveCount(1);
   // the Pip-Boy window opens on C and closes on Esc
   await page.keyboard.press('c');
@@ -23,23 +23,27 @@ test('the title drops a pod: an empty clone steps out beside it, the base unfold
   expect(errors).toEqual([]);
 });
 
-test('a raid night: the raid starts in running time with its ultimate bar, and its end shows the result', async ({ page }) => {
+test('the besieged base: the waves come and are counted, and a broken dome throws them back and relights', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('./?seed=3&raid&lvl&debug');
+  await page.goto('./?seed=3&lvl&debug&wave=3');
   await page.click('[data-testid="to-grid"]', { timeout: 60_000 });
-  await expect(page.locator('.base-menu')).toBeVisible({ timeout: 60_000 });
-  await page.click('[data-r="start"]');
-  await expect(page.locator('.ult-bar')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.world.raid-mode')).toHaveCount(1, { timeout: 30_000 });
-  // end it at once: the horde still to come and the raiders out there fall
-  await page.evaluate(() => {
-    const w = (window as unknown as { __world: { p: { raid: { group: number } | null; raidQueue: unknown[]; units: { id: string; group?: number }[]; s: { foes: { id: string; alive: boolean }[] } } } }).__world;
-    const p = w.p; p.raidQueue = [];
-    for (const u of p.units) if (u.group === p.raid?.group) { const e = p.s.foes.find((f) => f.id === u.id); if (e) e.alive = false; }
-  });
-  await expect(page.locator('.pip-title', { hasText: '습격 격퇴' })).toBeVisible({ timeout: 30_000 });
-  // the mode changes on the next frame, and a software renderer's frame can take seconds
+  await expect(page.locator('.ult-bar')).toBeVisible({ timeout: 60_000 });
+  // the mode changes on a frame, and a software renderer's frame can take seconds
   await expect(page.locator('.world.base-mode')).toHaveCount(1, { timeout: 30_000 });
+  await expect(page.locator('.siege-bar')).toContainText('돔', { timeout: 30_000 });
+  type World = { skip(n: number): void; p: { siege: { wave: number; domeHp: number; downUntil: number }; units: { group?: number }[] } };
+  // time runs on: the third wave steps out
+  await page.evaluate(() => (window as unknown as { __world: World }).__world.skip(20));
+  expect(await page.evaluate(() => (window as unknown as { __world: World }).__world.p.siege.wave)).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('.siege-bar')).toContainText(/파도\s*[3-9]/, { timeout: 30_000 });
+  // the dome brought to nothing: the horde is gone and the dome is down for a while
+  const after = await page.evaluate(() => {
+    const w = (window as unknown as { __world: World }).__world;
+    w.p.siege.domeHp = 0; w.skip(1);
+    return { down: w.p.siege.downUntil > 0, raiders: w.p.units.filter((u) => u.group === 1000).length };
+  });
+  expect(after).toEqual({ down: true, raiders: 0 });
+  await expect(page.locator('.siege-bar')).toContainText('돔 재가동', { timeout: 30_000 });
   expect(errors).toEqual([]);
 });

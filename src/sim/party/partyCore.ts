@@ -23,12 +23,10 @@ import { shoutAmp } from './cardsWarrior';
 import { elementShooterAmp } from './cardsArcher';
 import { holyAmp } from './cardsCleric';
 
-/** `hold` with `fixed`: the unit never leaves its cell (a clone at its post in a raid: it is a wall there) */
-export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell; fixed?: boolean } | null;
+/** `hold`: the unit keeps its cell; a melee one goes for a foe that comes within `guard` cells of it (3 unless said; 0: never) and comes back */
+export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'hold'; cell: Cell; guard?: number } | null;
 
 export interface Unit {
-  /** where this clone stands when a raid comes (chosen by day; none: wherever it happens to be) */
-  post?: Cell;
   fastNext?: boolean; attackMult?: number; ironGuard?: boolean; guardIntercepted?: boolean;
   ultReady: number; ultQueued?: boolean; ultSlot?: number; ultCell?: Cell; immuneUntil?: number; leechUntil?: number; summoner?: string; summonedUntil?: number;
   status: Partial<Record<StatusId, Status>>; trig: Record<string, number>; nth: number; still: number; crisisUsed: boolean; triggers?: TriggerDef[]; moved?: boolean;
@@ -55,10 +53,10 @@ export interface Unit {
   /** a golem, a shadow clone (copies its owner, takes no turns), a curse (takes 20% more) and who laid it */
   golem?: boolean; mirror?: boolean; cursedUntil?: number; cursedBy?: string;
   /** the rogue's ki, a finishing blow under way (its target) and a blow struck from hiding (when) */
-  /** base mode: when an idle clone at home strolls again; a clone hurt in a raid (it skips the next trip) */
-  idleAt?: number; injured?: boolean;
-  /** base mode, gathering on: the cell beside the pod or a module this clone works at, and when its next swing is */
-  workCell?: Cell; workAt?: number;
+  /** the siege at the base: when this clone fell (it rises a while after), whether it has fallen back under the dome to mend, and the place it keeps (before the dome, at its rim, inside) */
+  downAt?: number; fallBack?: boolean; station?: { mode: 'front' | 'rim' | 'in'; cell: Cell };
+  /** a fallen raider: when its body is cleared away */
+  goneAt?: number;
   /** a raid's fodder: moved by the horde (free coordinates sx, sy; its cell is where they fall), never by its own turns */
   swarm?: boolean; sx?: number; sy?: number; hitAt?: number; stillT?: number;
   /** a raider whose fall has been paid for (raid loot) */
@@ -127,7 +125,7 @@ export interface Unit {
   manualSkills?: boolean;
 }
 export interface Party {
-  /** a raid: the clones' ultimates are the player's to fire (no clone reaches for its own) */
+  /** the base: the clones' ultimates are the player's to fire (no clone reaches for its own) unless Auto is on */
   manualUlts?: boolean;
   foeAction?: (u: Unit, t: number, ev: GEvent[]) => number | undefined;
   grounds?: {at:Cell;by:string;until:number;next:number;kind?:'burn'|'poison';r?:number}[];

@@ -96,13 +96,13 @@ async function looksDemo(): Promise<void> {
   }
 }
 
-/** `?demo=raid`: a base with three clones at their posts and a raid under way (see raidDemo.ts). */
+/** `?demo=raid`: the besieged base with three clones, the siege some waves in (see raidDemo.ts). */
 async function raidDemo(): Promise<void> {
   try {
     const [{ WorldScreen }, { raidArena }, { NatureKit }, lib, kit, weapons] = await Promise.all([import('../ui/overworld/worldScreen'), import('../ui/demo/raidDemo'), import('../view/overworld/natureKit'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
     setWeaponKit(weapons);
     const nature = await NatureKit.load(import.meta.env.BASE_URL).catch(() => undefined);
-    const stage = (): void => router.go(new WorldScreen(lib, kit, { party: raidArena(urlSeed || 42, params.has('n') ? Number(params.get('n')) : 4), nature, restart: stage }));
+    const stage = (): void => router.go(new WorldScreen(lib, kit, { party: raidArena(urlSeed || 42, params.has('n') ? Number(params.get('n')) : 12), nature, restart: stage }));
     stage();
   } catch (e) {
     showFatal(root, e);

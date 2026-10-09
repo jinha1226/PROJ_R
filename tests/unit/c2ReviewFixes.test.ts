@@ -9,6 +9,8 @@ import { implant, clones, living } from '../../src/sim/roam/roam';
 import { benchModel } from '../../src/ui/overworld/workbench/benchModel';
 import { benchHtml } from '../../src/ui/overworld/workbench/benchHtml';
 import type { GEvent } from '../../src/sim/grid/types';
+import { departSurface, returnToSurface } from '../../src/sim/base/trips';
+import { takeClone, takeParty } from '../../src/sim/roam/carry';
 
 const base = () => { const p = newSurface(3); p.ore = 500; p.crystal = 100; p.bio = 100; return p; };
 const give = (p: ReturnType<typeof base>, def: string) => { const id = `t-${p.nextItem++}`; p.pack.push({ id, def, power: 0 }); return id; };
@@ -29,7 +31,9 @@ it('a body woken after a wipe carries the workshop too', () => {
   const p = base();
   dismantle(p, give(p, 'flameSword'));
   const power = sfOf(p).gun.power;
-  entOf(p, 'hero')!.alive = false;
+  // the last clone falls below (at the besieged base a clone that falls just rises again): the base prints a new body
+  const d = departSurface(p, 5, takeClone(p, 'hero'))!; d.s.hero.alive = false;
+  returnToSurface(p, takeParty(d));
   for (let i = 0; i < 50 && !living(p).length; i++) worldTick(p, 0.1);
   const woke = living(p)[0]!;
   expect(woke.gear!.weapon!.power).toBe(power);

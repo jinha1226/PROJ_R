@@ -53,7 +53,7 @@ export function soulPrompt(p: RoamParty, live: (ev: GEvent[]) => void, choose: (
 /** '클론 생성' over the lab's printer while a clone stands by it: greyed with the bio-matter short or the party full. */
 export function clonerPrompt(p: WorldParty, live: (ev: GEvent[]) => void): Prompt[] {
   const at = p.cloner;
-  if (!at || p.away || p.raid || p.combat || !living(p).some((u) => dist(entOf(p, u.id)!.pos, at) <= CLONER_REACH)) return [];
+  if (!at || p.away || p.siege || p.combat || !living(p).some((u) => dist(entOf(p, u.id)!.pos, at) <= CLONER_REACH)) return [];
   const full = living(p).length >= MAX_CLONES;
   const label = full ? `클론 ${living(p).length}/${MAX_CLONES}` : `클론 생성 · 생체 ${p.bio}/${BODY_COST}`;
   return [{ at, label, off: !canPrintClone(p), act: () => live(printClone(p)) }];

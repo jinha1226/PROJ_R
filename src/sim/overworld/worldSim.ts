@@ -1,8 +1,5 @@
-import { raidTurn } from '../base/raidAi';
-import { resolveRaid, type Raid } from '../base/raids';
-import { swarmTick } from '../base/swarm';
-import { payRaidKills } from '../base/raidLoot';
-import { POD_MAX, type Building } from '../base/buildings';
+import { siegeTurn } from '../base/siegeAi';
+import { siegeTick, startSiege, type Siege, type SiegeSpawn } from '../base/siege';
 import { placeModules, type BaseUpgrade, type Module } from '../base/modules';
 import { G, starterGear, nextItemId } from '../delve/gear';
 import { newState } from '../grid/state';
@@ -23,18 +20,15 @@ export interface WorldParty extends RoamParty { ground: Ground[]; camps: Camp[];
   drill?: Cell;
   /** the clone printer: bodies are printed there when the player asks */
   cloner?: Cell;
-  drillLevel: number; buildings: Building[]; nextBuilding: number;
-  trips: number; raidClock: number | null; raidsDone: number; deepest: number; podHp: number; raid: Raid | null;
-  /** a raid night that has come but waits for the player to start it: its size and the edges it will come from (0 W, 1 E, 2 N, 3 S) */
-  raidReady: { size: number; sides: number[] } | null; away: boolean; baseEvents: GEvent[];
-  /** how the last raid went (the result window reads it): won or lost, the clones it left injured, the buildings it cost */
-  lastRaid?: { won: boolean; fell?: 'pod' | 'down'; injured: string[]; buildings: string[]; modules?: string[]; kills: number; ore: number; crystal: number };
-  /** the fodder blows each of our structures can still take this turn (swarm.ts: only the front rank reaches it) */
-  blows?: Record<string, number>;
+  drillLevel: number;
+  /** trips down completed, and the deepest floor reached */
+  trips: number; deepest: number;
+  /** a clone is down below: the surface waits (its clock stands still) */
+  away: boolean; baseEvents: GEvent[];
   /** the modules round the pod (the pod's ground only) and what they have been given (modules.ts) */
   modules?: Module[]; upgrades?: Partial<Record<BaseUpgrade, number>>;
-  /** the raiders still to step out (the horde's waves) and what this raid's kills have paid so far */
-  raidQueue?: import('../base/swarm').RaidSpawn[]; raidLoot?: { kills: number; ore: number; crystal: number };
+  /** the siege of the base (the pod's ground only) and the raiders of the coming wave still to step out */
+  siege?: Siege; siegeQueue?: SiegeSpawn[];
   pod?: boolean }
 
 const FOE_OF: Record<string, FoeId> = { minion: 'goblin', archer: 'archer', brute: 'brute' };
@@ -49,7 +43,7 @@ function fromWorld(w: World, seed: number): WorldParty {
   const m = w.map;
   const s = newState(m, seed, 'pistol', 1);
   s.hero.hp = s.hero.maxHp = CLASSES.shell.hp; s.hero.awake = false;
-  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, raidClock: null, raidsDone: 0, deepest: 1, podHp: POD_MAX, raid: null, raidReady: null, away: false, baseEvents: [], buildings: [], nextBuilding: 1, drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
+  const p: WorldParty = { s, units: [], time: 0, wave: 0, combat: false, leader: 'hero', roam: true, sight: SIGHT, ground: w.ground, camps: w.camps, base: w.base, claimed: new Uint8Array(m.w * m.h), souls: w.souls, lights: w.lights, ore: 0, crystal: 0, foundHeroes: [], carried: [], pack: [{id:'item-1',consumable:'potion'},{id:'item-2',consumable:'potion'}], nextItem: 3, nextClone: 1, bio: 0, printHere: true, cover: Uint8Array.from(w.ground, (g) => (COVER.has(g) ? 1 : 0)), trips: 0, deepest: 1, away: false, baseEvents: [], drillLevel: 0, drill: w.drill, cloner: w.cloner, pod: w.pod };
   p.units.push({ ...blank(), id: 'hero', side: 'hero', cls: 'shell', weapon: 'pistol', gear: starterGear('shell', () => nextItemId(p)) });
   s.foes.forEach((e, i) => {
     const sp = m.spawns[i]!, camp = w.camps.find((c) => c.group === sp.group);
@@ -59,9 +53,9 @@ function fromWorld(w: World, seed: number): WorldParty {
     e.hp = e.maxHp = Math.round(FOES[kind].hp * scale * (sp.elite ? 1.5 : 1));
     p.units.push({ ...blank(), id: e.id, side: 'foe', foe: kind, asleep: true, group: sp.group, nextAt: 0.15 * i });
   });
-  if (w.pod) placeModules(p);
-  p.foeAction = (u, t, ev) => raidTurn(p, u, t, ev);
+  p.foeAction = (u, t, ev) => siegeTurn(p, u, t, ev);
   claim(p, w.base, CLAIM_BASE);
+  if (w.pod) { placeModules(p); startSiege(p); }
   look(p);
   return p;
 }
@@ -77,16 +71,13 @@ export function claim(p: WorldParty, c: Cell, r: number): void {
 /** Time runs on the world map: the clones act, then the roaming rules (souls, sight, waking, chases), cleared camps, and rest on claimed land. */
 export function worldTick(p: WorldParty, dt: number): GEvent[] {
   if (p.away) return [];
-  if (p.raid && !living(p).length) { p.over = false; p.waiting = false; p.manual = undefined; }
+  if (p.siege && !living(p).length) { p.over = false; p.waiting = false; p.manual = undefined; }
   const pending = p.baseEvents.splice(0);
   const t0 = p.time, hp = hpNow(p);
   const ev = tick(p, dt);
   ev.unshift(...pending);
-  swarmTick(p, dt, ev);
-  payRaidKills(p);
-  resolveRaid(p, ev);
-  // Delay the ordinary wipe/respawn rules until an unattended raid resolves.
-  if (!p.raid || living(p).length) roamStep(p, hp, ev);
+  siegeTick(p, dt, ev);
+  roamStep(p, hp, ev);
   if (!living(p).length) return ev;
   const t = p.time;
   for (const camp of p.camps) {
@@ -111,11 +102,9 @@ export const claimedShare = (p: WorldParty): number => p.claimed.reduce((a, b) =
 /** The clone that would go down: the preferred one if it stands by the drill, else the first that does. */
 export function drillClone(p: WorldParty, prefer?: string): string | undefined {
   if (!p.drill) return undefined;
-  // on the pod's ground (base mode) any clone at home may go, wherever it stands; an injured one rests
-  // with nobody sound at home the injured may go after all (no dead end)
-  const sound = living(p).some((u) => !u.injured);
-  const near = living(p).filter((u) => (!u.injured || !sound) && (p.pod || dist(entOf(p, u.id)!.pos, p.drill!) <= 2));
+  // on the pod's ground any clone at home may go, wherever it stands
+  const near = living(p).filter((u) => p.pod || dist(entOf(p, u.id)!.pos, p.drill!) <= 2);
   return (near.find((u) => u.id === prefer) ?? near[0])?.id;
 }
-/** One clone by the drill can go down (that one, when `id` is given), out of a fight and with no raid due. */
-export const canDrill = (p: WorldParty, id?: string): boolean => !!p.drill && !p.away && !p.raid && !p.raidReady && !p.combat && !!drillClone(p, id) && (!id || drillClone(p, id) === id);
+/** One clone by the drill can go down (that one, when `id` is given): out of a fight — or at any time from the besieged base, where the fight never ends. */
+export const canDrill = (p: WorldParty, id?: string): boolean => !!p.drill && !p.away && (!!p.siege || !p.combat) && !!drillClone(p, id) && (!id || drillClone(p, id) === id);

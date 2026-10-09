@@ -3,7 +3,6 @@ import type { GEvent } from '../grid/types';
 import type { WorldParty } from '../overworld/worldSim';
 import { rejoin, type Carry } from '../roam/carry';
 import { startDelve } from './drill';
-import { onRaidReturn } from './raids';
 import { applySf } from './workshop';
 import { gatherHome, upgradeOn } from './modules';
 import { living } from '../roam/roam';
@@ -15,10 +14,9 @@ function healHome(p: WorldParty): void {
   for (const u of living(p)) { const e = entOf(p, u.id)!; e.hp = e.maxHp; }
 }
 
-/** The surface freezes until return; a live raid must be resolved before departure. */
+/** The surface freezes until return. */
 export function departSurface(p: WorldParty, seed: number, carry: Carry, floor = 1): DelveParty | null {
-  // a raid under way or one waiting to be started keeps the party home
-  if (p.away || p.raid || p.raidReady || !carry.clones.length) return null;
+  if (p.away || !carry.clones.length) return null;
   const delve = startDelve(p, seed, carry, floor);
   if (delve) p.away = true;
   return delve;
@@ -32,13 +30,14 @@ export function returnToSurface(p: WorldParty, carry: Carry): GEvent[] {
   if (got) { p.ore += got.ore; p.bio += got.bio; }
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
   healHome(p);
-  const ev = onRaidReturn(p, carry.deepest ?? 1);
+  p.away = false; p.trips++; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
+  const ev: GEvent[] = [];
   // (the event carries the ore; the bio-matter is in step with it: GATHER)
-  if (got) ev.unshift({ t: p.time, type: 'buff', text: 'gather', amount: got.ore });
+  if (got) ev.push({ t: p.time, type: 'buff', text: 'gather', amount: got.ore });
   p.baseEvents.push(...ev);
   return ev;
 }
-/** Up by the return beacon: the clone and its souls come home, but the trip is not over (the raid schedule waits). */
+/** Up by the return beacon: the clone and its souls come home, but the trip is not over (the floor below is kept). */
 export function beaconReturn(p: WorldParty, carry: Carry): GEvent[] {
   rejoin(p, carry, p.drill ?? p.base);
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
