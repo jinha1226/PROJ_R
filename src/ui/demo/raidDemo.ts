@@ -12,7 +12,7 @@ import type { TraitId } from '../../sim/party/traitDefs';
  */
 export function raidArena(seed: number, wave = 12): WorldParty {
   const p = newSurface(seed);
-  p.ore = 100; p.bio = 30; p.crystal = 10;
+  p.ore = 100; p.crystal = 10;
   const first = p.units.find((u) => u.side === 'hero')!;
   const team: BaseClass[] = ['warrior', 'mage', 'cleric'];
   team.forEach((cls, i) => {

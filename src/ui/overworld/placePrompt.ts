@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Cell, GEvent } from '../../sim/grid/types';
 import { entOf } from '../../sim/party/partyCore';
-import { BODY_COST, canTakeSoul, clones, implantCarried, living, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
+import { canTakeSoul, clones, implantCarried, living, MAX_CLONES, type RoamParty } from '../../sim/roam/roam';
 import { canPrintClone, CLONER_REACH, printClone } from '../../sim/base/cloner';
 import type { WorldParty } from '../../sim/overworld/worldSim';
 import { dist } from '../../sim/grid/types';
@@ -50,11 +50,11 @@ export function soulPrompt(p: RoamParty, live: (ev: GEvent[]) => void, choose: (
   return [{ at, label: '영혼 주입', act: () => (p.carried.length === 1 ? live(implantCarried(p, u.id, 0)) : choose(u.id)) }];
 }
 
-/** '클론 생성' over the lab's printer while a clone stands by it: greyed with the bio-matter short or the party full. */
+/** '클론 생성' over the lab's printer while a clone stands by it: greyed with the party full. */
 export function clonerPrompt(p: WorldParty, live: (ev: GEvent[]) => void): Prompt[] {
   const at = p.cloner;
   if (!at || p.away || p.siege || p.combat || !living(p).some((u) => dist(entOf(p, u.id)!.pos, at) <= CLONER_REACH)) return [];
   const full = living(p).length >= MAX_CLONES;
-  const label = full ? `클론 ${living(p).length}/${MAX_CLONES}` : `클론 생성 · 생체 ${p.bio}/${BODY_COST}`;
+  const label = full ? `클론 ${living(p).length}/${MAX_CLONES}` : '클론 생성';
   return [{ at, label, off: !canPrintClone(p), act: () => live(printClone(p)) }];
 }

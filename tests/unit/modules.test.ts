@@ -39,16 +39,16 @@ it('upgrades are steps bought with ore and crystal at their module: beds, salvag
   p.ore = 0; expect(canUpgrade(p, 'gather')).toBe(false);
 });
 
-it('gathering, switched on at the core: each clone left at home brings a little ore and bio-matter per trip down', () => {
+it('gathering, switched on at the core: each clone left at home brings a little ore per trip down', () => {
   const p = newSurface(42); p.ore = 100;
   const other = print(p, undefined, [], p.s.map.start)!, third = print(p, undefined, [], p.s.map.start)!;
   const trip = () => { const d = departSurface(p, 5, takeClone(p, 'hero'))!; return returnToSurface(p, takeParty(d)); };
-  const ore = p.ore, bio = p.bio;
+  const ore = p.ore;
   expect(trip().some((e) => e.text === 'gather')).toBe(false); expect(p.ore).toBe(ore);
   expect(upgrade(p, 'gather')).toBe(true);
   const ev = trip();
   expect(ev.find((e) => e.text === 'gather')?.amount).toBe(2 * GATHER.ore);
-  expect(p.ore).toBe(ore - 40 + 2 * GATHER.ore); expect(p.bio).toBe(bio + 2 * GATHER.bio);
+  expect(p.ore).toBe(ore - 40 + 2 * GATHER.ore);
   expect(other.id).not.toBe(third.id);
 });
 

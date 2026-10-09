@@ -4,7 +4,7 @@ import { benchModel } from '../../src/ui/overworld/workbench/benchModel';
 import { benchHtml } from '../../src/ui/overworld/workbench/benchHtml';
 import { craft, dismantle, fit } from '../../src/sim/base/workshop';
 
-const base = () => { const p = newSurface(3); p.ore = 200; p.crystal = 40; p.bio = 50; p.pack.push({ id: 'fs', def: 'flameSword', power: 0 }, { id: 'ip', def: 'ironPlate', power: 0 }, { id: 'wr', def: 'windRing', power: 0 }); return p; };
+const base = () => { const p = newSurface(3); p.ore = 200; p.crystal = 40; p.pack.push({ id: 'fs', def: 'flameSword', power: 0 }, { id: 'ip', def: 'ironPlate', power: 0 }, { id: 'wr', def: 'windRing', power: 0 }); return p; };
 
 it('the bench model: two gun slots and one suit slot, dismantle rows for matching pack items, modules once a blueprint is open', () => {
   const p = base(), m = benchModel(p);

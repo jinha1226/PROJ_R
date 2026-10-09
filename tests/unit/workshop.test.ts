@@ -11,7 +11,7 @@ import { takeClone } from '../../src/sim/roam/carry';
 import { tagsOf } from '../../src/sim/party/classKit';
 import { sourcesOf } from '../../src/sim/party/triggers';
 
-const base = () => { const p = newSurface(3); p.ore = 500; p.crystal = 100; p.bio = 100; return p; };
+const base = () => { const p = newSurface(3); p.ore = 500; p.crystal = 100; return p; };
 const give = (p: ReturnType<typeof base>, def: string) => { const id = `t-${p.nextItem++}`; p.pack.push({ id, def, power: 0 }); return id; };
 const mod = (from: string) => sfModules().find((m) => m.from === from)!;
 

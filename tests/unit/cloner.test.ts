@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { entOf } from '../../src/sim/party/partyCore';
 import { newSurface, worldTick } from '../../src/sim/overworld/worldSim';
 import { canPrintClone, printClone } from '../../src/sim/base/cloner';
-import { BODY_COST, clones, implantCarried } from '../../src/sim/roam/roam';
+import { clones, implantCarried } from '../../src/sim/roam/roam';
 import { cloneCap, footprint, moduleOf } from '../../src/sim/base/modules';
 import { dist, idx } from '../../src/sim/grid/types';
 
@@ -15,9 +15,9 @@ it('the pod lands with its lab beside it: the clone printer\'s module, four cell
   for (const c of footprint(lab.at)) expect(p.s.map.tiles[idx(p.s.map, c)]).toBe('chasm');
 });
 
-it('bio-matter alone prints nothing: a body is printed only when the player asks (from anywhere on the pod’s ground)', () => {
+it('carrying a soul alone prints nothing: a body is printed only when the player asks (from anywhere on the pod’s ground)', () => {
   const p = newSurface(4); calm(p);
-  p.bio = 100; p.carried = ['mage'];
+  p.carried = ['mage'];
   for (let i = 0; i < 40; i++) worldTick(p, 0.1);
   expect(clones(p)).toHaveLength(1);
   // base mode: the lab is used from anywhere on the pod's ground
@@ -25,16 +25,17 @@ it('bio-matter alone prints nothing: a body is printed only when the player asks
   expect(canPrintClone(p)).toBe(true);
   expect(printClone(p).some((e) => e.text === 'print')).toBe(true);
   const fresh = clones(p)[1]!;
-  expect(fresh.cls).toBe('shell'); expect(p.bio).toBe(100 - BODY_COST);
+  expect(fresh.cls).toBe('shell');
   expect(dist(entOf(p, fresh.id)!.pos, p.cloner!)).toBeLessThanOrEqual(2);
   implantCarried(p, fresh.id, 0); expect(fresh.cls).toBe('mage');
 });
 
-it('no body without the bio-matter or past the beds (the besieged base prints in the middle of its fight)', () => {
+it('a fresh surface party prints a body with no resources at all; no body past the beds (the besieged base prints in the middle of its fight)', () => {
   const p = newSurface(4); calm(p);
   entOf(p, 'hero')!.pos = { x: p.cloner!.x, y: p.cloner!.y + 1 };
-  p.bio = BODY_COST - 1; expect(canPrintClone(p)).toBe(false);
-  p.bio = 999; p.combat = true; expect(canPrintClone(p)).toBe(true);
+  expect(p.ore + p.crystal).toBe(0); expect(canPrintClone(p)).toBe(true);
+  p.combat = true; expect(canPrintClone(p)).toBe(true);
+  printClone(p); expect(p.ore + p.crystal).toBe(0); expect('bio' in p).toBe(false);
   // two beds to begin with; a bed more, a clone more; no lab or no quarters, no body
   for (let i = 1; i < 5; i++) printClone(p);
   expect(cloneCap(p)).toBe(2); expect(clones(p)).toHaveLength(2); expect(canPrintClone(p)).toBe(false);

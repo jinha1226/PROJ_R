@@ -33,9 +33,7 @@ export interface RoamParty extends Party {
   rewakeAt?: number;
   /** cells always in sight (by index), whoever stands where */
   watch?: number[];
-  /** bio-matter gathered from the fallen: what new bodies are printed from */
-  bio: number;
-  /** every clone fell and there was not enough bio-matter for another body (or, below ground, nobody is left to come back) */
+  /** every clone fell below ground and nobody is left to come back */
   over?: boolean;
   /** new bodies come out here (the pod on the surface; never in a dungeon) */
   printHere: boolean;
@@ -59,10 +57,6 @@ const LEASH = 12;
 export const MAX_CLONES = 3;
 /** how near the base a clone must stand for another body to be printed (where there is no printer) */
 export const BASE_REACH = 5;
-/** bio-matter one new body takes */
-export const BODY_COST = 25;
-/** bio-matter a fallen foe leaves (elites twice as much) */
-const BIO: Record<string, number> = { goblin: 3, archer: 3, brute: 8, ghoul: 3, shaman: 4, warlord: 30 };
 
 export const slotsOf = (p: RoamParty): number => p.soulSlots ?? BASE_SOUL_SLOTS;
 
@@ -166,11 +160,11 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
     if (soul.hero && !p.foundHeroes.includes(soul.hero)) p.foundHeroes.push(soul.hero);
     p.carried.push(carried);
   }
-  // the last clone fell: one more empty body if the stuff is there, else it is over
+  // the last clone fell: on the surface one more empty body wakes, below ground it is over
   if (!named && !sieged && !living(p).length && !p.over) {
-    if (!p.printHere || p.bio < BODY_COST) { p.over = true; ev.push({ t, type: 'dead', text: p.printHere ? 'wiped' : 'lost' }); return; }
+    if (!p.printHere) { p.over = true; ev.push({ t, type: 'dead', text: 'lost' }); return; }
     p.rewakeAt ??= t + 3;
-    if (t >= p.rewakeAt) { p.rewakeAt = undefined; p.bio -= BODY_COST; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
+    if (t >= p.rewakeAt) { p.rewakeAt = undefined; const u = print(p, undefined, ev); if (u) p.leader = u.id; }
   }
 }
 
@@ -179,17 +173,12 @@ function souls(p: RoamParty, ev: GEvent[], named = false): void {
  * A clone under the player's hand stops walking when something new happens (a band wakes, it is hurt), as in Jupiter Hell.
  */
 export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent[]): void {
-  // the fallen leave bio-matter, gathered at once (each body counted once, however it fell)
+  // the fallen give experience, each body counted once however it fell
   for (const f of p.units) {
     const e = entOf(p, f.id);
     if (f.side !== 'foe' || f.reaped || !e || e.alive) continue;
     f.reaped = true;
     awardXp(p, f, ev);
-    // a raid's dead leave a quarter of what a dungeon's do (most of its fodder nothing)
-    if (f.lean) continue;
-    const n = Math.max(1, Math.round((BIO[f.foe ?? ''] ?? 3) * (e.elite ? 2 : 1) * (f.fodder ? 0.5 : 1) * (f.raider ? 0.25 : 1)));
-    p.bio += n;
-    ev.push({ t: p.time, type: 'loot', to: { ...e.pos }, amount: n, text: 'bio' });
   }
   souls(p, ev);
   if (!living(p).length) return;

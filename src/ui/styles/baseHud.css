@@ -17,7 +17,7 @@
   .world.base-mode aside.wh-tl { left: 8px; top: 8px; width: auto; right: 56px; padding: 0; }
   .world.base-mode .wh-top { margin: 0; padding: 0; color: var(--pip-dim); font-size: 11px; }
   .world.base-mode .wh-top .st-row { display: flex; gap: 10px; line-height: 16px; white-space: nowrap; }
-  .world.base-mode .wh-top b, .world.base-mode .wh-top .bio b { color: var(--pip); }
+  .world.base-mode .wh-top b { color: var(--pip); }
   .world.base-mode .wh-top .sh-have, .world.base-mode .wh-top .sh-have b { color: #ffd23a; }
   .world.base-mode .wh-target { display: none; }
   .world.base-mode aside.wh-tr { left: auto; right: 6px; top: 6px; width: auto; }

@@ -1,7 +1,7 @@
 import { PACK_SIZE } from '../../sim/delve/gear';
 import { itemName } from '../../sim/delve/items';
 import type { Unit } from '../../sim/party/partyCore';
-import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
+import type { RoamParty } from '../../sim/roam/roam';
 import { icon } from '../grid/icons';
 import { CLASS_TINT, classIcon } from './classIcons';
 import { packItemHtml } from './pipGear';
@@ -9,16 +9,16 @@ import { soulStoneHtml } from './pipSouls';
 
 const BAG_SLOTS = 16;
 /** what the base counts, carried as things in the bag: its name, its line icon, what it is for */
-const RESOURCE: Record<'bio' | 'ore' | 'crystal', [string, string, string]> = { bio: ['생체 재료', 'potion', `새 몸 하나에 ${BODY_COST}`], ore: ['광석', 'bomb', '건물과 작업장'], crystal: ['마정석', 'charge', '함선 연료 · 개조'] };
+const RESOURCE: Record<'ore' | 'crystal', [string, string, string]> = { ore: ['광석', 'bomb', '건물과 작업장'], crystal: ['마정석', 'charge', '함선 연료 · 개조'] };
 
 /**
  * The bag: one grid of everything carried (what the base counts, soul stones, gear, consumables); the thing chosen
- * (`pick`: `bio`, `soul:2`, `item:<id>`) tells what it is under the grid. `u`: the clone gear is compared against;
+ * (`pick`: `ore`, `soul:2`, `item:<id>`) tells what it is under the grid. `u`: the clone gear is compared against;
  * `canImplant`: a fresh body stands ready to take a stone.
  */
 export function bagHtml(p: RoamParty, u: Unit | undefined, pick: string, canImplant: boolean): string {
   const slot = (key: string, cls: string, inner: string, style = '') => `<button type="button" class="pip-slot ${cls}${pick === key ? ' on' : ''}" data-pick="${key}"${style ? ` style="${style}"` : ''}>${inner}</button>`;
-  const res = (['bio', 'ore', 'crystal'] as const).filter((k) => p[k] > 0).map((k) => slot(k, 'res', `${icon(RESOURCE[k][1])}<span>${RESOURCE[k][0]}</span><b>${p[k]}</b>`));
+  const res = (['ore', 'crystal'] as const).filter((k) => p[k] > 0).map((k) => slot(k, 'res', `${icon(RESOURCE[k][1])}<span>${RESOURCE[k][0]}</span><b>${p[k]}</b>`));
   const souls = p.carried.map((soul, i) => { const c = typeof soul === 'string' ? soul : soul.cls; return slot(`soul:${i}`, 'soul', `${classIcon(c)}<span>영혼석</span>`, `--tint:${CLASS_TINT[c]}`); });
   // gear lies one piece to a slot; consumables of a kind stack in one, with how many uses are left
   const stacks = new Map<string, { id: string; name: string; n: number }>();
@@ -33,7 +33,7 @@ export function bagHtml(p: RoamParty, u: Unit | undefined, pick: string, canImpl
 /** what the thing chosen in the bag is, in full (nothing chosen, or it is gone: a hint) */
 function pickedHtml(p: RoamParty, u: Unit | undefined, pick: string, canImplant: boolean): string {
   const [kind, id] = pick.split(':');
-  if (kind === 'bio' || kind === 'ore' || kind === 'crystal') return `<div class="pg-card"><div class="pg-head"><b>${RESOURCE[kind][0]}</b><small>${p[kind]}</small></div><div class="pg-stat">${RESOURCE[kind][2]}</div></div>`;
+  if (kind === 'ore' || kind === 'crystal') return `<div class="pg-card"><div class="pg-head"><b>${RESOURCE[kind][0]}</b><small>${p[kind]}</small></div><div class="pg-stat">${RESOURCE[kind][2]}</div></div>`;
   if (kind === 'soul' && p.carried[Number(id)] !== undefined) return `${soulStoneHtml(p, Number(id))}${canImplant ? `<div class="pg-btns"><button type="button" data-soul="${id}">주입</button></div>` : ''}`;
   const it = kind === 'item' ? p.pack.find((x) => x.id === id) : undefined;
   return it ? packItemHtml(p, u, it) : '<p class="pg-none">칸을 눌러 살펴보기</p>';

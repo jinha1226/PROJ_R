@@ -120,18 +120,18 @@ it('floor scaling applies to every foe (fodder from its own base), with elite HP
   expect(FOES.ghoul.atk).toBe(0.7); expect(FOES.ghoul.move).toBe(0.55);
 });
 
-it('new foe kinds yield their bio and XP exactly once', () => {
-  for (const [kind, bio, xp] of [['ghoul', 3, 4], ['shaman', 4, 6], ['warlord', 30, 60]] as const) {
+it('new foe kinds yield their XP exactly once and leave no bio loot', () => {
+  for (const [kind, xp] of [['ghoul', 4], ['shaman', 6], ['warlord', 60]] as const) {
     const { p, w, we, hero } = bossArena();
     // Other bodies were removed only to isolate combat, so exclude their rewards.
     for (const u of p.units) if (u !== w && u.side === 'foe') u.reaped = true;
     const h = p.units.find((u) => u.id === 'hero')!;
     h.cls = 'archer'; h.weapon = CLASSES.archer.weapons[0]; h.gear!.weapon = { id: 'bw', def: 'longbow', power: 0 }; w.foe = kind; we.elite = false;
     damage(p, 0, 'hero', w, we.hp, []);
+    const ev = delveTick(p, 0.01);
+    expect(ev.some((e) => e.type === 'loot' && e.text === 'bio')).toBe(false); expect(h.xp).toBe(xp);
     delveTick(p, 0.01);
-    expect(p.bio).toBe(bio); expect(h.xp).toBe(xp);
-    delveTick(p, 0.01);
-    expect(p.bio).toBe(bio); expect(h.xp).toBe(xp); expect(hero.alive).toBe(true);
+    expect(h.xp).toBe(xp); expect(hero.alive).toBe(true);
   }
 });
 

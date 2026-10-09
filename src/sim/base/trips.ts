@@ -29,12 +29,12 @@ export function returnToSurface(p: WorldParty, carry: Carry): GEvent[] {
   const got = gatherHome(p, living(p).length);
   rejoin(p, carry, p.drill ?? p.base);
   // what they gathered is added to what came up (the carry holds the stores: the base's own waited)
-  if (got) { p.ore += got.ore; p.bio += got.bio; }
+  if (got) { p.ore += got.ore; }
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
   healHome(p);
   p.away = false; p.trips++; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
   const ev: GEvent[] = [];
-  // (the event carries the ore; the bio-matter is in step with it: GATHER)
+  // (the event carries the ore gathered: GATHER)
   if (got) ev.push({ t: p.time, type: 'buff', text: 'gather', amount: got.ore });
   awayIncome(p, carry.time - (p.awayAt ?? carry.time), ev);
   if (SIEGE_MODE.on) rouseSiege(p, ev);

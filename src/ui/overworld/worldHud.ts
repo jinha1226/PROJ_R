@@ -1,7 +1,7 @@
 import type { Party } from '../../sim/party/partyCore';
 import { detailHtml, partyFramesHtml, soloBarHtml, soloSkillsHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
-import { BODY_COST, type RoamParty } from '../../sim/roam/roam';
+import type { RoamParty } from '../../sim/roam/roam';
 
 export interface HudActions { menu(): void; stat(): void; bag(): void; select(id: string): void; skill(id: string, slot: number): void;
   /** the return beacon (the dungeon only) */
@@ -23,7 +23,7 @@ export interface HudActions { menu(): void; stat(): void; bag(): void; select(id
   solo?: boolean }
 
 /**
- * The screen's frame, laid out like Jupiter Hell: the minimap top left, floor/turn/bio top centre, the log bottom left,
+ * The screen's frame, laid out like Jupiter Hell: the minimap top left, floor/turn top centre, the log bottom left,
  * the fight banner and the menu top right, the chosen clone bottom right, the party along the bottom; a short toast for what just happened.
  */
 export class WorldHud {
@@ -121,7 +121,7 @@ export class WorldHud {
     return true;
   }
 
-  /** status: the top-centre line (floor, turn, bio); mode: the fight banner; and whether the stairs, the lift or a turn is waiting. */
+  /** status: the top-centre line (floor, turn); mode: the fight banner; and whether the stairs, the lift or a turn is waiting. */
   draw(p: Party, ids: string[], sel: string, view: { log: WorldLog; status: string; mode: string; stairs?: boolean; lift?: boolean; myTurn?: boolean; target?: string; beacon?: { label: string; on: boolean }; auto?: boolean;
     /** where the party is, in a word or two (the lone clone's bar carries it on an upright phone) */
     place?: string }): void {
@@ -154,12 +154,12 @@ export class WorldHud {
   }
 }
 
-/** Under the minimap: where (on the surface, which turn too), then (on the surface) what the party holds (ore, crystal, bio-matter against a body's cost, souls carried). */
+/** Under the minimap: where (on the surface, which turn too), then (on the surface) what the party holds (ore, crystal, souls carried). */
 export function statusLine(place: string, p: RoamParty, holdings = true, head?: string): string {
   const souls = p.carried.length ? `<span class="soul">영혼 <b>${p.carried.length}</b></span>` : '';
   // in the dungeon only where (2026-10-08: one clone goes down, what it holds is in its own window; a long turn count would not fit the line)
   if (!holdings) return `<div class="st-row"><span>${place}</span></div>`;
   // (the besieged base has a first line of its own: `head`)
   return (head ?? `<div class="st-row"><span>${place}</span><span>턴 <b>${Math.floor(p.time)}</b></span></div>`)
-    + `<div class="st-row st-res"><span>광석 <b>${p.ore}</b></span><span>마정석 <b>${p.crystal}</b></span><span class="bio${p.bio >= BODY_COST ? ' ok' : ''}">생체 <b>${p.bio}</b></span>${souls}</div>`;
+    + `<div class="st-row st-res"><span>광석 <b>${p.ore}</b></span><span>마정석 <b>${p.crystal}</b></span>${souls}</div>`;
 }

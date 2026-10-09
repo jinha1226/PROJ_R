@@ -56,7 +56,7 @@ it('a walk under the player\'s hand goes on by itself until it arrives', () => {
 
 it('a companion heals the hurt by itself', () => {
   const p = newDelve(2);
-  p.bio = 100; p.printHere = true;
+  p.printHere = true;
   take(p, 0); take(p, 1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start };
   for (const u of p.units) if (u.side === 'foe') u.asleep = true;
@@ -79,7 +79,7 @@ it('a companion heals the hurt by itself', () => {
 
 it('down the stairs: a new floor, the living clones come along, the fallen stay behind', () => {
   const p = newDelve(3);
-  p.bio = 100; p.printHere = true;
+  p.printHere = true;
   take(p, 0); take(p, 1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start };
   for (const u of p.units) if (u.side === 'foe') u.asleep = true;
@@ -121,7 +121,7 @@ it('when a band notices the party every walk stops where it is', () => {
   expect(hero.order).toBeNull();
 });
 
-it('a carried soul gets no body by itself, bio-matter or not; foes leave bio-matter when they fall', () => {
+it('a carried soul gets no body by itself; foes leave no bio-matter or any other loot event when they fall', () => {
   const p = newDelve(2);
   p.printHere = true; p.soulSlots = 1;
   take(p, 0); take(p, 1);
@@ -134,31 +134,44 @@ it('a carried soul gets no body by itself, bio-matter or not; foes leave bio-mat
   const foes = p.units.filter((u) => u.side === 'foe');
   for (const f of foes.slice(0, 13)) damage(p, p.time, 'hero', f, 999, []);
   const ev = delveTick(p, 0.1);
-  const got = ev.filter((e) => e.type === 'loot' && e.text === 'bio').reduce((n, e) => n + e.amount!, 0);
-  expect(got).toBeGreaterThanOrEqual(25);
-  // enough gathered, still nothing is printed until the player asks at the lab
+  expect(ev.some((e) => e.type === 'loot' && e.text === 'bio')).toBe(false);
+  expect('bio' in p).toBe(false);
+  // nothing is printed until the player asks at the lab
   expect(clones(p)).toHaveLength(1);
-  expect(p.bio).toBe(got);
 });
 
-it('below ground nobody wakes when the party falls; at the pod one empty body wakes if there is bio-matter, else it is over', () => {
+it('below ground nobody wakes when the party falls; at the pod one empty body always wakes after the delay', () => {
   const p = newDelve(2);
-  p.bio = 100;
   damage(p, 0, 'x', clones(p)[0]!, 999, []);
   expect(delveTick(p, 0.1).some((e) => e.type === 'dead' && e.text === 'lost')).toBe(true);
   expect(p.over).toBe(true);
-  p.printHere = true; p.over = false; p.bio = 0;
-  const ev = delveTick(p, 0.1);
-  expect(p.over).toBe(true);
-  expect(ev.some((e) => e.type === 'dead')).toBe(true);
   expect(delveTick(p, 5)).toEqual([]);
   const q = newDelve(2);
-  q.bio = 30; q.printHere = true;
+  q.printHere = true;
   damage(q, 0, 'x', clones(q)[0]!, 999, []);
   for (let i = 0; i < 50; i++) delveTick(q, 0.1);
   expect(q.over).toBeFalsy();
   expect(clones(q).filter((u) => entOf(q, u.id)!.alive)).toHaveLength(1);
-  expect(q.bio).toBe(5);
+  // the very last clone falling with nothing at all in the stores still wakes a body
+  expect(q.ore + q.crystal).toBe(0);
+});
+
+it('on the surface the last clone falling never ends the run: an empty body wakes after the 3-turn delay with nothing in the stores; below ground it ends with lost', () => {
+  const q = newDelve(2);
+  q.printHere = true;
+  expect(q.ore + q.crystal).toBe(0);
+  damage(q, 0, 'x', clones(q)[0]!, 999, []);
+  const ev = delveTick(q, 0.1);
+  expect(q.over).toBeFalsy(); expect(ev.some((e) => e.type === 'dead')).toBe(false);
+  expect(q.rewakeAt).toBeGreaterThanOrEqual(3);
+  const alive = () => clones(q).filter((u) => entOf(q, u.id)!.alive);
+  while (q.time < q.rewakeAt! - 0.2) delveTick(q, 0.1);
+  expect(alive()).toHaveLength(0); expect(q.over).toBeFalsy();
+  for (let i = 0; i < 5; i++) delveTick(q, 0.1);
+  expect(alive().map((u) => u.cls)).toEqual(['shell']); expect(q.rewakeAt).toBeUndefined(); expect(q.over).toBeFalsy();
+  const d = newDelve(2);
+  damage(d, 0, 'x', clones(d)[0]!, 999, []);
+  expect(delveTick(d, 0.1).some((e) => e.type === 'dead' && e.text === 'lost')).toBe(true); expect(d.over).toBe(true);
 });
 
 it('walking through a door opens it', () => {

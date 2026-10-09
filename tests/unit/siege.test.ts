@@ -7,7 +7,7 @@ import { swarmTick } from '../../src/sim/base/swarm';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
 import { alive, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { takeClone, takeParty } from '../../src/sim/roam/carry';
-import { BODY_COST, clones, implant, living } from '../../src/sim/roam/roam';
+import { clones, implant, living } from '../../src/sim/roam/roam';
 import { idx, type GEvent } from '../../src/sim/grid/types';
 // (these are about the siege as built: it is switched on for them — by default it is off)
 SIEGE_MODE.on = true;
@@ -107,7 +107,7 @@ it('a clone under the dome is not struck; one out before it is', () => {
 
 it('the dome mends by itself; when it gives, the whole horde is thrown back and the siege stops at that wave until the player calls it — nothing of ours is lost', () => {
   const p = idle(), s = p.siege!;
-  p.ore = 77; p.bio = 33;
+  p.ore = 77;
   hitDome(p, 50, 'x', p.base, []);
   expect(s.domeHp).toBe(DOME.hp - 50);
   run(p, 10); expect(s.domeHp).toBeGreaterThan(DOME.hp - 50);
@@ -130,7 +130,7 @@ it('the dome mends by itself; when it gives, the whole horde is thrown back and 
   // the word given while the dome is still down relights it at once
   hitDome(p, 1e6, 'x', p.base, []); run(p, 0.2);
   expect(domeUp(p)).toBe(false); expect(resumeSiege(p)).toBe(true); expect(domeUp(p)).toBe(true); expect(s.domeHp).toBe(domeMax(p)); expect(s.wave).toBe(19);
-  expect([p.ore, p.bio]).toEqual([77, 33]); expect(p.modules!.filter((m) => m.id !== 'workshop').every((m) => !m.broken)).toBe(true); expect(living(p)).toHaveLength(1);
+  expect(p.ore).toBe(77); expect(p.modules!.filter((m) => m.id !== 'workshop').every((m) => !m.broken)).toBe(true); expect(living(p)).toHaveLength(1);
 });
 
 it('a ranged clone keeps a place just inside the dome\'s north rim; a melee one just before it, going for what comes near', () => {
@@ -168,14 +168,14 @@ it('a clone hurt badly falls back under the dome and mends there; one that falls
   expect(u.souls?.[0]?.cls).toBe('warrior'); expect(u.level).toBe(4); expect(ev.some((x) => x.text === 'revive')).toBe(true);
 });
 
-it('the siege feeds nobody: no experience, no bio-matter, no ore from its dead; they are counted and cleared away', () => {
+it('the siege feeds nobody: no experience, no ore from its dead; they are counted and cleared away', () => {
   const p = newSurface(42), u = unitOf(p, 'hero')!, s = p.siege!;
   u.wentDown = true; s.nextAt = 1e9;
   pour(p, 5);
-  const [xp, bio, ore] = [u.xp ?? 0, p.bio, p.ore], n = raiders(p).length;
+  const [xp, ore] = [u.xp ?? 0, p.ore], n = raiders(p).length;
   for (const f of raiders(p)) entOf(p, f.id)!.alive = false;
   worldTick(p, 0.2);
-  expect([u.xp ?? 0, p.bio, p.ore]).toEqual([xp, bio, ore]); expect(s.kills).toBe(n); expect(raiders(p)).toHaveLength(n);
+  expect([u.xp ?? 0, p.ore]).toEqual([xp, ore]); expect(s.kills).toBe(n); expect(raiders(p)).toHaveLength(n);
   for (let k = 0; k < 60; k++) worldTick(p, 0.2);
   expect(raiders(p)).toHaveLength(0); expect(p.s.foes.some((e) => e.group === SIEGE_GROUP)).toBe(false);
 });
@@ -190,7 +190,7 @@ it('the fight never ends at the base, so a clone goes down and a body is printed
   const p = newSurface(42);
   for (let k = 0; k < 400; k++) worldTick(p, 0.2);
   expect(p.combat).toBe(true); expect(canDrill(p, 'hero')).toBe(true);
-  p.bio = BODY_COST; expect(canPrintClone(p)).toBe(true);
+  expect(canPrintClone(p)).toBe(true);
   const wave = p.siege!.wave, t = p.time;
   const d = departSurface(p, 5, takeClone(p, 'hero'))!;
   expect(worldTick(p, 50)).toEqual([]); expect(p.time).toBe(t); expect(p.siege!.wave).toBe(wave);
@@ -199,12 +199,12 @@ it('the fight never ends at the base, so a clone goes down and a body is printed
 });
 
 it('with no clone left at all (the last fell below), the base prints a new body as before', () => {
-  const p = newSurface(42); p.bio = BODY_COST;
+  const p = newSurface(42);
   const d = departSurface(p, 5, takeClone(p, 'hero'))!; d.s.hero.alive = false;
   returnToSurface(p, takeParty(d));
   expect(clones(p)).toHaveLength(0);
   for (let k = 0; k < 40; k++) worldTick(p, 0.2);
-  expect(living(p)).toHaveLength(1); expect(p.bio).toBe(0); expect(p.over).toBeFalsy();
+  expect(living(p)).toHaveLength(1); expect(p.over).toBeFalsy();
 });
 
 it('a tick of a siege deep into its waves stays cheap', () => {

@@ -123,7 +123,7 @@ it('carry constructor preserves discoveries while a fresh expedition excludes on
   const fresh = newDelve(4, 1, { ...c, foundHeroes: [] });
   expect(fresh.foundHeroes).toEqual(['mira', 'dorn']); expect(c.foundHeroes).toContain('aren');
 });
-it('elite loot is independent of bio reaping and emitted once', () => {
+it('elite loot is independent of xp reaping and emitted once', () => {
   const p = quiet(), foe = p.units.find((u) => u.side === 'foe')!, e = entOf(p, foe.id)!;
   p.lootReaped.delete(foe.id); foe.reaped = true; e.elite = true; e.pos = { x: 1, y: 1 };
   p.s.rng.chance = () => true;

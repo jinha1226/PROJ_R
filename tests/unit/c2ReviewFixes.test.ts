@@ -12,7 +12,7 @@ import type { GEvent } from '../../src/sim/grid/types';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
 import { takeClone, takeParty } from '../../src/sim/roam/carry';
 
-const base = () => { const p = newSurface(3); p.ore = 500; p.crystal = 100; p.bio = 100; return p; };
+const base = () => { const p = newSurface(3); p.ore = 500; p.crystal = 100; return p; };
 const give = (p: ReturnType<typeof base>, def: string) => { const id = `t-${p.nextItem++}`; p.pack.push({ id, def, power: 0 }); return id; };
 
 it('the empty body kit cannot be sacrificed into, unequipped, or worn by a soul body', () => {

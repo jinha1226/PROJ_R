@@ -58,7 +58,7 @@ it('the shrine heals everyone once', () => {
 
 it('a fallen clone\'s gear lies where it fell; a living clone can pick it up; leaving the floor loses what is left', () => {
   const p = archer(); calm(p);
-  p.bio = 100; p.printHere = true;
+  p.printHere = true;
   entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; delveTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start }; for (let i = 0; i < 10; i++) delveTick(p, 0.1);
   print(p, p.carried.shift(), []);

@@ -51,12 +51,12 @@ export function dismantle(p: RoamParty, itemId: string): GEvent[] {
   return [{ t: p.time, type: 'buff', text: '분해', amount: Math.round(gain * 100) }];
 }
 
-const afford = (p: RoamParty, c: { ore?: number; crystal?: number; bio?: number }) => p.ore >= (c.ore ?? 0) && p.crystal >= (c.crystal ?? 0) && p.bio >= (c.bio ?? 0);
+const afford = (p: RoamParty, c: { ore?: number; crystal?: number }) => p.ore >= (c.ore ?? 0) && p.crystal >= (c.crystal ?? 0);
 export const canCraft = (p: RoamParty, id: string): boolean => { const m = sfModule(id), sf = sfOf(p); return !!m && sf.blueprints.includes(id) && !sf.owned.includes(id) && afford(p, m.cost); };
 export function craft(p: RoamParty, id: string): boolean {
   if (!canCraft(p, id)) return false;
   const c = sfModule(id)!.cost;
-  p.ore -= c.ore ?? 0; p.crystal -= c.crystal ?? 0; p.bio -= c.bio ?? 0;
+  p.ore -= c.ore ?? 0; p.crystal -= c.crystal ?? 0;
   sfOf(p).owned.push(id);
   return true;
 }

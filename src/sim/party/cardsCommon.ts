@@ -42,8 +42,8 @@ export const COMMON_CARDS: TraitDef[] = [
   card('firstAid', '응급 처치', 'convert', ['치유'], 'common', '대기 → 체력 15% 회복', {
     trigger: () => ({ id: '응급 처치', when: 'wait', run: (p, c) => heal(p, c.src, c.src, entOf(p, c.src.id)!.maxHp * 0.15, c.t, c.ev) }),
   }),
-  card('plunder', '약탈자', 'convert', ['생존'], 'common', '처치 → 생체 +1 (엘리트 +5)', {
-    trigger: () => ({ id: '약탈자', when: 'kill', test: (p) => 'bio' in p, run: (p, c) => { (p as unknown as { bio: number }).bio += c.target && entOf(p, c.target.id)?.elite ? 5 : 1; } }),
+  card('plunder', '약탈자', 'convert', ['생존'], 'common', '엘리트 처치 → 광석 +3', {
+    trigger: () => ({ id: '약탈자', when: 'kill', test: (p) => 'ore' in p, run: (p, c) => { if (c.target && entOf(p, c.target.id)?.elite) (p as unknown as { ore: number }).ore += 3; } }),
   }),
   card('bond', '결속', 'amp', ['협공'], 'common', '2칸 안 아군(소환수·분신) 1명당 피해 ×1.15 (곱)', { passive: () => ({ bond: 0.15 }) }),
   // the critical blow's base is ×1.5: this adds what multiplies it by 1.15 per #치명

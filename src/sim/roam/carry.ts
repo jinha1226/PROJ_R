@@ -6,11 +6,11 @@ import { identify, type CarriedSoul, type HeroSoulId } from '../delve/heroSouls'
 import { heldHeroes, living, look, type RoamParty } from './roam';
 import { REROLLS_PER_RUN } from '../party/partyLevel';
 
-/** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the bio-matter, the next clone's number. */
-export interface Carry { deepest?: number; time: number; pack: Item[]; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; bio: number; nextClone: number }
+/** What goes up and down the shaft with the party: the living clones as they are, the souls carried, the ore and crystal, the next clone's number. */
+export interface Carry { deepest?: number; time: number; pack: Item[]; nextItem: number; clones: { unit: Unit; hp: number; maxHp: number }[]; carried: CarriedSoul[]; ore: number; crystal: number; foundHeroes: HeroSoulId[]; nextClone: number }
 
 export function takeParty(p: RoamParty): Carry {
-  return { deepest: p.deepest, time: p.time, pack: structuredClone(p.pack), nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: { ...structuredClone(u), shield: 0 }, hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), bio: p.bio, nextClone: p.nextClone };
+  return { deepest: p.deepest, time: p.time, pack: structuredClone(p.pack), nextItem: p.nextItem, clones: living(p).map((u) => ({ unit: { ...structuredClone(u), shield: 0 }, hp: entOf(p, u.id)!.hp, maxHp: entOf(p, u.id)!.maxHp })), ore: p.ore, crystal: p.crystal, foundHeroes: [...p.foundHeroes], carried: structuredClone(p.carried), nextClone: p.nextClone };
 }
 
 /** Puts a party that came up or down the shaft beside the map's start (the first clone keeps the hero's place in the state; if it fell, that slot lies empty off the map). */
@@ -31,7 +31,7 @@ export function placeParty(p: RoamParty, c: Carry): void {
   p.units = [...heroes, ...p.units];
   p.pack = structuredClone(c.pack); p.nextItem = c.nextItem;
   p.ore = c.ore; p.crystal = c.crystal; p.foundHeroes = [...c.foundHeroes];
-  p.carried = structuredClone(c.carried); p.bio = c.bio; p.nextClone = c.nextClone;
+  p.carried = structuredClone(c.carried); p.nextClone = c.nextClone;
   p.combat = false; p.waiting = false; p.manual = undefined; p.over = false; p.rewakeAt = undefined;
   p.leader = c.clones[0]?.unit.id ?? 'hero';
   look(p);
@@ -63,7 +63,7 @@ export function rejoin(p: RoamParty, c: Carry, at: Cell): void {
     p.units = [{ ...unit, shield: 0, order: null, queued: undefined } as Unit, ...p.units.filter((u) => u.id !== unit.id)];
   });
   p.pack = structuredClone(c.pack); p.nextItem = c.nextItem;
-  p.ore = c.ore; p.crystal = c.crystal; p.bio = c.bio; p.nextClone = Math.max(p.nextClone, c.nextClone);
+  p.ore = c.ore; p.crystal = c.crystal; p.nextClone = Math.max(p.nextClone, c.nextClone);
   p.foundHeroes = [...new Set([...p.foundHeroes, ...c.foundHeroes])];
   if (c.clones.length) p.carried = [...p.carried, ...structuredClone(c.carried).map(identify)];
   p.combat = false; p.waiting = false; p.manual = undefined; p.over = false; p.rewakeAt = undefined;

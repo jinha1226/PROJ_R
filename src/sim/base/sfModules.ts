@@ -4,7 +4,7 @@ import type { TriggerDef } from '../party/triggers';
 
 export type SfPart = 'gun' | 'suit';
 /** A gun or suit module: the effect of a fantasy weapon or armour, carried over in SF form (opened by dismantling that item). */
-export interface SfModule { id: string; part: SfPart; name: string; from: string; tags: Tag[]; triggers: TriggerDef[]; cost: { ore?: number; crystal?: number; bio?: number } }
+export interface SfModule { id: string; part: SfPart; name: string; from: string; tags: Tag[]; triggers: TriggerDef[]; cost: { ore?: number; crystal?: number} }
 
 /** the SF name of each fantasy item's effect */
 const NAMES: Record<string, string> = {

@@ -42,7 +42,7 @@ export interface Unit {
   struckTimes?: number[];
   /** offers this clone may still reroll on this run */
   rerolls?: number;
-  /** a weak horde foe (half the experience and bio-matter) */
+  /** a weak horde foe (half the experience) */
   fodder?: boolean;
   /** rounds left in a gun's magazine (unset: full) */
   ammo?: number;
@@ -111,7 +111,7 @@ export interface Unit {
   asleep?: boolean; alertUntil?: number;
   /** the camp a foe belongs to (they wake together) */
   group?: number;
-  /** a fallen foe whose bio-matter has been gathered */
+  /** a fallen foe whose experience has been awarded */
   reaped?: boolean; raised?: boolean;
   /** how many times each counted effect's condition has held (an effect that goes off every nth time) */
   tally?: Record<string, number>;

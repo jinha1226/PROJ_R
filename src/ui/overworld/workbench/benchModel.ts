@@ -15,7 +15,7 @@ export interface BenchModel {
   stats(part: SfPart): { label: string; now: string }[]; mats: { name: string; n: number }[]; soul: { slots: number; cost: number; can: boolean };
 }
 
-const costText = (c: { ore?: number; crystal?: number; bio?: number }) => [c.ore ? `광석 ${c.ore}` : '', c.crystal ? `마정석 ${c.crystal}` : '', c.bio ? `생체 ${c.bio}` : ''].filter(Boolean).join(' · ');
+const costText = (c: { ore?: number; crystal?: number }) => [c.ore ? `광석 ${c.ore}` : '', c.crystal ? `마정석 ${c.crystal}` : ''].filter(Boolean).join(' · ');
 
 /** What the workshop screen shows, read from the base (a snapshot: drawing it never changes anything). */
 export function benchModel(p: RoamParty): BenchModel {
@@ -43,7 +43,7 @@ export function benchModel(p: RoamParty): BenchModel {
       if (part === 'gun') { const n = kit('pistol', sf.gun); return [{ label: '피해', now: `${Math.round(n.min)}–${Math.round(n.max)}` }, { label: '사거리', now: `${n.range}` }, { label: '탄창', now: '6' }]; }
       const n = kit('agentSuit', sf.suit); return [{ label: '받는 피해', now: `−${Math.round(n.armor * 100)}%` }];
     },
-    mats: [{ name: '광석', n: p.ore }, { name: '마정석', n: p.crystal }, { name: '생체', n: p.bio }],
+    mats: [{ name: '광석', n: p.ore }, { name: '마정석', n: p.crystal }],
     soul: { slots: slotsOf(p), cost: soulSlotCost(p), can: p.crystal >= soulSlotCost(p) },
   };
 }

@@ -13,7 +13,7 @@ import type { Router } from './router';
 
 /**
  * The game's loop from the title: the pod lands, a clone explores the ground round it and finds its first soul,
- * then the party goes down the drill shaft for bio-matter and souls and rides back up to the pod to print new bodies.
+ * then the party goes down the drill shaft for ore and souls and rides back up to the pod to print new bodies.
  */
 export class Expedition {
   private surface!: WorldParty;

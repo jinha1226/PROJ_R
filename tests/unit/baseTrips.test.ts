@@ -9,7 +9,7 @@ SIEGE_MODE.on = true;
 
 describe('base trips', () => {
   it('preserves base state, suspends surface ticks, and brings back the depth reached and what was carried', () => {
-    const p = newSurface(7); p.ore = 200; p.bio = 10;
+    const p = newSurface(7); p.ore = 200;
     upgradeDrill(p);
     const claimed = [...p.claimed], siege = structuredClone(p.siege);
     const delve = departSurface(p, 9, takeClone(p, 'hero'), 3)!;

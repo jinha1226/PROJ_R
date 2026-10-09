@@ -1,7 +1,6 @@
 import { callWave, domeMax, domeUp, raiders, resumeSiege, SIEGE_MODE, siegeShown, waveOf } from '../../sim/base/siege';
 import { worth } from '../../sim/base/tree';
 import { big } from './bigNum';
-import { GATHER } from '../../sim/base/modules';
 import type { GEvent } from '../../sim/grid/types';
 import { alive } from '../../sim/party/partyCore';
 import type { WorldParty } from '../../sim/overworld/worldSim';
@@ -79,11 +78,11 @@ export function siegeNote(e: GEvent): string | undefined {
   // a wave that brings more than fodder is called out
   if (e.type === 'buff' && e.text === 'wave') { const w = waveOf(e.amount ?? 1); return w.general ? `파도 ${e.amount} · 장군이 온다` : w.brutes ? `파도 ${e.amount} · 오우거 ${w.brutes}` : undefined; }
   if (e.type === 'buff' && e.text === 'domeUp') return '돔 재가동';
-  if (e.type === 'buff' && e.text === 'gather') return `남은 클론이 광석 ${e.amount} · 생체 ${Math.round(((e.amount ?? 0) / GATHER.ore) * GATHER.bio)}를 모았다`;
+  if (e.type === 'buff' && e.text === 'gather') return `남은 클론이 광석 ${e.amount}를 모았다`;
   return undefined;
 }
 
-/** The run-over panel (no clone left, no bio-matter for a body): restart or back to the title, instead of a frozen field. */
+/** The run-over panel (no clone left below ground): restart or back to the title, instead of a frozen field. */
 export function overPanel(restart: () => void, quit?: () => void): HTMLElement {
   const el = document.createElement('div');
   el.className = 'pip-win menu-win';
@@ -103,7 +102,7 @@ export function tryOutState(p: WorldParty): void {
   if (q.has('siege') || q.has('wave')) SIEGE_MODE.on = true;
   const first = p.units.find((u) => u.side === 'hero');
   if (q.has('lvl') && first?.cls === 'shell') { implant(p, first, { cls: 'mage', memory: 'burnt' }, []); implant(p, first, 'archer', []); gainXp(p, first, LEVEL_XP[3]!, []); }
-  if (q.has('rich') && p.ore < 200) { p.ore = 300; p.crystal = 40; p.bio = 60; }
+  if (q.has('rich') && p.ore < 200) { p.ore = 300; p.crystal = 40; }
   if (q.has('gear') && !p.pack.some((it) => 'def' in it)) for (const def of ['flameSword', 'viper', 'ironPlate']) p.pack.push({ id: `item-${p.nextItem++}`, def, power: 0 });
   if (q.has('wave') && p.siege && !p.siege.wave) { p.siege.wave = Math.max(0, Number(q.get('wave')) - 1); p.siege.phase = 'gap'; p.siege.nextAt = p.time + 6; }
 }

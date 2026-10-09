@@ -4,16 +4,17 @@ import { labPanelHtml, quartersPanelHtml, workshopPanelHtml, panelAt } from '../
 import { entOf, unitOf } from '../../src/sim/party/partyCore';
 import { moduleOf, repairModule } from '../../src/sim/base/modules';
 import { hitDome, SIEGE_MODE } from '../../src/sim/base/siege';
-import { BODY_COST, print } from '../../src/sim/roam/roam';
+import { print } from '../../src/sim/roam/roam';
 // (these are about the siege as built: it is switched on for them — by default it is off)
 SIEGE_MODE.on = true;
 
-it('the lab panel prints a body when there is bio-matter and a bed, implants carried souls, and offers its medical bay', () => {
+it('the lab panel prints a body for free when there is a bed, implants carried souls, and offers its medical bay', () => {
   const p = newSurface(4);
-  expect(labPanelHtml(p)).toMatch(/data-print[^>]*disabled/);
-  p.bio = BODY_COST; p.carried = [{ cls: 'mage' }];
+  expect(p.ore + p.crystal).toBe(0);
+  expect(labPanelHtml(p)).not.toMatch(/data-print[^>]*disabled/); expect(labPanelHtml(p)).toContain('클론 생성');
+  p.carried = [{ cls: 'mage' }];
   const html = labPanelHtml(p);
-  expect(html).not.toMatch(/data-print[^>]*disabled/);
+  expect(html).not.toMatch(/data-print[^>]*disabled/); expect(html).not.toContain('생체');
   expect(html).toContain('data-implant="hero:0"'); expect(html).toContain('data-up="medical"'); expect(html).not.toContain('data-move');
 });
 
@@ -93,7 +94,7 @@ it('the siege\'s lines: quiet, the next wave counted down, the wave out and how 
   expect(siegeNote({ t: 0, type: 'buff', text: 'domeBreak', amount: 4 })).toContain('파도 4에서 멈춤');
   expect(siegeNote({ t: 0, type: 'buff', text: 'siegeStart' })).toContain('첫 파도'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 3 })).toBeUndefined();
   expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 15 })).toBe('파도 15 · 오우거 2'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 20 })).toContain('장군'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeUp' })).toBe('돔 재가동');
-  expect(siegeNote({ t: 0, type: 'buff', text: 'gather', amount: 6 })).toContain('광석 6 · 생체 4'); expect(siegeNote({ t: 0, type: 'hit' })).toBeUndefined();
+  expect(siegeNote({ t: 0, type: 'buff', text: 'gather', amount: 6 })).toBe('남은 클론이 광석 6를 모았다'); expect(siegeNote({ t: 0, type: 'hit' })).toBeUndefined();
   expect(baseLabels(p).map((l) => l.text)).toEqual(['연구실', '숙소', '작업장 · 고장']);
 });
 

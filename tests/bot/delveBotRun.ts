@@ -8,9 +8,9 @@ import { navigate, supplies } from './delveBotPolicy';
 
 /** solo runs: the souls in the one body that goes down */
 export const compositions: BaseClass[][] = [['warrior', 'cleric'], ['mage', 'archer'], ['rogue', 'warrior'], []];
-interface FloorStats { floor: number; common: number; fine: number; rare: number; trinkets: number; consumables: number; ore: number; crystal: number; bio: number; seconds: number; burst: number }
+interface FloorStats { floor: number; common: number; fine: number; rare: number; trinkets: number; consumables: number; ore: number; crystal: number; seconds: number; burst: number }
 export interface Run { seed: number; comp: string; floor: number; general: boolean; lost: number; end: 'wipe' | 'general' | 'floor5' | 'timeout'; seconds: number; lastPolicy: string; idleSeconds: number; fights?: number; fightsDeep?: number; chains?: number; chainsDeep?: number; floors: FloorStats[] }
-const floorStats = (floor: number): FloorStats => ({ floor, common: 0, fine: 0, rare: 0, trinkets: 0, consumables: 0, ore: 0, crystal: 0, bio: 0, seconds: 0, burst: 0 });
+const floorStats = (floor: number): FloorStats => ({ floor, common: 0, fine: 0, rare: 0, trinkets: 0, consumables: 0, ore: 0, crystal: 0, seconds: 0, burst: 0 });
 const inventory = (p: DelveParty): Item[] => [...p.pack, ...living(p).flatMap((u) => u.gear ? Object.values(u.gear).filter((it):it is NonNullable<typeof it>=>!!it) : [])];
 export function runDelveBot(seed: number, comp: BaseClass[]): Run {
   const p = newDelve(seed);
@@ -34,7 +34,7 @@ export function runDelveBot(seed: number, comp: BaseClass[]): Run {
     fighting = !!p.combat;
     for (const e of ev) {
       if (e.text === 'chain' && e.type === 'buff') { result.chains!++; if (p.floor >= 4 && !deepThisFight) { deepThisFight = true; result.chainsDeep!++; } }
-      if (e.type === 'loot' && (e.text === 'bio' || e.text === 'ore' || e.text === 'crystal')) f[e.text] += e.amount ?? 0;
+      if (e.type === 'loot' && (e.text === 'ore' || e.text === 'crystal')) f[e.text] += e.amount ?? 0;
       if (e.type === 'die' && ['hero', 'c1', 'c2'].includes(e.dst ?? '')) result.lost++;
       if (e.type === 'victory') result.general = true;
     }
@@ -69,8 +69,8 @@ export function summarize(runs: Run[]) {
   const floors = [1, 2, 3, 4, 5].map((floor) => {
     const visited = runs.flatMap((r) => r.floors).filter((f) => f.floor === floor);
     const sum = floorStats(floor);
-    for (const f of visited) for (const k of ['common', 'fine', 'rare', 'trinkets', 'consumables', 'ore', 'crystal', 'bio', 'seconds'] as const) sum[k] += f[k];
-    for (const k of ['common', 'fine', 'rare', 'trinkets', 'consumables', 'ore', 'crystal', 'bio', 'seconds'] as const) sum[k] /= visited.length || 1;
+    for (const f of visited) for (const k of ['common', 'fine', 'rare', 'trinkets', 'consumables', 'ore', 'crystal', 'seconds'] as const) sum[k] += f[k];
+    for (const k of ['common', 'fine', 'rare', 'trinkets', 'consumables', 'ore', 'crystal', 'seconds'] as const) sum[k] /= visited.length || 1;
     return { visits: visited.length, ...sum };
   });
   return { total: group(runs), comps: compositions.map((c) => ({ comp: c.join('/') || 'empty', ...group(runs.filter((r) => r.comp === (c.join('/') || 'empty'))) })), floors };

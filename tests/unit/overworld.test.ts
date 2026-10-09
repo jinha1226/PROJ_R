@@ -86,7 +86,6 @@ const calm = (p: ReturnType<typeof newWorld>) => { for (const u of p.units) if (
 it('at the ship nothing is printed by itself; asked, it prints an empty body and the player puts the soul in', () => {
   const p = newWorld(3);
   calm(p);
-  p.bio = 100;
   const [a, b] = p.souls;
   entOf(p, 'hero')!.pos = { ...a!.pos };
   worldTick(p, 0.1); implantCarried(p, 'hero', 0);
@@ -107,7 +106,6 @@ it('at the ship nothing is printed by itself; asked, it prints an empty body and
 it('out of combat an order walks the whole party there behind the chosen clone', () => {
   const p = newWorld(3);
   calm(p);
-  p.bio = 100;
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.souls[1]!.pos }; worldTick(p, 0.1);
   entOf(p, 'hero')!.pos = { ...p.s.map.start, x: p.s.map.start.x + 2 }; worldTick(p, 0.1); printClone(p);
@@ -119,9 +117,8 @@ it('out of combat an order walks the whole party there behind the chosen clone',
   expect(dist(entOf(p, 'hero')!.pos, goal)).toBeLessThanOrEqual(2);
 });
 
-it('a fallen clone is gone soul and all; when the last one falls the pod wakes a new empty body (if it has the bio-matter)', () => {
+it('a fallen clone is gone soul and all; when the last one falls the pod wakes a new empty body (it needs nothing for it)', () => {
   const p = newWorld(3);
-  p.bio = 25;
   entOf(p, 'hero')!.pos = { ...p.souls[0]!.pos }; worldTick(p, 0.1); implantCarried(p, 'hero', 0);
   const souls = p.souls.length;
   damage(p, p.time, 'x', clones(p)[0]!, 999, []);

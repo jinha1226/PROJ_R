@@ -30,7 +30,7 @@ export class PipWindow {
   readonly el = document.createElement('div');
   tab: PipTab = 'stat';
   private who = '';
-  /** the thing chosen in the bag's grid (`bio`, `soul:2`, `item:<id>`): its line shows under the grid */
+  /** the thing chosen in the bag's grid (`ore`, `soul:2`, `item:<id>`): its line shows under the grid */
   private pick = '';
 
   /** onEvents: what a promotion set off, for the screen to show */

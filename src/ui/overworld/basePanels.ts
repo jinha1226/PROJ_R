@@ -4,7 +4,7 @@ import type { Cell } from '../../sim/grid/types';
 import type { Unit } from '../../sim/party/partyCore';
 import { CLASSES } from '../../sim/party/partyDefs';
 import type { WorldParty } from '../../sim/overworld/worldSim';
-import { BODY_COST, canTakeSoul, living } from '../../sim/roam/roam';
+import { canTakeSoul, living } from '../../sim/roam/roam';
 
 /** what a tap on the base lands on: the core (the way down: the screen swings to the floors) or one of its modules (its panel) */
 export interface PanelHit { kind: 'pod' | ModuleId }
@@ -28,10 +28,10 @@ const upRow = (p: WorldParty, id: BaseUpgrade, label: string, done: string, verb
 
 const broken = (p: WorldParty, id: ModuleId): boolean => !!moduleOf(p, id)?.broken;
 
-/** The lab: print a body (bio-matter and a bed permitting), put carried souls into bodies, the medical bay. */
+/** The lab: print a body (a bed permitting), put carried souls into bodies, the medical bay. */
 export function labPanelHtml(p: WorldParty): string {
   const n = living(p).length, cap = cloneCap(p), full = n >= cap;
-  const print = `<div class="menu-row"><span>${full ? `클론 ${n}/${cap} · 침상 없음` : `클론 생성 · 생체 ${p.bio}/${BODY_COST}`}</span><button type="button" data-print ${canPrintClone(p) ? '' : 'disabled'}>생성</button></div>`;
+  const print = `<div class="menu-row"><span>${full ? `클론 ${n}/${cap} · 침상 없음` : '클론 생성'}</span><button type="button" data-print ${canPrintClone(p) ? '' : 'disabled'}>생성</button></div>`;
   const takers = living(p).filter((u) => canTakeSoul(p, u));
   const souls = p.carried.map((s, i) => `<div class="menu-row"><span>영혼 · ${CLASSES[typeof s === 'string' ? s : s.cls].name}</span>${takers.map((u) => `<button type="button" data-implant="${u.id}:${i}">${name(u)}에 주입</button>`).join('') || '<small>빈 몸 없음</small>'}</div>`).join('');
   return frame(MODULE_NAMES.lab, `${print}${souls}${upRow(p, 'medical', '의료 · 귀환 시 완전 회복', '가동 중', '켜기')}`);
@@ -40,7 +40,7 @@ export function labPanelHtml(p: WorldParty): string {
 /** The quarters: how many clones the base holds, another bed, and what those who stay home gather while one is below. */
 export function quartersPanelHtml(p: WorldParty): string {
   const cap = cloneCap(p);
-  const gather = upRow(p, 'gather', `채집 · 남은 클론마다 광석 ${GATHER.ore} · 생체 ${GATHER.bio}`, '가동 중', '켜기');
+  const gather = upRow(p, 'gather', `채집 · 남은 클론마다 광석 ${GATHER.ore}`, '가동 중', '켜기');
   return frame(MODULE_NAMES.quarters, `<div class="menu-row"><span>클론 ${living(p).length}/${cap}</span></div>${upRow(p, 'beds', `침상 ${cap} → ${cap + 1}`, '최대')}${gather}`);
 }
 

@@ -71,7 +71,7 @@ function pickup(p: DelveParty, u: Unit, at: Cell, ev: GEvent[]): void {
   }
 }
 function item(p:DelveParty,tier:number,gearOnly=false):Item {return {...rollItem(p.s.rng,p.floor,(tier>1||gearOnly)?p.s.rng.pick(['weapon','armor','accessory']):undefined,tier),id:nextItemId(p)};}
-function material(p: DelveParty, text: 'ore' | 'bio' | 'crystal', amount: number, ev: GEvent[]): void {
+function material(p: DelveParty, text: 'ore' | 'crystal', amount: number, ev: GEvent[]): void {
   p[text] += amount; ev.push({ t: p.time, type: 'loot', text, amount });
 }
 function deaths(p: DelveParty, ev: GEvent[]): void {

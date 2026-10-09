@@ -250,7 +250,7 @@ export class DelveScreen implements Screen {
       if (e.type === 'buff' && e.text === 'beaconClosed') this.hud.toast('포탈 닫힘');
       if (e.type === 'dead') {
         this.hud.toast('사망');
-        this.log.add(e.t, e.text === 'lost' ? '쓰러졌다. 영혼이 소멸했다.' : '쓰러졌다. 새 몸을 만들 재료가 모자란다.', 'warn');
+        this.log.add(e.t, '쓰러졌다. 영혼이 소멸했다.', 'warn');
         // below ground nobody comes back on their own: the pod takes it from here
         if (e.text === 'lost' && this.opts.onAscend) setTimeout(() => this.opts.onAscend!(takeParty(this.p)), 2200);
       }

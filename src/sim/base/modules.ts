@@ -45,7 +45,7 @@ export function repairModule(p: WorldParty, id: ModuleId): boolean {
  * Each row: the module it belongs to, and what each next step costs (ore, crystal).
  */
 export const UPGRADES = {
-  /** the core: clones left at home work the wreck — each brings a little ore and bio-matter per trip down */
+  /** the core: clones left at home work the wreck — each brings a little ore per trip down */
   gather: { module: 'core', cost: [[40, 0]] },
   /** the lab: clones come home healed */
   medical: { module: 'lab', cost: [[60, 5]] },
@@ -78,9 +78,9 @@ export const upgradeOn = (p: WorldParty, id: BaseUpgrade): boolean => upgradeLev
 export const cloneCap = (p: WorldParty): number => (p.modules ? 2 + upgradeLevel(p, 'beds') : MAX_CLONES);
 
 /** what each clone left at home brings in while another is down below (the core's gathering switched on) */
-export const GATHER = { ore: 3, bio: 2 };
+export const GATHER = { ore: 3 };
 /** A trip down is over: what the clones that stayed brought in meanwhile (null: nothing; the caller adds it to the stores). */
-export function gatherHome(p: WorldParty, stayed: number): { ore: number; bio: number } | null {
+export function gatherHome(p: WorldParty, stayed: number): { ore: number } | null {
   if (!upgradeOn(p, 'gather') || stayed <= 0) return null;
-  return { ore: GATHER.ore * stayed, bio: GATHER.bio * stayed };
+  return { ore: GATHER.ore * stayed };
 }

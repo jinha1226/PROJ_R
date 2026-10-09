@@ -68,7 +68,7 @@ function detonate(p: Party, u: Unit, t: number, ev: GEvent[]): boolean {
   return true;
 }
 
-/** A body left where a minion fell (grasp of the dead): a dead foe unit that gives no bio-matter or experience. */
+/** A body left where a minion fell (grasp of the dead): a dead foe unit that gives no experience. */
 function leaveBody(p: Party, at: Cell): void {
   const e = spawnFoe(p.s, 'minion', at, false);
   e.alive = false; e.hp = 0; e.maxHp = 20;

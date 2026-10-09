@@ -91,7 +91,7 @@ export class WorldLog {
     else if (e.type === 'open') this.add(e.t, '상자를 열었다.');
     else if (e.type === 'loot' && e.text === 'ore') this.add(e.t, `광석을 ${m('loot', e.amount ?? 0)} 얻었다.`);
     else if (e.type === 'loot' && e.text === 'crystal') this.add(e.t, `마정석을 ${m('loot', e.amount ?? 0)} 얻었다.`, 'good');
-    else if (e.type === 'loot' && e.text && e.text !== 'bio') this.add(e.t, `${m('loot', e.text)}${particle(e.text, '을/를')} 얻었다.`, 'good');
+    else if (e.type === 'loot' && e.text) this.add(e.t, `${m('loot', e.text)}${particle(e.text, '을/를')} 얻었다.`, 'good');
     else if (e.type === 'trap') this.add(e.t, e.text === 'alarm' ? '경보 함정이 울렸다.' : '가시 함정을 밟았다.', 'warn');
     else if (e.type === 'trapFound') this.add(e.t, '함정을 발견했다.');
     else if (e.type === 'victory') this.add(e.t, '마왕군 장군을 쓰러뜨렸다.', 'good');

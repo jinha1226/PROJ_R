@@ -17,6 +17,6 @@ it('the chain arena: three level-8 clones with their cards against an awake crow
 
 it('resource pop-ups read in Korean', async () => {
   const { lootText } = await import('../../src/view/grid/cueText');
-  expect(lootText({ t: 0, type: 'loot', text: 'bio', amount: 3 })).toBe('생체 +3');
+  expect(lootText({ t: 0, type: 'loot', text: 'ore', amount: 3 })).toBe('광석 +3');
   expect(lootText({ t: 0, type: 'loot', text: '화살', amount: 3 })).toBe('+화살 3');
 });
