@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { byItself, cheb, FEAR, foes, give, heroes, newSquad, resolve, setIntents, SHATTER, stance, standFor, unit, verdict, type Squad } from '../../src/sim/squad/squadSim';
+import { byItself, cheb, FEAR, foes, give, heroes, newSquad, resolve, setIntents, SHATTER, stance, standFor, ULT_WAIT, ultReady, unit, verdict, type Squad } from '../../src/sim/squad/squadSim';
 
 /** a board with only the named foes left, each put where the test wants it */
 const only = (s: Squad, keep: Record<string, [number, number]>): void => {
@@ -104,4 +104,21 @@ it('left alone the fight plays itself to an end, one way or the other, with noth
   const play = () => { const s = newSquad(); let n = 0; while (!s.over && n++ < 40) resolve(s); return { over: s.over, round: s.round, hp: s.units.map((u) => u.hp).join(',') }; };
   const a = play(), b = play();
   expect(a.over).toBeDefined(); expect(a).toEqual(b);
+});
+
+it('the ultimates are the player\'s own to fire, once every few rounds: the leader calls the foes onto himself, the blade strikes twice, the frost takes every foe beside its mark', () => {
+  const a = newSquad(); only(a, { g1: [3, 6], g2: [5, 6], ar: [4, 2] });
+  unit(a, 'g1')!.intent = { kind: 'chase', target: 'misha' }; unit(a, 'g2')!.intent = { kind: 'chase', target: 'erwen' };
+  give(a, 'me', { kind: 'taunt' }); give(a, 'misha', { kind: 'move', cell: { x: 2, y: 9 } }); give(a, 'erwen', { kind: 'move', cell: { x: 6, y: 9 } });
+  const ev = resolve(a);
+  expect(ev.filter((e) => e.type === 'hit').every((e) => e.type === 'hit' && e.dst === 'me' && e.amount === 1)).toBe(true);
+  expect(ultReady(a, unit(a, 'me')!)).toBe(false); expect(unit(a, 'me')!.ultAt).toBe(1 + ULT_WAIT);
+  const b = newSquad(); only(b, { g1: [4, 6], g2: [5, 6] });
+  give(b, 'erwen', { kind: 'attack', target: 'g1', ult: true }); give(b, 'misha', { kind: 'attack', target: 'g1', ult: true }); give(b, 'me', { kind: 'move', cell: { x: 4, y: 9 } });
+  const hits = resolve(b).filter((e) => e.type === 'hit' && (e.src === 'erwen' || e.src === 'misha'));
+  // the storm: the mark and the goblin beside it; the flurry: the shatter fells the mark before a second blow is needed
+  expect(hits.filter((e) => e.type === 'hit' && e.src === 'erwen').map((e) => (e.type === 'hit' ? e.dst : ''))).toEqual(['g1', 'g2']);
+  expect(unit(b, 'g1')!.alive).toBe(false); expect(unit(b, 'g2')!.chilledUntil).toBe(2);
+  // not ready: the order is kept as a plain attack
+  give(b, 'erwen', { kind: 'attack', target: 'g2', ult: true }); expect(b.queue.at(-1)!.order).toEqual({ kind: 'attack', target: 'g2' });
 });

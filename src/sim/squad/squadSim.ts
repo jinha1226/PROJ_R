@@ -8,7 +8,8 @@
 export interface Cell { x: number; y: number }
 export type Kind = 'leader' | 'misha' | 'erwen' | 'goblin' | 'archer' | 'ogre';
 export type Stance = 'steady' | 'afraid' | 'frozen';
-export type Order = { kind: 'attack'; target: string } | { kind: 'move'; cell: Cell } | { kind: 'guard'; ally: string } | { kind: 'calm'; ally: string };
+/** (`ult`: with the unit's ultimate — the one thing a player fires by hand; everything else a build does by itself when its condition holds) */
+export type Order = { kind: 'attack'; target: string; ult?: boolean } | { kind: 'move'; cell: Cell } | { kind: 'guard'; ally: string } | { kind: 'calm'; ally: string } | { kind: 'taunt' };
 /** what a foe will do this round, shown while the round is planned */
 export type Intent = { kind: 'chase'; target: string } | { kind: 'shoot'; target: string } | { kind: 'slam'; cells: Cell[] } | { kind: 'walk' };
 export interface SUnit {
@@ -25,6 +26,10 @@ export interface SUnit {
   guardedBy?: string;
   /** an ogre that has just slammed only walks the next round */
   winded?: boolean;
+  /** the round the ultimate is ready again (ready from the start) */
+  ultAt?: number;
+  /** the leader has called the foes onto himself this round: blows on him are lighter */
+  braced?: boolean;
 }
 export interface Squad { w: number; h: number; walls: boolean[]; units: SUnit[]; round: number; queue: { id: string; order: Order }[]; over?: 'won' | 'lost' }
 export type SEvent =
@@ -33,6 +38,9 @@ export type SEvent =
 
 /** fear's thresholds, the shield a guard brings, how far a soothing word carries, how near a companion must be not to feel alone, the shatter's worth */
 export const FEAR = { afraid: 3, frozen: 5, max: 5 }, GUARD_SOAK = 2, CALM_REACH = 2, NEAR = 2, SHATTER = 2.5;
+/** rounds before an ultimate is ready again; what each is called */
+export const ULT_WAIT = 3, ULT_NAME: Record<string, string> = { leader: '도발', misha: '난무', erwen: '서리 폭풍' };
+export const ultReady = (s: Squad, u: SUnit): boolean => s.round >= (u.ultAt ?? 0);
 
 const MAP = ['#########', '#.......#', '#.......#', '#.......#', '#.......#', '####..###', '#.......#', '#.......#', '#.......#', '#.......#', '#########'];
 const mk = (id: string, name: string, glyph: string, kind: Kind, x: number, y: number, hp: number, move: number, range: number, dmg: number, trait?: SUnit['trait']): SUnit =>
@@ -111,6 +119,7 @@ export function standFor(s: Squad, u: SUnit, to: Cell, range = u.range): { cell:
 /** The cell an order would leave the unit on. */
 export function endOf(s: Squad, u: SUnit, o: Order): { cell: Cell; path: Cell[] } {
   if (o.kind === 'move') return standFor(s, u, o.cell, 0);
+  if (o.kind === 'taunt') return { cell: u.pos, path: [] };
   const t = unit(s, o.kind === 'attack' ? o.target : o.ally);
   return t ? standFor(s, u, t.pos, o.kind === 'attack' ? u.range : o.kind === 'calm' ? CALM_REACH : 1) : { cell: u.pos, path: [] };
 }
@@ -134,6 +143,7 @@ export function verdict(s: Squad, id: string, o: Order): { word: '따름' | '거
 export function give(s: Squad, id: string, o: Order | null): ReturnType<typeof verdict> {
   s.queue = s.queue.filter((q) => q.id !== id);
   if (!o) return { word: '따름' };
+  if (o.kind === 'attack' && o.ult && !ultReady(s, unit(s, id)!)) o = { kind: 'attack', target: o.target };
   const v = verdict(s, id, o);
   if (v.word === '따름') s.queue.push({ id, order: o }); else if (v.instead) s.queue.push({ id, order: v.instead });
   return v;
@@ -154,6 +164,7 @@ function hurt(s: Squad, src: SUnit, dst: SUnit, amount: number, ev: SEvent[], no
     hurt(s, src, g, Math.max(1, amount - GUARD_SOAK), ev, '대신 맞음');
     return;
   }
+  if (dst.braced) amount = Math.max(1, amount - GUARD_SOAK);
   dst.hp = Math.max(0, dst.hp - amount);
   ev.push({ type: 'hit', src: src.id, dst: dst.id, amount, note });
   if (dst.side === 'hero') feel(dst, dst.trait === 'timid' ? 2 : 1, '맞았다', ev);
@@ -166,15 +177,20 @@ function hurt(s: Squad, src: SUnit, dst: SUnit, amount: number, ev: SEvent[], no
 
 const walk = (u: SUnit, to: { cell: Cell; path: Cell[] }, ev: SEvent[]): void => { if (to.path.length) { ev.push({ type: 'move', id: u.id, path: to.path }); u.pos = to.cell; } };
 
-function strike(s: Squad, u: SUnit, t: SUnit, ev: SEvent[]): void {
+function strike(s: Squad, u: SUnit, t: SUnit, ev: SEvent[], ult = false): void {
   const stand = standFor(s, u, t.pos);
   walk(u, stand, ev);
   if (!stand.inRange) return;
+  if (ult) { u.ultAt = s.round + ULT_WAIT; ev.push({ type: 'say', id: u.id, text: `${ULT_NAME[u.kind]}!` }); }
   const shatter = u.kind === 'misha' && (t.chilledUntil ?? 0) >= s.round;
   if (shatter) t.chilledUntil = undefined;
   if (u.trait === 'stubborn' && !unit(s, u.lock ?? '')?.alive) u.lock = t.id;
   hurt(s, u, t, shatter ? Math.round(u.dmg * SHATTER) : u.dmg, ev, shatter ? '깨뜨림' : undefined);
   if (u.kind === 'erwen' && t.alive) { t.chilledUntil = s.round + 1; ev.push({ type: 'chill', id: t.id }); }
+  if (!ult) return;
+  // the flurry: a second blow on the same foe; the frost storm: the same arrow's frost and harm on every foe beside it
+  if (u.kind === 'misha' && t.alive) hurt(s, u, t, u.dmg, ev, '난무');
+  if (u.kind === 'erwen') for (const o of foes(s)) if (o !== t && cheb(o.pos, t.pos) <= 1) { hurt(s, u, o, u.dmg, ev, '서리 폭풍'); if (o.alive) { o.chilledUntil = s.round + 1; ev.push({ type: 'chill', id: o.id }); } }
 }
 
 /** What a companion does with no order: as its stance has it. */
@@ -199,9 +215,17 @@ function act(s: Squad, u: SUnit, o: Order | null, ev: SEvent[]): void {
   if (!u.alive || s.over) return;
   if (!o) { if (stance(u) === 'frozen') ev.push({ type: 'say', id: u.id, text: '얼어붙어 움직이지 못한다' }); return; }
   if (o.kind === 'move') { walk(u, standFor(s, u, o.cell, 0), ev); return; }
+  if (o.kind === 'taunt') {
+    // the leader's ultimate: every goblin and the archer turn on him for the round, and he takes their blows braced
+    if (!ultReady(s, u)) return;
+    u.ultAt = s.round + ULT_WAIT; u.braced = true;
+    for (const f of foes(s)) if (f.intent?.kind === 'chase' || f.intent?.kind === 'shoot') f.intent = { kind: f.intent.kind, target: u.id };
+    ev.push({ type: 'say', id: u.id, text: `${ULT_NAME.leader}! 고블린과 궁수가 이쪽을 노린다` });
+    return;
+  }
   const t = unit(s, o.kind === 'attack' ? o.target : o.ally);
   if (!t?.alive) { act(s, u, byItself(s, u), ev); return; }
-  if (o.kind === 'attack') { strike(s, u, t, ev); return; }
+  if (o.kind === 'attack') { strike(s, u, t, ev, !!o.ult && ultReady(s, u)); return; }
   const stand = standFor(s, u, t.pos, o.kind === 'calm' ? CALM_REACH : 1);
   walk(u, stand, ev);
   if (!stand.inRange) return;
@@ -252,7 +276,7 @@ export function resolve(s: Squad): SEvent[] {
   for (const q of s.queue) act(s, unit(s, q.id)!, q.order, ev);
   for (const u of heroes(s)) if (!told.has(u.id)) act(s, u, byItself(s, u), ev);
   for (const f of [...foes(s)].sort((a, b) => (a.kind === 'ogre' ? -1 : 0) - (b.kind === 'ogre' ? -1 : 0))) foeAct(s, f, ev);
-  for (const u of heroes(s)) { u.guardedBy = undefined; if (!heroes(s).some((h) => h !== u && cheb(h.pos, u.pos) <= NEAR)) feel(u, 1, '혼자 남았다', ev); }
+  for (const u of heroes(s)) { u.guardedBy = undefined; u.braced = false; if (!heroes(s).some((h) => h !== u && cheb(h.pos, u.pos) <= NEAR)) feel(u, 1, '혼자 남았다', ev); }
   s.queue = [];
   if (!s.over) { s.round++; setIntents(s); ev.push({ type: 'round', n: s.round }); }
   return ev;
