@@ -74,7 +74,9 @@ export interface Unit {
   ki?: number; finishing?: number; finishTarget?: string; finishAt?: number; fromHiding?: number;
   /** the blizzard's spot and since when the mage has held it */
   anchor?: Cell; anchorAt?: number;
-  sighted?: string[]; pierceNext?: boolean; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
+  sighted?: string[]; pierceNext?: boolean;
+  /** rounds still loaded hot since the last reload (the empty body's innate) */
+  hotRounds?: number; hitStreak?: number; streakNth?: number; critShots?: number; overloadFloor?: number; overloadUsed?: boolean;
   /** the souls in this body, the first setting its class (empty: the SF body) */
   souls?: BodySoul[];
   /** this body has been down a shaft (it takes no more souls) */

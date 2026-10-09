@@ -13,6 +13,7 @@ export function unitChips(u: Unit, t: number): string {
   const good: string[] = [], bad: string[] = [];
   if (u.empower > 1) good.push(`강화 ×${Math.round(u.empower * 10) / 10}`);
   if (u.nextCrit) good.push('다음 치명');
+  if ((u.hotRounds ?? 0) > 0) good.push(`강화탄 ${u.hotRounds}`);
   if (u.dodgeNext) good.push('회피 준비');
   if ((u.steady ?? 0) > 0) good.push(`정조준 ${u.steady}`);
   for (const [name, until] of [['은신', u.hiddenUntil], ['신속', u.hasteUntil], ['무적', u.immuneUntil], ['흡혈', u.leechUntil], ['분노', u.damageBuffUntil], ['광분', u.furyUntil]] as const) {

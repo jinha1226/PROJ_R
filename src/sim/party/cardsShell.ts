@@ -32,12 +32,20 @@ export function explode(p: Party, u: Unit, at: Cell, radius: number, amount: num
 }
 const floorOf = (p: Party): number => (p as { floor?: number }).floor ?? 0;
 
-/** The empty body's innates (the seventh class, spec §2.1): the first shot at each foe is aimed; a calm reload loads a piercing round. */
+/** a reload's gifts: the shield the suit is brought up to, how many rounds are loaded hot, what a hot round's shot is worth */
+export const RELOAD = { shield: 8, rounds: 2, mult: 1.5 };
+/**
+ * The empty body's innates (the seventh class, spec §2.1): the first shot at each foe is aimed; every reload — in a fight, on a
+ * wait, or by itself once the fight is over — brings the suit's shield up and loads the first rounds hot: harder, and through
+ * the target into the foe behind.
+ */
 export const SHELL_INNATE: TriggerDef[] = [
   { id: '조준 사격', when: 'beforeHit', test: (p, c) => !!c.target && gunShot(p, c.src) && !c.target.sighted?.includes(c.src.id), run: (_p, c) => {
     c.target!.sighted = [...(c.target!.sighted ?? []), c.src.id]; c.src.nextCrit = true;
   } },
-  { id: '전술 재장전', when: 'reload', test: (p, c) => foesNear(p, posOf(p, c.src), 2).length === 0, run: (_p, c) => { c.src.pierceNext = true; } },
+  { id: '전술 재장전', when: 'reload', run: (_p, c) => { c.src.hotRounds = RELOAD.rounds; c.src.shield = Math.max(c.src.shield, RELOAD.shield); } },
+  // (a hot round is spent when it lands: a miss keeps it loaded)
+  { id: '전술 재장전', when: 'beforeHit', test: (p, c) => (c.src.hotRounds ?? 0) > 0 && !!c.target && gunShot(p, c.src), run: (_p, c) => { c.src.hotRounds!--; c.src.pierceNext = true; c.src.attackMult = (c.src.attackMult ?? 1) * RELOAD.mult; } },
   { id: '전술 재장전', when: 'hit', test: (p, c) => !!c.src.pierceNext && !!c.target && gunShot(p, c.src), run: (p, c) => { c.src.pierceNext = false; pierceOn(p, c.src, c.target!, c.t, c.ev); } },
 ];
 

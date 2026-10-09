@@ -100,7 +100,7 @@ export function implant(p: RoamParty, u: Unit, soul: CarriedSoul, ev: GEvent[]):
   const cls = s.hero ? HERO_SOULS[s.hero].cls : s.cls, e = entOf(p, u.id)!, first = !soulsOf(u).length;
   u.souls = [...soulsOf(u), { cls, hero: s.hero, memory: s.memory, ultReady: p.time }];
   if (first) {
-    u.ammo = undefined; u.sfMods = undefined;
+    u.ammo = undefined; u.hotRounds = undefined; u.sfMods = undefined;
     u.cls = cls; u.weapon = CLASSES[cls].weapons[0]!; u.ready = [p.time, p.time]; u.queued = undefined;
     const accessory = u.gear?.accessory ?? null;
     u.gear = { ...starterGear(cls, () => nextItemId(p)), accessory };

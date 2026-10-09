@@ -111,13 +111,30 @@ it('target lock: a missed shot makes the next one critical', () => {
   expect(u.nextCrit).toBe(true);
 });
 
-it('tactical reload: reloading with no foe within two cells makes the next shot pierce', () => {
+it('tactical reload: any reload brings the shield up to 8 and loads two hot rounds — each hits half again as hard and goes on into the foe behind', () => {
   const { p, u, foe, put } = range(); foe.sighted = [u.id];
-  const back = put(1, 11, 5), hp = entOf(p, back.id)!.hp;
-  u.ammo = 0; strike(p, u, foe, p.time, []);
-  expect(u.ammo).toBe(magOf(p, u));
+  // (a foe stands right beside: the reload asks for no calm)
+  put(2, 5, 6);
+  const back = put(1, 11, 5), fe = entOf(p, foe.id)!, be = entOf(p, back.id)!;
+  p.s.rng.int = (lo: number) => lo;
+  // a plain shot, for the measure
+  u.ammo = 3; let hp = fe.hp; strike(p, u, foe, p.time, []);
+  const plain = hp - fe.hp;
+  expect(be.hp).toBe(be.maxHp);
+  u.ammo = 0; u.shield = 3; strike(p, u, foe, p.time, []);
+  expect(u.ammo).toBe(magOf(p, u)); expect(u.hotRounds).toBe(2); expect(u.shield).toBe(8);
+  for (const left of [1, 0]) {
+    hp = fe.hp; const behind = be.hp;
+    strike(p, u, foe, p.time, []);
+    expect(Math.abs(hp - fe.hp - plain * 1.5)).toBeLessThanOrEqual(1); expect(be.hp).toBeLessThan(behind); expect(u.hotRounds).toBe(left);
+  }
+  // the third round is a plain one again
+  hp = fe.hp; const behind = be.hp;
   strike(p, u, foe, p.time, []);
-  expect(entOf(p, back.id)!.hp).toBeLessThan(hp);
+  expect(hp - fe.hp).toBe(plain); expect(be.hp).toBe(behind);
+  // a shield already higher is left as it is
+  u.ammo = 0; u.shield = 20; strike(p, u, foe, p.time, []);
+  expect(u.shield).toBe(20);
 });
 
 it('a first soul at the lab drops the gun and every SF trace', () => {
