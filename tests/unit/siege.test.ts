@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { newSurface, worldTick, canDrill } from '../../src/sim/overworld/worldSim';
 import { canPrintClone } from '../../src/sim/base/cloner';
-import { DOME, domeMax, domeUp, FALL_BACK, FIRST_WAVE, FRONT_GUARD, hitDome, planWave, raiders, resumeSiege, RETRY_GAP, REVIVE, rouseSiege, SIEGE_GROUP, SIEGE_REACH, siegeTick, spawnRaider, WAVE, WAVE_GAP, WAVE_LIMIT, waveOf } from '../../src/sim/base/siege';
+import { DOME, domeMax, domeUp, FALL_BACK, FIRST_WAVE, FRONT_GUARD, hitDome, planWave, raiders, resumeSiege, RETRY_GAP, REVIVE, rouseSiege, SIEGE_GROUP, SIEGE_MODE, SIEGE_REACH, siegeShown, siegeTick, spawnRaider, WAVE, WAVE_GAP, WAVE_LIMIT, waveOf } from '../../src/sim/base/siege';
 import { inDome, rimOf, siegeField } from '../../src/sim/base/siegePath';
 import { swarmTick } from '../../src/sim/base/swarm';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
@@ -9,6 +9,8 @@ import { alive, entOf, unitOf } from '../../src/sim/party/partyCore';
 import { takeClone, takeParty } from '../../src/sim/roam/carry';
 import { BODY_COST, clones, implant, living } from '../../src/sim/roam/roam';
 import { idx, type GEvent } from '../../src/sim/grid/types';
+// (these are about the siege as built: it is switched on for them — by default it is off)
+SIEGE_MODE.on = true;
 
 type P = ReturnType<typeof newSurface>;
 /** the base with its clones too tough to fall and holding their fire: the horde and the dome by themselves */
@@ -215,3 +217,15 @@ it('a tick of a siege deep into its waves stays cheap', () => {
   const t0 = performance.now(); for (let k = 0; k < 30; k++) { p.time += 0.1; swarmTick(p, 0.1, []); }
   expect((performance.now() - t0) / 30).toBeLessThan(8);
 }, 30_000);
+
+it('switched off, a return from below rouses nothing and the base shows none of the siege', () => {
+  SIEGE_MODE.on = false;
+  try {
+    const p = newSurface(42);
+    expect(siegeShown(p)).toBe(false);
+    const back = returnToSurface(p, takeParty(departSurface(p, 5, takeClone(p, 'hero'))!));
+    expect(back.some((e) => e.text === 'siegeStart')).toBe(false); expect(p.siege!.phase).toBe('quiet');
+    // one already under way (the address bar's switch, the demo) is shown all the same
+    p.siege!.phase = 'gap'; expect(siegeShown(p)).toBe(true);
+  } finally { SIEGE_MODE.on = true; }
+});

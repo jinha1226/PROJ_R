@@ -1,6 +1,7 @@
 import { newSurface, type WorldParty } from '../../sim/overworld/worldSim';
 import { gainXp, LEVEL_XP, pickTrait } from '../../sim/party/partyLevel';
 import { implant, print } from '../../sim/roam/roam';
+import { SIEGE_MODE } from '../../sim/base/siege';
 import type { BaseClass } from '../../sim/party/partyDefs';
 import type { TraitId } from '../../sim/party/traitDefs';
 
@@ -20,6 +21,7 @@ export function raidArena(seed: number, wave = 12): WorldParty {
     for (let k = 0; k < 40 && u.picks && u.offer?.length; k++) pickTrait(p, u.id, u.offer[0]! as TraitId);
   });
   const s = p.siege!;
+  SIEGE_MODE.on = true;
   s.wave = Math.max(0, wave - 1); s.best = s.wave; s.phase = 'gap'; s.nextAt = p.time + 4;
   return p;
 }

@@ -5,6 +5,9 @@ import { takeClone, takeParty } from '../../src/sim/roam/carry';
 import { clones, living, print } from '../../src/sim/roam/roam';
 import { entOf } from '../../src/sim/party/partyCore';
 import { soulsOf } from '../../src/sim/party/body';
+import { SIEGE_MODE } from '../../src/sim/base/siege';
+// (these are about the siege as built: it is switched on for them — by default it is off)
+SIEGE_MODE.on = true;
 
 const twoAtDrill = () => {
   const p = newSurface(6);

@@ -12,6 +12,7 @@ import { FloorSheet } from './floorSheet';
 import { SwarmView } from '../../view/overworld/swarmView';
 import { BasePanels, panelAt } from './basePanels';
 import { printClone } from '../../sim/base/cloner';
+import { siegeShown } from '../../sim/base/siege';
 import { implantCarried } from '../../sim/roam/roam';
 
 import { startFloors } from '../../sim/base/drill';
@@ -206,7 +207,7 @@ export class WorldScreen implements Screen {
       this.marks();
       this.labels();
       this.el.classList.toggle('paused', this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.bench.open);
-      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p, true, base && this.p.siege ? shardLine(this.p) : undefined), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
+      this.hud.draw(this.p, this.ids(), this.sel, { log: this.log, status: statusLine('<b>지상</b>', this.p, true, base && siegeShown(this.p) ? shardLine(this.p) : undefined), mode: '', stairs: canDrill(this.p), target: targetCardHtml(this.p, this.sel, cardTarget(this.p, this.sel, this.hover ? this.unitAt(this.hover)?.id : undefined)) });
       this.mini?.draw();
       this.raf = requestAnimationFrame(loop);
     };

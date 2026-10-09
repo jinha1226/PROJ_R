@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FIRST_WAVE } from '../../src/sim/base/siege';
+import { FIRST_WAVE, SIEGE_MODE } from '../../src/sim/base/siege';
 import { newSurface, worldTick, canDrill } from '../../src/sim/overworld/worldSim';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
 import { upgradeDrill } from '../../src/sim/base/drill';
 import { takeClone, takeParty } from '../../src/sim/roam/carry';
+// (these are about the siege as built: it is switched on for them — by default it is off)
+SIEGE_MODE.on = true;
 
 describe('base trips', () => {
   it('preserves base state, suspends surface ticks, and brings back the depth reached and what was carried', () => {

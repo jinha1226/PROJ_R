@@ -6,7 +6,8 @@ const SOUL_LIGHTS = 3;
 
 /**
  * What a dungeon floor holds beyond walls and chests: soul stones (violet; a hero's gold), the shrine (a pale flame until used),
- * gear lying on the floor (a glint), and the general's slam about to land (a red ring on the floor). Only what the party has seen shows.
+ * gear lying on the floor (a glint), the general's slam about to land (a red ring on the floor), and the pad the party arrived
+ * on — the way back up: a ring of light on the floor, a faint column over it, motes rising. Only what the party has seen shows.
  */
 export class DelveProps {
   readonly root = new THREE.Group();
@@ -16,11 +17,29 @@ export class DelveProps {
   private readonly soulLights: THREE.PointLight[] = [];
   private readonly slams: { ring: THREE.Mesh; left: number }[] = [];
   private clock = 0;
+  private readonly pad: { ring: THREE.Mesh; beam: THREE.Mesh; motes: THREE.Mesh[]; light: THREE.PointLight };
 
   constructor(private readonly p: () => DelveParty) {
     for (let i = 0; i < SOUL_LIGHTS; i++) { const l = new THREE.PointLight('#b49aff', 0, 4.5, 1.8); this.soulLights.push(l); this.root.add(l); }
     const sh = p().shrine;
     if (sh) this.shrine = this.altar(sh.pos);
+    this.pad = this.arrival(p().base);
+  }
+
+  /** The pad under the place the party came in at (the lift's foot, the stairs' foot). */
+  private arrival(at: Cell): DelveProps['pad'] {
+    const root = new THREE.Group(), glow = (color: string, opacity: number) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide });
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(0.46, 20), glow('#0a58d8', 0.35)), ring = new THREE.Mesh(new THREE.RingGeometry(0.36, 0.5, 20), glow('#19d8ff', 0.9));
+    disc.rotation.x = ring.rotation.x = -Math.PI / 2; disc.position.y = 0.03; ring.position.y = 0.04;
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.46, 1.8, 14, 1, true), glow('#19d8ff', 0.12));
+    beam.position.y = 0.9;
+    const motes = [0, 1, 2, 3, 4].map(() => new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.07), glow('#bff4ff', 0.9)));
+    const light = new THREE.PointLight('#40c8ff', 3, 4.5, 1.8);
+    light.position.y = 0.9;
+    root.add(disc, ring, beam, ...motes, light);
+    root.position.set(at.x, 0, at.y);
+    this.root.add(root);
+    return { ring, beam, motes, light };
   }
 
   private altar(at: Cell): { root: THREE.Group; flame: THREE.Mesh; light: THREE.PointLight } {
@@ -89,6 +108,11 @@ export class DelveProps {
       this.shrine.flame.visible = on;
       this.shrine.light.intensity = on ? 4.5 + Math.sin(this.clock * 6) * 0.6 : 0;
     }
+    // the pad breathes; its motes go round and up
+    const beat = 0.5 + 0.5 * Math.sin(this.clock * 2.2);
+    (this.pad.ring.material as THREE.MeshBasicMaterial).opacity = 0.6 + 0.35 * beat; (this.pad.beam.material as THREE.MeshBasicMaterial).opacity = 0.08 + 0.08 * beat;
+    this.pad.light.intensity = 2.4 + beat;
+    this.pad.motes.forEach((m, i) => { const k = (this.clock * 0.35 + i / this.pad.motes.length) % 1, a = this.clock * 1.3 + i * 2.1; m.position.set(Math.cos(a) * 0.32, 0.1 + k * 1.6, Math.sin(a) * 0.32); (m.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - k); });
     for (let i = this.slams.length - 1; i >= 0; i--) {
       const s = this.slams[i]!;
       s.left -= dt;

@@ -52,6 +52,15 @@ export interface SiegeSpawn { at: number; kind: 'fodder' | 'brute' | 'archer' | 
 /** game time per real second at normal speed (the surface's clock): the numbers below are thought of in seconds */
 const SEC = 3.6;
 export const SIEGE_GROUP = 1000;
+/**
+ * The siege is switched off for now (2026-10-09: the idle defence is not fun enough yet, and the dungeon comes first): a
+ * return from below no longer rouses the horde, and the base shows none of the siege's lines or keys. Everything is still
+ * here — `?siege` (or `?wave=N`, or the raid demo) switches it back on to try it.
+ */
+export const SIEGE_MODE = { on: false };
+/** whether the siege's lines and keys are shown: switched on, or already under way */
+export const siegeShown = (p: WorldParty): boolean => !!p.siege && (SIEGE_MODE.on || p.siege.phase !== 'quiet');
+
 /** the dome: its reach in cells, its strength, what it wins back per turn, how long it stays down after giving */
 export const DOME = { r: 5, hp: 200, regen: 3 / SEC, lull: 4 * SEC };
 /** a wave pours out over four seconds; the next comes five seconds after it is cleared (time to gather what fell); the first, ten after the first return; a wave called again, three after the word */

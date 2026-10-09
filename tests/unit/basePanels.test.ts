@@ -3,8 +3,10 @@ import { newSurface } from '../../src/sim/overworld/worldSim';
 import { labPanelHtml, quartersPanelHtml, workshopPanelHtml, panelAt } from '../../src/ui/overworld/basePanels';
 import { entOf, unitOf } from '../../src/sim/party/partyCore';
 import { moduleOf, repairModule } from '../../src/sim/base/modules';
-import { hitDome } from '../../src/sim/base/siege';
+import { hitDome, SIEGE_MODE } from '../../src/sim/base/siege';
 import { BODY_COST, print } from '../../src/sim/roam/roam';
+// (these are about the siege as built: it is switched on for them — by default it is off)
+SIEGE_MODE.on = true;
 
 it('the lab panel prints a body when there is bio-matter and a bed, implants carried souls, and offers its medical bay', () => {
   const p = newSurface(4);

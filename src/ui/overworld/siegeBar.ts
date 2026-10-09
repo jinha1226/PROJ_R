@@ -1,4 +1,4 @@
-import { callWave, domeMax, domeUp, raiders, resumeSiege, waveOf } from '../../sim/base/siege';
+import { callWave, domeMax, domeUp, raiders, resumeSiege, SIEGE_MODE, siegeShown, waveOf } from '../../sim/base/siege';
 import { worth } from '../../sim/base/tree';
 import { big } from './bigNum';
 import { GATHER } from '../../sim/base/modules';
@@ -19,7 +19,7 @@ const SEC = 3.6;
  */
 export function siegeHtml(p: WorldParty): string {
   const s = p.siege;
-  if (!s) return '';
+  if (!s || !siegeShown(p)) return '';
   const out = raiders(p).filter((u) => alive(p, u)).length, best = s.best ? `<small>최고 ${s.best}</small>` : '';
   const wave = s.phase === 'quiet' ? '<span class="sg-wave">지상 <b>조용함</b></span>'
     : s.phase === 'gap' ? `<span class="sg-wave soon">파도 <b>${s.wave + 1}</b> · <b>${Math.max(0, Math.ceil((s.nextAt - p.time) / SEC))}초</b>${best}</span>`
@@ -97,9 +97,10 @@ export function overPanel(restart: () => void, quit?: () => void): HTMLElement {
   return el;
 }
 
-/** Address-bar switches for trying the base out: `?rich` stocks it, `?wave=N` starts the siege at wave N (without waiting for a first trip down), `?lvl` makes the first clone a level-4 mage-archer with picks waiting, `?gear` puts fantasy gear in the pack (for the workshop). */
+/** Address-bar switches for trying the base out: `?rich` stocks it, `?siege` switches the siege on, `?wave=N` starts it at wave N (without waiting for a first trip down), `?lvl` makes the first clone a level-4 mage-archer with picks waiting, `?gear` puts fantasy gear in the pack (for the workshop). */
 export function tryOutState(p: WorldParty): void {
   const q = new URLSearchParams(location.search);
+  if (q.has('siege') || q.has('wave')) SIEGE_MODE.on = true;
   const first = p.units.find((u) => u.side === 'hero');
   if (q.has('lvl') && first?.cls === 'shell') { implant(p, first, { cls: 'mage', memory: 'burnt' }, []); implant(p, first, 'archer', []); gainXp(p, first, LEVEL_XP[3]!, []); }
   if (q.has('rich') && p.ore < 200) { p.ore = 300; p.crystal = 40; p.bio = 60; }

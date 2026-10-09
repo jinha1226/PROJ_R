@@ -4,7 +4,7 @@ import { CLASSES } from '../../sim/party/partyDefs';
 import { queueUltimate, ULT_NAMES, ULT_REACH, ultSlots } from '../../sim/party/ultimate';
 import type { WorldParty } from '../../sim/overworld/worldSim';
 import type { UltId } from '../../sim/party/classKit';
-import { reviveTime } from '../../sim/base/siege';
+import { reviveTime, siegeShown } from '../../sim/base/siege';
 import { anyNodeAffordable } from '../../sim/base/tree';
 
 /** the clones at the base, in the order they were made (the fallen too: their place in the bar stays, dimmed) */
@@ -33,7 +33,7 @@ export function cloneRowHtml(p: WorldParty, aiming: { id: string; slot: number }
   }).join('');
 }
 /** The keys at the row's end: the skill tree (lit when something in it can be bought) and Auto. */
-export const rowKeysHtml = (p: WorldParty): string => `<button type="button" data-tree class="ub-auto ub-tree${anyNodeAffordable(p) ? ' can' : ''}">강화</button><button type="button" data-auto class="ub-auto${p.siege?.auto ? ' on' : ''}">자동</button>`;
+export const rowKeysHtml = (p: WorldParty): string => !siegeShown(p) ? '' : `<button type="button" data-tree class="ub-auto ub-tree${anyNodeAffordable(p) ? ' can' : ''}">강화</button><button type="button" data-auto class="ub-auto${p.siege?.auto ? ' on' : ''}">자동</button>`;
 
 /**
  * The base's hands (spec 2026-10-09 "idle defence"): the fight runs itself. The player fires the clones' ultimates — a tap
