@@ -8,6 +8,12 @@ export const ENDESGA32 = ['#be4a2f', '#d77643', '#ead4aa', '#e4a672', '#b86f50',
 /** The game's dot look: about 270 pixels across the short side, Endesga 32, a light dither. */
 export const DOT_LOOK: PixelLook = { lines: 270, palette: ENDESGA32, dither: 0.1, lift: 0.62, ground: { contrast: 0.6, dim: 0.84, dither: 0.7 } };
 
+/** The dot look, with `?dots=N` in the address bar trying out another count of dots along the short side (fewer: chunkier). */
+export function dotLook(): PixelLook {
+  const n = typeof location === 'undefined' ? NaN : Number(new URLSearchParams(location.search).get('dots'));
+  return n >= 60 && n <= 600 ? { ...DOT_LOOK, lines: n } : DOT_LOOK;
+}
+
 /** The render layer that marks figures for the dot look's outlines. */
 export const FIGURE_LAYER = 2;
 /** Ring colours: one per class line for the party (as their frames), red for every foe. */
