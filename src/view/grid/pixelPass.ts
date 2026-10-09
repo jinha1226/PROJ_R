@@ -9,10 +9,17 @@ export const ENDESGA32 = ['#be4a2f', '#d77643', '#ead4aa', '#e4a672', '#b86f50',
 /** The game's dot look: about 270 pixels across the short side, Endesga 32, a light dither. */
 export const DOT_LOOK: PixelLook = { lines: 270, palette: ENDESGA32, dither: 0.1, lift: 0.62, ground: { contrast: 0.6, dim: 0.84, dither: 0.7 } };
 
+/** The edge look (`?px=edge`): the picture's own colours at the dot look's size, lit ridges and shaded valleys, the figures' rings — no palette, no dither. */
+export const EDGE_LOOK: PixelLook = { lines: 270, rings: true, edges: { light: 2.2, dark: 0.5 } };
+
 /** The dot look, with `?dots=N` in the address bar trying out another count of dots along the short side (fewer: chunkier). */
 export function dotLook(): PixelLook {
   const n = typeof location === 'undefined' ? NaN : Number(new URLSearchParams(location.search).get('dots'));
-  return n >= 60 && n <= 600 ? { ...DOT_LOOK, lines: n } : DOT_LOOK;
+  const q = new URLSearchParams(typeof location === 'undefined' ? '' : location.search);
+  // (`&edge=light,dark` tries other strengths)
+  const [light, dark] = (q.get('edge') ?? '').split(',').map(Number);
+  const base = q.get('px') !== 'edge' ? DOT_LOOK : { ...EDGE_LOOK, edges: { light: light! >= 0 ? light! : EDGE_LOOK.edges!.light, dark: dark! >= 0 ? dark! : EDGE_LOOK.edges!.dark } };
+  return n >= 60 && n <= 600 ? { ...base, lines: n } : base;
 }
 
 /** The render layer that marks figures for the dot look's outlines. */
@@ -39,6 +46,14 @@ export interface PixelLook {
    * black and what is bright (a torch, a blast) stays bright.
    */
   ground?: { contrast: number; dim: number; dither: number };
+  /**
+   * Edges read off the depth alone (after Kody King's three.js pixel pass, which reads them off a second picture of the
+   * normals): where a surface turns toward the eye (a ridge: a box's rim, a step's lip) its dot is lit by `light`, where
+   * it turns away (a valley: a wall's foot) it is shaded by `dark`.
+   */
+  edges?: { light: number; dark: number };
+  /** the figures' coloured rings, without a palette too */
+  rings?: boolean;
 }
 
 /**
@@ -58,18 +73,19 @@ export class PixelPass {
 
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly px = 3, private readonly look: PixelLook = {}) {
     this.target.texture.generateMipmaps = false;
-    this.target.depthTexture = new THREE.DepthTexture(1, 1);
+    // (whole-number depth, 24 bits: a crease is a small change of it from one dot to the next)
+    this.target.depthTexture = new THREE.DepthTexture(1, 1, THREE.UnsignedIntType);
     const pal = (look.palette ?? []).map((h) => new THREE.Color().setStyle(h, THREE.SRGBColorSpace));
     // the palette is compared in display (sRGB) values, where the dither and the eye work
     const palVec = pal.map((c) => new THREE.Vector3(...c.clone().convertLinearToSRGB().toArray()));
     const n = palVec.length;
     const mat = new THREE.ShaderMaterial({
-      uniforms: { mask: { value: this.mask.texture }, tex: { value: this.target.texture }, depth: { value: this.target.depthTexture }, texel: { value: new THREE.Vector2(1, 1) }, levels: { value: 28 },
+      uniforms: { edge: { value: new THREE.Vector3(look.edges?.light ?? 0, look.edges?.dark ?? 0, 1e-4) }, mask: { value: this.mask.texture }, tex: { value: this.target.texture }, depth: { value: this.target.depthTexture }, texel: { value: new THREE.Vector2(1, 1) }, levels: { value: 28 },
         pal: { value: n ? palVec : [new THREE.Vector3()] }, spread: { value: look.dither ?? 0.09 }, lift: { value: look.lift ?? 1 },
         ground: { value: new THREE.Vector3(look.ground?.contrast ?? 1, look.ground?.dim ?? 0.88, look.ground?.dither ?? 1) } },
-      defines: { PAL_N: Math.max(1, n), USE_PAL: n ? 1 : 0 },
+      defines: { PAL_N: Math.max(1, n), USE_PAL: n ? 1 : 0, USE_EDGE: look.edges ? 1 : 0, USE_RING: n || look.rings ? 1 : 0 },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
-      fragmentShader: `uniform sampler2D tex; uniform sampler2D depth; uniform vec2 texel; uniform float levels; uniform vec3 pal[PAL_N]; uniform float spread; uniform float lift; uniform vec3 ground; uniform sampler2D mask; varying vec2 vUv;
+      fragmentShader: `uniform vec3 edge; uniform sampler2D tex; uniform sampler2D depth; uniform vec2 texel; uniform float levels; uniform vec3 pal[PAL_N]; uniform float spread; uniform float lift; uniform vec3 ground; uniform sampler2D mask; varying vec2 vUv;
         vec3 ringAt(vec2 o) { return texture2D(mask, vUv + o).rgb; }
         float dz(vec2 o) { return texture2D(depth, vUv + o * texel).x; }
         float bayer(vec2 p) {
@@ -83,7 +99,19 @@ export class PixelPass {
           float d = dz(vec2(0.0));
           float far = max(max(dz(vec2(1.0, 0.0)), dz(vec2(-1.0, 0.0))), max(dz(vec2(0.0, 1.0)), dz(vec2(0.0, -1.0))));
           float rim = step(0.0025, far - d);
-          gl_FragColor = vec4(texture2D(tex, vUv).rgb * mix(1.0, 0.22, rim), 1.0);
+          float crease = 0.0;
+          #if USE_EDGE == 1
+            // the depth across a flat face changes by the same step from dot to dot: where the step itself changes, the face turns
+            float dl = dz(vec2(-1.0, 0.0)), dr = dz(vec2(1.0, 0.0)), du = dz(vec2(0.0, 1.0)), dd = dz(vec2(0.0, -1.0));
+            float whole = 1.0 - step(0.0025, max(max(abs(dl - d), abs(dr - d)), max(abs(du - d), abs(dd - d))));
+            float turn = max(dl + dr - 2.0 * d, du + dd - 2.0 * d), fold = min(dl + dr - 2.0 * d, du + dd - 2.0 * d);
+            crease = whole * (smoothstep(0.35, 0.9, turn / edge.z) * edge.x - smoothstep(0.35, 0.9, -fold / edge.z) * edge.y);
+            // a figure is all ridges (a limb is a round thing): lit that hard it turns to a ghost, so it takes a quarter
+            #if USE_RING == 1
+              vec3 body = ringAt(vec2(0.0)); if (body.r + body.g + body.b >= 0.02) crease *= 0.25;
+            #endif
+          #endif
+          gl_FragColor = vec4(texture2D(tex, vUv).rgb * mix(1.0, 0.22, rim) * (1.0 + crease), 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
           #if USE_PAL == 1
@@ -108,6 +136,10 @@ export class PixelPass {
               if (dd < bd) { bd = dd; best = pal[k]; }
             }
             gl_FragColor.rgb = best;
+          #else
+            gl_FragColor.rgb = floor(gl_FragColor.rgb * levels + 0.5) / levels;
+          #endif
+          #if USE_RING == 1
             // a one-pixel ring round every figure in its side's colour, where the figure itself is not
             // the mask holds each figure's ring colour (linear); a pixel just outside a figure takes its neighbour's
             vec3 me = ringAt(vec2(0.0));
@@ -118,8 +150,6 @@ export class PixelPass {
               if (nb.r + nb.g + nb.b < 0.02) nb = ringAt(vec2(0.0, -texel.y));
               if (nb.r + nb.g + nb.b >= 0.02) gl_FragColor.rgb = pow(nb, vec3(1.0 / 2.2));
             }
-          #else
-            gl_FragColor.rgb = floor(gl_FragColor.rgb * levels + 0.5) / levels;
           #endif
         }`,
       depthTest: false, depthWrite: false, toneMapped: true,
@@ -143,7 +173,10 @@ export class PixelPass {
     }
     r.setRenderTarget(this.target);
     r.render(scene, camera);
-    if (this.look.palette) this.paintMask(scene, camera);
+    if (this.look.palette || this.look.rings) this.paintMask(scene, camera);
+    // what one dot's step across a face tilted 45° changes the depth by: the measure a crease is told against
+    const cam = camera as THREE.OrthographicCamera;
+    if (this.look.edges && cam.isOrthographicCamera) ((this.quad.material as THREE.ShaderMaterial).uniforms.edge!.value as THREE.Vector3).z = (cam.top - cam.bottom) / cam.zoom / h / (cam.far - cam.near);
     r.setRenderTarget(null);
     r.render(this.scene, this.cam);
   }
