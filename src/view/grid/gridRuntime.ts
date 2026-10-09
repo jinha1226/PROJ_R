@@ -289,7 +289,7 @@ export class GridRuntime {
         const round = () => { this.fx.flash(from, magic ? '#b48aff' : '#ffd890', mine ? f.flash : 22, 0.08); if (mine && f.shotKick) this.fx.shake(0.07, f.shotKick); };
         round();
         this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); }, mine ? f.bolt : 1);
-        // a gun fires a short burst: the rounds after the first are for the eye alone (the blow is the first's), a little off its line
+        // a pistol fires a double tap: the second round is for the eye alone (the blow is the first's), a little off its line
         if (e.text === 'gun') for (let k = 1; k < BURST.rounds; k++) this.fx.later(k * BURST.gap, () => {
           const src = at(e.src) ?? from, off = new THREE.Vector3((Math.random() - 0.5) * BURST.spread, 0, (Math.random() - 0.5) * BURST.spread);
           round(); a.shoot(e.src, p, shotGroup(e)); this.fx.bolt(src, p.clone().add(off), () => {}, mine ? f.bolt : 1);

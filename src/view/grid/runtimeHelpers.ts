@@ -6,8 +6,11 @@ import { CELL } from './gridTerrain';
 
 export const cellVec = (c: Cell): THREE.Vector3 => new THREE.Vector3(c.x * CELL, 0, c.y * CELL);
 
-/** A gun's shot is shown as a short burst: how many rounds, how far apart (seconds), how far off the first's line the later ones land (cells). */
-export const BURST = { rounds: 3, gap: 0.07, spread: 0.35 };
+/**
+ * A pistol's shot is shown as a double tap: how many rounds, how far apart (seconds), how far off the first's line the
+ * second lands (cells). (Three rounds seven hundredths apart read as a rifle on automatic: too much for a sidearm.)
+ */
+export const BURST = { rounds: 2, gap: 0.13, spread: 0.2 };
 
 /** Older saves and foe events may only carry a shot label. */
 export function shotGroup(e: GEvent): WeaponLook | undefined {
