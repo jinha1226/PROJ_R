@@ -198,3 +198,7 @@
 .world.under .tree-win { display: none; }
 
 .clone-row .cr-tiles, .clone-row .cr-keys { display: flex; gap: 8px; align-items: flex-end; }
+
+/* the key that calls the next wave early: smaller, and out of the fight's way (high on the field) */
+.siege-start.call { top: 30%; height: 36px; padding: 0 14px; font-size: 11px; animation: none; background: #05060c; color: #ffd23a; border-color: #ffd23a; box-shadow: none; }
+.siege-bar .sg-over { color: #ffd23a; margin-left: 4px; }

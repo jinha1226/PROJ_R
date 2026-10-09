@@ -95,21 +95,45 @@ it('the siege\'s lines: quiet, the next wave counted down, the wave out and how 
   expect(baseLabels(p).map((l) => l.text)).toEqual(['연구실', '숙소', '작업장 · 고장']);
 });
 
-it('the tree\'s sheet: three columns; a node tells its level, what it gives now and next, and its price; one whose turn has not come names what it waits for; the base\'s first line tells the shards and the readings', async () => {
-  const { treeHtml, nodeHtml } = await import('../../src/ui/overworld/treeWindow');
-  const { nodeOf } = await import('../../src/sim/base/tree');
-  const { shardLine, siegeNote } = await import('../../src/ui/overworld/siegeBar');
+it('the tree\'s map: every node at its own place round the core, joined to the one it grows from, told by its state; the chosen node told in full with the key that buys it; the base\'s first line tells the shards and the readings', async () => {
+  const { treeMapHtml, treeDetailHtml, nodeSpot, RINGS } = await import('../../src/ui/overworld/treeWindow');
+  const { iconRows } = await import('../../src/ui/overworld/treeIcons');
+  const { TREE, nodeOf } = await import('../../src/sim/base/tree');
+  const { shardLine, siegeNote, startKey } = await import('../../src/ui/overworld/siegeBar');
   const { big } = await import('../../src/ui/overworld/bigNum');
   const p = newSurface(4);
-  expect(treeHtml(p).match(/class="tr-col"/g)).toHaveLength(3); expect(treeHtml(p).match(/tr-node/g)).toHaveLength(13);
-  expect(nodeHtml(p, nodeOf('domeHp'))).toMatch(/data-node="domeHp" disabled/); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('◆ 10'); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('강도 +12%');
-  expect(nodeHtml(p, nodeOf('gun'))).toContain('돔 강도 2단계 필요'); expect(nodeHtml(p, nodeOf('gun'))).not.toContain('data-node');
-  p.shards = 2500; p.tree = { domeHp: 2, domeSize: 6 };
-  expect(nodeHtml(p, nodeOf('domeHp'))).toMatch(/class="tr-node can" data-node="domeHp" >/); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('Lv 2'); expect(nodeHtml(p, nodeOf('domeHp'))).toContain('강도 +25% → +40%');
-  expect(nodeHtml(p, nodeOf('gun'))).toContain('가까운 적 포격 · 피해 6'); expect(nodeHtml(p, nodeOf('domeSize'))).toContain('최대'); expect(nodeHtml(p, nodeOf('domeSize'))).toContain('반지름 +3칸');
-  expect(treeHtml(p)).toContain('◆ <b>2.5K</b>');
+  // no two nodes on one spot, none on the core; each on its ring; every icon twelve rows of twelve
+  const spots = TREE.map((n) => nodeSpot(n));
+  expect(new Set(spots.map((c) => `${c.x},${c.y}`)).size).toBe(27);
+  for (const [i, n] of TREE.entries()) { expect(Math.abs(Math.hypot(spots[i]!.x, spots[i]!.y) - RINGS[n.at[0]]!)).toBeLessThan(1); for (const [j, o] of spots.entries()) if (j > i) expect(Math.hypot(o.x - spots[i]!.x, o.y - spots[i]!.y)).toBeGreaterThan(50); }
+  for (const id of [...TREE.map((n) => n.id), 'core' as const]) { expect(iconRows(id)).toHaveLength(12); expect(iconRows(id).every((r) => r.length === 12 && /^[.#]+$/.test(r))).toBe(true); }
+  let map = treeMapHtml(p, null);
+  expect(map.match(/data-node="/g)).toHaveLength(27); expect(map.match(/class="tr-link /g)).toHaveLength(27); expect(map).toContain('tr-core');
+  expect(map).toMatch(/class="tr-node open" data-node="domeHp"/); expect(map.match(/class="tr-branch"/g)).toHaveLength(5); expect(map).toContain('>자동화</span>'); expect(map).toContain('<i>◆ 10</i>'); expect(map).toMatch(/class="tr-node shut" data-node="thorns"/);
+  expect(treeDetailHtml(p, null)).toContain('노드를 눌러');
+  expect(treeDetailHtml(p, 'domeHp')).toContain('<h3>돔 강도<small>Lv 0</small></h3>'); expect(treeDetailHtml(p, 'domeHp')).toMatch(/data-buy="domeHp" disabled><b>◆ 10<\/b>파편 부족/);
+  expect(treeDetailHtml(p, 'thorns')).toContain('<b>잠김</b>돔 강도 3단계 필요'); expect(treeDetailHtml(p, 'thorns')).not.toContain('data-buy');
+  p.shards = 2500; p.tree = { domeHp: 3, thorns: 5, grace: 1 };
+  map = treeMapHtml(p, 'thorns');
+  expect(map).toMatch(/class="tr-node own" data-node="domeHp"[^>]*>.*?<em>▲<\/em><i>Lv 3<\/i>/); expect(map).not.toMatch(/data-node="thorns"[^>]*>(?:(?!<\/button>).)*<em>/); expect(map).toMatch(/class="tr-node own sel" data-node="thorns"/); expect(map).toContain('<i>최대</i>');
+  expect(map).toMatch(/class="tr-node can" data-node="gun"/); expect(map).toMatch(new RegExp(`class="tr-link own"[^>]*x2="${nodeSpot(nodeOf('domeHp')).x}"`));
+  expect(treeDetailHtml(p, 'domeHp')).toContain('강도 <b>+40%</b> → <b>+57%</b>'); expect(treeDetailHtml(p, 'domeHp')).toMatch(/data-buy="domeHp" ><b>◆ 20<\/b>한 단계 사기/);
+  expect(treeDetailHtml(p, 'thorns')).toContain('Lv 5 / 5'); expect(treeDetailHtml(p, 'thorns')).toContain('<b>최대</b>'); expect(treeDetailHtml(p, 'grace')).toContain('<small>보유</small>');
+  expect(treeDetailHtml(p, 'gun')).toMatch(/data-buy="gun" ><b>◆ 30<\/b>사기/);
   p.siege!.income = 12 / 3.6; p.siege!.dps = 1500 / 3.6;
   expect(shardLine(p)).toContain('◆ <b>2.5K</b>'); expect(shardLine(p)).toContain('+12/초'); expect(shardLine(p)).toContain('피해 <b>1.5K</b>/초');
   expect([big(0), big(999.9), big(1000), big(12345), big(123456), big(2.5e6), big(7e9)]).toEqual(['0', '999', '1.0K', '12.3K', '123K', '2.5M', '7.0B']);
-  expect(siegeNote({ t: 0, type: 'buff', text: 'waveClear:12', amount: 340 })).toBe('파도 12 클리어 · 파편 +340'); expect(siegeNote({ t: 0, type: 'buff', text: 'awayShards', amount: 1240 })).toBe('부재 중 파편 +1.2K');
+  expect(siegeNote({ t: 0, type: 'buff', text: 'waveClear:12', amount: 340 })).toBe('파도 12 클리어 · 파편 +340'); expect(siegeNote({ t: 0, type: 'buff', text: 'waveClear:12:clean', amount: 340 })).toBe('파도 12 무피해 클리어 · 파편 +340');
+  expect(siegeNote({ t: 0, type: 'buff', text: 'awayShards', amount: 1240 })).toBe('부재 중 파편 +1.2K'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeSurge' })).toBe('돔 긴급 충전');
+  // the key in the middle of the field
+  const s = p.siege!; p.tree = {};
+  expect(startKey(p)).toBe('');
+  s.phase = 'held'; s.wave = 6; s.heldAt = p.time; expect(startKey(p)).toBe('▶ 파도 7 시작');
+  p.tree = { autoRestart: 1 }; expect(startKey(p)).toBe('▶ 파도 7 시작 · 자동 10초');
+  s.phase = 'gap'; s.nextAt = p.time + 18; expect(startKey(p)).toBe('');
+  p.tree = { earlyCall: 1 }; expect(startKey(p)).toContain('지금 부르기');
+  // the dome's line: an overcharged dome shows what it holds past full
+  p.tree = { overcharge: 1 }; s.phase = 'wave'; s.domeHp = 215;
+  const { siegeHtml } = await import('../../src/ui/overworld/siegeBar');
+  expect(siegeHtml(p)).toContain('] 200<b class="sg-over">+15</b>');
 });

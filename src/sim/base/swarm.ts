@@ -20,7 +20,7 @@ function strikeNear(p: WorldParty, u: Unit, cell: Cell, atRim: boolean, heroes: 
   const t = p.time, hit = () => Math.max(1, Math.round(p.s.rng.int(FODDER_DMG[0], FODDER_DMG[1]) * (u.foeScale ?? 1)));
   const hero = heroes.find((h) => alive(p, h) && dist(entOf(p, h.id)!.pos, cell) <= 1);
   if (hero) { damage(p, t, u.id, hero, hit(), ev, false, false, 'physical', true); return true; }
-  if (atRim) { hitDome(p, Math.max(1, Math.round(u.foeScale ?? 1)), u.id, cell, ev); return true; }
+  if (atRim) { hitDome(p, u.foeScale ?? 1, u.id, cell, ev); return true; }
   return false;
 }
 

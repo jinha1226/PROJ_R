@@ -1,34 +1,51 @@
 /*
- * The skill tree's sheet: frameless, in the Pip-Boy's green, over the lower part of the base's screen. Three columns —
- * dome, clones, income — each a chain of nodes joined by a line; a node that can be bought is bright, one that cannot
- * yet is dim, one whose turn has not come is only named.
+ * The skill tree's page: a map spreading out from the core, in the Pip-Boy's green on near-black. Dotted rings round the
+ * core tell how far out a node lies; a line joins each node to the one it grows from. A node held is bright; one that can
+ * be bought is ringed in gold, its line gold and dashed; one open but too dear is plain green; one whose turn has not come
+ * is dim. Under the map the chosen node is told in full, with the key that buys it.
  */
-.tree-win { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; max-height: 62%; display: flex; flex-direction: column;
-  background: #05060cf2; border-top: 2px solid var(--pip-dim); color: var(--pip-dim); font: 11px/1.25 'Galmuri', monospace; user-select: none; }
+.tree-win { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --gold: #ffd23a; position: absolute; z-index: 10; inset: 56px 12% 8px; display: flex; flex-direction: column;
+  background: #05060c; border: 1px solid var(--pip-dark); color: var(--pip-dim); font: 11px/1.25 'Galmuri', monospace; user-select: none; }
 .tree-win[hidden] { display: none; }
-.tree-win header { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-bottom: 1px solid var(--pip-dark); }
-.tr-title { color: var(--pip); }
-.tr-have { margin-left: auto; color: #ffd23a; }
-.tr-have b { font-weight: normal; }
-.tree-win header button { width: 36px; height: 30px; font: inherit; color: var(--pip); background: none; border: 1px solid var(--pip-dark); cursor: pointer; }
-.tr-cols { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 6px; max-width: 760px; width: 100%; box-sizing: border-box; margin: 0 auto; }
-.tr-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.tr-col h4 { margin: 0; font: inherit; color: var(--pip); text-align: center; }
-.tr-node { position: relative; display: grid; gap: 2px; min-height: 58px; padding: 5px 6px; text-align: left; font: inherit; color: var(--pip-dim); cursor: pointer;
-  border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: url('./img/plate.png') 0 0 / 8px 8px; }
-/* the line from the node before it */
-.tr-node + .tr-node::before { content: ''; position: absolute; left: 50%; top: -9px; width: 2px; height: 8px; background: var(--pip-dark); }
-.tr-node b { display: flex; justify-content: space-between; gap: 4px; font-weight: normal; color: var(--pip); white-space: nowrap; overflow: hidden; }
-.tr-node b i { font-style: normal; color: var(--pip-dim); }
-.tr-node small { font-size: 11px; color: var(--pip-dim); overflow: hidden; }
-.tr-node em { font-style: normal; color: #ffd23a; }
-.tr-node:disabled { cursor: default; }
-.tr-node:disabled em { color: #7a6a2a; }
-.tr-node:disabled b { color: var(--pip-dim); }
-.tr-node.shut { opacity: 0.5; }
-.tr-node.shut small { color: var(--pip-dim); }
-.tr-node.top em { color: var(--pip-dim); }
-.tr-node.can { box-shadow: inset 0 0 0 1px var(--pip-dark); }
-.tr-node.can:active { transform: translateY(2px); }
+.tr-map { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; touch-action: none; cursor: grab; }
+.tr-world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.tr-lines { position: absolute; left: -400px; top: -400px; width: 800px; height: 800px; overflow: visible; }
+.tr-ring { fill: none; stroke: var(--pip-dark); stroke-width: 1; stroke-dasharray: 2 6; }
+.tr-link { stroke: var(--pip-dark); stroke-width: 2; opacity: 0.55; }
+.tr-link.own { stroke: var(--pip-dim); opacity: 1; }
+.tr-link.can { stroke: var(--gold); stroke-dasharray: 4 3; opacity: 1; }
+.tr-link.open { stroke: var(--pip-dim); stroke-dasharray: 4 3; opacity: 0.8; }
+.tr-node { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; box-sizing: border-box; display: grid; place-items: center; font: inherit; color: var(--pip-dim); cursor: pointer;
+  border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: #05060c url('./img/plate.png') 0 0 / 8px 8px; }
+.tr-ic { width: 24px; height: 24px; display: block; }
+.tr-node i { position: absolute; left: -14px; right: -14px; bottom: -15px; text-align: center; font-style: normal; white-space: nowrap; color: var(--pip-dim); pointer-events: none; }
+/* a branch's name, on its line out of the core */
+.tr-branch { position: absolute; transform: translate(-50%, -50%); padding: 1px 3px; background: #05060c; color: var(--pip); white-space: nowrap; pointer-events: none; }
+/* held, and another level can be bought */
+.tr-node em { position: absolute; right: -5px; top: -7px; font-style: normal; font-size: 11px; color: var(--gold); pointer-events: none; }
+.tr-node.own, .tr-node.own i { color: var(--pip); }
+.tr-node.can { box-shadow: 0 0 0 1px var(--gold); }
+.tr-node.can, .tr-node.can i { color: var(--gold); }
+.tr-node.shut { opacity: 0.38; }
+.tr-node.sel { outline: 2px solid var(--pip); outline-offset: 3px; }
 .tr-node.bought { animation: tr-flash 0.25s steps(3); }
-@keyframes tr-flash { 0% { background: var(--pip); } 100% { background: url('./img/plate.png') 0 0 / 8px 8px; } }
+@keyframes tr-flash { 0% { background: var(--pip); } 100% { background: #05060c url('./img/plate.png') 0 0 / 8px 8px; } }
+.tr-core { width: 52px; height: 52px; margin: -26px 0 0 -26px; color: var(--pip); background: var(--pip-dark); cursor: default; }
+.tr-core .tr-ic { width: 36px; height: 36px; }
+.tr-close { position: absolute; right: 6px; top: 6px; width: 42px; height: 36px; font: inherit; color: var(--pip); background: #05060c; border: 1px solid var(--pip-dark); cursor: pointer; }
+
+.tr-detail { flex: 0 0 auto; min-height: 96px; padding: 10px 12px; box-sizing: border-box; border-top: 1px solid var(--pip-dark); display: flex; gap: 12px; align-items: center; }
+.td-text { flex: 1 1 auto; min-width: 0; }
+.td-text h3 { margin: 0 0 2px; font: inherit; font-size: 22px; line-height: 26px; color: var(--pip); white-space: nowrap; }
+.td-text h3 small { font-size: 11px; color: var(--pip-dim); margin-left: 8px; }
+.td-text p { margin: 0; }
+.td-text p b { font-weight: normal; color: var(--pip); }
+.tr-detail button { flex: 0 0 118px; height: 64px; font: inherit; color: #021006; background: var(--pip); border: 2px solid #021006; box-shadow: 0 0 0 2px var(--pip); cursor: pointer; }
+.tr-detail button b { display: block; font-size: 22px; line-height: 26px; font-weight: normal; white-space: nowrap; }
+.tr-detail button:disabled { color: var(--pip-dim); background: none; border-color: transparent; box-shadow: 0 0 0 1px var(--pip-dark); cursor: default; }
+.tr-detail button:active:not(:disabled) { transform: translateY(2px); }
+
+/* an upright phone: the page takes the screen under the base's own top lines */
+@media (orientation: portrait) and (max-width: 700px) {
+  .tree-win { inset: 78px 0 0 0; border: 0; border-top: 2px solid var(--pip-dim); }
+}

@@ -1,4 +1,5 @@
-import { domeMax, domeUp, raiders, resumeSiege, waveOf } from '../../sim/base/siege';
+import { callWave, domeMax, domeUp, raiders, resumeSiege, waveOf } from '../../sim/base/siege';
+import { worth } from '../../sim/base/tree';
 import { big } from './bigNum';
 import { GATHER } from '../../sim/base/modules';
 import type { GEvent } from '../../sim/grid/types';
@@ -23,10 +24,11 @@ export function siegeHtml(p: WorldParty): string {
   const wave = s.phase === 'quiet' ? '<span class="sg-wave">지상 <b>조용함</b></span>'
     : s.phase === 'gap' ? `<span class="sg-wave soon">파도 <b>${s.wave + 1}</b> · <b>${Math.max(0, Math.ceil((s.nextAt - p.time) / SEC))}초</b>${best}</span>`
     : s.phase === 'held' ? `<span class="sg-wave held">파도 <b>${s.wave + 1}</b> 실패${best}</span>`
-    : `<span class="sg-wave">파도 <b>${s.wave}</b>${best}</span><span>적 <b>${out}</b></span>`;
+    : `<span class="sg-wave">파도 <b>${s.wave}</b>${best}</span><span>적 <b>${out}</b></span>${(s.streak ?? 0) > 1 && worth(p, 'streak') ? `<span>연속 <b>${s.streak}</b></span>` : ''}`;
   if (!domeUp(p)) return `${wave}<span class="sg-dome down">돔 재가동 <b>${Math.max(0, Math.ceil((s.downUntil - p.time) / SEC))}초</b></span>`;
-  const max = domeMax(p), hp = Math.max(0, Math.round(s.domeHp)), full = Math.round((hp / max) * CELLS);
-  return `${wave}<span class="sg-dome${hp < max / 3 ? ' low' : ''}">돔 [<i>${'#'.repeat(full)}</i><s>${'#'.repeat(CELLS - full)}</s>] ${hp}</span>`;
+  // (an overcharged dome shows its gauge full and what it holds past that)
+  const max = domeMax(p), hp = Math.max(0, Math.round(s.domeHp)), full = Math.min(CELLS, Math.round((hp / max) * CELLS));
+  return `${wave}<span class="sg-dome${hp < max / 3 ? ' low' : ''}">돔 [<i>${'#'.repeat(full)}</i><s>${'#'.repeat(CELLS - full)}</s>] ${Math.min(hp, max)}${hp > max ? `<b class="sg-over">+${hp - max}</b>` : ''}</span>`;
 }
 
 /** The base's own line at the very top: the shards held and what comes in a second, and what the base deals a second. */
@@ -35,7 +37,19 @@ export function shardLine(p: WorldParty): string {
   return `<div class="st-row st-shards"><span class="sh-have">◆ <b>${big(p.shards)}</b></span><span>+${per(s?.income)}/초</span><span>피해 <b>${per(s?.dps)}</b>/초</span></div>`;
 }
 
-/** The siege's lines under the base's status, and — while it is stopped at a broken dome — the key that calls the wave again. */
+/**
+ * What the key in the middle of the field says ('' : no key): stopped at a broken dome, it calls the wave again (and
+ * tells how long until the base does so itself, if it has learnt to); with the next wave counted down and the tree's
+ * early call taken, it calls that wave now.
+ */
+export function startKey(p: WorldParty): string {
+  const s = p.siege;
+  if (s?.phase === 'held') { const auto = worth(p, 'autoRestart'), left = auto ? Math.max(0, Math.ceil(((s.heldAt ?? p.time) + auto - p.time) / SEC)) : 0; return `▶ 파도 ${s.wave + 1} 시작${auto ? ` · 자동 ${left}초` : ''}`; }
+  if (s?.phase === 'gap' && worth(p, 'earlyCall') && s.nextAt - p.time > SEC) return '▶▶ 지금 부르기 · 파편 +20%';
+  return '';
+}
+
+/** The siege's lines under the base's status, and the key in the middle of the field (startKey). */
 export class SiegeBar {
   readonly el = document.createElement('div');
   readonly start = document.createElement('button');
@@ -43,12 +57,12 @@ export class SiegeBar {
   constructor(private readonly p: () => WorldParty, live: (ev: GEvent[]) => void) {
     this.el.className = 'siege-bar'; this.el.hidden = true;
     this.start.type = 'button'; this.start.className = 'siege-start'; this.start.hidden = true;
-    this.start.addEventListener('click', () => { const ev: GEvent[] = []; if (resumeSiege(this.p(), ev)) live(ev); });
+    this.start.addEventListener('click', () => { const ev: GEvent[] = []; if (resumeSiege(this.p(), ev)) live(ev); else callWave(this.p()); });
   }
   update(): void {
-    const p = this.p(), html = siegeHtml(p), held = p.siege?.phase === 'held';
-    this.start.hidden = !held;
-    if (held) { const text = `▶ 파도 ${p.siege!.wave + 1} 시작`; if (this.start.textContent !== text) this.start.textContent = text; }
+    const p = this.p(), html = siegeHtml(p), text = startKey(p);
+    this.start.hidden = !text; this.start.classList.toggle('call', p.siege?.phase === 'gap');
+    if (text && this.start.textContent !== text) this.start.textContent = text;
     if (html === this.html) return;
     this.html = html; this.el.innerHTML = html; this.el.hidden = !html;
   }
@@ -57,7 +71,9 @@ export class SiegeBar {
 /** The log/toast line for a siege event, or undefined for other events. */
 export function siegeNote(e: GEvent): string | undefined {
   if (e.type === 'buff' && e.text === 'domeBreak') return `돔 붕괴 · 에너지파가 무리를 밀어냈다 · 파도 ${e.amount}에서 멈춤`;
-  if (e.type === 'buff' && e.text?.startsWith('waveClear:')) return `파도 ${e.text.slice(10)} 클리어 · 파편 +${big(e.amount ?? 0)}`;
+  if (e.type === 'buff' && e.text?.startsWith('waveClear:')) { const [, n, clean] = e.text.split(':'); return `파도 ${n} ${clean ? '무피해 ' : ''}클리어 · 파편 +${big(e.amount ?? 0)}`; }
+  if (e.type === 'buff' && e.text === 'domeSurge') return '돔 긴급 충전';
+  if (e.type === 'buff' && e.text === 'domeStand') return '돔 붕괴 유예 · 3초';
   if (e.type === 'buff' && e.text === 'awayShards') return `부재 중 파편 +${big(e.amount ?? 0)}`;
   if (e.type === 'buff' && e.text === 'siegeStart') return '드릴 소리가 놈들을 불렀다 · 첫 파도가 온다';
   // a wave that brings more than fodder is called out

@@ -131,8 +131,8 @@ export interface Unit {
 export interface Party {
   /** the base: the clones' ultimates are the player's to fire (no clone reaches for its own) unless Auto is on */
   manualUlts?: boolean;
-  /** the base's skill tree at work on its ground: what the clones' blows are multiplied by, the share of a blow they take, the share of an ultimate's wait left */
-  boost?: { out: number; taken: number; ult: number };
+  /** the base's skill tree at work on its ground: the share of an ultimate's wait left */
+  boost?: { ult: number };
   /** damage dealt to foes is added up here when someone keeps count (the base's readings) */
   tally?: { dmg: number };
   foeAction?: (u: Unit, t: number, ev: GEvent[]) => number | undefined;
@@ -268,7 +268,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
   if (attacker?.traits && (attacker.traits.fireAmp || attacker.traits.boltAmp || attacker.traits.coldAmp)) amount = Math.round(amount * elementAmp(attacker, dst, kind, t));
   if (!secondary && attacker?.side === 'hero' && dst.side === 'foe') {
     const vulnerable=statusScaled?1:((dst.status.exposed?.until??0)>t?1.5:1)*((dst.status.mark?.until??0)>t&&dst.status.mark?.by!==src?markMult(attacker):1);
-    amount=Math.round(amount*G.dmg(attacker)*vulnerable*(p.boost?.out??1));
+    amount=Math.round(amount*G.dmg(attacker)*vulnerable);
   }
   // holy mastery (cleric), multiplied
   if (attacker?.traits?.holyAmp) amount = Math.round(amount * holyAmp(attacker, kind));
@@ -282,7 +282,7 @@ export function damage(p: Party, t: number, src: string, dst: Unit, amount: numb
     dst.lastHitBy = src; dst.lastHitAt = t; dst.hitters = [...(dst.hitters ?? []).filter((h) => t - h.t < 1 && h.id !== src), { id: src, t }];
   }
   if (dst.side === 'hero') {
-    amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst)*(p.boost?.taken??1));
+    amount=Math.round(amount*takenMult(p,dst,t)*gearTaken(dst));
     // soul link (necromancer): the nearest minion takes three tenths of the harm
     const bond = rank(dst, 'soulLink') && amount > 1 ? p.units.filter((x) => x.summoner === dst.id && alive(p, x)).sort((a, b) => dist(posOf(p, a), e.pos) - dist(posOf(p, b), e.pos))[0] : undefined;
     if (bond) { const share = Math.round(amount * (rank(dst, 'soulLink') >= 2 ? 0.45 : 0.3)); amount -= share; damage(p, t, src, bond, share, ev, true); }

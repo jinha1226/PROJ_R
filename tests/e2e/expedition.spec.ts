@@ -54,6 +54,7 @@ test('the besieged base: the waves come and are counted; a broken dome throws th
   await page.locator('.clone-row [data-tree]').click();
   await expect(page.locator('.tree-win')).toBeVisible({ timeout: 30_000 });
   await page.locator('.tree-win [data-node="domeHp"]').click({ timeout: 30_000 });
+  await page.locator('.tree-win [data-buy="domeHp"]').click({ timeout: 30_000 });
   await expect.poll(() => page.evaluate(() => (window as unknown as { __world: World }).__world.p.tree?.domeHp), { timeout: 30_000 }).toBe(1);
   expect(errors).toEqual([]);
 });

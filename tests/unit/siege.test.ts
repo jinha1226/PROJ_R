@@ -204,6 +204,8 @@ it('with no clone left at all (the last fell below), the base prints a new body 
 
 it('a tick of a siege deep into its waves stays cheap', () => {
   const p = idle(); p.siege!.nextAt = 1e9;
+  // (a dome strong enough to stand under five deep waves at once: the test is about the horde's cost, not the dome)
+  p.tree = { domeHp: 60 };
   for (const n of [40, 41, 42, 43, 44]) pour(p, n);
   run(p, 30, 0.25, true);
   expect(fodder(p).length).toBeGreaterThan(150);

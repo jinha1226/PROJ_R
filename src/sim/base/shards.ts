@@ -15,7 +15,7 @@ export interface Drop { id: number; x: number; y: number; n: number }
 /** game time per real second at normal speed (the surface's clock) */
 const SEC = 3.6;
 /** what a raider is worth by its kind on the first wave, how that grows a wave, and a cleared wave's own prize (in fodder) */
-export const BOUNTY = { fodder: 1, elite: 6, general: 40, growth: 1.06, clear: 5 };
+export const BOUNTY = { fodder: 1, elite: 6, general: 40, growth: 1.045, clear: 5 };
 /** how far from the dome's rim a shard is drawn in, how near a clone must come to pick one up, how far from the dome clones go out for them */
 export const ABSORB = 1, PICKUP = 1.5, FETCH_FAR = 14;
 /** more shards than this on the ground are heaped together */
@@ -69,35 +69,49 @@ export function fetchDrop(p: WorldParty, from: Cell, taken: Set<number>): Drop |
   return best;
 }
 
-/** A wave is cleared: its prize, and the pace the base earns at is taken (what came in over the wave and the breath after it). */
+/** what the run of cleared waves adds to what raiders leave: 2% a wave, up to what the tree allows */
+export const streakMult = (p: WorldParty): number => 1 + Math.min(worth(p, 'streak'), 0.02 * (p.siege?.streak ?? 0));
+
+/** A wave is cleared: its prize (more with the tree's bonus; more again if the dome took no blow), the run of cleared waves grows, and the pace the base earns at is taken (what came in over the wave and the breath after it). */
 export function waveCleared(p: WorldParty, gap: number, ev: GEvent[]): void {
-  const s = p.siege!, t = p.time, prize = BOUNTY.clear * BOUNTY.growth ** (Math.max(1, s.wave) - 1) * worth(p, 'bounty');
+  const s = p.siege!, t = p.time, clean = !s.domeHit && worth(p, 'flawless') > 1;
+  const prize = BOUNTY.clear * BOUNTY.growth ** (Math.max(1, s.wave) - 1) * worth(p, 'bounty') * worth(p, 'clearBonus') * (clean ? worth(p, 'flawless') : 1);
+  s.streak = (s.streak ?? 0) + 1;
   gainShards(p, prize);
   const rate = (s.waveGain ?? 0) / Math.max(1, t - (s.waveAt ?? t) + gap);
   s.pace = s.pace ? s.pace * 0.6 + rate * 0.4 : rate;
   s.waveGain = 0;
-  ev.push({ t, type: 'buff', text: `waveClear:${s.wave}`, amount: Math.round(prize) });
+  ev.push({ t, type: 'buff', text: `waveClear:${s.wave}${clean ? ':clean' : ''}`, amount: Math.round(prize) });
 }
 
-/** The dome's gun (the tree's 포격): every so often a shot at the raider nearest the dome, leaping on to others close by. */
+/**
+ * The dome's gun (the tree's 포격): every so often a shot at the raider nearest the dome (an elite first, if it has learnt
+ * to choose), leaping on to others close by. A shot may land three times as hard; one that finds a raider nearly dead
+ * finishes it (not the general).
+ */
 export function gunTick(p: WorldParty, ev: GEvent[]): void {
   const s = p.siege!, t = p.time, dmg = worth(p, 'gun');
   if (!dmg || s.downUntil || t < (s.gunAt ?? 0)) return;
-  const c = centre(p), reach = domeR(p) + GUN_REACH;
+  const c = centre(p), reach = domeR(p) + GUN_REACH + worth(p, 'gunRange'), crit = worth(p, 'gunCrit'), exec = worth(p, 'gunExec'), choosy = worth(p, 'gunElite') > 0;
   const foes = p.units.filter((u) => u.side === 'foe' && u.group === SIEGE_GROUP && alive(p, u)).map((u) => ({ u, at: at(p, u) }));
-  let from = { x: c.x, y: c.y }, left = foes.filter((f) => Math.hypot(f.at.x - c.x, f.at.y - c.y) <= reach), far = Infinity;
-  if (!left.length) return;
-  // (a leap may land on any raider near the last one struck, in the gun's own reach or not — but on none twice)
-  const first = left.reduce((a, b) => (Math.hypot(a.at.x - c.x, a.at.y - c.y) <= Math.hypot(b.at.x - c.x, b.at.y - c.y) ? a : b));
-  left = [first, ...foes.filter((f) => f !== first)];
+  const near = (o: { x: number; y: number }) => (a: (typeof foes)[number], b: (typeof foes)[number]) => (Math.hypot(a.at.x - o.x, a.at.y - o.y) <= Math.hypot(b.at.x - o.x, b.at.y - o.y) ? a : b);
+  const inReach = foes.filter((f) => Math.hypot(f.at.x - c.x, f.at.y - c.y) <= reach);
+  if (!inReach.length) return;
+  // the first shot: the nearest in reach (of the elites, if the gun chooses and one is there)
+  const elites = choosy ? inReach.filter((f) => !f.u.fodder) : [];
+  let target: (typeof foes)[number] | undefined = (elites.length ? elites : inReach).reduce(near(c));
+  let from = { x: c.x, y: c.y }, left = foes;
   s.gunAt = t + worth(p, 'gunRate');
-  for (let shots = 1 + worth(p, 'gunChain'); shots > 0 && left.length; shots--) {
-    const next = left.reduce((a, b) => (Math.hypot(a.at.x - from.x, a.at.y - from.y) <= Math.hypot(b.at.x - from.x, b.at.y - from.y) ? a : b));
-    if (Math.hypot(next.at.x - from.x, next.at.y - from.y) > far) break;
-    ev.push({ t, type: 'buff', text: 'domeShot', from: { ...from }, to: { ...next.at } });
-    damage(p, t, 'dome', next.u, Math.max(1, Math.round(dmg)), ev, true);
-    // (the first shot goes as far as the gun reaches; each leap, only a little way on)
-    from = next.at; far = GUN_LEAP; left = left.filter((f) => f !== next && alive(p, f.u));
+  for (let shots = 1 + worth(p, 'gunChain'); shots > 0 && target; shots--) {
+    const hit = target, e = entOf(p, hit.u.id)!;
+    ev.push({ t, type: 'buff', text: 'domeShot', from: { ...from }, to: { ...hit.at } });
+    const hard = crit > 0 && p.s.rng.chance(crit), blow = Math.max(1, Math.round(dmg * (hard ? 3 : 1)));
+    const done = exec > 0 && hit.u.foe !== 'warlord' && e.hp - blow <= e.maxHp * exec;
+    damage(p, t, 'dome', hit.u, done ? Math.max(blow, e.hp) : blow, ev, true);
+    // a leap: on to the raider nearest the one just struck, a little way off at most (in the gun's own reach or not) — none twice
+    from = hit.at; left = left.filter((f) => f !== hit && alive(p, f.u));
+    const on = left.length ? left.reduce(near(from)) : undefined;
+    target = on && Math.hypot(on.at.x - from.x, on.at.y - from.y) <= GUN_LEAP ? on : undefined;
   }
 }
 
