@@ -150,8 +150,13 @@ export class GridFx {
     this.flashes.flash(at, color, power, sec, range);
   }
 
+  /** things put off a moment (a burst's later rounds), counted in the show's own time */
+  private laters?: { left: number; run: () => void }[];
+  later(sec: number, run: () => void): void { (this.laters ??= []).push({ left: sec, run }); }
+
   update(dt: number): void {
     const scaled = dt * this.timeScale;
+    for (let i = (this.laters?.length ?? 0) - 1; i >= 0; i--) { const l = this.laters![i]!; l.left -= scaled; if (l.left <= 0) { this.laters!.splice(i, 1); l.run(); } }
     this.slowLeft = Math.max(0, this.slowLeft - dt);
     this.flashes.update(scaled);
     this.sweep.update(scaled);

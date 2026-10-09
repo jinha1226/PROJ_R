@@ -1,4 +1,4 @@
-import { cellAtScreen, cellVec, shotGroup } from './runtimeHelpers';
+import { BURST, cellAtScreen, cellVec, shotGroup } from './runtimeHelpers';
 import { ShipTerrain } from './shipTerrain';
 import { WorldTerrain, type WorldLook } from '../overworld/worldTerrain';
 import { Bloom } from '../overworld/bloom';
@@ -36,7 +36,7 @@ import type { VfxKind } from '../fx/vfx';
 import { ShipIntro } from './shipIntro';
 import { Afterimages } from './afterimage';
 import { sensedFoes } from '../../sim/grid/perks';
-import { feel } from './feel';
+import { feel, setFeel } from './feel';
 import { StrikeFx } from './strikeFx';
 import { StrikeCues } from './strikeCues';
 let ELEVATION = (45 * Math.PI) / 180;
@@ -200,7 +200,7 @@ export class GridRuntime {
     this.playback.hurry();
   }
   /** The party screens' pacing: attacks play out and chains show one effect at a time (the screen waits for the show in a fight). */
-  partyShow(): void { this.partyPace = true; this.playback = new Playback(true); setActionPace(1.5); }
+  partyShow(): void { this.partyPace = true; this.playback = new Playback(true); setActionPace(1.5); setFeel('kata'); }
   /**
    * Party fights: the states each unit stands in right now (burning, frozen, poisoned). They get a steady glow, and the
    * burning have flames licking up them for as long as they burn (a burn used to show only the moment it was laid).
@@ -284,11 +284,17 @@ export class GridRuntime {
         const entry = { ready: false, queue: [] as GEvent[] };
         this.pending.set(key, entry);
         const magic = e.text === 'spell';
-        const f = feel(), mine = e.src === 'hero';
-        if (mine) this.strikes.shot(e, from, p);
-        this.fx.flash(from, magic ? '#b48aff' : '#ffd890', mine ? f.flash : 22, 0.08);
-        if (mine && f.shotKick) this.fx.shake(0.07, f.shotKick);
+        const f = feel(), mine = e.src === 'hero' || (this.partyPace && a.isAlly(e.src));
+        if (e.src === 'hero') this.strikes.shot(e, from, p);
+        const round = () => { this.fx.flash(from, magic ? '#b48aff' : '#ffd890', mine ? f.flash : 22, 0.08); if (mine && f.shotKick) this.fx.shake(0.07, f.shotKick); };
+        round();
         this.fx.bolt(from, p, () => { entry.ready = true; if (this.pending.get(key) === entry) this.pending.delete(key); for (const q of entry.queue) this.cue(q); }, mine ? f.bolt : 1);
+        // a gun fires a short burst: the rounds after the first are for the eye alone (the blow is the first's), a little off its line
+        if (e.text === 'gun') for (let k = 1; k < BURST.rounds; k++) this.fx.later(k * BURST.gap, () => {
+          const src = at(e.src) ?? from, off = new THREE.Vector3((Math.random() - 0.5) * BURST.spread, 0, (Math.random() - 0.5) * BURST.spread);
+          round(); a.shoot(e.src, p, shotGroup(e)); this.fx.bolt(src, p.clone().add(off), () => {}, mine ? f.bolt : 1);
+          if (mine) this.particles.spray(src.clone().setY(1.1), '#e8c060', 1);
+        });
         break;
       }
       case 'hit': {
