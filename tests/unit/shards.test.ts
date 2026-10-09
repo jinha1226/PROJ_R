@@ -18,8 +18,8 @@ const pour = (p: P, n: number) => { p.siege!.phase = 'wave'; p.siege!.wave = n; 
 const centre = (p: P) => ({ x: p.base.x + 0.5, y: p.base.y + 0.5 });
 
 it('a raider is worth more by its kind and its wave, and leaves that where it falls — far from the dome it lies there', () => {
-  expect(bountyOf('fodder', 1)).toBe(1); expect(bountyOf('brute', 1)).toBe(6); expect(bountyOf('general', 1)).toBe(40);
-  expect(bountyOf('fodder', 11)).toBeCloseTo(BOUNTY.growth ** 10);
+  expect(bountyOf('fodder', 1)).toBe(BOUNTY.fodder); expect(bountyOf('brute', 1)).toBe(BOUNTY.elite); expect(bountyOf('general', 1)).toBe(BOUNTY.general);
+  expect(BOUNTY.elite).toBeGreaterThan(BOUNTY.fodder * 4); expect(bountyOf('fodder', 11)).toBeCloseTo(BOUNTY.fodder * BOUNTY.growth ** 10);
   const p = idle();
   pour(p, 5);
   const all = raiders(p), want = all.reduce((a, u) => a + u.bounty!, 0);
@@ -73,8 +73,8 @@ it('a cleared wave pays its prize and the pace the base earns at is taken; the r
   expect(s.wave).toBe(1); expect(p.siegeQueue).toHaveLength(0);
   for (const u of raiders(p)) damage(p, p.time, 'hero', u, 999, [], true);
   const ev = run(p, 0.4);
-  expect(ev.find((e) => e.text === 'waveClear:1')?.amount).toBe(5);
-  expect(p.shards).toBeGreaterThanOrEqual(5); expect(s.pace).toBeGreaterThan(0);
+  expect(ev.find((e) => e.text === 'waveClear:1')?.amount).toBe(BOUNTY.clear);
+  expect(p.shards).toBeGreaterThanOrEqual(BOUNTY.clear); expect(s.pace).toBeGreaterThan(0);
   expect(s.dps).toBeGreaterThan(0); expect(s.income).toBeGreaterThan(0);
   const [dps, income] = [s.dps!, s.income!];
   run(p, WAVE_GAP - 2); expect(s.dps).toBeLessThan(dps); expect(s.income).toBeLessThan(income);
@@ -177,10 +177,10 @@ it('thorns cost a raider its own health for each blow on the dome; the emergency
 it('the income nodes: a bigger prize for a cleared wave, bigger again when the dome took no blow; a run of cleared waves adds to what raiders leave until the dome gives; elites leave more', () => {
   const p = idle(), s = p.siege!;
   const clear = (tree: object, hit: boolean) => { p.tree = tree; p.shards = 0; s.wave = 1; s.phase = 'wave'; s.waveAt = p.time; s.domeHit = hit; s.waveGain = 0; const ev: GEvent[] = []; waveCleared(p, WAVE_GAP, ev); return { got: p.shards, note: ev[0]!.text }; };
-  expect(clear({}, false)).toEqual({ got: 5, note: 'waveClear:1' });
-  expect(clear({ clearBonus: 2 }, true).got).toBeCloseTo(9);
-  expect(clear({ clearBonus: 2, flawless: 1 }, true).note).toBe('waveClear:1'); expect(p.shards).toBeCloseTo(9);
-  expect(clear({ clearBonus: 2, flawless: 1 }, false).note).toBe('waveClear:1:clean'); expect(p.shards).toBeCloseTo(13.5);
+  expect(clear({}, false)).toEqual({ got: BOUNTY.clear, note: 'waveClear:1' });
+  expect(clear({ clearBonus: 2 }, true).got).toBeCloseTo(BOUNTY.clear * 1.8);
+  expect(clear({ clearBonus: 2, flawless: 1 }, true).note).toBe('waveClear:1'); expect(p.shards).toBeCloseTo(BOUNTY.clear * 1.8);
+  expect(clear({ clearBonus: 2, flawless: 1 }, false).note).toBe('waveClear:1:clean'); expect(p.shards).toBeCloseTo(BOUNTY.clear * 2.7);
   // the run: four waves cleared so far in this test
   expect(s.streak).toBe(4); expect(streakMult(p)).toBe(1);
   p.tree = { streak: 1 }; expect(streakMult(p)).toBeCloseTo(1.08); s.streak = 30; expect(streakMult(p)).toBeCloseTo(1.1);
@@ -207,7 +207,7 @@ it('the next wave can be called early once the tree allows it (its raiders leave
   run(p, 0.2);
   expect(s.wave).toBe(1); expect(s.phase).toBe('wave');
   run(p, 20);
-  expect(raiders(p).every((u) => u.bounty === (u.fodder ? 1.2 : 7.2))).toBe(true); expect(raiders(p).length).toBeGreaterThan(0);
+  expect(raiders(p).every((u) => Math.abs(u.bounty! - (u.fodder ? BOUNTY.fodder : BOUNTY.elite) * 1.2) < 1e-9)).toBe(true); expect(raiders(p).length).toBeGreaterThan(0);
   expect(callWave(p)).toBe(false);
   // the dome gives: nothing comes by itself…
   hitDome(p, 1e9, 'x', p.base, []); siegeTick(p, 0.2, []);

@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { newSurface, worldTick, canDrill } from '../../src/sim/overworld/worldSim';
 import { canPrintClone } from '../../src/sim/base/cloner';
-import { DOME, domeMax, domeUp, FALL_BACK, FIRST_WAVE, FRONT_GUARD, hitDome, planWave, raiders, resumeSiege, RETRY_GAP, REVIVE, rouseSiege, SIEGE_GROUP, SIEGE_REACH, siegeTick, spawnRaider, WAVE_GAP, WAVE_LIMIT, waveOf } from '../../src/sim/base/siege';
+import { DOME, domeMax, domeUp, FALL_BACK, FIRST_WAVE, FRONT_GUARD, hitDome, planWave, raiders, resumeSiege, RETRY_GAP, REVIVE, rouseSiege, SIEGE_GROUP, SIEGE_REACH, siegeTick, spawnRaider, WAVE, WAVE_GAP, WAVE_LIMIT, waveOf } from '../../src/sim/base/siege';
 import { inDome, rimOf, siegeField } from '../../src/sim/base/siegePath';
 import { swarmTick } from '../../src/sim/base/swarm';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
@@ -38,12 +38,15 @@ it('the pod lands under its dome: whole, and the land quiet — nothing comes un
   // the old surface has no siege
 });
 
-it('waves grow without end: more fodder, tougher and harder-hitting, ogres every fifth, archers from the eighth, the general every twentieth', () => {
-  expect(waveOf(1)).toMatchObject({ fodder: 9, hp: 1, dmg: 1, brutes: 0, archers: 0, general: false });
-  expect(waveOf(10).hp).toBeCloseTo(1.07 ** 9); expect(waveOf(10).brutes).toBe(2); expect(waveOf(13).archers).toBe(2);
-  expect(waveOf(20).general).toBe(true); expect(waveOf(60).fodder).toBe(40); expect(waveOf(60).hp).toBeGreaterThan(waveOf(30).hp * 5);
+it('waves grow without end: more bodies, tougher and harder-hitting; ogres every fifth and alone between, archers from the third, the general every twentieth — elites take the place of fodder', () => {
+  expect(waveOf(1)).toMatchObject({ fodder: 14, hp: 1, dmg: WAVE.dmg0, brutes: 0, archers: 0, general: false });
+  expect(waveOf(3).archers).toBe(1); expect(waveOf(5)).toMatchObject({ fodder: 18, brutes: 1 }); expect(waveOf(7)).toMatchObject({ fodder: 17, brutes: 1 }); expect(waveOf(6).fodder).toBe(21);
+  expect(waveOf(10).hp).toBeCloseTo(WAVE.hp ** 9); expect(waveOf(10).brutes).toBe(1); expect(waveOf(15).brutes).toBe(2); expect(waveOf(13).archers).toBe(2);
+  expect(waveOf(20).general).toBe(true); expect(waveOf(26).fodder).toBe(WAVE.bodiesMax); expect(waveOf(60).hp).toBeGreaterThan(waveOf(30).hp * 5);
+  // a wave is never all elites
+  expect(waveOf(100).fodder).toBeGreaterThanOrEqual(WAVE.bodiesMax * WAVE.boss * 0.3 - 1);
   const p = newSurface(42), plan = planWave(p, 20, 100);
-  expect(plan.filter((s) => s.kind === 'fodder')).toHaveLength(28); expect(plan.filter((s) => s.kind === 'brute')).toHaveLength(3); expect(plan[plan.length - 1]!.kind).toBe('general');
+  expect(plan.filter((s) => s.kind === 'fodder')).toHaveLength(26); expect(plan.filter((s) => s.kind === 'brute')).toHaveLength(2); expect(plan[plan.length - 1]!.kind).toBe('general');
   // out of the north, on a wide front
   expect(plan.every((s) => s.cell.y === p.base.y - SIEGE_REACH)).toBe(true); expect(new Set(plan.map((s) => s.cell.x)).size).toBeGreaterThan(10);
 });
@@ -57,7 +60,7 @@ it('a wave steps out when its count runs down; the next only once it is cleared,
   expect(s.wave).toBe(1); expect(s.phase).toBe('wave'); expect(ev.some((e) => e.text === 'wave' && e.amount === 1)).toBe(true);
   // nobody fights it: it stands at the dome and no second wave comes
   run(p, 120, 0.2, true);
-  expect(s.wave).toBe(1); expect(raiders(p).length).toBe(9);
+  expect(s.wave).toBe(1); expect(raiders(p).length).toBe(waveOf(1).fodder);
   // (a wave that never ends has lost its way: after a long while what is left slinks off and the siege goes on)
   const q = idle(), qs = q.siege!; rouseSiege(q); run(q, FIRST_WAVE + WAVE_LIMIT + 4, 0.4, true);
   expect(qs.phase).toBe('gap'); expect(qs.wave).toBe(1); expect(raiders(q).filter((u) => alive(q, u))).toHaveLength(0); expect(qs.kills).toBe(0);

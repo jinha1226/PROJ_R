@@ -15,7 +15,7 @@ export interface Drop { id: number; x: number; y: number; n: number }
 /** game time per real second at normal speed (the surface's clock) */
 const SEC = 3.6;
 /** what a raider is worth by its kind on the first wave, how that grows a wave, and a cleared wave's own prize (in fodder) */
-export const BOUNTY = { fodder: 1, elite: 6, general: 40, growth: 1.045, clear: 5 };
+export const BOUNTY = { fodder: 2, elite: 12, general: 80, growth: 1.045, clear: 10 };
 /** how far from the dome's rim a shard is drawn in, how near a clone must come to pick one up, how far from the dome clones go out for them */
 export const ABSORB = 1, PICKUP = 1.5, FETCH_FAR = 14;
 /** more shards than this on the ground are heaped together */

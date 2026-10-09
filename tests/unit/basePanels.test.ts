@@ -90,7 +90,7 @@ it('the siege\'s lines: quiet, the next wave counted down, the wave out and how 
   expect(siegeHtml(p)).toContain('돔 재가동 <b>10초</b>');
   expect(siegeNote({ t: 0, type: 'buff', text: 'domeBreak', amount: 4 })).toContain('파도 4에서 멈춤');
   expect(siegeNote({ t: 0, type: 'buff', text: 'siegeStart' })).toContain('첫 파도'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 3 })).toBeUndefined();
-  expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 10 })).toBe('파도 10 · 오우거 2'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 20 })).toContain('장군'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeUp' })).toBe('돔 재가동');
+  expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 15 })).toBe('파도 15 · 오우거 2'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 20 })).toContain('장군'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeUp' })).toBe('돔 재가동');
   expect(siegeNote({ t: 0, type: 'buff', text: 'gather', amount: 6 })).toContain('광석 6 · 생체 4'); expect(siegeNote({ t: 0, type: 'hit' })).toBeUndefined();
   expect(baseLabels(p).map((l) => l.text)).toEqual(['연구실', '숙소', '작업장 · 고장']);
 });

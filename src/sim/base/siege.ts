@@ -76,10 +76,24 @@ export const RUSH_BOUNTY = 1.2;
 export const reviveTime = (p: WorldParty): number => Math.max(3 * SEC, REVIVE * worth(p, 'cloneRevive'));
 export const domeUp = (p: WorldParty): boolean => !!p.siege && !p.siege.downUntil;
 
+/**
+ * A wave's measures. Its size is counted in bodies (a fodder is one): what it starts from, what each wave adds, the most
+ * there are — and a quarter as many again on a fifth wave. Its elites are paid for out of that (an ogre counts for six), so
+ * a wave with ogres in it has fewer fodder round them, not the same crowd and the ogres on top. Then the fodder's health,
+ * how much of a dungeon foe's health an elite has here, how hard wave 1 hits, how much tougher and harder-hitting each wave
+ * is than the last, from which wave archers and a lone ogre turn up between the fifths, and every how many waves a fifth
+ * wave brings one ogre more. (Tuned headless: a fresh clone alone holds five waves and breaks on the sixth.)
+ */
+export const WAVE = { bodies: 12, bodiesPer: 1.5, bodiesMax: 50, boss: 1.25, cost: { brute: 6, archer: 2, general: 15 }, fodderHp: 8, eliteHp: 0.6, hp: 1.08, dmg0: 2, dmg: 1.04, archerFrom: 3, bruteFrom: 7, bruteStep: 15 };
+
 /** What wave n is made of: how many fodder, how tough and how hard-hitting everything in it is (both grow without end: whatever the base buys, a wave comes that breaks it). */
 export function waveOf(n: number): { fodder: number; hp: number; dmg: number; brutes: number; archers: number; general: boolean } {
-  const k = Math.max(1, n);
-  return { fodder: Math.min(40, 8 + k), hp: 1.07 ** (k - 1), dmg: 1.04 ** (k - 1), brutes: k % 5 === 0 ? 1 + Math.floor(k / 10) : 0, archers: k >= 8 && k % 5 === 3 ? 1 + Math.floor(k / 12) : 0, general: k % 20 === 0 };
+  const k = Math.max(1, n), W = WAVE, boss = k % 5 === 0, general = k % 20 === 0;
+  const bodies = Math.min(W.bodiesMax, W.bodies + W.bodiesPer * k) * (boss ? W.boss : 1);
+  const brutes = boss ? 1 + Math.floor(k / W.bruteStep) : k >= W.bruteFrom && k % 5 === 2 ? 1 + Math.floor(k / 20) : 0;
+  const archers = k >= W.archerFrom && k % 5 === 3 ? 1 + Math.floor(k / 12) : 0;
+  const fodder = Math.round(Math.max(bodies * 0.3, bodies - brutes * W.cost.brute - archers * W.cost.archer - (general ? W.cost.general : 0)));
+  return { fodder, hp: W.hp ** (k - 1), dmg: W.dmg0 * W.dmg ** (k - 1), brutes, archers, general };
 }
 
 /** The pod has landed: the dome lights, and the north is opened for what will come out of it — nothing yet (the land is quiet until a clone first comes back up). */
@@ -115,13 +129,12 @@ export function spawnRaider(p: WorldParty, s: SiegeSpawn, ev: GEvent[]): void {
   const w = waveOf(s.wave), foe: FoeId = s.kind === 'fodder' ? 'goblin' : s.kind === 'general' ? 'warlord' : s.kind;
   const e = spawnFoe(p.s, s.kind === 'fodder' ? 'minion' : s.kind === 'general' ? 'champion' : s.kind, { ...s.cell }, true);
   e.group = SIEGE_GROUP;
-  e.hp = e.maxHp = Math.max(1, Math.round((s.kind === 'fodder' ? FODDER_HP : FOES[foe].hp * 0.6) * w.hp));
+  e.hp = e.maxHp = Math.max(1, Math.round((s.kind === 'fodder' ? WAVE.fodderHp : FOES[foe].hp * WAVE.eliteHp) * w.hp));
   const u: Unit = { ...blank(), id: e.id, side: 'foe', foe, foeScale: w.dmg, asleep: false, alertUntil: Infinity, group: SIEGE_GROUP, nextAt: p.time, raider: true, lean: true, bounty: bountyOf(s.kind, s.wave) * (p.siege?.rush === s.wave ? RUSH_BOUNTY : 1) };
   if (s.kind === 'fodder') { e.swarm = true; Object.assign(u, { swarm: true, fodder: true, nextAt: Infinity, sx: s.cell.x + 0.5, sy: s.cell.y + 0.5 }); }
   p.units.push(u);
   ev.push({ t: p.time, type: 'summon', dst: e.id, to: { ...s.cell } });
 }
-export const FODDER_HP = 6;
 
 /** every raider out there (dead or alive) */
 export const raiders = (p: WorldParty): Unit[] => p.units.filter((u) => u.side === 'foe' && u.group === SIEGE_GROUP);
