@@ -43,6 +43,19 @@ export function gait(look: Pick<UalLook, 'run' | 'fullRun'>, walking: boolean): 
 }
 /** bones the legs-only half of a run drives (the rest follows the held stance) */
 const LEG_BONES = /^(root|pelvis|thigh_[lr]|calf_[lr]|foot_[lr]|ball_[lr]|ball_leaf_[lr])$/;
+/**
+ * One-off moves that are the arms' and trunk's alone. A figure on the move plays them over the jog's legs (a shot, a
+ * reload, a flinch on the run) instead of holding the pose with its whole body while it is carried along the floor.
+ */
+const ARMS = new Set<UalAnim>(['shoot', 'shootBow', 'cast', 'throw', 'reload', 'hit', 'swing', 'jab', 'bash', 'scratch', 'shove', 'parry', 'drink', 'interact']);
+/** a clip's legs alone, or everything but its legs (made on first use, kept with the library's clips) */
+function half(clips: Map<string, THREE.AnimationClip>, name: string, legs: boolean): THREE.AnimationClip | undefined {
+  const key = `${name}__${legs ? 'legs' : 'upper'}`, hit = clips.get(key), whole = clips.get(name);
+  if (hit || !whole) return hit;
+  const made = new THREE.AnimationClip(key, whole.duration, whole.tracks.filter((t) => LEG_BONES.test(t.name.slice(0, t.name.lastIndexOf('.'))) === legs));
+  clips.set(key, made);
+  return made;
+}
 /** melee swings rotate through these so a fight does not repeat one motion */
 const SWINGS = ['Sword_Regular_A', 'Sword_Regular_B', 'Sword_Regular_C', 'Sword_Attack'];
 
@@ -142,6 +155,8 @@ export class UalActor {
   private idleClip: string;
   private busy = false;
   private busyKind: UalAnim | null = null;
+  /** a one-off move playing in the arms and trunk alone, over the legs' loop */
+  private shot: THREE.AnimationAction | null = null;
   private dead = false;
   private flashLeft = 0;
   private flashTotal = 1;
@@ -211,7 +226,9 @@ export class UalActor {
     this.mixer = new THREE.AnimationMixer(model);
     // only the action now playing may hand back to the loop (an interrupted one finishing late must not cut the new one)
     this.mixer.addEventListener('finished', (e) => {
-      if ((e as unknown as { action: THREE.AnimationAction }).action !== this.current) return;
+      const done = (e as unknown as { action: THREE.AnimationAction }).action;
+      if (done !== this.current && done !== this.shot) return;
+      this.shot = null;
       this.busy = false;
       this.busyKind = null;
       this.bowDrawn(false);
@@ -224,6 +241,8 @@ export class UalActor {
     const clip = this.lib.clips.get(name);
     if (!clip) return;
     const a = this.mixer.clipAction(clip);
+    // (a loop already going keeps its stride)
+    if (loop && this.current === a && a.isRunning()) { a.timeScale = speed; return; }
     a.reset();
     a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
     a.clampWhenFinished = !loop;
@@ -310,7 +329,9 @@ export class UalActor {
     const loop = anim === 'idle' || anim === 'run';
     this.busy = !loop;
     this.busyKind = loop ? null : anim;
-    if (loop) { this.loopOn(anim === 'run', speed, 0.06); return; }
+    if (loop) { this.shot = null; this.loopOn(anim === 'run', speed, 0.06); return; }
+    if (this.loop === 'run' && ARMS.has(anim) && this.overLegs(name, speed, 0)) { this.bowDrawn(anim === 'shootBow'); return; }
+    this.shot = null;
     this.dropUpper(0.06);
     this.bowDrawn(anim === 'shootBow');
     this.start(name, loop, speed, 0.06);
@@ -321,11 +342,29 @@ export class UalActor {
     if (this.heldKind === 'bow' && this.held) this.held.quaternion.copy(bowGrip(this.lib, on));
   }
 
+  /**
+   * A one-off move in the arms and trunk alone, from `at` seconds in, the legs' loop going on under it (the jog's, or the
+   * stance's once the figure has stopped). False when the clips are not there.
+   */
+  private overLegs(name: string, speed: number, at: number, legsOf = gait(this.look, this.walking).clip): boolean {
+    const legs = half(this.lib.clips, legsOf, true), arms = half(this.lib.clips, name, false);
+    if (!legs || !arms) return false;
+    this.start(legs.name, true, legsOf === this.idleClip ? 1 : this.walking ? WALK_PACE : 1.5, 0.08);
+    const a = this.mixer.clipAction(arms);
+    if (this.upper && this.upper !== a) this.upper.fadeOut(0.06);
+    a.reset(); a.time = at; a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; a.timeScale = speed; a.fadeIn(0.06); a.play();
+    this.upper = this.shot = a;
+    return true;
+  }
+
   setLocomotion(running: boolean): void {
     const want = running ? 'run' : 'idle';
     if (this.dead || want === this.loop) return;
     this.loop = want;
-    if (!this.busy) this.loopOn(running, 1.5, 0.12);
+    if (!this.busy) { this.loopOn(running, 1.5, 0.12); return; }
+    // setting off or stopping in the middle of a shot, a reload or a flinch: the legs change, the arms go on
+    const cur = this.shot ?? this.current, name = cur?.getClip().name.replace(/__upper$/, '');
+    if (cur && name && this.busyKind && ARMS.has(this.busyKind)) this.overLegs(name, cur.timeScale, cur.time, running ? undefined : this.idleClip);
   }
 
   flash(color: number, ms: number): void {
