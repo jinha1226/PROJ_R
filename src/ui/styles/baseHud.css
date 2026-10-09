@@ -5,12 +5,11 @@
  * kept for the gauges (the dome, a clone's health).
  */
 @media (orientation: portrait) and (max-width: 700px) {
-  .world.base-mode { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --row: 44px; --log-bottom: 124px !important; color: var(--pip); }
+  .world.base-mode { --pip: #1bff80; --pip-dim: #13b65c; --pip-dark: #0b4a2a; --row: 44px; color: var(--pip); }
     .world.base-mode, .world.base-mode button, .world.base-mode .wl-line { font-family: 'Galmuri', monospace; font-size: 11px; }
   .world.base-mode, .world.base-mode .wl-line { text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 0 2px 0 #000; }
-  .world.base-mode::before, .world.base-mode::after { content: ''; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; image-rendering: pixelated; opacity: 0.94; }
-  .world.base-mode::before { top: 0; height: 150px; background: linear-gradient(#05060c, #05060c) 0 0 / 100% 60px no-repeat, url('./img/shade-down.png') 0 60px / 8px 90px repeat-x; }
-  .world.base-mode::after { bottom: 0; height: 220px; background: linear-gradient(#05060c, #05060c) 0 100% / 100% 130px no-repeat, url('./img/shade-up.png') 0 0 / 8px 90px repeat-x; }
+  .world.base-mode::before { content: ''; position: absolute; left: 0; right: 0; z-index: 4; pointer-events: none; image-rendering: pixelated; opacity: 0.94; }
+  .world.base-mode::before { top: 0; height: 176px; background: linear-gradient(#05060c, #05060c) 0 0 / 100% 86px no-repeat, url('./img/shade-down.png') 0 86px / 8px 90px repeat-x; }
   .screen.world.base-mode aside { border-image-source: none; border-color: transparent; background: none; box-shadow: none; }
   .world.base-mode :is(.wh-mini, .wh-party, .wh-br, .tp, .quick-slots, .wh-cap, .wh-mode) { display: none; }
 
@@ -24,11 +23,11 @@
   .world.base-mode .wh-menu, .world.base-mode .wh-menu:hover { width: 42px; height: 42px; padding: 0; font-size: 22px !important; line-height: 38px; }
 
   /* every key: a dithered plate with a bracket at each corner; the one that is on, a green plate */
-  .world.base-mode :is(.wh-menu, .ult-bar button) {
+  .world.base-mode :is(.wh-menu, .ult-bar button, .clone-row button) {
     border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated;
     background: url('./img/plate.png') 0 0 / 8px 8px !important; color: var(--pip) !important; box-shadow: none; text-shadow: none; }
-  .world.base-mode .ult-bar button.on { background: var(--pip) !important; color: #021006 !important; }
-  .world.base-mode :is(.wh-menu, .ult-bar button):active { transform: translateY(2px); }
+  .world.base-mode :is(.ult-bar, .clone-row) button.on { background: var(--pip) !important; color: #021006 !important; }
+  .world.base-mode :is(.wh-menu, .ult-bar button, .clone-row button):active { transform: translateY(2px); }
 
   /* the siege under the base's own lines: the wave and how many are out, then the dome told in cells */
   .siege-bar { left: 8px; right: 56px; top: 42px; transform: none; padding: 0; background: none; border: 0; box-shadow: none; justify-content: flex-start; flex-wrap: wrap; gap: 2px 10px; color: var(--pip-dim); font-size: 11px; line-height: 16px; white-space: nowrap; }
@@ -36,26 +35,29 @@
   .siege-bar .sg-dome { flex-basis: 100%; }
   .siege-bar .sg-dome s { color: var(--pip-dark); }
 
-  /* the bar along the bottom: each clone's name and health over its ultimates; under them the keys (down, Auto, speed, pause) */
-  .world.base-mode .ult-bar { left: 6px; right: 6px; bottom: 6px; transform: none; padding: 0; background: none; border: 0; gap: 4px; flex-direction: column; align-items: stretch; }
-  .ult-bar .ub-full { display: none; }
-  .ult-bar .ub-short { display: inline; }
-  .ult-bar .ub-slots { gap: 4px; overflow-x: auto; scrollbar-width: none; }
-  .ult-bar .ub-slots::-webkit-scrollbar { display: none; }
-  .ub-clone { flex: 1 0 0; min-width: 62px; gap: 2px; grid-template-rows: 14px 36px; }
+  /* the clones under the dome's gauge: a tile each — name and health over its ultimate — pressed as a whole to aim it */
+  .world.base-mode .clone-row { left: 8px; right: 8px; top: 80px; transform: none; padding: 0; background: none; border: 0; gap: 4px; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
+  .clone-row::-webkit-scrollbar { display: none; }
+  .clone-row .ub-full { display: none; }
+  .clone-row .ub-short { display: inline; }
+  .ub-clone { flex: 0 1 72px; min-width: 58px; gap: 2px; grid-template-rows: 14px 30px; }
+  .ub-clone:has(button + button) { flex-basis: 124px; min-width: 104px; }
   .ub-who { gap: 4px; line-height: 14px; overflow: hidden; }
   .ub-who b { color: var(--pip); }
   .ub-hp s { color: var(--pip-dark); }
-  .ult-bar .ub-keys button { flex: 1 1 0; min-width: 0; height: 36px; padding: 0; display: grid; align-content: center; justify-items: center; line-height: 13px; overflow: hidden; }
-  .ult-bar button em { margin: 0; color: inherit; }
-  .ult-bar button.queued { color: #ffd23a !important; }
+  .clone-row .ub-keys button { flex: 1 1 0; min-width: 0; height: 30px; padding: 0; display: flex; gap: 4px; align-items: center; justify-content: center; line-height: 13px; overflow: hidden; }
+  .clone-row button em { margin: 0; color: inherit; }
+  .clone-row button.queued { color: #ffd23a !important; }
+
+  /* the keys along the bottom: under the ground, Auto, the speed, the pause */
+  .world.base-mode .ult-bar { left: 6px; right: 6px; bottom: 6px; transform: none; padding: 0; background: none; border: 0; display: block; }
   .ult-bar .ub-side { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
   .ult-bar .ub-side button { height: var(--row); padding: 0; }
   .ult-bar .ub-side [data-speed]:not(.on) { display: none; }
   .world.base-mode .ult-bar .ub-side [data-speed].on { background: url('./img/plate.png') 0 0 / 8px 8px !important; color: var(--pip) !important; }
 
-  /* the log: lines over the shade, no box */
-  .world.base-mode .wh-bl { left: 8px; right: 8px; padding: 0 2px; }
+  /* the log: its newest line, on the ground's lip (a tap opens the whole of it) */
+  .world.base-mode .wh-bl { z-index: 9; left: 8px; right: 84px; top: calc(var(--cut, 100%) + 5px); bottom: auto; height: 15px; min-height: 0; padding: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
   .world.base-mode .wh-bl .wl-line { font-size: 11px; line-height: 15px; }
   .world.base-mode .wl-line b { color: #4f8f66; }
 }

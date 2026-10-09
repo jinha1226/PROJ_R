@@ -163,9 +163,9 @@
 
 /* the base's bar along the bottom: the clones' ultimates and the keys */
 .ult-bar { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); bottom: 10px; display: flex; gap: 10px; align-items: center; padding: 6px 8px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; }
-.ult-bar[hidden] { display: none; }
-.ult-bar .ub-slots { display: flex; gap: 8px; }
-.ub-clone { display: grid; gap: 3px; }
+.clone-row { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); top: 52px; display: flex; gap: 8px; padding: 6px 8px; font: 12px 'Galmuri', monospace; color: #9dffb8; background: #03140af2; border: 1px solid #1f7a3e; }
+.ult-bar[hidden], .clone-row[hidden] { display: none; }
+.ub-clone { display: grid; gap: 3px; cursor: pointer; }
 .ub-clone.down { opacity: 0.45; }
 .ub-who { display: flex; gap: 6px; align-items: baseline; white-space: nowrap; }
 .ub-who b { font-weight: normal; color: #e6ffb0; }
@@ -174,11 +174,11 @@
 .ub-hp s { color: #17402a; }
 .ub-clone.low .ub-hp i { color: #ff5a3a; }
 .ub-keys { display: flex; gap: 4px; }
-.ult-bar button { position: relative; min-width: 82px; padding: 6px 8px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; white-space: nowrap; }
-.ult-bar button.on { background: #1f7a3e; color: #021006; }
-.ult-bar button.queued { border-color: #ffd23a; color: #ffd23a; }
-.ult-bar button:disabled { opacity: 0.5; cursor: default; }
-.ult-bar button em { margin-left: 6px; font-style: normal; color: #ffd23a; }
-.ult-bar .ub-short { display: none; }
+:is(.ult-bar, .clone-row) button { position: relative; min-width: 82px; padding: 6px 8px; font: inherit; color: #9dffb8; background: #062012; border: 1px solid #1f7a3e; cursor: pointer; white-space: nowrap; }
+:is(.ult-bar, .clone-row) button.on { background: #1f7a3e; color: #021006; }
+.clone-row button.queued { border-color: #ffd23a; color: #ffd23a; }
+:is(.ult-bar, .clone-row) button:disabled { opacity: 0.5; cursor: default; }
+.clone-row button em { margin-left: 6px; font-style: normal; color: #ffd23a; }
+.clone-row .ub-short { display: none; }
 .ult-bar .ub-side { display: flex; gap: 4px; align-items: center; }
 .ult-bar .ub-side button { min-width: 0; }

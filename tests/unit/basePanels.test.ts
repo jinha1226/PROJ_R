@@ -42,16 +42,39 @@ it('a tap on the core or a module finds its panel; bare ground none', () => {
   expect(panelAt(p, { x: p.base.x + 3, y: p.base.y + 4 })).toBeNull(); expect(panelAt(p, { x: 1, y: 1 })).toBeNull();
 });
 
-it('the base\'s bar groups each clone with its health and ultimates — a cooldown counts down, the aimed one is lit, a fallen clone is dimmed — then the keys: down, Auto, speed, pause', async () => {
-  const { ultBarHtml } = await import('../../src/ui/overworld/abilityBar');
+it('the clones\' row: a tile each with its health and ultimates — a cooldown counts down, the aimed one is lit, a fallen clone is dimmed and tells when it rises; the keys along the bottom: under the ground, Auto, speed, pause', async () => {
+  const { cloneRowHtml, menuHtml } = await import('../../src/ui/overworld/abilityBar');
   const p = newSurface(4), other = print(p, undefined, [], p.s.map.start)!;
-  let html = ultBarHtml(p, { id: 'hero', slot: 0 }, 2);
-  expect(html).toMatch(/data-ult="hero:0" class="on"/); expect(html).toContain('중력탄'); expect(html).toMatch(/data-speed="2" class="on"/);
-  expect(html).toContain('data-go'); expect(html).toMatch(/data-auto class=""/);
-  unitOf(p, 'hero')!.ultReady = p.time + 7; entOf(p, other.id)!.alive = false; p.siege!.auto = true;
-  html = ultBarHtml(p, null, 1, true);
-  expect(html).toMatch(/data-ult="hero:0" class="" disabled/); expect(html).toContain('<em>7</em>');
-  expect(html).toContain('ub-clone down'); expect(html).toContain('쓰러짐'); expect(html).toContain('재개'); expect(html).toMatch(/data-auto class="on"/);
+  let row = cloneRowHtml(p, { id: 'hero', slot: 0 }), keys = menuHtml(p, 2);
+  expect(row).toMatch(/data-clone="hero"/); expect(row).toMatch(/data-ult="hero:0" class="on"/); expect(row).toContain('중력탄');
+  expect(keys).toMatch(/data-speed="2" class="on"/); expect(keys).toMatch(/data-go class="">지하/); expect(keys).toMatch(/data-auto class=""/);
+  unitOf(p, 'hero')!.ultReady = p.time + 7; entOf(p, other.id)!.alive = false; unitOf(p, other.id)!.downAt = p.time; p.siege!.auto = true;
+  row = cloneRowHtml(p, null); keys = menuHtml(p, 1, true, true);
+  expect(row).toMatch(/data-ult="hero:0" class="" disabled/); expect(row).toContain('<em>7</em>');
+  expect(row).toContain('ub-clone down'); expect(row).toContain('쓰러짐 12초');
+  expect(keys).toContain('재개'); expect(keys).toMatch(/data-auto class="on"/); expect(keys).toMatch(/data-go class="on">지상/);
+});
+
+it('the floors under the base: the lift\'s stops and its next one with its price, how deep anyone has been, a kept floor; a clone\'s key sends it to the chosen stop', async () => {
+  const { floorRows, floorsHtml, sendHtml, destination } = await import('../../src/ui/overworld/floorSheet');
+  const p = newSurface(4);
+  let rows = floorRows(p);
+  expect(rows).toHaveLength(15);
+  // nobody has gone down yet: nothing reached, the lift stops at the first floor, the third is its next stop
+  expect(rows.filter((r) => r.reached)).toHaveLength(0); expect(rows.filter((r) => r.stop).map((r) => r.floor)).toEqual([1]);
+  expect(rows[2]!.next).toEqual({ ore: 30, crystal: 0 }); expect(rows.filter((r) => r.boss).map((r) => r.floor)).toEqual([5, 10, 15]);
+  expect(floorsHtml(p, undefined, 0)).toMatch(/data-drill disabled/);
+  expect(floorsHtml(p, undefined, 0)).toContain('동굴'); expect(floorsHtml(p, undefined, 0)).toContain('???');
+  p.trips = 2; p.deepest = 6; p.drillLevel = 2; p.ore = 500; p.crystal = 50;
+  rows = floorRows(p);
+  expect(rows.filter((r) => r.reached).map((r) => r.floor)).toEqual([1, 2, 3, 4, 5, 6]); expect(rows.filter((r) => r.stop).map((r) => r.floor)).toEqual([1, 3, 5]);
+  expect(rows[7]!.next).toEqual({ ore: 100, crystal: 15 }); expect(floorsHtml(p, undefined, 0)).toMatch(/data-drill >/);
+  // the deepest stop unless another is chosen; a kept floor comes before either
+  expect(destination(p, undefined, 0)).toBe(5); expect(destination(p, undefined, 3)).toBe(3); expect(destination(p, undefined, 4)).toBe(5); expect(destination(p, 7, 3)).toBe(7);
+  expect(floorsHtml(p, undefined, 3)).toMatch(/fl-row z-cave reached stop sel[^>]*data-floor="3"/);
+  expect(floorRows(p, 7)[6]!.kept).toBe(true); expect(floorRows(p, 7)[6]!.reached).toBe(true);
+  expect(sendHtml(p, undefined, 3, true)).toMatch(/▼ 3층<\/span><button type="button" data-send="hero" >/);
+  expect(sendHtml(p, 7, 3, true)).toContain('▼ 7층 복귀'); expect(sendHtml(p, undefined, 3, false)).toMatch(/data-send="hero" disabled/);
 });
 
 it('the siege\'s lines: the wave and the best, how many are out, the dome in cells — or how long until it relights; its events read as short lines; the ground names the modules', async () => {

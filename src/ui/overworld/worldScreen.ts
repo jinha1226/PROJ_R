@@ -6,6 +6,7 @@ import { PlacePrompts, clonerPrompt, soulPrompt, type Prompt } from './placeProm
 import { WorkbenchScreen } from './workbench/workbenchScreen';
 import { BaseCamera } from './baseCamera';
 import { AbilityBar } from './abilityBar';
+import { FloorSheet } from './floorSheet';
 import { SwarmView } from '../../view/overworld/swarmView';
 import { BasePanels, panelAt } from './basePanels';
 import { printClone } from '../../sim/base/cloner';
@@ -97,6 +98,7 @@ export class WorldScreen implements Screen {
   private camera!: BaseCamera;
   private panels!: BasePanels;
   private bar!: AbilityBar;
+  private sheet!: FloorSheet;
   private swarm = new SwarmView();
 
   private readonly seed: number;
@@ -147,9 +149,10 @@ export class WorldScreen implements Screen {
     this.el.appendChild(this.panels.el);
     this.bar = new AbilityBar(() => this.p, {
       speed: () => this.speed, setSpeed: (v) => { this.speed = v; this.pace(); },
-      paused: () => this.paused, pause: () => { this.paused = !this.paused; }, say: (t) => this.message(t), go: () => this.panels.show({ kind: 'pod' }),
+      paused: () => this.paused, pause: () => { this.paused = !this.paused; }, say: (t) => this.message(t), go: () => this.sheet.toggle(), under: () => this.sheet.open,
     });
-    this.el.appendChild(this.bar.bar);
+    this.sheet = new FloorSheet(() => this.p, { send: (id, floor) => this.sendDown(id, floor), live: (ev) => this.live(ev), able: () => !!this.opts.onDrill }, () => this.opts.keptFloor);
+    this.el.append(this.sheet.el, this.bar.bar, this.bar.row);
     this.over = overPanel(() => (this.opts.restart ? this.opts.restart() : this.restart()), this.opts.quit);
     this.el.appendChild(this.over);
     this.el.appendChild(this.quick.el);
@@ -180,6 +183,8 @@ export class WorldScreen implements Screen {
       this.bar.on = base; this.bar.update();
       // the camera roams free over the base (a mouse drag or a finger moves it)
       this.camera.on = base; this.camera.mouse = base; this.camera.update(dt);
+      // the ground is cut under the base: the floors' sheet holds the view where the cut is
+      this.sheet.frame(dt, base, this.rt, this.camera, this.stage.clientHeight, this.zoom);
       if (this.rt) { this.rt.freeAim = base ? this.camera.aim : null; this.rt.calm = base; }
       this.el.classList.toggle('base-mode', base);
       this.handOver();
@@ -252,8 +257,8 @@ export class WorldScreen implements Screen {
     this.rt.pixelated = loadDot();
     this.pace();
     this.select(this.p.leader ?? 'hero');
-    // the base sits low on the screen: the horde comes down from the north, and that is where the room is
-    this.camera.centerOn(this.p.pod ? { x: this.p.base.x + 1, y: this.p.base.y - 5 } : this.p.base);
+    // (over the pod's base the floors' sheet sets how high the view stands: the base low on the screen, the horde's way down above it)
+    this.camera.centerOn(this.p.pod ? { x: this.p.base.x + 0.5, y: this.p.base.y - 5 } : this.p.base);
     this.paused = false;
     this.message('');
     this.log = new WorldLog();
@@ -345,6 +350,7 @@ export class WorldScreen implements Screen {
     const k = e.key.toLowerCase();
     if (k === 'escape' && this.bench.open) { this.bench.close(); return; }
     if (k === 'escape' && this.panels.open) { this.panels.close(); return; }
+    if (k === 'escape' && this.sheet.open) { this.sheet.toggle(); return; }
     if (k === 'escape') { if (!this.pip.open && !this.picker.open && !this.menu.open) this.toggleMenu(); else { this.pip.close(); this.picker.close(); this.menu.close(); } return; }
     if (this.picker.open || this.menu.open) return;
     // I (bag) and E (equipment) both open the gear the clones carry; C the record
