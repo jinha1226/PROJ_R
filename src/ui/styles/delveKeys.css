@@ -1,14 +1,23 @@
 /*
- * The dungeon on an upright phone, one clone: the map at the left under the bar (a window round the clone, one dot of it
- * to one dot of the screen), and beside the log — to its right, over the bottom row — two keys: the target (the mark
- * moves on to the next foe in sight) and attack (the marked foe). With nothing in sight they are there, dim.
+ * The dungeon on an upright phone, one clone. Along the top, what is glanced at: the map in the corner (a window round the
+ * clone, one dot of it to one dot of the screen), the floor and the beacon's key in the middle, the menu at the right.
+ * Along the bottom, by the thumbs: the clone's own lines (name, level, rounds; health; experience) over the log, and
+ * beside the log — to its right, over the bottom row — two keys: the target (the mark moves on to the next foe in
+ * sight) and attack (the marked foe). With nothing in sight they are there, dim.
  */
 .tp-aim { display: none; }
 @media (orientation: portrait) and (max-width: 700px) {
-  .delve.hud-solo .wh-mini { display: block; position: fixed; z-index: 6; left: 8px; top: calc(env(safe-area-inset-top, 0px) + 62px); background: #05060c99; box-shadow: 0 0 0 1px var(--pip-dark); pointer-events: none; }
+  .delve.hud-solo .wh-mini { display: block; position: fixed; z-index: 6; left: 8px; top: calc(env(safe-area-inset-top, 0px) + 8px); background: #05060c99; box-shadow: 0 0 0 1px var(--pip-dark); pointer-events: none; }
   .delve.hud-solo .wh-mini canvas { display: block; width: 87px; height: 87px; border: 0; background: none; mix-blend-mode: normal; image-rendering: pixelated; }
   /* a foe's card and a card's line stand beside the map, not over it */
-  .delve.hud-solo .wh-target { left: 104px; top: 62px; }
+  .delve.hud-solo .wh-target { left: 104px; top: 54px; }
+  /* the floor, and under it the beacon's key, in the middle of the top (the bar they stood in has gone below) */
+  .delve.hud-solo .sb-place { position: fixed; z-index: 6; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 8px); margin: 0; text-align: center; line-height: 16px; pointer-events: none; }
+  .delve.hud-solo aside.wh-tl { left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 28px); width: auto; height: auto; display: flex; justify-content: center; pointer-events: none; }
+  .delve.hud-solo .wh-beacon { pointer-events: auto; }
+  /* the clone's lines over the log; the stick's zone begins above them */
+  .delve.hud-solo .wh-party { top: auto; bottom: calc(var(--log-bottom) + 66px); left: 8px; right: 8px; }
+  .delve.hud-solo .tp-zone { bottom: calc(var(--log-bottom) + 124px); }
   .delve.hud-solo .tp-aim { display: grid; grid-template-columns: repeat(2, var(--key)); gap: 4px; position: absolute; z-index: 8; right: 6px; bottom: calc(var(--row) + 14px); }
   .delve.hud-solo .tp-aim button { height: 46px; padding: 0; font: 11px 'Galmuri', monospace; color: var(--pip); text-shadow: none; cursor: pointer;
     border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: url('./img/plate.png') 0 0 / 8px 8px; }
