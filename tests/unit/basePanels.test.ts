@@ -71,17 +71,25 @@ it('the floors under the base: the lift\'s stops and its next one with its price
   expect(floorPopHtml(p, kept[6]!, 7, true)).toContain('<span>복귀</span>'); expect(floorPopHtml(p, kept[2]!, 7, true)).toContain('B7부터');
 });
 
-it('the siege\'s lines: the wave and the best, how many are out, the dome in cells — or how long until it relights; its events read as short lines; the ground names the modules', async () => {
+it('the siege\'s lines: quiet, the next wave counted down, the wave out and how many are left, stopped at a broken dome; the best; the dome in cells — or how long until it relights; its events read as short lines; the ground names the modules', async () => {
   const { siegeHtml, siegeNote } = await import('../../src/ui/overworld/siegeBar');
   const { baseLabels } = await import('../../src/ui/overworld/baseTools');
   const p = newSurface(4), s = p.siege!;
-  s.wave = 7; s.best = 12;
-  expect(siegeHtml(p)).toContain('파도 <b>7</b>'); expect(siegeHtml(p)).toContain('최고 12'); expect(siegeHtml(p)).toContain('] 200');
+  expect(siegeHtml(p)).toContain('조용함'); expect(siegeHtml(p)).not.toContain('최고');
+  s.phase = 'gap'; s.wave = 6; s.best = 12; s.nextAt = p.time + 18;
+  expect(siegeHtml(p)).toContain('파도 <b>7</b> · <b>5초</b>'); expect(siegeHtml(p)).not.toContain('적 <b>');
+  s.phase = 'wave'; s.wave = 7;
+  expect(siegeHtml(p)).toContain('파도 <b>7</b>'); expect(siegeHtml(p)).toContain('최고 12'); expect(siegeHtml(p)).toContain('적 <b>0</b>'); expect(siegeHtml(p)).toContain('] 200');
+  s.phase = 'held'; s.wave = 6;
+  expect(siegeHtml(p)).toContain('파도 <b>7</b> 실패');
+  s.phase = 'wave'; s.wave = 7;
   hitDome(p, 150, 'x', p.base, []);
   expect(siegeHtml(p)).toContain('sg-dome low'); expect(siegeHtml(p)).toContain('] 50');
   s.downUntil = p.time + 36;
   expect(siegeHtml(p)).toContain('돔 재가동 <b>10초</b>');
-  expect(siegeNote({ t: 0, type: 'buff', text: 'domeBreak', amount: 4 })).toContain('파도 4부터'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeUp' })).toBe('돔 재가동');
+  expect(siegeNote({ t: 0, type: 'buff', text: 'domeBreak', amount: 4 })).toContain('파도 4에서 멈춤');
+  expect(siegeNote({ t: 0, type: 'buff', text: 'siegeStart' })).toContain('첫 파도'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 3 })).toBeUndefined();
+  expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 10 })).toBe('파도 10 · 오우거 2'); expect(siegeNote({ t: 0, type: 'buff', text: 'wave', amount: 20 })).toContain('장군'); expect(siegeNote({ t: 0, type: 'buff', text: 'domeUp' })).toBe('돔 재가동');
   expect(siegeNote({ t: 0, type: 'buff', text: 'gather', amount: 6 })).toContain('광석 6 · 생체 4'); expect(siegeNote({ t: 0, type: 'hit' })).toBeUndefined();
   expect(baseLabels(p).map((l) => l.text)).toEqual(['연구실', '숙소', '작업장 · 고장']);
 });

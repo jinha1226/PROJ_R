@@ -23,7 +23,7 @@ test('the title drops a pod: an empty clone steps out beside it, the base unfold
   expect(errors).toEqual([]);
 });
 
-test('the besieged base: the waves come and are counted, and a broken dome throws them back and relights', async ({ page }) => {
+test('the besieged base: the waves come and are counted; a broken dome throws them back and the siege waits for the player\'s word', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('./?seed=3&lvl&debug&wave=3');
@@ -32,7 +32,7 @@ test('the besieged base: the waves come and are counted, and a broken dome throw
   // the mode changes on a frame, and a software renderer's frame can take seconds
   await expect(page.locator('.world.base-mode')).toHaveCount(1, { timeout: 30_000 });
   await expect(page.locator('.siege-bar')).toContainText('돔', { timeout: 30_000 });
-  type World = { skip(n: number): void; p: { siege: { wave: number; domeHp: number; downUntil: number }; units: { group?: number }[] } };
+  type World = { skip(n: number): void; p: { siege: { wave: number; domeHp: number; downUntil: number; phase: string }; units: { group?: number }[] } };
   // time runs on: the third wave steps out
   await page.evaluate(() => (window as unknown as { __world: World }).__world.skip(20));
   expect(await page.evaluate(() => (window as unknown as { __world: World }).__world.p.siege.wave)).toBeGreaterThanOrEqual(3);
@@ -44,6 +44,10 @@ test('the besieged base: the waves come and are counted, and a broken dome throw
     return { down: w.p.siege.downUntil > 0, raiders: w.p.units.filter((u) => u.group === 1000).length };
   });
   expect(after).toEqual({ down: true, raiders: 0 });
-  await expect(page.locator('.siege-bar')).toContainText('돔 재가동', { timeout: 30_000 });
+  // the siege stops there: the key calls the same wave again
+  await expect(page.locator('.siege-start')).toContainText('시작', { timeout: 30_000 });
+  await page.locator('.siege-start').click();
+  await expect(page.locator('.siege-start')).toBeHidden({ timeout: 30_000 });
+  expect(await page.evaluate(() => (window as unknown as { __world: World }).__world.p.siege.phase)).not.toBe('held');
   expect(errors).toEqual([]);
 });

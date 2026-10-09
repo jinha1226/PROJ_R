@@ -140,8 +140,8 @@ export class WorldScreen implements Screen {
     for (const part of this.build.parts) this.el.appendChild(part);
     this.bench = new WorkbenchScreen(() => this.p, () => { this.paused = this.pausedBeforePip; }, (ev) => this.live(ev));
     this.el.appendChild(this.bench.el);
-    this.siegeBar = new SiegeBar(() => this.p);
-    this.el.appendChild(this.siegeBar.el);
+    this.siegeBar = new SiegeBar(() => this.p, (ev) => this.live(ev));
+    this.el.append(this.siegeBar.el, this.siegeBar.start);
     this.el.appendChild(this.prompts.el);
     this.panels = new BasePanels(() => this.p, { print: () => this.live(printClone(this.p)), implant: (id, soul) => this.live(implantCarried(this.p, id, soul)), bench: () => this.openBench() });
     this.el.appendChild(this.panels.el);

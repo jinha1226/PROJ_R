@@ -20,6 +20,6 @@ export function raidArena(seed: number, wave = 12): WorldParty {
     for (let k = 0; k < 40 && u.picks && u.offer?.length; k++) pickTrait(p, u.id, u.offer[0]! as TraitId);
   });
   const s = p.siege!;
-  s.wave = Math.max(0, wave - 1); s.best = s.wave; s.nextAt = p.time + 4;
+  s.wave = Math.max(0, wave - 1); s.best = s.wave; s.phase = 'gap'; s.nextAt = p.time + 4;
   return p;
 }

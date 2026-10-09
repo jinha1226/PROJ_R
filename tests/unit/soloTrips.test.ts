@@ -62,7 +62,8 @@ it('a run that dies brings back no souls; the body that died had its souls lost'
 it('riding up by beacon does not count as a trip done', () => {
   const { p, b } = twoAtDrill();
   const d = departSurface(p, 3, takeClone(p, b.id))!;
-  expect(beaconReturn(p, takeParty(d))).toEqual([]);
+  // (nothing but the word that the first return has roused the land)
+  expect(beaconReturn(p, takeParty(d)).map((e) => e.text)).toEqual(['siegeStart']);
   expect(p.trips).toBe(0); expect(p.away).toBe(false);
   expect(living(p).map((u) => u.id).sort()).toEqual([b.id, 'hero'].sort());
 });

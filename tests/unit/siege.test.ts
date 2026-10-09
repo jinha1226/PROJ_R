@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { newSurface, worldTick, canDrill } from '../../src/sim/overworld/worldSim';
 import { canPrintClone } from '../../src/sim/base/cloner';
-import { DOME, domeMax, domeUp, FALL_BACK, FIRST_WAVE, FRONT_GUARD, hitDome, planWave, raiders, REVIVE, SIEGE_GROUP, SIEGE_REACH, siegeTick, spawnRaider, WAVE_GAP, waveOf } from '../../src/sim/base/siege';
+import { DOME, domeMax, domeUp, FALL_BACK, FIRST_WAVE, FRONT_GUARD, hitDome, planWave, raiders, resumeSiege, RETRY_GAP, REVIVE, rouseSiege, SIEGE_GROUP, SIEGE_REACH, siegeTick, spawnRaider, WAVE_GAP, WAVE_LIMIT, waveOf } from '../../src/sim/base/siege';
 import { inDome, rimOf, siegeField } from '../../src/sim/base/siegePath';
 import { swarmTick } from '../../src/sim/base/swarm';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
@@ -16,13 +16,21 @@ const idle = (seed = 42) => { const p = newSurface(seed); for (const u of p.unit
 /** time runs on for the siege alone; `keep`: the dome is topped up every step (the test is not about it giving) */
 const run = (p: P, turns: number, step = 0.2, keep = false) => { const ev: GEvent[] = []; for (let t = 0; t < turns; t += step) { p.time += step; if (keep) p.siege!.domeHp = domeMax(p); siegeTick(p, step, ev); } return ev; };
 const fodder = (p: P) => p.units.filter((u) => u.swarm && alive(p, u));
-/** wave n stepped out whole, at once */
-const pour = (p: P, n: number) => { for (const s of planWave(p, n, p.time)) spawnRaider(p, s, []); };
+/** wave n stepped out whole, at once (the siege counted as in that wave) */
+const pour = (p: P, n: number) => { p.siege!.phase = 'wave'; for (const s of planWave(p, n, p.time)) spawnRaider(p, s, []); };
 
-it('the pod lands under its dome: whole, the horde not yet come, the first wave a while off', () => {
+it('the pod lands under its dome: whole, and the land quiet — nothing comes until a clone has been down and back', () => {
   const p = newSurface(42), s = p.siege!;
-  expect(s).toMatchObject({ wave: 0, best: 0, domeHp: DOME.hp, downUntil: 0, auto: false });
-  expect(domeUp(p)).toBe(true); expect(s.nextAt).toBe(FIRST_WAVE); expect(raiders(p)).toHaveLength(0);
+  expect(s).toMatchObject({ wave: 0, best: 0, domeHp: DOME.hp, downUntil: 0, auto: false, phase: 'quiet' });
+  expect(domeUp(p)).toBe(true); expect(raiders(p)).toHaveLength(0);
+  for (let k = 0; k < 600; k++) worldTick(p, 0.2);
+  expect(s.phase).toBe('quiet'); expect(s.wave).toBe(0); expect(raiders(p)).toHaveLength(0);
+  // down the shaft and back: the drill was heard, the first wave is counted down
+  const d = departSurface(p, 5, takeClone(p, 'hero'))!;
+  const back = returnToSurface(p, takeParty(d));
+  expect(back.some((e) => e.text === 'siegeStart')).toBe(true); expect(s.phase).toBe('gap'); expect(s.nextAt).toBe(p.time + FIRST_WAVE);
+  // (once only: a second return calls nothing more)
+  expect(returnToSurface(p, takeParty(departSurface(p, 6, takeClone(p, 'hero'))!)).some((e) => e.text === 'siegeStart')).toBe(false);
   // everything of ours stands under it: the pod, the three modules, the cells the clones come up on
   for (const m of p.modules!) expect(inDome(p, m.at)).toBe(true);
   expect(inDome(p, p.base)).toBe(true); expect(inDome(p, p.s.map.start)).toBe(true);
@@ -40,12 +48,24 @@ it('waves grow without end: more fodder, tougher and harder-hitting, ogres every
   expect(plan.every((s) => s.cell.y === p.base.y - SIEGE_REACH)).toBe(true); expect(new Set(plan.map((s) => s.cell.x)).size).toBeGreaterThan(10);
 });
 
-it('the waves come on the clock whether or not the last is dead, and the highest reached is kept', () => {
+it('a wave steps out when its count runs down; the next only once it is cleared, after a breath; the highest reached is kept', () => {
   const p = idle(), s = p.siege!;
-  run(p, FIRST_WAVE + 1, 0.2, true);
-  expect(s.wave).toBe(1); expect(raiders(p).length).toBeGreaterThan(0);
-  run(p, WAVE_GAP * 3, 0.2, true);
-  expect(s.wave).toBe(4); expect(s.best).toBe(4);
+  rouseSiege(p);
+  run(p, FIRST_WAVE - 1, 0.2, true);
+  expect(s.wave).toBe(0); expect(raiders(p)).toHaveLength(0);
+  const ev = run(p, 2, 0.2, true);
+  expect(s.wave).toBe(1); expect(s.phase).toBe('wave'); expect(ev.some((e) => e.text === 'wave' && e.amount === 1)).toBe(true);
+  // nobody fights it: it stands at the dome and no second wave comes
+  run(p, 120, 0.2, true);
+  expect(s.wave).toBe(1); expect(raiders(p).length).toBe(9);
+  // (a wave that never ends has lost its way: after a long while what is left slinks off and the siege goes on)
+  const q = idle(), qs = q.siege!; rouseSiege(q); run(q, FIRST_WAVE + WAVE_LIMIT + 4, 0.4, true);
+  expect(qs.phase).toBe('gap'); expect(qs.wave).toBe(1); expect(raiders(q).filter((u) => alive(q, u))).toHaveLength(0); expect(qs.kills).toBe(0);
+  for (const u of raiders(p)) entOf(p, u.id)!.alive = false;
+  run(p, 0.4, 0.2, true);
+  expect(s.phase).toBe('gap'); expect(s.nextAt).toBeCloseTo(p.time - 0.2 + WAVE_GAP, 5);
+  run(p, WAVE_GAP - 2, 0.2, true); expect(s.wave).toBe(1);
+  run(p, 3, 0.2, true); expect(s.wave).toBe(2); expect(s.best).toBe(2);
   // raiders are of the siege's own group, awake, and none of them teaches or feeds anyone
   for (const u of raiders(p)) { expect(u.group).toBe(SIEGE_GROUP); expect(u.lean).toBe(true); expect(u.asleep).toBe(false); }
 });
@@ -80,7 +100,7 @@ it('a clone under the dome is not struck; one out before it is', () => {
   expect(e.hp).toBeLessThan(1000);
 });
 
-it('the dome mends by itself; when it gives, the whole horde is thrown back, the count drops, and it relights whole after a lull — nothing of ours is lost', () => {
+it('the dome mends by itself; when it gives, the whole horde is thrown back and the siege stops at that wave until the player calls it — nothing of ours is lost', () => {
   const p = idle(), s = p.siege!;
   p.ore = 77; p.bio = 33;
   hitDome(p, 50, 'x', p.base, []);
@@ -92,13 +112,19 @@ it('the dome mends by itself; when it gives, the whole horde is thrown back, the
   const ev = run(p, 0.2);
   expect(ev.some((e) => e.text === 'domeBreak')).toBe(true);
   expect(domeUp(p)).toBe(false); expect(raiders(p)).toHaveLength(0); expect(p.s.foes.some((e) => e.group === SIEGE_GROUP)).toBe(false);
-  expect(s.wave).toBe(20 - DOME.retreat - 1); expect(s.best).toBe(20);
+  expect(s.phase).toBe('held'); expect(s.wave).toBe(19); expect(s.best).toBe(20);
   // down: no wave comes, no blow lands
   hitDome(p, 10, 'x', p.base, []); run(p, DOME.lull - 2);
   expect(domeUp(p)).toBe(false); expect(raiders(p)).toHaveLength(0);
   const up = run(p, 3);
   expect(up.some((e) => e.text === 'domeUp')).toBe(true); expect(domeUp(p)).toBe(true); expect(s.domeHp).toBe(domeMax(p));
-  run(p, WAVE_GAP); expect(s.wave).toBe(20 - DOME.retreat);
+  // whole again, and still nothing comes: the wave waits for the word
+  run(p, 200); expect(s.phase).toBe('held'); expect(s.wave).toBe(19); expect(raiders(p)).toHaveLength(0);
+  expect(resumeSiege(p)).toBe(true); expect(s.phase).toBe('gap'); expect(resumeSiege(p)).toBe(false);
+  run(p, RETRY_GAP + 0.4, 0.2, true); expect(s.wave).toBe(20); expect(s.phase).toBe('wave'); expect(raiders(p).length).toBeGreaterThan(0);
+  // the word given while the dome is still down relights it at once
+  hitDome(p, 1e6, 'x', p.base, []); run(p, 0.2);
+  expect(domeUp(p)).toBe(false); expect(resumeSiege(p)).toBe(true); expect(domeUp(p)).toBe(true); expect(s.domeHp).toBe(domeMax(p)); expect(s.wave).toBe(19);
   expect([p.ore, p.bio]).toEqual([77, 33]); expect(p.modules!.filter((m) => m.id !== 'workshop').every((m) => !m.broken)).toBe(true); expect(living(p)).toHaveLength(1);
 });
 

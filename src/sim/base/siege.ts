@@ -9,11 +9,12 @@ import { inDome, resetSiegePath, rimOf } from './siegePath';
 import { swarmTick } from './swarm';
 
 /**
- * The siege (spec 2026-10-09, "idle defence"): the base stands under an energy dome and the horde never stops coming —
- * wave after wave out of the north, each a little stronger than the last. Nothing gets in while the dome holds: the
- * horde hacks at its rim, the clones fight before it (melee) and from inside it (ranged). When the dome gives, an
- * energy wave throws the whole horde back, the wave count drops a few and the dome relights after a lull. Nothing of
- * ours is lost by it: the cost of a breach is the ground given up.
+ * The siege (spec 2026-10-09, "idle defence"): the base stands under an energy dome. The land is quiet until a clone
+ * first comes back up the shaft — the drill has been heard. From then the horde comes wave after wave out of the north,
+ * each a little stronger than the last: a wave cleared, the next steps out after a short breath. Nothing gets in while
+ * the dome holds: the horde hacks at its rim, the clones fight before it (melee) and from inside it (ranged). When the
+ * dome gives, an energy wave throws the whole horde back and the siege stops: the same wave waits until the player
+ * calls it. Nothing of ours is lost by it: the cost of a breach is the time.
  */
 export interface Siege {
   /** the wave now coming (0: none yet), and the highest ever reached */
@@ -26,6 +27,10 @@ export interface Siege {
   /** the clones fire their own ultimates (the Auto key); off: the player aims them */
   auto: boolean;
   kills: number;
+  /** quiet: nothing has come yet; gap: the next wave is counted down; wave: one is out; held: the dome gave, the same wave waits for the player's word */
+  phase: 'quiet' | 'gap' | 'wave' | 'held';
+  /** when the wave now out stepped out */
+  waveAt?: number;
 }
 /** one raider waiting to step out at the north edge */
 export interface SiegeSpawn { at: number; kind: 'fodder' | 'brute' | 'archer' | 'general'; cell: Cell; wave: number }
@@ -33,10 +38,12 @@ export interface SiegeSpawn { at: number; kind: 'fodder' | 'brute' | 'archer' | 
 /** game time per real second at normal speed (the surface's clock): the numbers below are thought of in seconds */
 const SEC = 3.6;
 export const SIEGE_GROUP = 1000;
-/** the dome: its reach in cells, its strength, what it wins back per turn, how long it stays down, how many waves a breach costs */
-export const DOME = { r: 5, hp: 200, regen: 3 / SEC, lull: 15 * SEC, retreat: 8 };
-/** a wave every eight seconds, pouring out over four; the first comes a while after the landing */
-export const WAVE_GAP = 8 * SEC, WAVE_POUR = 4 * SEC, FIRST_WAVE = 20 * SEC;
+/** the dome: its reach in cells, its strength, what it wins back per turn, how long it stays down after giving */
+export const DOME = { r: 5, hp: 200, regen: 3 / SEC, lull: 4 * SEC };
+/** a wave pours out over four seconds; the next comes five seconds after it is cleared (time to gather what fell); the first, ten after the first return; a wave called again, three after the word */
+export const WAVE_POUR = 4 * SEC, WAVE_GAP = 5 * SEC, FIRST_WAVE = 10 * SEC, RETRY_GAP = 3 * SEC;
+/** a wave still out after this long has lost its way (a straggler stuck somewhere out of reach): what is left of it slinks off, and the siege goes on */
+export const WAVE_LIMIT = 90 * SEC;
 /** how far north of the pod the horde steps out, and how wide its front is */
 export const SIEGE_REACH = 18, SIEGE_FRONT = 9;
 /** a clone: how low before it falls back into the dome, how well before it goes out again, what it mends inside per turn (of its health), how long down before it rises */
@@ -55,9 +62,9 @@ export function waveOf(n: number): { fodder: number; hp: number; dmg: number; br
   return { fodder: Math.min(40, 8 + k), hp: 1.07 ** (k - 1), dmg: 1 + 0.04 * (k - 1), brutes: k % 5 === 0 ? 1 + Math.floor(k / 10) : 0, archers: k >= 8 && k % 5 === 3 ? 1 + Math.floor(k / 12) : 0, general: k % 20 === 0 };
 }
 
-/** The pod has landed: the dome lights, and the north is opened for what will come out of it. */
+/** The pod has landed: the dome lights, and the north is opened for what will come out of it — nothing yet (the land is quiet until a clone first comes back up). */
 export function startSiege(p: WorldParty): void {
-  p.siege = { wave: 0, best: 0, nextAt: p.time + FIRST_WAVE, domeHp: 0, downUntil: 0, auto: false, kills: 0 };
+  p.siege = { wave: 0, best: 0, nextAt: Infinity, domeHp: 0, downUntil: 0, auto: false, kills: 0, phase: 'quiet' };
   p.siege.domeHp = domeMax(p);
   const m = p.s.map, cells = spawnCells(p);
   for (const c of cells) { m.tiles[idx(m, c)] = 'floor'; p.ground[idx(m, c)] = 'dirt'; }
@@ -107,13 +114,33 @@ export function hitDome(p: WorldParty, n: number, src: string, at: Cell, ev: GEv
   ev.push({ t: p.time, type: 'hit', src, dst: 'dome', to: { x: at.x, y: at.y }, amount: n });
 }
 
-/** The dome gives: an energy wave throws the whole horde back (none of it is left), the wave count drops, the dome stays down a while. */
+/** A clone has come back up the shaft for the first time: the drill was heard, and the first wave is on its way. */
+export function rouseSiege(p: WorldParty, ev: GEvent[] = []): void {
+  const s = p.siege;
+  if (!s || s.phase !== 'quiet') return;
+  s.phase = 'gap'; s.nextAt = p.time + FIRST_WAVE;
+  ev.push({ t: p.time, type: 'buff', text: 'siegeStart' });
+}
+
+/** The player's word after a breach: the dome is whole again and the wave it gave to comes once more. */
+export function resumeSiege(p: WorldParty, ev: GEvent[] = []): boolean {
+  const s = p.siege;
+  if (!s || s.phase !== 'held') return false;
+  if (s.downUntil) ev.push({ t: p.time, type: 'buff', text: 'domeUp' });
+  s.downUntil = 0; s.domeHp = domeMax(p);
+  s.phase = 'gap'; s.nextAt = p.time + RETRY_GAP;
+  return true;
+}
+
+/** The dome gives: an energy wave throws the whole horde back (none of it is left) and the siege stops — the same wave waits for the player's word. */
 function breach(p: WorldParty, ev: GEvent[]): void {
   const s = p.siege!;
   p.units = p.units.filter((u) => !(u.side === 'foe' && u.group === SIEGE_GROUP));
   p.s.foes = p.s.foes.filter((e) => e.group !== SIEGE_GROUP);
   p.siegeQueue = [];
-  s.wave = Math.max(0, s.wave - DOME.retreat - 1);
+  // (the wave that broke it comes again; a dome that gave between waves holds the next one)
+  if (s.phase === 'wave') s.wave = Math.max(0, s.wave - 1);
+  s.phase = 'held'; s.nextAt = Infinity;
   s.downUntil = p.time + DOME.lull; s.domeHp = 0;
   ev.push({ t: p.time, type: 'buff', text: 'domeBreak', amount: s.wave + 1, to: { x: p.base.x + 1, y: p.base.y + 1 } });
 }
@@ -186,27 +213,31 @@ function reap(p: WorldParty): void {
   p.s.foes = p.s.foes.filter((e) => !drop.has(e.id));
 }
 
-/** Time runs on for the siege: the dome mends or relights, the next wave steps out on time, the horde moves, the clones keep their places. */
+/** Time runs on for the siege: the dome mends or relights; the wave counted down steps out, the one out moves and — cleared — gives way to the next count; the clones keep their places. */
 export function siegeTick(p: WorldParty, dt: number, ev: GEvent[]): void {
   const s = p.siege;
   if (!s || p.away) return;
   const t = p.time;
   p.manualUlts = !s.auto;
   if (s.downUntil && t >= s.downUntil) {
-    s.downUntil = 0; s.domeHp = domeMax(p); s.nextAt = t + WAVE_GAP / 2;
+    s.downUntil = 0; s.domeHp = domeMax(p);
     ev.push({ t, type: 'buff', text: 'domeUp' });
   }
   // (blows land in the horde's step and in the elites' own turns: a dome brought to nothing gives before it can mend)
   if (!s.downUntil && s.domeHp <= 0) breach(p, ev);
-  if (!s.downUntil) {
-    s.domeHp = Math.min(domeMax(p), s.domeHp + DOME.regen * dt);
-    if (t >= s.nextAt) {
-      s.wave++; s.best = Math.max(s.best, s.wave); s.nextAt = t + WAVE_GAP;
-      p.siegeQueue = [...(p.siegeQueue ?? []), ...planWave(p, s.wave, t)].sort((a, b) => a.at - b.at);
-    }
+  if (!s.downUntil) s.domeHp = Math.min(domeMax(p), s.domeHp + DOME.regen * dt);
+  if (s.phase === 'gap' && t >= s.nextAt) {
+    s.wave++; s.best = Math.max(s.best, s.wave); s.phase = 'wave'; s.nextAt = Infinity; s.waveAt = t;
+    p.siegeQueue = planWave(p, s.wave, t);
+    ev.push({ t, type: 'buff', text: 'wave', amount: s.wave });
+  }
+  if (s.phase === 'wave') {
     while (p.siegeQueue?.length && p.siegeQueue[0]!.at <= t) spawnRaider(p, p.siegeQueue.shift()!, ev);
     swarmTick(p, dt, ev);
     if (s.domeHp <= 0) breach(p, ev);
+    // the last of the wave has fallen: a breath, then the next
+    else if (!p.siegeQueue?.length && !p.units.some((u) => u.side === 'foe' && u.group === SIEGE_GROUP && alive(p, u))) { s.phase = 'gap'; s.nextAt = t + WAVE_GAP; }
+    else if (t - (s.waveAt ?? t) > WAVE_LIMIT) for (const u of raiders(p)) { const e = entOf(p, u.id); if (e?.alive) { e.alive = false; e.hp = 0; u.goneAt = t; } }
   }
   reap(p);
   clonesTick(p, dt, ev);

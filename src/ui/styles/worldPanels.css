@@ -180,3 +180,12 @@
 .clone-row button em { margin-left: 6px; font-style: normal; color: #ffd23a; }
 .clone-row .ub-short { display: none; }
 .clone-row .ub-auto { min-width: 0; }
+
+/* the siege stopped at a broken dome: the key that calls the wave again, in the middle of the field before the dome */
+.siege-start { position: absolute; z-index: 9; left: 50%; top: 42%; transform: translateX(-50%); height: 48px; padding: 0 22px; font: 16px 'Galmuri', monospace; color: #021006; background: #1bff80; border: 2px solid #021006; box-shadow: 0 0 0 2px #1bff80, 0 6px 0 #0008; cursor: pointer; white-space: nowrap; animation: wh-blink 1.2s steps(2) infinite; }
+.siege-start[hidden] { display: none; }
+.siege-start:active { transform: translate(-50%, 2px); }
+.siege-bar .sg-wave.soon b, .siege-bar .sg-wave.held b { color: #ffd23a; }
+.siege-bar .sg-wave.held { color: #ff5a4a; }
+/* facing the floors the key waits: it belongs to the picture above */
+.world.under .siege-start { display: none; }

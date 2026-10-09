@@ -5,6 +5,7 @@ import { rejoin, type Carry } from '../roam/carry';
 import { startDelve } from './drill';
 import { applySf } from './workshop';
 import { gatherHome, upgradeOn } from './modules';
+import { rouseSiege } from './siege';
 import { living } from '../roam/roam';
 import { entOf } from '../party/partyCore';
 
@@ -34,6 +35,7 @@ export function returnToSurface(p: WorldParty, carry: Carry): GEvent[] {
   const ev: GEvent[] = [];
   // (the event carries the ore; the bio-matter is in step with it: GATHER)
   if (got) ev.push({ t: p.time, type: 'buff', text: 'gather', amount: got.ore });
+  rouseSiege(p, ev);
   p.baseEvents.push(...ev);
   return ev;
 }
@@ -43,5 +45,8 @@ export function beaconReturn(p: WorldParty, carry: Carry): GEvent[] {
   for (const k of carry.clones) { const u = p.units.find((x) => x.id === k.unit.id); if (u) applySf(p, u); }
   p.away = false; p.deepest = Math.max(p.deepest, carry.deepest ?? 1);
   healHome(p);
-  return [];
+  const ev: GEvent[] = [];
+  rouseSiege(p, ev);
+  p.baseEvents.push(...ev);
+  return ev;
 }

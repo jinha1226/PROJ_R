@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FIRST_WAVE } from '../../src/sim/base/siege';
 import { newSurface, worldTick, canDrill } from '../../src/sim/overworld/worldSim';
 import { departSurface, returnToSurface } from '../../src/sim/base/trips';
 import { upgradeDrill } from '../../src/sim/base/drill';
@@ -18,7 +19,7 @@ describe('base trips', () => {
     returnToSurface(p, back);
     expect(p.away).toBe(false); expect(p.trips).toBe(1); expect(p.deepest).toBe(3);
     expect(p.ore).toBe(181);
-    expect([...p.claimed]).toEqual(claimed); expect(p.drillLevel).toBe(1); expect(p.siege).toEqual(siege);
+    expect([...p.claimed]).toEqual(claimed); expect(p.drillLevel).toBe(1); expect(p.siege).toEqual({ ...siege, phase: 'gap', nextAt: p.time + FIRST_WAVE });
     // another may go at once: nothing keeps the party home
     expect(canDrill(p, 'hero')).toBe(true);
     const next = departSurface(p, 10, takeClone(p, 'hero'))!;
