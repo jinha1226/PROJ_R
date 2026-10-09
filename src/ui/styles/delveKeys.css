@@ -6,6 +6,8 @@
  * sight) and attack (the marked foe). With nothing in sight they are there, dim.
  */
 .tp-aim { display: none; }
+/* the auto key: lit while the floor runs by itself */
+.wh-auto.on { background: #1bff80 !important; color: #021006 !important; }
 @media (orientation: portrait) and (max-width: 700px) {
   .delve.hud-solo .wh-mini { display: block; position: fixed; z-index: 6; left: 8px; top: calc(env(safe-area-inset-top, 0px) + 8px); background: #05060c99; box-shadow: 0 0 0 1px var(--pip-dark); pointer-events: none; }
   .delve.hud-solo .wh-mini canvas { display: block; width: 87px; height: 87px; border: 0; background: none; mix-blend-mode: normal; image-rendering: pixelated; }
@@ -14,6 +16,7 @@
   /* the floor, and under it the beacon's key, in the middle of the top (the bar they stood in has gone below) */
   .delve.hud-solo .sb-place { position: fixed; z-index: 6; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 8px); margin: 0; text-align: center; line-height: 16px; pointer-events: none; }
   .delve.hud-solo aside.wh-tl { left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 28px); width: auto; height: auto; display: flex; justify-content: center; pointer-events: none; }
+  .delve.hud-solo aside.wh-tl { gap: 6px; }
   .delve.hud-solo .wh-beacon { pointer-events: auto; }
   /* the clone's lines over the log; the stick's zone begins above them */
   .delve.hud-solo .wh-party { top: auto; bottom: calc(var(--log-bottom) + 66px); left: 8px; right: 8px; }

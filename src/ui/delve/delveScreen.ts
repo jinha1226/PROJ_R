@@ -37,6 +37,7 @@ import { Pinch, coarsePointer, startZoom } from '../overworld/touchView';
 import { CardStrip } from '../overworld/cardStrip';
 import { DelveMinimap } from './delveMinimap';
 import { attackTarget, nextTarget } from './targeting';
+import { AutoRun } from './autoRun';
 import { DelveProps } from '../../view/delve/delveProps';
 import { HOLD_MS, TouchPad } from '../overworld/touchPad';
 import '../styles/grid.css';
@@ -83,6 +84,7 @@ export class DelveScreen implements Screen {
   private inspect: { id: string; until: number } | null = null;
   /** the foe picked with the target key */
   private aim?: string;
+  private readonly auto = new AutoRun();
   /** a long press is under way on the field, or has just fired (the tap that ends it is swallowed) */
   private press: { x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
   private held = false;
@@ -119,7 +121,7 @@ export class DelveScreen implements Screen {
       stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
-      beacon: () => this.beacon(), solo: true,
+      beacon: () => this.beacon(), auto: () => { if (this.auto.toggle()) this.paused = false; else this.explorer.stop(); }, solo: true,
       traits: (id) => { if (!this.pip.open && !this.picker.open && !this.menu.open && !this.picker.open) this.pausedBeforePip = this.paused; this.picker.show(id || this.sel); },
       wait: () => { if (this.myTurn) this.live(command(this.p, { kind: 'wait' })); },
     });
@@ -192,7 +194,8 @@ export class DelveScreen implements Screen {
       this.miningCue.update(this.p, this.rt);
       this.quick.update();
       this.cards.update();
-      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.hud.toast(t), exploreWants(this.p)); }
+      { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => { if (this.auto.on) this.auto.sweptOut(); else this.hud.toast(t); }, exploreWants(this.p)); }
+      this.auto.step(this.p, this.sel, this.explorer, { go: (c) => orderTo(this.p, this.sel, c), pick: (id, t) => this.live(pickTrait(this.p, id, t as TraitId)), say: (t) => this.hud.toast(t) });
       // (auto-explore begun or ended: the walk is shown at its new pace)
       if (this.explorer.on !== this.hasted) { this.hasted = this.explorer.on; this.pace(); }
       this.placePrompts();
@@ -211,7 +214,7 @@ export class DelveScreen implements Screen {
   /** In a turn-based fight the chosen clone is under the hand; out of a fight (or in real time) nobody is. */
   private handOver(): void {
     // the game is turn-based: in a fight the chosen clone's moments wait for the player
-    const hand = this.p.combat && !this.opts.auto && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
+    const hand = this.p.combat && !this.opts.auto && !this.auto.on && entOf(this.p, this.sel)?.alive ? this.sel : undefined;
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
   }
 
@@ -356,7 +359,7 @@ export class DelveScreen implements Screen {
     const e = entOf(this.p, this.sel);
     if (!e?.alive || this.pip.open || this.picker.open) return;
     this.paused = false;
-    this.explorer.stop();
+    this.explorer.stop(); this.auto.stop();
     const c = { x: e.pos.x + dx, y: e.pos.y + dy };
     if (!walkable(tileAt(this.p.s.map, c)) || this.unitAt(c)) return;
     if (this.myTurn) this.live(command(this.p, { kind: 'move', cell: c }));
@@ -420,7 +423,7 @@ export class DelveScreen implements Screen {
 
   /** On a clone: choose it. On its turn a click is its action (a step toward, or a blow); otherwise an order. */
   private click(e: PointerEvent): void {
-    this.inspect = null; this.cardInfo = null;
+    this.inspect = null; this.cardInfo = null; this.auto.stop();
     if (this.opts.stepped) { this.paused = false; return; }
     const c = this.rt?.cellAt(e.clientX, e.clientY);
     if (!c) return;
@@ -489,6 +492,6 @@ export class DelveScreen implements Screen {
     if (this.cardInfo && performance.now() > this.cardInfo.until) this.cardInfo = null;
     const target = this.cardInfo?.html ?? targetCardHtml(p, this.sel, looked?.side === 'foe' ? looked : undefined);
     const beacon = p.beacon ? { label: portalOpen(p) ? `포탈 ${Math.max(0, Math.ceil(p.beacon.closeAt - p.time))}` : `신호기 ${Math.max(0, Math.ceil(p.beacon.openAt - p.time))}`, on: false } : { label: '신호기', on: canBeacon(p) };
-    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon, place: `지하 ${p.floor}층` });
+    this.hud.draw(p, this.ids(), this.sel, { log: this.log, status, mode, stairs: canDescend(p), lift: canAscend(p), myTurn: this.myTurn, target, beacon, auto: this.auto.on, place: `지하 ${p.floor}층` });
   }
 }
