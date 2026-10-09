@@ -48,6 +48,12 @@
 .sb-top { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; margin-bottom: 4px; }
 .sb-top b { font-weight: normal; color: var(--tint); }
 .sb-lv { color: #e6ffb0; }
+/* a gun's rounds left: amber when few, red when the next shot is a reload */
+.sb-ammo { color: #9dffb8; white-space: nowrap; margin-left: 6px; }
+.sb-top .sb-ammo { margin-left: 0; }
+.sb-ammo b { font-weight: normal; color: #e6ffb0; }
+.sb-ammo.low b { color: #ffd23a; }
+.sb-ammo.out, .sb-ammo.out b { color: #ff5a3a; }
 /*
  * Health and experience are bars in sunk troughs. Both rows share three columns (label, bar, value), so the bars are
  * the same width and the number and the level-up button sit right after their bar, in line.

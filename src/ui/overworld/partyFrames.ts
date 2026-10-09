@@ -1,5 +1,6 @@
 import { ULT_NAMES, ultSlots } from '../../sim/party/ultimate';
-import { entOf, unitOf, type Party, type Unit } from '../../sim/party/partyCore';
+import { ammoOf, entOf, unitOf, type Party, type Unit } from '../../sim/party/partyCore';
+import { isGun, magOf } from '../../sim/party/ammo';
 import { CLASSES, WEAPONS } from '../../sim/party/partyDefs';
 import { LEVEL_XP, MAX_LEVEL, levelOf } from '../../sim/party/partyLevel';
 import { CLASS_TINT, classIcon } from './classIcons';
@@ -15,6 +16,13 @@ export function skillTiles(u: Unit, t: number, alive: boolean, big: boolean): st
     const label = big ? `<span class="nm">${name}</span>` : `<span class="sn">${name}</span>`;
     return `<button type="button" class="pf-skill${q ? ' queued' : ''}${left > 0 || !alive ? ' wait' : ''}${big ? ' big' : ''}" data-skill="${s.slot}" title="${name}"><i style="${sweep}"></i><kbd>${(ULT_KEYS[i] ?? '').toUpperCase()}</kbd>${left > 0 ? `<em>${Math.ceil(left)}</em>` : ''}${label}</button>`;
   }).join('');
+}
+
+/** A gun's rounds left of its magazine (nothing for a clone without a gun): `low` at a third or less, `out` when empty. */
+export function ammoHtml(p: Party, u: Unit): string {
+  if (!isGun(u)) return '';
+  const max = magOf(p, u), n = Math.max(0, Math.min(max, ammoOf(p, u)));
+  return `<span class="sb-ammo${n === 0 ? ' out' : n * 3 <= max ? ' low' : ''}">탄 <b>${n}</b>/${max}</span>`;
 }
 
 /** Health as ten segments, a shield laid over in light blue. */
@@ -39,7 +47,7 @@ export function partyFramesHtml(p: Party, ids: string[], sel: string): string {
     const state = u.order?.kind === 'hold' ? '고수' : u.order?.kind === 'attack' ? '공격' : u.order?.kind === 'move' ? '이동' : u.ultQueued ? '예약' : '';
     return `<div class="pf${id === sel ? ' on' : ''}${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
       <div class="pf-face">${classIcon(u.cls!)}<kbd>${i + 1}</kbd></div>
-      <div class="pf-body"><div class="pf-name">${cls.name}${state ? `<small>${state}</small>` : ''}${unitChips(u, t)}</div>${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}
+      <div class="pf-body"><div class="pf-name">${cls.name}${state ? `<small>${state}</small>` : ''}${ammoHtml(p, u)}${unitChips(u, t)}</div>${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}
       <div class="pf-skills">${skillTiles(u,t,e.alive,false)}</div></div></div>`;
   }).join('');
 }
@@ -66,7 +74,7 @@ export function soloBarHtml(p: Party, id: string, place = ''): string {
   const cells = e.hp <= 0 ? 0 : Math.max(1, Math.round(hp * GAUGE)), hpCells = gauge(cells, Math.round(shield * GAUGE)), xpCells = gauge(Math.round(k * GAUGE));
   return `<div class="sb${e.hp < e.maxHp * 0.35 ? ' low' : ''}" data-hero="${id}" style="--tint:${CLASS_TINT[u.cls!]}">
     <div class="sb-main">
-      <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${unitChips(u, p.time)}${place ? `<span class="sb-place">${place}</span>` : ''}</div>
+      <div class="sb-top"><b>${CLASSES[u.cls!].name}</b><span class="sb-lv">Lv ${lv}</span>${ammoHtml(p, u)}${unitChips(u, p.time)}${place ? `<span class="sb-place">${place}</span>` : ''}</div>
       <div class="sb-row hp"><label>HP</label><div class="sb-bar"><i style="width:${hp * 100}%"></i><u style="left:${hp * 100}%;width:${shield * 100}%"></u></div>${hpCells}<span class="sb-num">${e.hp}<small>/${e.maxHp}</small>${u.shield > 0 ? `<em>+${u.shield}</em>` : ''}</span></div>
       <div class="sb-row xp"><label>XP</label><div class="sb-bar"><i style="width:${k * 100}%"></i></div>${xpCells}${u.picks ? '<button type="button" class="pf-trait" data-traits>특성</button>' : `<span class="sb-num">${lv >= MAX_LEVEL ? 'MAX' : `${Math.floor(k * 100)}%`}</span>`}</div>
     </div>
@@ -89,6 +97,6 @@ export function detailHtml(p: Party, id: string): string {
   const cls = CLASSES[u.cls!], w = WEAPONS[u.weapon!];
   const skills = skillTiles(u,p.time,true,true);
   return `<div class="dt-head" style="--tint:${CLASS_TINT[u.cls!]}"><div class="pf-face big">${classIcon(u.cls!)}</div>
-    <div><b>${cls.name}</b>${unitChips(u, p.time)}<div class="dt-sub">${w.name} · 피해 ${w.dmg[0]}–${w.dmg[1]} · 사거리 ${w.range}</div>${cls.passiveName ? `<div class="dt-pas">◆ ${cls.passiveName}</div>` : '<div class="dt-pas dim">영혼 없음</div>'}</div></div>
+    <div><b>${cls.name}</b>${ammoHtml(p, u)}${unitChips(u, p.time)}<div class="dt-sub">${w.name} · 피해 ${w.dmg[0]}–${w.dmg[1]} · 사거리 ${w.range}</div>${cls.passiveName ? `<div class="dt-pas">◆ ${cls.passiveName}</div>` : '<div class="dt-pas dim">영혼 없음</div>'}</div></div>
     ${hpBar(e.hp, e.maxHp, u.shield)}${levelHtml(u)}<div class="dt-skills">${skills}</div>`;
 }

@@ -12,7 +12,7 @@ import { spawnFoe } from '../grid/foes';
 import { makeWeapon } from '../grid/items';
 import { newState } from '../grid/state';
 import { DIRS, canStep, dist, same, tileAt, walkable, type Cell, type Ent, type GEvent, type GridMap } from '../grid/types';
-import { alive, canHit, entOf, occupied, posOf, stats, stepToward, strike, targetOf, type Party, type Unit } from './partyCore';
+import { alive, canHit, entOf, occupied, posOf, reload, stats, stepToward, strike, targetOf, type Party, type Unit } from './partyCore';
 import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } from './partyDefs';
 import { useUltimate, aiUltimate } from './ultimate';
 import { bestTarget, charge } from './utility';
@@ -214,7 +214,8 @@ export function command(p: Party, c: Command): GEvent[] {
     ev.push(...cast); begin();
   } else if (!begin()) { p.waiting = false; return ev; }
   else if (c.kind === 'wait') {
-    u.nextAt = p.time + 0.5;
+    // a wait with rounds missing is spent loading the gun (it takes an attack's time, as any reload does)
+    u.nextAt = p.time + (reload(p, u, p.time, ev) ? Math.max(0.5, stats(u, p.time, p).atk) : 0.5);
     ev.push({ t: p.time, type: 'wait', src: u.id });
     action(p, () => emit(p, 'wait', { t: p.time, src: u, ev }));
   } else {

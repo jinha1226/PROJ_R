@@ -6,7 +6,7 @@ import type { Item } from '../delve/items';
 import { spawnFoe } from '../grid/foes';
 import { computeFov } from '../grid/fov';
 import { dist, idx, walkable, tileAt, type Cell, type GEvent } from '../grid/types';
-import { alive, ENGAGE, entOf, type Party, type Unit } from '../party/partyCore';
+import { alive, ENGAGE, entOf, reload, type Party, type Unit } from '../party/partyCore';
 import { CLASSES, type BaseClass } from '../party/partyDefs';
 import { awardXp, levelOf, refitHp, LEVEL_XP } from '../party/partyLevel';
 import { BASE_SOUL_SLOTS, soulsOf } from '../party/body';
@@ -219,6 +219,8 @@ export function roamStep(p: RoamParty, hpBefore: Map<string, number>, ev: GEvent
   if (was && !p.combat) for (const u of living(p)) if (u.order?.kind === 'hold') u.order = null;
   // a fight starts: every walk stops where it is (as Jupiter Hell stops a walk on sight of a foe), so nobody strolls into the band
   if (!was && p.combat) for (const u of living(p)) if (u.order?.kind === 'move') u.order = null;
+  // out of a fight nobody walks about with a half-empty gun
+  if (!p.combat) for (const u of living(p)) reload(p, u, t, ev);
   // first aid: out of a fight a clone mends a share of its health each second
   if (!p.combat) for (const u of living(p)) {
     const r = T.regen(u), e = entOf(p, u.id)!;

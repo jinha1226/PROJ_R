@@ -41,3 +41,44 @@ it('the magazine count survives a shaft trip', () => {
   const q = newDelve(5, 2); placeParty(q, takeParty(p));
   expect(unitOf(q, 'hero')!.ammo).toBe(MAG - 2);
 });
+
+it('out of a fight a gun with rounds missing is loaded by itself; in a fight it is not', () => {
+  const { p, u, foe } = range();
+  strike(p, u, foe, p.time, []); strike(p, u, foe, p.time, []);
+  expect(u.ammo).toBe(MAG - 2);
+  // the foe is awake and near: the fight is on, the magazine stays as it is
+  let ev = delveTick(p, 0.1);
+  expect(p.combat).toBe(true); expect(ev.some((e) => e.type === 'reload')).toBe(false); expect(u.ammo).toBeLessThanOrEqual(MAG - 2);
+  // the fight over: one reload, and no more once the gun is full
+  entOf(p, foe.id)!.alive = false; for (const f of p.units) if (f.side === 'foe') f.asleep = true;
+  const spent = u.ammo!;
+  ev = delveTick(p, 0.1);
+  expect(p.combat).toBe(false); expect(spent).toBeLessThan(MAG);
+  expect(ev.filter((e) => e.type === 'reload')).toHaveLength(1); expect(u.ammo).toBe(MAG);
+  expect(delveTick(p, 0.1).some((e) => e.type === 'reload')).toBe(false);
+});
+
+it('a wait in a fight loads the gun when rounds are missing (it takes an attack\'s time); a full gun just waits', async () => {
+  const { command } = await import('../../src/sim/party/partySim');
+  const { stats } = await import('../../src/sim/party/partyCore');
+  const { p, u, foe } = range();
+  strike(p, u, foe, p.time, []);
+  p.combat = true; p.manual = 'hero'; p.waiting = true;
+  let ev = command(p, { kind: 'wait' });
+  expect(ev.some((e) => e.type === 'reload')).toBe(true); expect(u.ammo).toBe(MAG);
+  expect(u.nextAt - p.time).toBeCloseTo(Math.max(0.5, stats(u, p.time, p).atk));
+  p.waiting = true;
+  ev = command(p, { kind: 'wait' });
+  expect(ev.some((e) => e.type === 'reload')).toBe(false); expect(ev.some((e) => e.type === 'wait')).toBe(true);
+  expect(u.nextAt - p.time).toBeCloseTo(0.5);
+});
+
+it('the bar tells a gun\'s rounds left: amber when few, red when empty; nothing for a clone without a gun', async () => {
+  const { ammoHtml } = await import('../../src/ui/overworld/partyFrames');
+  const { p, u } = range();
+  expect(ammoHtml(p, u)).toBe(`<span class="sb-ammo">탄 <b>${MAG}</b>/${MAG}</span>`);
+  u.ammo = 2; expect(ammoHtml(p, u)).toContain('sb-ammo low'); expect(ammoHtml(p, u)).toContain('<b>2</b>');
+  u.ammo = 0; expect(ammoHtml(p, u)).toContain('sb-ammo out');
+  u.gear = { ...u.gear!, weapon: null };
+  expect(ammoHtml(p, u)).toBe('');
+});

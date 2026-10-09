@@ -48,6 +48,7 @@ import '../styles/hudFrames.css';
 /** game time per real second at normal speed */
 const RATE = 3.6;
 const SHOW_MAX = 2;
+const EXPLORE_HASTE = 1.5;
 const SPEEDS = [1, 2, 4];
 
 /**
@@ -87,6 +88,7 @@ export class DelveScreen implements Screen {
   private readonly cards = new CardStrip(() => this.p, () => this.sel, { ult: (slot) => this.skill(this.sel, slot), info: (html) => { this.cardInfo = { html, until: performance.now() + 6000 }; } });
   private cardInfo: { html: string; until: number } | null = null;
   private readonly explorer = new AutoExplore();
+  private hasted = false;
   private readonly prompts = new PlacePrompts();
   /** whether the last tick moved anyone (followers still catching up keep time going) */
   private movedLast = true;
@@ -172,7 +174,7 @@ export class DelveScreen implements Screen {
       this.handOver();
       if (!this.paused && !this.pip.open && !this.picker.open && !this.menu.open && !this.p.waiting && !this.still()) {
         const t0 = this.p.time;
-        const ev = delveTick(this.p, dt * RATE * this.speed);
+        const ev = delveTick(this.p, dt * RATE * this.rate);
         this.movedLast = ev.some((e) => e.type === 'move');
         this.live(ev, t0);
         // turn by turn: stop at each turn's end (the show plays on) until Space, a tap or the button asks for the next
@@ -182,11 +184,13 @@ export class DelveScreen implements Screen {
       this.props?.update(dt);
       // the states the units stand in, for their steady looks (a burning foe burns on screen for as long as it burns)
       if (this.rt) { const t = this.p.time, on = (u: Unit, id: 'burn' | 'freeze' | 'poison') => (u.status[id]?.until ?? 0) > t; this.rt.partyStates(this.p.units.filter((u) => alive(this.p, u) && (on(u, 'burn') || on(u, 'freeze') || on(u, 'poison'))).map((u) => ({ id: u.id, burn: on(u, 'burn'), freeze: on(u, 'freeze'), poison: on(u, 'poison') }))); }
-      this.rt?.update(dt * Math.min(this.speed, SHOW_MAX));
+      this.rt?.update(dt * Math.min(this.rate, SHOW_MAX));
       this.miningCue.update(this.p, this.rt);
       this.quick.update();
       this.cards.update();
       { const e = entOf(this.p, this.sel); this.explorer.step(this.p.s, e?.alive ? e.pos : undefined, unitOf(this.p, this.sel)?.order?.kind === 'move', !!this.p.combat, (c) => orderTo(this.p, this.sel, c), (t) => this.hud.toast(t), exploreWants(this.p)); }
+      // (auto-explore begun or ended: the walk is shown at its new pace)
+      if (this.explorer.on !== this.hasted) { this.hasted = this.explorer.on; this.pace(); }
       this.placePrompts();
       this.marks();
       this.labels();
@@ -300,7 +304,9 @@ export class DelveScreen implements Screen {
   private select(id: string): void { this.sel = id; if (this.rt) this.rt.focusId = id; }
   private ids(): string[] { return clones(this.p).filter((u) => entOf(this.p, u.id)?.alive).map((u) => u.id); }
   private name(id: string): string { return CLASSES[unitOf(this.p, id)!.cls!].name; }
-  private pace(): void { this.rt?.setWalkSpeed((RATE * this.speed) / 0.85 / Math.min(this.speed, SHOW_MAX)); }
+  /** how fast the clock runs: the chosen speed, half again as fast while auto-explore is walking (nothing but the walk goes by then) */
+  private get rate(): number { return this.speed * (this.explorer.on ? EXPLORE_HASTE : 1); }
+  private pace(): void { this.rt?.setWalkSpeed((RATE * this.rate) / 0.85 / Math.min(this.rate, SHOW_MAX)); }
 
   private toggleMenu(): void {
     if (!this.menu.open) this.pausedBeforePip = this.paused;

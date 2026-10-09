@@ -375,9 +375,18 @@ const WARRIORS = new Set<ClassId>(['warrior']);
 /** Each level adds 6% to a clone's blows. */
 export const levelDmg = (u: Unit): number => 1 + 0.06 * ((u.level ?? 1) - 1);
 
+/** rounds left in a gun's magazine (a gun never fired is full) */
+export const ammoOf = (p: Party, u: Unit): number => u.ammo ?? magOf(p, u);
+/** A gun with rounds missing is loaded full (what triggers on a reload goes off). False if there was nothing to load. */
+export function reload(p: Party, u: Unit, t: number, ev: GEvent[]): boolean {
+  if (!isGun(u) || ammoOf(p, u) >= magOf(p, u)) return false;
+  u.ammo = magOf(p, u); ev.push({ t, type: 'reload', src: u.id }); action(p, () => emit(p, 'reload', { t, src: u, ev }));
+  return true;
+}
+
 export function strike(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
   // an empty magazine: this attack is a reload instead
-  if (basic && isGun(u) && (u.ammo ?? magOf(p, u)) <= 0) { u.ammo = magOf(p, u); ev.push({ t, type: 'reload', src: u.id }); action(p, () => emit(p, 'reload', { t, src: u, ev })); return; }
+  if (basic && isGun(u) && ammoOf(p, u) <= 0) { reload(p, u, t, ev); return; }
   action(p,()=>strikeAction(p,u,target,t,ev,mult,basic));
 }
 function strikeAction(p: Party, u: Unit, target: Unit, t: number, ev: GEvent[], mult = 1, basic = true): void {
