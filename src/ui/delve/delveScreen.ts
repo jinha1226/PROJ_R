@@ -39,7 +39,7 @@ import { DelveMinimap } from './delveMinimap';
 import { attackTarget, nextTarget } from './targeting';
 import { AutoRun } from './autoRun';
 import { DelveProps } from '../../view/delve/delveProps';
-import { HOLD_MS, TouchPad } from '../overworld/touchPad';
+import { HOLD_MS, TouchPad } from '../overworld/touchPad'; import { DPAD, DPad } from './dPad';
 import '../styles/grid.css';
 import '../styles/gridSf.css';
 import '../styles/partyScreen.css';
@@ -68,7 +68,7 @@ export class DelveScreen implements Screen {
   private pip!: PipWindow;
   private picker!: TraitPicker;
   private menu!: OptionsMenu;
-  private pad!: TouchPad;
+  private pad!: TouchPad | DPad;
   private props: DelveProps | null = null;
   private mini!: DelveMinimap;
   private log = new WorldLog();
@@ -140,7 +140,7 @@ export class DelveScreen implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new TouchPad({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), next: () => this.nextTarget(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
+    this.pad = new (DPAD.on ? DPad : TouchPad)({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), next: () => this.nextTarget(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
     this.el.appendChild(this.pad.el);
     if (this.opts.stepped) {
       const next = document.createElement('button');
@@ -361,7 +361,9 @@ export class DelveScreen implements Screen {
     this.paused = false;
     this.explorer.stop(); this.auto.stop();
     const c = { x: e.pos.x + dx, y: e.pos.y + dy };
-    if (!walkable(tileAt(this.p.s.map, c)) || this.unitAt(c)) return;
+    const on = this.unitAt(c); // a step into a foe is a blow at it
+    if (on?.side === 'foe') { this.aim = on.id; this.attackNearest(); return; }
+    if (!walkable(tileAt(this.p.s.map, c)) || on) return;
     if (this.myTurn) this.live(command(this.p, { kind: 'move', cell: c }));
     else orderTo(this.p, this.sel, c);
   }

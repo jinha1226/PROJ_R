@@ -5,7 +5,7 @@
  * beside the log — to its right, over the bottom row — two keys: the target (the mark moves on to the next foe in
  * sight) and attack (the marked foe). With nothing in sight they are there, dim.
  */
-.tp-aim { display: none; }
+.tp-aim, .dp-grid, .dp-keys { display: none; }
 /* the auto key: lit while the floor runs by itself */
 .wh-auto.on { background: #1bff80 !important; color: #021006 !important; }
 @media (orientation: portrait) and (max-width: 700px) {
@@ -28,4 +28,24 @@
   .delve.hud-solo .tp-aim.none button { color: var(--pip-dark); opacity: 0.7; }
   /* the log gives the keys their room */
   .delve.hud-solo .wh-bl { right: calc(var(--key) * 2 + 18px); }
+  /*
+   * ?dpad: nine low keys bottom left in place of the stick (they stand no higher than the two rows of keys they replace, so
+   * the field keeps its room), the log and the build's strip beside them, and at the right the target key and one key that
+   * is explore or attack. The bag is in the menu.
+   */
+  .pad-keys .delve.hud-solo .dp-grid { display: grid; position: absolute; z-index: 8; left: 6px; bottom: 6px; grid-template-columns: repeat(3, 44px); grid-auto-rows: 34px; gap: 3px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pad-keys .delve.hud-solo .dp-grid > div svg { pointer-events: none; }
+  .pad-keys .delve.hud-solo .dp-grid > div { display: flex; align-items: center; justify-content: center; font: 16px 'Galmuri', monospace; color: var(--pip); background: #05060ca8; box-shadow: inset 0 0 0 1px var(--pip-dark); }
+  .pad-keys .delve.hud-solo .dp-grid > div[data-i="4"] { font-size: 11px; color: var(--pip-dim); }
+  .pad-keys .delve.hud-solo .dp-grid > div.on { background: #0c3a1ed0; box-shadow: inset 0 0 0 1px var(--pip); }
+  .pad-keys .delve.hud-solo .dp-keys { display: grid; position: absolute; z-index: 8; right: 6px; bottom: 6px; grid-template-columns: 46px var(--key); gap: 4px; }
+  .pad-keys .delve.hud-solo .dp-keys button { height: var(--row); padding: 0; font: 12px 'Galmuri', monospace; color: var(--pip); text-shadow: none; cursor: pointer; border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: url('./img/plate.png') 0 0 / 8px 8px; }
+  .pad-keys .delve.hud-solo .dp-keys button:active { transform: translateY(2px); }
+  .pad-keys .delve.hud-solo .dp-keys button.none { color: var(--pip-dark); opacity: 0.7; }
+  .pad-keys .delve.hud-solo .dp-keys button.atk { color: #ffe6d8; background: #7a231ce8; }
+  .pad-keys .delve.hud-solo .tp-btns, .pad-keys .delve.hud-solo .tp-aim, .pad-keys .delve.hud-solo .tp-zone { display: none; }
+  .pad-keys .delve.hud-solo .wh-bl { left: 150px; right: 58px; }
+  .pad-keys .delve.hud-solo .quick-slots { left: auto; right: 6px; bottom: calc(var(--row) + 14px); }
+  .pad-keys .delve.hud-solo .quick-slots button { height: 46px; }
+  .pad-keys .delve.hud-solo .card-strip { left: 150px; right: calc(var(--key) + 62px); }
 }
