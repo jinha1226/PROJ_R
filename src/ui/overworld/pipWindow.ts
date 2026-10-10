@@ -25,6 +25,8 @@ const TAB_NAME: Record<PipTab, string> = { roster: '명단', stat: '상태', ski
 /** the window's tabs: down in the dungeon there is one clone and no base, so no roster and no soul-stone tab (stones picked up lie in the bag) */
 export const pipTabs = (below: boolean): PipTab[] => (below ? ['stat', 'skill', 'gear', 'bag'] : ['roster', 'stat', 'skill', 'gear', 'bag', 'soul']);
 
+import { SKILLS } from '../../sim/party/skills';
+import { sheetPick, skillSheetClick, skillSheetHtml } from './skillSheet';
 /** The Pip-Boy style window: the clones' records (status), their gear, the class tree, and what the party carries (bag). The game waits while it is open. */
 export class PipWindow {
   readonly el = document.createElement('div');
@@ -32,6 +34,7 @@ export class PipWindow {
   private who = '';
   /** the thing chosen in the bag's grid (`ore`, `soul:2`, `item:<id>`): its line shows under the grid */
   private pick = '';
+  private readonly sheet = sheetPick();
 
   /** onEvents: what a promotion set off, for the screen to show */
   /** `below`: down in the dungeon the window keeps to the one clone there (no roster, no soul-stone tab: stones picked up lie in the bag) */
@@ -52,6 +55,7 @@ export class PipWindow {
       if (body) this.onEvents?.(implantCarried(this.p(), body.id, Number(soul)));
       const slot=t.closest<HTMLElement>('[data-off]')?.dataset.off as 'weapon'|'armor'|'accessory'|undefined;
       if(slot)unequip(this.p(),this.who,slot);
+      if (SKILLS.on && this.tab === 'skill') skillSheetClick(t, this.p(), this.who, this.sheet);
       if (t.closest('[data-close]') || t === this.el) { this.close(); return; }
       this.draw();
     });
@@ -74,7 +78,7 @@ export class PipWindow {
     const p = this.p();
     const tabs = this.tabs.map((k) => `<button type="button" data-tab="${k}" class="${this.tab === k ? 'on' : ''}">${TAB_NAME[k]}</button>`).join('');
     const body = this.tab === 'roster' ? rosterHtml(p) : this.tab === 'stat' ? this.stat(p) : this.tab === 'bag' ? this.bag(p) : this.tab === 'soul' ? soulListHtml(p, !p.printHere)
-      : `${this.side(p)}${this.tab === 'skill' ? skillsHtml(p, unitOf(p, this.who)) : gearHtml(p, unitOf(p, this.who))}`;
+      : `${this.side(p)}${this.tab === 'skill' ? (SKILLS.on ? skillSheetHtml(p, unitOf(p, this.who), this.sheet) : skillsHtml(p, unitOf(p, this.who))) : gearHtml(p, unitOf(p, this.who))}`;
     const keys = this.below ? 'C 상태 · K 기술 · E 장비 · I 가방 · Esc 닫기' : 'L 명단 · C 상태 · K 기술 · E 장비 · I 가방 · J 영혼석 · Esc 닫기';
     this.el.innerHTML = `<div class="pip-frame"><header>${tabs}<span class="pip-title">R-7 기록 장치</span><button type="button" data-close>✕</button></header>
       <div class="pip-body">${body}</div><footer>${keys}</footer></div>`;

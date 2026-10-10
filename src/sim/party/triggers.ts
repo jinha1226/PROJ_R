@@ -2,6 +2,7 @@ import { CATALOG } from '../delve/catalog';
 import { worn } from '../delve/gear';
 import { sfTriggers } from '../base/workshop';
 import { TRAITS } from './traitDefs';
+import { skillTriggers } from './skills';
 import { kitsOf, proficient } from './classKit';
 import { resonanceTriggers } from './resonance';
 import { duoTriggers } from './cardsCombo';
@@ -16,7 +17,7 @@ export interface Ctx { kind?: DamageKind; basic?: boolean; t: number; src: Unit;
 /** `every`: the effect goes off on every nth time its condition holds, counted per unit (2026-10-08: no effect is left to chance) */
 export interface TriggerDef { id: string; when: Cond; cd?: number; every?: number; nth?: number; test?: (p: Party, c: Ctx) => boolean; run: (p: Party, c: Ctx) => void; repeat?: boolean }
 export const CHAIN_CAP = 30;
-export function sourcesOf(p: Party, u: Unit): TriggerDef[] { return [...resonanceTriggers(p, u), ...duoTriggers(p, u), ...memoryTriggers(u), ...(proficient(u) ? kitsOf(u).flatMap((k) => k.innate) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]&&TRAITS[id]!.pool!=='duo'?[...(TRAITS[id]!.trigger?[TRAITS[id]!.trigger!(r)]:[]),...(TRAITS[id]!.triggers?.(r)??[])]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...sfTriggers(u), ...(u.triggers ?? [])]; }
+export function sourcesOf(p: Party, u: Unit): TriggerDef[] { return [...skillTriggers(u), ...resonanceTriggers(p, u), ...duoTriggers(p, u), ...memoryTriggers(u), ...(proficient(u) ? kitsOf(u).flatMap((k) => k.innate) : []), ...Object.entries(u.traits??{}).flatMap(([id,r])=>r&&TRAITS[id]&&TRAITS[id]!.pool!=='duo'?[...(TRAITS[id]!.trigger?[TRAITS[id]!.trigger!(r)]:[]),...(TRAITS[id]!.triggers?.(r)??[])]:[]), ...worn(u).flatMap(it=>CATALOG[it.def]!.triggers), ...sfTriggers(u), ...(u.triggers ?? [])]; }
 // A shared action budget covers siblings as well as recursive calls, including damage callbacks.
 // Within one action an effect fires once (unless it repeats); three or more effects leave a chain event for the screen.
 interface ChainState { count: number; depth: number; fired: Set<string>; ev?: GEvent[]; src?: string; t: number }

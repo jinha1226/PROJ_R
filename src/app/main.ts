@@ -10,6 +10,7 @@ import { setWeaponKit, WeaponKit } from '../view/grid/weaponKit';
 import { DungeonKit } from '../view/grid/dungeonKit';
 import { BootTitle } from '../ui/grid/bootTitle';
 import { GRID_ASSETS } from './gridAssets';
+import { SKILLS } from '../sim/party/skills';
 
 const root = document.getElementById('app')!;
 const router = new Router(root);
@@ -17,6 +18,8 @@ const params = new URLSearchParams(location.search);
 // the pixel phosphor terminal look is the default (?ui=classic shows the older teal terminal)
 if (params.get('ui') !== 'classic') document.documentElement.classList.add('ui-pip');
 const urlSeed = Number(params.get('seed')) || 0;
+// ?skill: a build of skills in place of the level-up cards (to try beside them)
+if (params.has('skill')) SKILLS.on = true;
 
 const gridSeed = (): number => urlSeed || Math.floor(Math.random() * 99999) + 1;
 

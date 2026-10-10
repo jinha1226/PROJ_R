@@ -4,6 +4,7 @@ import { TRAITS, rank, type TraitId } from '../../sim/party/traitDefs';
 import { traitText } from '../../sim/party/traitText';
 import { ULT_NAMES, ultSlots } from '../../sim/party/ultimate';
 import { richText } from './richText';
+import { skillLine, skillName, SKILLS, skillsOf, SLOT_NAME, SLOTS, type Slot } from '../../sim/party/skills';
 import { CARD_SHORT } from './cardShort';
 
 /** a card blinks each time it fires: lit, a beat dark, lit again (ms from the moment it fired) */
@@ -33,7 +34,11 @@ function cardsNamed(text: string): TraitId[] {
 export const cardsOf = (u: Unit): TraitId[] => (Object.keys(u.traits ?? {}) as TraitId[]).filter((id) => TRAITS[id] && rank(u, id) > 0);
 
 /** Which of a clone's cards an effect's line belongs to (none for an innate, a resonance, gear). */
-export function cardsLit(u: Unit, text: string): TraitId[] { return cardsNamed(text).filter((id) => rank(u, id) > 0); }
+export function cardsLit(u: Unit, text: string): TraitId[] {
+  // a skill's effect is told under the skill's own name: its tile is the place it sits in
+  if (SKILLS.on) return SLOTS.filter((slot) => { const s = skillsOf(u)[slot]; return !!s && skillName(slot, s) === text; }).map((slot) => `sk:${slot}`);
+  return cardsNamed(text).filter((id) => rank(u, id) > 0);
+}
 
 /** The strip's markup, two rows: the ultimates as keys along the top (the only things here that are pressed), every card in one row under them. */
 export function cardStripHtml(p: Party, id: string): string {
@@ -43,12 +48,15 @@ export function cardStripHtml(p: Party, id: string): string {
     const left = Math.max(0, s.ready - p.time), q = u.ultQueued && u.ultSlot === s.slot, name = ULT_NAMES[s.ult];
     return `<button type="button" class="cs-ult${q ? ' queued' : ''}${left > 0 || !e.alive ? ' wait' : ''}" data-skill="${s.slot}" data-name="${name}"><span>${name}</span>${left > 0 ? `<em>${Math.ceil(left)}</em>` : ''}</button>`;
   }).join('');
-  const cards = cardsOf(u).map((c) => `<button type="button" class="cs-card" data-card="${c}" title="${TRAITS[c]!.name}">${cardLabel(c)}</button>`).join('');
+  const cards = SKILLS.on
+    ? SLOTS.filter((slot) => skillsOf(u)[slot]).map((slot) => `<button type="button" class="cs-card" data-card="sk:${slot}" title="${skillName(slot, skillsOf(u)[slot]!)}">${SLOT_NAME[slot]}</button>`).join('')
+    : cardsOf(u).map((c) => `<button type="button" class="cs-card" data-card="${c}" title="${TRAITS[c]!.name}">${cardLabel(c)}</button>`).join('');
   return `<div class="cs-ults">${ults}</div><div class="cs-cards">${cards}</div>`;
 }
 
 /** What a card is, for the line shown when its tile is tapped: its name, its rank, what it does. */
 export function cardInfoHtml(u: Unit, id: TraitId): string {
+  if (id.startsWith('sk:')) { const slot = id.slice(3) as Slot, s = skillsOf(u)[slot]; return s ? `<b>${skillName(slot, s)} ${'★'.repeat(s.lv)}</b><span class="cs-info">${skillLine(slot, s, u)}</span>` : ''; }
   const d = TRAITS[id]!, r = Math.max(1, rank(u, id));
   return `<b>${d.name}${d.ranks > 1 ? ` ${'★'.repeat(r)}` : ''}</b><span class="cs-info">${richText(traitText(id, r))}</span>`;
 }

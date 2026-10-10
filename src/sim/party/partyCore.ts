@@ -119,6 +119,8 @@ export interface Unit {
   burst?: boolean;
   /** a soul's growth: level, experience, traits taken, picks not yet spent and the three on offer */
   pendingKeystones?: number; level?: number; xp?: number; traits?: Partial<Record<TraitId, number>>; picks?: number; offer?: TraitId[];
+  /** `?skill`: the skill in each of the clone's six places (see `skills.ts`) */
+  skills?: Partial<Record<'hand' | 'heart' | 'body' | 'eye' | 'foot' | 'head', { school: 'forge' | 'emit' | 'bind' | 'make'; el: 'none' | 'fire' | 'water' | 'wood'; lv: number }>>;
   /** when grit can hold a killing blow again */
   gritReady?: number;
   /** when a ranged clone may next roll away from a foe at its side */

@@ -1,4 +1,5 @@
-import type { Party } from '../../sim/party/partyCore';
+import { unitOf, type Party } from '../../sim/party/partyCore';
+import { pointsLeft, SKILLS } from '../../sim/party/skills';
 import { detailHtml, partyFramesHtml, soloBarHtml, soloSkillsHtml } from './partyFrames';
 import type { WorldLog } from './worldLog';
 import type { RoamParty } from '../../sim/roam/roam';
@@ -8,6 +9,8 @@ export interface HudActions { menu(): void; stat(): void; bag(): void; select(id
   beacon?: () => void;
   /** the floor run by itself, on and off (the dungeon only) */
   auto?: () => void;
+  /** `?skill`: the key that opens the skill sheet */
+  skills?: () => void;
   /** down the stairs or the shaft (shown when given; enabled by draw) */
   descend?: () => void;
   descendLabel?: string;
@@ -32,7 +35,7 @@ export class WorldHud {
 
   constructor(private readonly el: HTMLElement, private readonly a: HudActions) {
     el.insertAdjacentHTML('beforeend', `<div class="wh-toast"></div><div class="wh-target"></div>
-      <aside class="wh-tl"><div class="wh-mini"></div><div class="wh-top"></div>${a.beacon ? '<button type="button" data-k="beacon" class="wh-beacon">신호기</button>' : ''}${a.auto ? '<button type="button" data-k="auto" class="wh-beacon wh-auto">자동</button>' : ''}</aside>
+      <aside class="wh-tl"><div class="wh-mini"></div><div class="wh-top"></div>${a.beacon ? '<button type="button" data-k="beacon" class="wh-beacon">신호기</button>' : ''}${a.auto ? '<button type="button" data-k="auto" class="wh-beacon wh-auto">자동</button>' : ''}${a.skills && SKILLS.on ? '<button type="button" data-k="skills" class="wh-beacon wh-skills">스킬</button>' : ''}</aside>
       <aside class="wh-bl" title="전체 기록 보기"><div class="wh-cap"><b class="wh-cap-t">기록</b><span>▸ 전체</span></div><div class="wh-log"></div></aside>
       <aside class="wh-tr"><div class="wh-mode"></div><div class="wh-btns">
         ${a.descend ? `<button type="button" data-k="descend" hidden>${a.descendLabel ?? '▼ 내려가기'}</button>` : ''}${a.ascend ? '<button type="button" data-k="ascend" hidden>▲ 지상으로</button>' : ''}
@@ -57,7 +60,7 @@ export class WorldHud {
       if (t.closest('[data-traits]') && frame) a.traits?.(frame.dataset.hero!);
     };
     el.querySelector('.wh-party')!.addEventListener('click', party);
-    el.querySelector('.wh-tl')!.addEventListener('click', (e) => { const t = e.target as HTMLElement; if (t.closest('[data-k="beacon"]')) a.beacon?.(); else if (t.closest('[data-k="auto"]')) a.auto?.(); });
+    el.querySelector('.wh-tl')!.addEventListener('click', (e) => { const t = e.target as HTMLElement; if (t.closest('[data-k="beacon"]')) a.beacon?.(); else if (t.closest('[data-k="auto"]')) a.auto?.(); else if (t.closest('[data-k="skills"]')) a.skills?.(); });
     if (a.solo) el.classList.add('hud-solo');
     el.querySelector('.wh-ults')?.addEventListener('click', (e) => { const skill = (e.target as HTMLElement).closest<HTMLElement>('[data-skill]'); if (skill) a.skill('', Number(skill.dataset.skill)); });
     // the corner log opens the whole of it: a window over the game, the newest at the bottom
@@ -136,6 +139,8 @@ export class WorldHud {
     const bc = this.el.querySelector<HTMLButtonElement>('[data-k="beacon"]');
     if (bc && view.beacon) { if (bc.textContent !== view.beacon.label) bc.textContent = view.beacon.label; bc.disabled = !view.beacon.on; }
     this.el.querySelector('[data-k="auto"]')?.classList.toggle('on', !!view.auto);
+    const sk = this.el.querySelector('[data-k="skills"]'), who = sk && unitOf(p, sel), due = who ? pointsLeft(who) : 0;
+    if (sk) { sk.classList.toggle('due', due > 0); const label = due > 0 ? `스킬 +${due}` : '스킬'; if (sk.textContent !== label) sk.textContent = label; }
     this.put('.wh-log', view.log.html());
     this.log = view.log;
     if (this.full) this.fillLog();

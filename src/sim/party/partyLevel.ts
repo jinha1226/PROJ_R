@@ -6,6 +6,7 @@ import { CLASSES } from './partyDefs';
 import { TRAITS, rank, type TraitId } from './traitDefs';
 import { T } from './traitMods';
 import { linesOf } from './body';
+import { SKILLS } from './skills';
 
 /** experience needed to reach each level (index 0 = level 1) */
 export const LEVEL_XP = [0, 10, 25, 45, 70, 100, 140, 190, 250, 320, 400, 490, 590, 700, 820];
@@ -32,7 +33,8 @@ export function gainXp(p: Party, u: Unit, n: number, ev: GEvent[]): void {
   while (levelOf(u) < MAX_LEVEL && u.xp >= LEVEL_XP[levelOf(u)]!) {
     u.level = levelOf(u) + 1;
     if ([10,14].includes(u.level)) u.pendingKeystones++;
-    u.picks = (u.picks ?? 0) + 1;
+    // with skills on, a level is a point to spend (counted from the level itself), not a card to pick
+    if (!SKILLS.on) u.picks = (u.picks ?? 0) + 1;
     refitHp(p, u);
     ev.push({ t: p.time, type: 'levelUp', src: u.id, dst: u.id, amount: u.level });
   }

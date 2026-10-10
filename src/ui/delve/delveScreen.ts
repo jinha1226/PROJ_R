@@ -118,7 +118,7 @@ export class DelveScreen implements Screen {
     this.stage = this.el.querySelector<HTMLElement>('.grid-stage')!;
     this.hud = new WorldHud(this.el, {
       menu: () => this.toggleMenu(),
-      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'),
+      stat: () => this.togglePip('stat'), bag: () => this.togglePip('bag'), skills: () => this.togglePip('skill'),
       select: (id) => this.select(id),
       skill: (id, slot) => this.skill(id || this.sel, slot),
       beacon: () => this.beacon(), auto: () => { if (this.auto.toggle()) this.paused = false; else this.explorer.stop(); }, solo: true,
