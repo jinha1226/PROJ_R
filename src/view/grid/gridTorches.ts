@@ -35,7 +35,7 @@ export class GridTorches {
   private readonly lights: THREE.PointLight[] = [];
   private t = 0;
 
-  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1, look: { torch: string; flame: string; accent?: string } = { torch: '#ff9a40', flame: '#ffb347' }) {
+  constructor(m: GridMap, kit: DungeonKit, lightCount: number, density = 1, look: { torch: string; flame: string; accent?: string; reach?: number; power?: number } = { torch: '#ff9a40', flame: '#ffb347' }) {
     const haloMat = haloMaterial().clone();
     haloMat.color.set(look.flame);
     const accentHalo = haloMaterial().clone();
@@ -57,10 +57,10 @@ export class GridTorches {
       flame.add(halo);
       model.visible = flame.visible = false;
       this.root.add(model, flame);
-      this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7, color: accent ? look.accent! : look.torch, power: accent ? 9 : 12 });
+      this.torches.push({ face, model, flame, at, cell: idx(m, face.floor), phase: n * 1.7, color: accent ? look.accent! : look.torch, power: (accent ? 9 : 12) * (look.power ?? 1) });
     });
     for (let i = 0; i < lightCount; i++) {
-      const l = new THREE.PointLight(look.torch, 0, LIGHT_RANGE, 1.8);
+      const l = new THREE.PointLight(look.torch, 0, look.reach ?? LIGHT_RANGE, look.reach ? 2 : 1.8);
       this.lights.push(l);
       this.root.add(l);
     }

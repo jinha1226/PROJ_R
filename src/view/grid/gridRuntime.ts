@@ -10,7 +10,7 @@ import type { MetaState } from '../../sim/grid/meta';
 import { STATIONS } from '../../sim/grid/ship';
 import * as THREE from 'three';
 import { zoneOf } from '../../sim/grid/zones';
-import { applyZoneLook } from './zoneLook';
+import { applyZoneLook, carry, darken } from './zoneLook';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { archerCanShoot } from '../../sim/grid/ai';
 import { activeWeapon } from '../../sim/grid/gear';
@@ -101,6 +101,7 @@ export class GridRuntime {
     const sun = new THREE.DirectionalLight('#8090c0', 0.18);
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
+    if (!theme && !world) darken(this.light, sun, this.h.renderer, el);
     this.pixel = new PixelPass(this.h.renderer, 2, dotLook());
     if (!theme && !world) kit.tint(look.tint);
     this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world, nature) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
@@ -377,8 +378,7 @@ export class GridRuntime {
     if (this.stayInMap && !this.stationAt.size) aim = this.clampAim(aim.clone());
     this.center.x = chase(this.center.x, aim.x, dt, CAM_K);
     this.center.z = chase(this.center.z, aim.z, dt, CAM_K);
-    // the lamp round the party hangs a little behind it (away from the camera): figures are rimmed, not burnt out
-    this.light.position.set(hero.x, 2.6, hero.z - 1.2);
+    carry(this.light, hero.x, hero.z, this.clock);
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));

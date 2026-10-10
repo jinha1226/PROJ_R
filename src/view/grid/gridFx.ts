@@ -5,6 +5,7 @@ import { DamageNumbers, type NumberKind } from '../overlay/damageNumbers';
 import '../overlay/overlay.css';
 import { CELL } from './gridTerrain';
 import { FlashLights } from './flashLights';
+import { DARK } from './zoneLook';
 
 const BOLT_SPEED = 4 / 0.08;   // cells per second
 const HITSTOP = 0.06;
@@ -147,7 +148,7 @@ export class GridFx {
 
   /** A brief light at `at` (muzzle flash, blast, spell). */
   flash(at: THREE.Vector3, color: string, power?: number, sec?: number, range?: number): void {
-    this.flashes.flash(at, color, power, sec, range);
+    this.flashes.flash(at, color, (power ?? 18) * (DARK.on ? DARK.flash : 1), (sec ?? 0.18) * (DARK.on ? DARK.linger : 1), range);
   }
 
   /** things put off a moment (a burst's later rounds), counted in the show's own time */

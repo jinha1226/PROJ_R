@@ -1,4 +1,4 @@
-import type { HemisphereLight } from 'three';
+import type { DirectionalLight, HemisphereLight, PointLight, WebGLRenderer } from 'three';
 import { zoneOf, type ZoneId } from '../../sim/grid/zones';
 
 /** What sets a zone apart at pixel size: ambient light, a tint over the stone, the colour of its fires, its floor litter. */
@@ -16,13 +16,42 @@ const LOOKS: Record<ZoneId, ZoneLook> = {
 
 export const zoneLook = (floor: number): ZoneLook => LOOKS[zoneOf(Math.max(1, floor)).id];
 
+/**
+ * `?dark`: the dungeon walked with one torch in hand, to try beside the usual look (which stays the default). Cold shadow
+ * everywhere; the clone's own light is the fire it carries (warm, flickering, a few cells wide), wall torches are few, and
+ * blows and shots light the room for a moment longer. Numbers to tune by eye.
+ */
+export const DARK = {
+  on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('dark'),
+  ambient: 2.2, sky: '#3558a8', ground: '#0c1220', tint: '#b4bccc', walls: 0.4, reach: 5, power: 1.3,
+  torch: { color: '#ffa860', intensity: 12, distance: 6.5 }, sun: 0.08, exposure: 1.1, flash: 1.7, linger: 1.5,
+};
+
+/** The dark look's part outside the zone's own: the fire in the clone's hand, the moon, the exposure and a shadow round the screen's edge. */
+export function darken(lamp: PointLight, sun: DirectionalLight, renderer: WebGLRenderer, el: HTMLElement): void {
+  if (!DARK.on) return;
+  lamp.color.set(DARK.torch.color); lamp.distance = DARK.torch.distance;
+  sun.intensity = DARK.sun;
+  renderer.toneMappingExposure = DARK.exposure;
+  const edge = document.createElement('div');
+  edge.className = 'grid-vignette';
+  el.appendChild(edge);
+}
+
+/** Where the clone's light hangs: a little behind and above it (figures are rimmed, not burnt out) — in the dark, the torch it carries, low and flickering. */
+export function carry(lamp: PointLight, x: number, z: number, t: number): void {
+  if (!DARK.on) { lamp.position.set(x, 2.6, z - 1.2); return; }
+  lamp.position.set(x + 0.35, 1.9, z - 0.5);
+  lamp.intensity = DARK.torch.intensity * (1 + Math.sin(t * 9) * 0.07 + Math.sin(t * 17.3) * 0.05);
+}
+
 /** Apply the zone's ambient light and return its look, torch density and light budget. */
-export function applyZoneLook(hemi: HemisphereLight, floor: number, mobile: boolean): ZoneLook & { lights: number } {
+export function applyZoneLook(hemi: HemisphereLight, floor: number, mobile: boolean): ZoneLook & { lights: number; reach?: number; power?: number } {
   const look = zoneLook(floor);
-  hemi.color.set(look.color);
+  hemi.color.set(DARK.on ? DARK.sky : look.color);
   // light from below too, so the sides of columns and props never sink to black
-  hemi.groundColor.set('#26221e');
-  hemi.intensity = look.intensity;
+  hemi.groundColor.set(DARK.on ? DARK.ground : '#26221e');
+  hemi.intensity = look.intensity * (DARK.on ? DARK.ambient : 1);
   // the light count never changes between zones (three.js recompiles every material when it does); only torch models thin out
-  return { ...look, lights: mobile ? 3 : 6 };
+  return { ...look, lights: mobile ? 3 : 6, ...(DARK.on ? { tint: DARK.tint, density: look.density * DARK.walls, reach: DARK.reach, power: DARK.power } : {}) };
 }

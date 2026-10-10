@@ -105,6 +105,8 @@
 .grid-banner.on { animation: grid-banner 1.6s ease-out; }
 /* an engraving moment: the edge of the screen closes in while the game runs slow */
 .grid-slowmo { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.18s ease-out; background: radial-gradient(ellipse at center, #0000 42%, #02140acc 100%); box-shadow: inset 0 0 0 2px #5dff8a40, inset 0 0 60px #3dff7a22; }
+/* ?dark: the screen's edge sinks into shadow */
+.grid-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 46%, #0000 36%, #03050ad0 100%); }
 .grid-slowmo.on { opacity: 1; transition-duration: 0.06s; }
 @keyframes grid-banner { 0% { opacity: 0; transform: translate(-50%, -40%); } 15% { opacity: 1; transform: translate(-50%, -50%); } 75% { opacity: 1; } 100% { opacity: 0; } }
 
