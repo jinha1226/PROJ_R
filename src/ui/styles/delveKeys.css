@@ -29,25 +29,25 @@
   /* the log gives the keys their room */
   .delve.hud-solo .wh-bl { right: calc(var(--key) * 2 + 18px); }
   /*
-   * ?dpad: nine low keys bottom left in place of the stick (they stand no higher than two rows of keys). Above them the
+   * ?dpad: nine square keys bottom left in place of the stick. Above them the
    * clone's lines and, right under those, the log. Beside the pad: the build's strip and the potion, and under them the
    * target key and one wide key that is explore or attack. The bag is in the menu.
    */
-  .pad-keys .delve.hud-solo .dp-grid { display: grid; position: absolute; z-index: 8; left: 6px; bottom: 6px; grid-template-columns: repeat(3, 44px); grid-auto-rows: 34px; gap: 3px; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .pad-keys .delve.hud-solo .dp-grid { display: grid; position: absolute; z-index: 8; left: 6px; bottom: 6px; grid-template-columns: repeat(3, 40px); grid-auto-rows: 40px; gap: 3px; touch-action: none; user-select: none; -webkit-user-select: none; }
   .pad-keys .delve.hud-solo .dp-grid > div svg { pointer-events: none; }
   .pad-keys .delve.hud-solo .dp-grid > div { display: flex; align-items: center; justify-content: center; font: 16px 'Galmuri', monospace; color: var(--pip); background: #05060ca8; box-shadow: inset 0 0 0 1px var(--pip-dark); }
   .pad-keys .delve.hud-solo .dp-grid > div[data-i="4"] { font-size: 11px; color: var(--pip-dim); }
   .pad-keys .delve.hud-solo .dp-grid > div.on { background: #0c3a1ed0; box-shadow: inset 0 0 0 1px var(--pip); }
-  .pad-keys .delve.hud-solo .dp-keys { display: grid; position: absolute; z-index: 8; left: 150px; right: 6px; bottom: 6px; grid-template-columns: 46px 1fr; gap: 4px; }
+  .pad-keys .delve.hud-solo .dp-keys { display: grid; position: absolute; z-index: 8; left: 138px; right: 6px; bottom: 6px; grid-template-columns: 46px 1fr; gap: 4px; }
   .pad-keys .delve.hud-solo .dp-keys button { height: var(--row); padding: 0; font: 12px 'Galmuri', monospace; color: var(--pip); text-shadow: none; cursor: pointer; border: 1px solid transparent; border-image: url('./img/corners.png') 8 / 16px stretch; image-rendering: pixelated; background: url('./img/plate.png') 0 0 / 8px 8px; }
   .pad-keys .delve.hud-solo .dp-keys button:active { transform: translateY(2px); }
   .pad-keys .delve.hud-solo .dp-keys button.none { color: var(--pip-dark); opacity: 0.7; }
   .pad-keys .delve.hud-solo .dp-keys button.atk { color: #ffe6d8; background: #7a231ce8; }
   .pad-keys .delve.hud-solo .tp-btns, .pad-keys .delve.hud-solo .tp-aim, .pad-keys .delve.hud-solo .tp-zone { display: none; }
   /* the clone's lines, the log right under them, then the keys */
-  .pad-keys .delve.hud-solo { --log-bottom: 120px; }
+  .pad-keys .delve.hud-solo { --log-bottom: 138px; }
   .pad-keys .delve.hud-solo .wh-bl { left: 8px; right: 8px; }
   .pad-keys .delve.hud-solo .wh-party { bottom: calc(var(--log-bottom) + 46px); }
   .pad-keys .delve.hud-solo .quick-slots { left: auto; right: 6px; bottom: calc(var(--row) + 10px); }
-  .pad-keys .delve.hud-solo .card-strip { left: 150px; right: 58px; bottom: calc(var(--row) + 10px); }
+  .pad-keys .delve.hud-solo .card-strip { left: 138px; right: 58px; bottom: calc(var(--row) + 10px); }
 }

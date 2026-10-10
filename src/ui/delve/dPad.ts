@@ -14,8 +14,7 @@ const arrow = (deg: number) => `<svg viewBox="0 0 16 16" width="18" height="18" 
  * An upright phone, the dungeon: nine keys bottom left — eight ways and, in the middle, wait. A press is one step (into a foe:
  * a blow); a key held keeps stepping, and a thumb slid onto another key turns that way. A held key lets go by itself the
  * moment a fight begins, so nobody runs on into danger with a thumb down. Bottom right: the target key, and one key that is
- * explore while nothing is in sight and attack while something is. Low keys: the pad takes no more height than the row of
- * keys it replaces, so the field keeps its room.
+ * explore while nothing is in sight and attack while something is.
  */
 export class DPad {
   readonly el = document.createElement('div');
