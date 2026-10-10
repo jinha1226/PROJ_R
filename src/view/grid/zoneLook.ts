@@ -17,9 +17,9 @@ const LOOKS: Record<ZoneId, ZoneLook> = {
 export const zoneLook = (floor: number): ZoneLook => LOOKS[zoneOf(Math.max(1, floor)).id];
 
 /**
- * `?dark`: the dungeon walked with one torch in hand, to try beside the usual look (which stays the default). Cold shadow
- * everywhere; the clone's own light is the fire it carries (warm, flickering, a few cells wide), wall torches are few, and
- * blows and shots light the room for a moment longer. Numbers to tune by eye.
+ * `?dark`: the dungeon in the dark, to try beside the usual look (which stays the default). Cold shadow everywhere; the
+ * clone's own light is warm, flickering and a few cells wide (no torch is drawn in its hand: 2026-10-10), wall torches are
+ * few, and blows and shots light the room for a moment longer. Numbers to tune by eye.
  */
 export const DARK = {
   on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('dark'),
@@ -27,7 +27,7 @@ export const DARK = {
   torch: { color: '#ffa860', intensity: 12, distance: 6.5 }, cast: 2.6, shade: 0.4, sun: 0.08, exposure: 1.1, flash: 1.7, linger: 1.5,
 };
 
-/** The dark look's part outside the zone's own: the fire in the clone's hand, the moon, the exposure and a shadow round the screen's edge. */
+/** The dark look's part outside the zone's own: the clone's warm light, the moon, the exposure and a shadow round the screen's edge. */
 export function darken(lamp: PointLight, sun: DirectionalLight, renderer: WebGLRenderer, el: HTMLElement): void {
   if (!DARK.on) return;
   lamp.color.set(DARK.torch.color); lamp.distance = DARK.torch.distance;
@@ -38,7 +38,7 @@ export function darken(lamp: PointLight, sun: DirectionalLight, renderer: WebGLR
   el.appendChild(edge);
 }
 
-/** Where the clone's light hangs: a little behind and above it (figures are rimmed, not burnt out) — in the dark, the torch it carries, low and flickering. */
+/** Where the clone's light hangs: a little behind and above it (figures are rimmed, not burnt out) — in the dark, low at its side and flickering. */
 export function carry(lamp: PointLight, x: number, z: number, t: number): void {
   if (!DARK.on) { lamp.position.set(x, 2.6, z - 1.2); return; }
   lamp.position.set(x + 0.35, 1.9, z - 0.5);

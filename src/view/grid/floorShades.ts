@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import { DARK } from './zoneLook';
 
-/** Where the carried fire hangs (its height here is the one shadows are thrown from), how far it reaches, and how much of the floor's light a shade leaves. */
+/** Where the clone's light hangs (its height here is the one shadows are thrown from), how far it reaches, and how much of the floor's light a shade leaves. */
 export const SHADE = { lamp: { value: new THREE.Vector3(0, DARK.cast, 0) }, reach: { value: DARK.torch.distance }, left: { value: DARK.shade } };
+
+/** The floor shades are thrown from where the clone's light hangs (called every frame). */
+export const castFrom = (lamp: THREE.Vector3): void => { SHADE.lamp.value.set(lamp.x, DARK.cast, lamp.z); };
 
 const VERT = `
 #include <common>
@@ -46,7 +49,7 @@ function shadeMaterial(): THREE.ShaderMaterial {
 }
 
 /**
- * `?dark`: every mesh of a figure or a column gets a twin that is drawn as its shadow on the floor, thrown by the fire the clone
+ * `?dark`: every mesh of a figure or a column gets a twin that is drawn as its shadow on the floor, thrown by the light the clone
  * carries (a skinned mesh's twin shares its skeleton, so the shadow moves as the figure does). No shadow map: one more draw a mesh.
  */
 export function addShades(model: THREE.Object3D): void {

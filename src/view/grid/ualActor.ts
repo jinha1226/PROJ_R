@@ -170,8 +170,6 @@ export class UalActor {
   private heldKind: WeaponLook | null = null;
   private lamps: THREE.MeshStandardMaterial[] = [];
   private off: THREE.Object3D | null = null;
-  /** where the off hand is in the world (a thing carried there follows it) */
-  offHandAt(out: THREE.Vector3): THREE.Vector3 | undefined { return this.offHand?.getWorldPosition(out); }
   private offKind: WeaponLook = 'none';
   private shaped: [THREE.Object3D, THREE.Vector3][] = [];
   private hunch: [THREE.Object3D, THREE.Quaternion] | null = null;

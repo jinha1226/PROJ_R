@@ -14,7 +14,7 @@ interface Torch { face: WallFace; model: THREE.Object3D; flame: THREE.Mesh; at: 
 /** Wall torches: a model and a flickering flame each; only the few nearest seen torches get a real light (phones stay fast). */
 let halo: THREE.SpriteMaterial | null = null;
 /** A shared radial glow for torch flames (white: each zone tints its copy). */
-export function haloMaterial(): THREE.SpriteMaterial {
+function haloMaterial(): THREE.SpriteMaterial {
   if (halo) return halo;
   const c = document.createElement('canvas');
   c.width = c.height = 64;

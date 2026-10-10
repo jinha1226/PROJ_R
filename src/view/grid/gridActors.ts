@@ -135,8 +135,6 @@ export class GridActors {
     return !!v && !v.dead && v.actor.root.visible;
   }
 
-  /** where a figure's off hand is in the world (for what it carries) */
-  handOf(id: string, out: THREE.Vector3): THREE.Vector3 | undefined { return this.views.get(id)?.actor.offHandAt(out); }
   pos(id: string): THREE.Vector3 | undefined {
     const v = this.views.get(id);
     return v ? new THREE.Vector3(v.x + v.ox, 0, v.z + v.oz) : undefined;
