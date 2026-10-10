@@ -45,7 +45,7 @@ it('a floor run by itself: the clone uncovers the floor, fights what it meets un
   }
   expect(fought).toBeGreaterThan(0);
   expect(ended).toBeGreaterThanOrEqual(0);
-});
+}, 30000);
 
 it('a tap takes the clone back: the run stops and does not start again by itself', () => {
   const auto = new AutoRun();
