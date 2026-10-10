@@ -208,6 +208,11 @@
 .trait-card b { font-weight: normal; font-size: 15px; color: #e6ffb0; }
 .trait-card.own b { color: #8ff0ff; }
 .trait-card .trait-text { margin: 0; font-size: 12px; line-height: 1.5; color: #c8ffd8; }
+.trait-card .trait-gist { margin: 0; font-size: 15px; line-height: 1.4; color: #e8fff0; }
+.trait-card .trait-up { margin: 0; font-size: 12px; color: #ffd76a; }
+.trait-card .trait-ask { justify-self: start; padding: 4px 0; font-size: 11px; color: #34a85c; text-decoration: underline; }
+.trait-card .trait-rule { display: grid; gap: 6px; }
+.trait-card .trait-rule[hidden] { display: none; }
 .trait-card em { font-style: normal; color: #9dffb8; }
 .trait-card small { color: #34a85c; font-size: 10px; }
 .trait-card .pips { display: flex; gap: 4px; }

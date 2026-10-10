@@ -1,9 +1,9 @@
 import type { PadActions } from '../overworld/touchPad';
 
 /** `?dpad`: the dungeon steered with a pad of keys instead of the stick (to try beside it; the stick stays the default). */
-export const DPAD = { on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('dpad') };
+export const DPAD = { on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('dpad'), keep: false };
 
-/** a held key steps again after this long, then this often (real seconds) */
+/** a held key steps again after this long (a tap is one step, never two), then the moment the clone is free again — or, where that cannot be told, this often (real seconds) */
 const FIRST = 0.26;
 const REPEAT = 0.12;
 /** the turn of each key's arrow (degrees from up); the middle key is wait */
@@ -52,7 +52,7 @@ export class DPad {
       this.held = i;
       if (i === null) return;
       // a turn under a thumb already running keeps the pace (no fresh pause before the next step)
-      this.timer = sliding ? REPEAT : FIRST;
+      this.timer = sliding ? Math.min(this.timer, REPEAT) : FIRST;
       this.act(i);
     };
     this.zone.addEventListener('pointerdown', (e) => { e.preventDefault(); this.zone.setPointerCapture(e.pointerId); this.pointer = e.pointerId; this.held = null; press(keyAt(e, false)); });
@@ -84,10 +84,12 @@ export class DPad {
       this.el.querySelector('[data-a="next"]')!.classList.toggle('none', !target);
     }
     // a fight has begun under a held key: it lets go (the thumb presses again to go on)
-    if (fighting && !this.fighting && this.held !== null) this.cancel();
+    if (fighting && !this.fighting && this.held !== null && !DPAD.keep) this.cancel();
     this.fighting = fighting;
     if (this.held === null || this.held === 4) return;
     this.timer -= dt;
-    if (this.timer <= 0) { this.timer = REPEAT; this.act(this.held); }
+    if (this.timer > 0) return;
+    // walking on: each step is asked for as the last one ends, so a held key is one unbroken walk
+    if (this.a.free) { if (this.a.free()) this.act(this.held); } else { this.timer = REPEAT; this.act(this.held); }
   }
 }

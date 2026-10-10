@@ -141,7 +141,7 @@ export class DelveScreen implements Screen {
       close: () => { this.paused = this.pausedBeforePip; },
     });
     this.el.appendChild(this.menu.el);
-    this.pad = new (DPAD.on ? DPad : TouchPad)({ dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), next: () => this.nextTarget(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
+    this.pad = new (DPAD.on ? DPad : TouchPad)({ free: () => (this.myTurn || !unitOf(this.p, this.sel)?.order) && !this.pip.open && !this.picker.open, dir: (dx, dy) => this.nudge(dx, dy), attack: () => this.attackNearest(), next: () => this.nextTarget(), wait: () => this.waitOrStop(), bag: () => this.togglePip('bag'), explore: () => this.explorer.start(), tap: (x, y) => this.click({ clientX: x, clientY: y } as PointerEvent), hold: (x, y) => this.look(x, y) });
     this.el.appendChild(this.pad.el);
     if (this.opts.stepped) {
       const next = document.createElement('button');
@@ -151,7 +151,7 @@ export class DelveScreen implements Screen {
     }
     this.mini = new DelveMinimap(() => this.p, () => this.sel);
     this.hud.minimapSlot.replaceChildren(this.mini.el);
-    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, [this.pad.zone], () => this.pad.cancel());
+    this.pinch = new Pinch(this.stage, () => this.zoom, (z) => { this.zoom = Math.min(26, Math.max(7, z)); this.rt?.setZoom(this.zoom); }, DPAD.on ? [] : [this.pad.zone], () => this.pad.cancel());
     this.zoom = startZoom(this.zoom);
     // a finger held still on a foe looks at it (its card); the tap that ends the press does nothing more
     const drop = () => { if (this.press) { clearTimeout(this.press.timer); this.press = null; } };

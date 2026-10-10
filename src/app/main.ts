@@ -14,6 +14,19 @@ import { SKILLS } from '../sim/party/skills';
 
 const root = document.getElementById('app')!;
 const router = new Router(root);
+// The page itself never zooms (keys tapped fast on a phone blew it up): the style sheet says so (touch-action), the viewport
+// says so, and for the browsers that heed neither, the second of two quick taps is taken off the browser's hands (its click
+// is given by hand, so a key tapped twice fast still counts twice) and a pinch on the page is refused. The field's own
+// pinch — the camera's — is its own business.
+let lastTap = 0;
+document.addEventListener('touchend', (e) => {
+  const now = performance.now(), quick = now - lastTap < 350;
+  lastTap = now;
+  if (!quick || e.touches.length || !e.cancelable) return;
+  e.preventDefault();
+  (e.target as HTMLElement | null)?.click?.();
+}, { passive: false });
+for (const g of ['gesturestart', 'gesturechange'] as const) document.addEventListener(g, (e) => e.preventDefault(), { passive: false });
 const params = new URLSearchParams(location.search);
 // the pixel phosphor terminal look is the default (?ui=classic shows the older teal terminal)
 if (params.get('ui') !== 'classic') document.documentElement.classList.add('ui-pip');

@@ -23,7 +23,7 @@ const PACK = 3;
  * comes every so often. Bright look, zoomed all the way out. `stage` puts a run on screen.
  */
 export function runSwarmDemo(cls: BaseClass, firstSeed: number, stage: (p: DelveParty) => Drive): void {
-  AUTOHIT.on = true; COMPACT.on = true; COMPACT.pack = PACK; BRIGHT.on = true; DPAD.on = true;
+  AUTOHIT.on = true; COMPACT.on = true; COMPACT.pack = PACK; BRIGHT.on = true; DPAD.on = true; DPAD.keep = true;
   document.documentElement.classList.add('swarm-demo');
   let seed = firstSeed, run = 0, d!: Drive;
   let floor = 0, before = 0, here = 0, rouseAt = 0, downAt = 0, lastText = '';

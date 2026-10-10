@@ -26,6 +26,8 @@ export class Pinch {
   constructor(stage: HTMLElement, private readonly zoom: () => number, private readonly setZoom: (z: number) => void, also: HTMLElement[] = [], onPinch?: () => void) {
     const down = (e: PointerEvent) => {
       if (e.pointerType !== 'touch') return;
+      // a first finger down means no other is: one whose lift was never heard (a window opened under it) is forgotten, or every later touch would pinch
+      if (e.isPrimary) this.pts.clear();
       if (!this.pts.size) { this.pinched = false; this.moved = false; }
       this.pts.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
       if (this.pts.size === 2) { this.startDist = this.spread(); this.startZoom = this.zoom(); this.pinched = true; onPinch?.(); }

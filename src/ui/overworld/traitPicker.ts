@@ -7,6 +7,7 @@ import { KIND_NAME, type TraitDef } from '../../sim/party/traitTypes';
 import { RESONANCE_AT, tagCount } from '../../sim/party/resonance';
 import { achraLine } from './richText';
 import { CLASS_TINT, classIcon } from './classIcons';
+import { CARD_GIST } from './cardGist';
 
 /** The level-up choice, in the Pip-Boy frame: three traits as cards (name, the rank it would reach, what that rank does). The game waits while it is open. */
 export class TraitPicker {
@@ -18,6 +19,9 @@ export class TraitPicker {
     this.el.hidden = true;
     this.el.addEventListener('click', (e) => {
       const t = e.target as HTMLElement;
+      // 'the rule': the card's small print opens and shuts (it is not a pick)
+      const more = t.closest<HTMLElement>('[data-more]');
+      if (more) { const rule = more.parentElement!.querySelector<HTMLElement>('.trait-rule')!; rule.hidden = !rule.hidden; return; }
       const card = t.closest<HTMLElement>('[data-trait]');
       if (card) { this.pick(this.who, card.dataset.trait!); if (unitOf(this.p(), this.who)?.picks) this.draw(); else this.close(); return; }
       if (t.closest('[data-reroll]') && this.reroll) { this.reroll(this.who); this.draw(); return; }
@@ -34,8 +38,13 @@ export class TraitPicker {
     if (!u?.offer?.length) { this.close(); return; }
     const cards = u.offer.map((id) => {
       const d = TRAITS[id]!, r = rank(u, id), own = d.pool in CLASSES, kind = r >= 2 ? '3단' : r > 0 ? '강화' : d.kind ? KIND_NAME[d.kind] : '';
-      return `<button type="button" class="trait-card${own ? ' own' : ''}${d.kind === 'duo' ? ' duo' : ''}" data-trait="${id}"><b>${d.name}</b><span class="kind">${kind}</span>`
-        + `<p class="trait-text">${achraLine(r > 0 && upText(d, r) ? upText(d, r)! : traitText(id, 1))}</p><em>${d.tags.map((t) => `#${t}`).join(' ')}</em>${r === 0 ? lights(this.p(), u, d) : ''}</button>`;
+      const rule = `<p class="trait-text">${achraLine(r > 0 && upText(d, r) ? upText(d, r)! : traitText(id, 1))}</p><em>${d.tags.map((t) => `#${t}`).join(' ')}</em>${r === 0 ? lights(this.p(), u, d) : ''}`;
+      const head = `<button type="button" class="trait-card${own ? ' own' : ''}${d.kind === 'duo' ? ' duo' : ''}" data-trait="${id}"><b>${d.name}</b>`;
+      // a card with a plain line shows that (a card held already: what the next rank adds); its rule and tags are a tap away
+      const gist = CARD_GIST[id];
+      if (!gist) return `${head}<span class="kind">${kind}</span>${rule}</button>`;
+      return `${head}${r > 0 ? `<span class="kind">${kind}</span>` : ''}<p class="trait-gist">${gist}</p>${r > 0 && upText(d, r) ? `<p class="trait-up">더해지는 것 — ${upText(d, r)}</p>` : ''}`
+        + `<span class="trait-ask" data-more>규칙 보기</span><span class="trait-rule" hidden>${r > 0 ? '' : `<span class="kind">${kind}</span>`}${rule}</span></button>`;
     }).join('');
     this.el.innerHTML = `<div class="pip-frame trait-frame"><header><span class="trait-who" style="--tint:${CLASS_TINT[u.cls!]}">${classIcon(u.cls!)} ${CLASSES[u.cls!].name} · 레벨 ${levelOf(u)}</span><span class="pip-title">특성 선택${(u.picks ?? 0) > 1 ? ` · 남은 선택 ${u.picks}` : ''}</span>${this.reroll && (u.rerolls ?? 0) > 0 ? `<button type="button" class="trait-reroll" data-reroll>다시 뽑기 ${u.rerolls}</button>` : ''}<button type="button" data-close>✕</button></header>
       <div class="trait-cards">${cards}</div><footer>Esc 닫기</footer></div>`;

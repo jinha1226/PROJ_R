@@ -1,4 +1,6 @@
 export interface PadActions { dir(dx: number, dy: number): void; attack(): void; wait(): void; bag(): void; explore?(): void; tap?(x: number, y: number): void;
+  /** the clone has nothing it is doing or about to do: a held key may give its next step now */
+  free?(): boolean;
   /** the target key (beside the log on an upright phone): on to the next foe in sight */
   next?(): void;
   /** a finger held still on the field (a long press): look at what is under it */
