@@ -17,6 +17,8 @@ import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } 
 import { useUltimate, aiUltimate } from './ultimate';
 import { bestTarget, charge } from './utility';
 import { approachUltimate } from './handDrive';
+import { knows } from './brain';
+import { snipe, takeChoke } from './brainMoves';
 
 const ROWS = ['###############', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '#.............#', '###############'];
 /** where a band enters: fighters in front, archers behind */
@@ -79,6 +81,8 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   const special = p.foeAction?.(u, t, ev) ?? foeTurn(p, u, t, ev);
   if (special !== undefined) return special;
   const e = entOf(p, u.id)!, st = stats(u, t, p);
+  // know-how the tree would buy (the test page): a shot at a foe that has not noticed, a narrow place to take a band in
+  if (u.side === 'hero' && u.id !== p.manual && !u.summoner) { if (snipe(p, u, t, ev)) return st.atk; takeChoke(p, u, t, ev); }
   if (u.order?.kind === 'move') {
     const cell = u.order.cell;
     if (!same(e.pos, cell)) {
@@ -109,7 +113,7 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
     return 0.3;
   }
   // a companion picks the blow that does the most good (utility AI); the clone under the hand and the foes go by their orders or the nearest
-  const target = u.side === 'hero' && !u.order && u.id !== p.manual && p.combat ? bestTarget(p, u, t) ?? targetOf(p, u, t) : targetOf(p, u, t);
+  const target = u.side === 'hero' && !u.order && u.id !== p.manual && p.combat && knows('target') ? bestTarget(p, u, t) ?? targetOf(p, u, t) : targetOf(p, u, t);
   if (!target) {
     // in a fight but nothing in reach (left behind, or the foes are out of range): close in on the nearest awake foe, else keep up with the leader
     if (u.side === 'hero' && p.roam && p.combat) {
@@ -126,7 +130,7 @@ function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   // a ranged clone steps back from a foe at its side now and then (not when told whom to hit, not under the player's hand,
   // not while another clone already stands at that foe holding it); else it shoots point-blank
   const held = p.units.some((x) => x.side === u.side && x !== u && alive(p, x) && dist(posOf(p, x), tp) <= 1);
-  if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && !held && t >= (u.rollReady ?? 0)) {
+  if (st.range > 1 && d === 1 && u.side === 'hero' && !u.order && u.id !== p.manual && !held && t >= (u.rollReady ?? 0) && knows('kite')) {
     u.rollReady = t + 3;
     const away = DIRS.map((dir) => ({ x: e.pos.x + dir.x, y: e.pos.y + dir.y })).filter((c) => walkable(tileAt(p.s.map, c)) && !occupied(p, c, u.id) && dist(c, tp) > 1 && canStep(p.s.map, e.pos, { x: c.x - e.pos.x, y: c.y - e.pos.y }));
     if (away[0]) { ev.push({ t, type: 'move', src: u.id, from: { ...e.pos }, to: { ...away[0] }, text: 'roll' }); e.pos = away[0]; u.moved=true;u.still=0;u.retreatShot=true;emit(p,'moved',{t,src:u,ev});return st.move; }
@@ -150,8 +154,8 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
   // the clone's own turn begins: sustained states (meteors, blizzards, leaping lightning) take their turn
   if (u.side === 'hero' && !u.summoner) action(p, () => emit(p, 'turn', { t: p.time, src: u, ev }));
   if (!alive(p, u)) return;
-  if(u.side==='hero'&&u.id!==p.manual){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
-  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !p.manualUlts && !u.ultQueued) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
+  if(u.side==='hero'&&u.id!==p.manual&&knows('item')){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
+  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !p.manualUlts && !u.ultQueued && knows('ult')) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
   if(u.ultQueued && approachUltimate(p,u,ev)) { p.onMovement?.(ev.slice(start),ev); return; }
   if(u.ultQueued) {
     const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; }

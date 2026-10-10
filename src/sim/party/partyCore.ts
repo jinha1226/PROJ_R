@@ -125,6 +125,8 @@ export interface Unit {
   gritReady?: number;
   /** when a ranged clone may next roll away from a foe at its side */
   rollReady?: number;
+  /** the test page's know-how: when this fight's narrow place was chosen (or last had a foe in reach) */
+  chokeAt?: number;
   /** the cell an archer last shot from and how many shots in a row from it (steady aim) */
   steadyAt?: Cell; steady?: number;
   /** a companion uses its skills by itself (on unless the player turns it off) */

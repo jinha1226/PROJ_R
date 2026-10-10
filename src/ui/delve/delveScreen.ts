@@ -82,9 +82,10 @@ export class DelveScreen implements Screen {
   private hover: Cell | null = null;
   /** the foe being looked at (a long press on it): its card shows until the next tap or a few seconds pass */
   private inspect: { id: string; until: number } | null = null;
-  /** the foe picked with the target key */
-  private aim?: string;
+  private aim?: string; // the foe picked with the target key
   private readonly auto = new AutoRun();
+  /** a watch page drives a run through this: the party, the run by itself, the stairs, the pace */
+  readonly drive = { p: () => this.p, auto: this.auto, down: () => this.down(), speed: (v: number) => { this.speed = v; this.pace(); } };
   /** a long press is under way on the field, or has just fired (the tap that ends it is swallowed) */
   private press: { x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
   private held = false;
@@ -218,8 +219,7 @@ export class DelveScreen implements Screen {
     if (this.p.manual !== hand) { this.p.manual = hand; this.p.waiting = false; }
   }
 
-  /** the soul slot whose aimed ultimate waits for a cell */
-  private aiming: number | null = null;
+  private aiming: number | null = null; // the soul slot whose aimed ultimate waits for a cell
   private get myTurn(): boolean { return !!this.p.waiting && this.p.manual === this.sel; }
 
   private live(ev: GEvent[], t0 = this.p.time): void {
