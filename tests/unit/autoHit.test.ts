@@ -20,18 +20,45 @@ it('a turn standing: a foe in reach is struck, the turn lasts the blow, and the 
   expect(autoHitTurn(p, u, 2, [])).toBe(0.5);
 });
 
-it('a turn walking: the step, then the blow from where it then stands; any order but a walk is dropped', () => {
-  const { p, u, foes } = scene('warrior'); const [a] = foes; put(p, a!, 7, 4, 999); see(p, a!);
+it('a turn walking: the blow from where it stands, so a step back still strikes; with nothing in reach, from where the step ends', () => {
+  const { p, u, foes } = scene('warrior'); const [a] = foes; put(p, a!, 5, 4, 999); see(p, a!);
   p.s.rng.chance = () => true; p.leader = u.id;
+  const st = stats(u, 0, p);
+  // beside the foe, a step away: struck, then gone
+  u.order = { kind: 'move', cell: { x: 3, y: 4 } };
+  expect(autoHitTurn(p, u, 0, [])).toBe(Math.max(st.move, st.atk));
+  expect(entOf(p, u.id)!.pos).toEqual({ x: 3, y: 4 }); expect(entOf(p, a!.id)!.hp).toBeLessThan(999); expect(u.order).toBeNull();
+  // two cells off now: a step toward it reaches it, and the blow lands from there (one blow a turn)
+  const hp = entOf(p, a!.id)!.hp;
+  u.order = { kind: 'move', cell: { x: 4, y: 4 } };
+  autoHitTurn(p, u, 2, []);
+  expect(entOf(p, u.id)!.pos).toEqual({ x: 4, y: 4 }); expect(entOf(p, a!.id)!.hp).toBeLessThan(hp);
+  // a step with nothing in reach before or after is just a step
+  put(p, a!, 12, 4, 999); u.order = { kind: 'move', cell: { x: 3, y: 4 } };
+  expect(autoHitTurn(p, u, 4, [])).toBe(st.move); expect(entOf(p, a!.id)!.hp).toBe(999);
+});
+
+it('walking into a foe is a clash: it strikes, the clone strikes harder, and the cell is taken only if the foe falls', () => {
+  const { p, u, foes } = scene('warrior'); const [a] = foes; put(p, a!, 5, 4, 999); see(p, a!);
+  p.s.rng.chance = () => true; p.s.rng.next = () => 0.5; p.leader = u.id;
+  const me = entOf(p, u.id)!, full = me.hp;
+  // a plain blow, for scale
+  autoHitTurn(p, u, 0, []); const plain = 999 - entOf(p, a!.id)!.hp; put(p, a!, 5, 4, 999); me.hp = full;
+  const ev: { type: string; text?: string }[] = [];
   u.order = { kind: 'attack', target: a!.id };
-  autoHitTurn(p, u, 0, []); expect(u.order).toBeNull(); expect(entOf(p, a!.id)!.hp).toBe(999);
-  // two cells off: the first step reaches nothing, the second brings it beside the foe and the blow lands
-  u.order = { kind: 'move', cell: { x: 6, y: 4 } };
-  const st = stats(u, 1, p);
-  expect(autoHitTurn(p, u, 1, [])).toBe(st.move);
-  expect(entOf(p, u.id)!.pos).toEqual({ x: 5, y: 4 }); expect(entOf(p, a!.id)!.hp).toBe(999);
-  expect(autoHitTurn(p, u, 2, [])).toBe(Math.max(st.move, st.atk));
-  expect(entOf(p, u.id)!.pos).toEqual({ x: 6, y: 4 }); expect(entOf(p, a!.id)!.hp).toBeLessThan(999); expect(u.order).toBeNull();
+  autoHitTurn(p, u, 2, ev as never);
+  expect(999 - entOf(p, a!.id)!.hp).toBeGreaterThan(plain); expect(me.hp).toBeLessThan(full);
+  expect(ev.some((e) => e.text === '들이받기')).toBe(true);
+  // it stands: the clone has not moved
+  expect(me.pos).toEqual({ x: 4, y: 4 });
+  // one that falls to it gives up its cell
+  put(p, a!, 5, 4, 1); u.order = { kind: 'attack', target: a!.id };
+  autoHitTurn(p, u, 4, []);
+  expect(entOf(p, a!.id)!.alive).toBe(false); expect(me.pos).toEqual({ x: 5, y: 4 });
+  // a foe that has not noticed strikes no blow back
+  const [, b] = foes; put(p, b!, 6, 4, 999); b!.asleep = true; see(p, b!); const hp = me.hp;
+  u.order = { kind: 'attack', target: b!.id }; autoHitTurn(p, u, 6, []);
+  expect(me.hp).toBe(hp); expect(entOf(p, b!.id)!.hp).toBeLessThan(999);
 });
 
 it('in a fight the player\'s wait and walk are turns with their blow, and nothing is drunk or cast for the led clone', () => {

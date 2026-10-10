@@ -30,7 +30,7 @@ const CARD: Record<string, Look> = {
   과열탄: L('blast', '#ff7a2a', 'dst', 1.0), 유탄: L('blast', '#ff9a3a', 'dst', 1.4, 0.1), '연쇄 폭발': L('blast', '#ff7a2a', 'dst', 1.2, 0.08), '즉시 재장전': L('magic', '#9fe8ff', 'src'), '개머리판 밀치기': L('hit', '#d8d8d8', 'dst', 0.8, 0.08), '슈트 과부하': L('shield', '#9fe8ff', 'src', 1.4),
   '조준 사격': L('crit', '#ffd04a', 'dst'), '표적 분석': L('warn', '#ffd04a', 'src'), '산탄 확산': L('hit', '#ffb04a', 'dst'), '사냥 표식': L('warn', '#ffd23a', 'dst'), '표식 이동': L('warn', '#ffd23a', 'dst'),
   '가시 갑옷': L('hit', '#d8d8d8', 'dst'),
-  '분노 폭발': L('blast', '#ff3a2a', 'src', 2.2, 0.14), '철벽 반격': L('crit', '#d8e8ff', 'dst'), 되받아치기: L('hit', '#ffd0a0', 'dst', 0.8),
+  '분노 폭발': L('blast', '#ff3a2a', 'src', 2.2, 0.14), '철벽 반격': L('crit', '#d8e8ff', 'dst'), 되받아치기: L('hit', '#ffd0a0', 'dst', 0.8), 들이받기: L('hit', '#ffe0b0', 'dst', 1.3, 0.12),
   '급소 찌르기': L('crit', '#ffd04a', 'dst'), '독 폭발': L('smoke', '#7ad04a', 'dst', 1.7, 0.1),
   '그림자 걸음': L('smoke', '#3a2a4a', 'src'),
   '다중 사격': L('hit', '#ffd23a', 'dst', 0.8), 난사: L('warn', '#ffd23a', 'src', 1.4), '폭발 화살': L('blast', '#ff7a2a', 'dst', 1.2, 0.08), '빙결 화살': L('frost', '#cfeaff', 'dst', 1.2), '파쇄 화살': L('frost', '#e8f6ff', 'dst', 1.4, 0.1), '유도 화살': L(undefined, undefined, 'line'), '약점 노출': L('hit', '#ffb0a0', 'dst'),
