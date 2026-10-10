@@ -1,6 +1,7 @@
 import { applyStatus } from './status';
 import { alive, damage, entOf, freeHit, levelDmg, occupied, posOf, stats, strike, type Party, type Unit } from './partyCore';
-import { fighting, foesNear, stepBehind } from './cardFx';
+import { counter, fighting, foesNear, stepBehind } from './cardFx';
+import { T } from './traitMods';
 import { tagsOf, WHIRL_REACH } from './classKit';
 import { ampBase, card, inBranch, rank, type TraitDef } from './traitTypes';
 import { dist, tileAt, walkable, type Cell, type GEvent } from '../grid/types';
@@ -14,6 +15,15 @@ const nearest = (p: Party, at: Cell, r: number) => foesNear(p, at, r).sort((a, b
 /** how deep bleeding stacks for this clone: five with a whirlwind card (rend wounds bursts it), else one */
 export const bleedCap = (u: Unit): number => (WHIRL_CARDS.some((id) => rank(u, id)) ? 5 : 1);
 const frenzyCap = (u: Unit) => (rank(u, 'frenzy') >= 2 ? 8 : 5);
+/** blows taken before the rage lets go */
+export const RAGE_FULL = 5;
+/** Rage let go: every foe beside the warrior (within two at rank 2) takes one and a half of its blow; at rank 3 a whirlwind follows. */
+function rageBurst(p: Party, u: Unit, t: number, ev: GEvent[], r: number): void {
+  u.rage = 0;
+  const me = { ...posOf(p, u) }, amount = Math.max(1, Math.round(avg(p, u, t) * 1.5));
+  asBeat(ev, () => { for (const f of foesNear(p, me, r >= 2 ? 2 : 1)) freeHit(p, u, f, amount, 'physical', t, ev); });
+  if (r >= 3 && alive(p, u)) whirlwind(p, u, t, ev);
+}
 
 /**
  * A whirlwind: every foe within reach of the spot (the warrior's own by default) takes 80% of its blow (blade mastery: ×1.12 per #출혈),
@@ -131,20 +141,19 @@ export const WARRIOR_CARDS: TraitDef[] = [
       { id: '함성 연장', when: 'kill', repeat: true, test: (_p, c) => (c.src.shoutUntil ?? 0) > c.t && (c.target?.status.stun?.until ?? 0) > c.t, run: (_p, c) => { c.src.shoutUntil = Math.min(c.src.shoutUntil! + 1, c.t + 6); } },
     ],
   }, '2명 기절', '함성으로 기절한 적 노출'), SHOUT, true),
-  inBranch(card('rage', '분노 축적', 'law', ['함성'], 'warrior', '피격마다 분노 1 (최대 5) → 다음 공격에 분노 × 30% 추가 피해', {
+  inBranch(card('rage', '분노 축적', 'law', ['함성'], 'warrior', '피격마다 분노 1 → 분노 5에서 폭발: 주변 1칸 모든 적에게 150% 피해', {
     triggers: (r) => [
-      // rank 3: struck with full rage, the warrior spins (checked before this blow adds rage)
-      ...(r >= 3 ? [{ id: '분노 폭풍', when: 'struck', cd: 1, test: (_p, c) => (c.src.rage ?? 0) >= 5, run: (p, c) => whirlwind(p, c.src, c.t, c.ev) } satisfies TriggerDef] : []),
-      { id: '분노 축적', when: 'struck', run: (_p, c) => { c.src.rage = Math.min(5, (c.src.rage ?? 0) + 1); } },
-      { id: '분노 폭발', when: 'beforeHit', test: (_p, c) => (c.src.rage ?? 0) > 0 && !!c.target, run: (p, c) => {
-        const n = c.src.rage!; c.src.attackMult = (c.src.attackMult ?? 1) * (1 + 0.3 * n); c.src.rage = 0;
-        if (r >= 2) for (const f of foesNear(p, posOf(p, c.target!), 1)) if (f !== c.target) damage(p, c.t, c.src.id, f, n * 4, c.ev, true);
-      } },
+      { id: '분노 축적', when: 'struck', run: (_p, c) => { c.src.rage = Math.min(RAGE_FULL, (c.src.rage ?? 0) + 1); } },
+      // the fifth blow lets it go (a breaking shield fills it too: that one goes off on the turn)
+      ...(['struck', 'turn'] as const).map((when): TriggerDef => ({ id: '분노 폭발', when, test: (_p, c) => (c.src.rage ?? 0) >= RAGE_FULL, run: (p, c) => rageBurst(p, c.src, c.t, c.ev, r) })),
     ],
-  }, '분노가 터질 때 주변 1칸 적에게도 분노 × 4 피해', '분노 5에서 피격 → 바로 회오리 베기'), SHOUT),
-  inBranch(card('ironCounter', '철벽 반격', 'convert', ['함성'], 'warrior', '반격 피해 +50%, 네 번째 반격마다 기절', {
+  }, '폭발 반경 2', '폭발에 이어 회오리 베기'), SHOUT),
+  inBranch(card('ironCounter', '철벽 반격', 'convert', ['함성'], 'warrior', '붙어 있는 적에게 맞으면 절반의 힘으로 반격, 반격 피해 +50%, 네 번째 반격마다 기절', {
     passive: () => ({ counter: 0.5 }),
     trigger: (r) => ({ id: '철벽 반격', when: 'counter', every: r >= 2 ? 2 : 4, test: (p, c) => !!c.target && alive(p, c.target), run: (p, c) => applyStatus(p, c.src, c.target!, 'stun', c.t, c.ev) }),
+    // a blow taken is answered at half strength (a blocked one already at full: the warrior's own answer)
+    triggers: () => [{ id: '되받아치기', when: 'struck', test: (p, c) => !!c.target && c.target.side === 'foe' && alive(p, c.target) && dist(posOf(p, c.target), posOf(p, c.src)) <= 1,
+      run: (p, c) => counter(p, c.src, c.target!, c.t, c.ev, 0.5 * T.counter(c.src)) }],
   }, '두 번째 반격마다 기절'), SHOUT),
   inBranch(card('shoutAmp', '함성 숙련', 'amp', ['함성'], 'warrior', '#함성 1당 기절·도발 중인 적이 받는 피해 ×1.1 (곱)', {}, '×1.14'), SHOUT),
 ];

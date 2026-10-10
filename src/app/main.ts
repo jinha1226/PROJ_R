@@ -63,8 +63,9 @@ async function branchDemo(): Promise<void> {
     setWeaponKit(weapons);
     let seed = urlSeed || 7;
     const stage = (): void => {
-      const party = branchArena(seed++, key);
-      router.go(new DelveScreen(lib, kit, { party, auto: true, stepped: true, restart: stage, quit: () => { location.search = '?demo=branch'; } }));
+      const hand = params.has('hand'), party = branchArena(seed++, key, hand);
+      router.go(new DelveScreen(lib, kit, { party, auto: !hand, stepped: !hand, restart: stage, quit: () => { location.search = `?demo=branch${['hand', 'hd', 'dark', 'dpad'].filter((k) => params.has(k)).map((k) => `&${k}`).join('')}`; } }));
+      if (hand) return;
       let overFor = 0;
       const watch = setInterval(() => { overFor = arenaOver(party) ? overFor + 1 : 0; if (overFor >= 3) { clearInterval(watch); stage(); } }, 1000);
     };
