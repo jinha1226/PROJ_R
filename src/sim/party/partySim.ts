@@ -17,6 +17,7 @@ import { CLASSES, DEFAULT_PICKS, FOES, HERO_IDS, WAVES, type FoeId, type Pick } 
 import { useUltimate, aiUltimate } from './ultimate';
 import { bestTarget, charge } from './utility';
 import { approachUltimate } from './handDrive';
+import { AUTOHIT, autoHitTurn } from './autoHit';
 import { knows } from './brain';
 import { snipe, takeChoke } from './brainMoves';
 
@@ -80,6 +81,7 @@ export function nextWave(p: Party, ev: GEvent[] = []): boolean {
 function turn(p: Party, u: Unit, t: number, ev: GEvent[]): number {
   const special = p.foeAction?.(u, t, ev) ?? foeTurn(p, u, t, ev);
   if (special !== undefined) return special;
+  if (AUTOHIT.on && u.side === 'hero' && u.id === p.leader) return autoHitTurn(p, u, t, ev);
   const e = entOf(p, u.id)!, st = stats(u, t, p);
   // know-how the tree would buy (the test page): a shot at a foe that has not noticed, a narrow place to take a band in
   if (u.side === 'hero' && u.id !== p.manual && !u.summoner) { if (snipe(p, u, t, ev)) return st.atk; takeChoke(p, u, t, ev); }

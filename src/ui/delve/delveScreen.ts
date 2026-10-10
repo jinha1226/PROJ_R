@@ -85,7 +85,7 @@ export class DelveScreen implements Screen {
   private aim?: string; // the foe picked with the target key
   private readonly auto = new AutoRun();
   /** a watch page drives a run through this: the party, the run by itself, the stairs, the pace */
-  readonly drive = { p: () => this.p, auto: this.auto, down: () => this.down(), speed: (v: number) => { this.speed = v; this.pace(); } };
+  readonly drive = { p: () => this.p, auto: this.auto, down: () => this.down(), speed: (v: number) => { this.speed = v; this.pace(); }, zoom: (z: number) => { this.zoom = z; this.rt?.setZoom(z); }, say: (t: string) => this.hud.toast(t), picking: () => this.picker.open, pick: () => { this.pausedBeforePip = this.paused; this.picker.show(this.sel); } };
   /** a long press is under way on the field, or has just fired (the tap that ends it is swallowed) */
   private press: { x: number; y: number; timer: ReturnType<typeof setTimeout> } | null = null;
   private held = false;

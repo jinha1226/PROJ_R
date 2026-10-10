@@ -8,7 +8,7 @@ import type { AutoRun } from '../delve/autoRun';
 import '../styles/brainDemo.css';
 
 /** what the dungeon screen hands a watch page (DelveScreen.drive) */
-export interface Drive { p(): DelveParty; auto: AutoRun; down(): void; speed(v: number): void }
+export interface Drive { p(): DelveParty; auto: AutoRun; down(): void; speed(v: number): void; zoom(z: number): void; say(text: string): void; picking(): boolean; pick(): void }
 
 /** A lone clone of a class at the top of the dungeon, as a run begins. */
 export function brainParty(seed: number, cls: BaseClass): DelveParty {

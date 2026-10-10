@@ -25,9 +25,10 @@ export const DENSITY: { upTo: number; size: number; rooms: [number, number]; ban
 export const densityOf = (floor: number) => DENSITY.find((d) => floor <= d.upTo)!;
 /**
  * Floors made for watching a run (`?demo=brain`, 2026-10-10: the usual floor is a long walk between small rooms through
- * many doors): a small map, a few large rooms packed close, no doors, no ore, shrine or crypt — a band in nearly every room.
+ * many doors): a small map, a few large rooms packed close, no doors, no ore, shrine or crypt — a band in nearly every room
+ * (`pack` times the usual band: the swarm page).
  */
-export const COMPACT = { on: false, size: 40, rooms: [7, 8] as [number, number], room: [8, 11] as [number, number] };
+export const COMPACT = { on: false, size: 40, rooms: [7, 8] as [number, number], room: [8, 11] as [number, number], pack: 1 };
 export const delveSize = (floor: number): number => (COMPACT.on ? COMPACT.size : densityOf(floor).size);
 const centre = (r: Room): Cell => ({ x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) });
 const inside = (r: Room, c: Cell): boolean => c.x >= r.x && c.x < r.x + r.w && c.y >= r.y && c.y < r.y + r.h;
@@ -155,7 +156,7 @@ function contents(f: DelveFloor, floor: number, loot: Rng, spawns: Rng): void {
       f.chests.push({ pos, tier }); m.chests.push(pos); taken.add(idx(m, pos));
     }
     const D = densityOf(floor);
-    const count = kind === 'normal' ? spawns.int(D.band[0], D.band[1]) : kind === 'den' ? spawns.int(4, 5) : kind === 'crypt' || kind === 'vault' ? 2 : kind === 'boss' ? 3 : 0;
+    const count = kind === 'normal' ? spawns.int(D.band[0], D.band[1]) * (COMPACT.on ? COMPACT.pack : 1) : kind === 'den' ? spawns.int(4, 5) : kind === 'crypt' || kind === 'vault' ? 2 : kind === 'boss' ? 3 : 0;
     const cells = spawns.shuffle(cellsOf(m, rect, taken).filter((pos) => dist(pos, m.start) > 6));
     for (let i = 0; i < count; i++) {
       // a small room holds what it can

@@ -87,6 +87,18 @@ async function brainDemo(): Promise<void> {
   }
 }
 
+/** `?demo=swarm` (`&c=<class>`): the dungeon walked by hand with blows that land by themselves, big bands and a floor that closes in (see swarmDemo.ts). */
+async function swarmDemo(): Promise<void> {
+  try {
+    const [{ DelveScreen }, { runSwarmDemo }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), import('../ui/demo/swarmDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
+    setWeaponKit(weapons);
+    const cls = (['warrior', 'archer', 'mage', 'cleric', 'rogue', 'necromancer'] as const).find((c) => c === params.get('c')) ?? 'warrior';
+    runSwarmDemo(cls, urlSeed || 3, (party) => { const screen = new DelveScreen(lib, kit, { party, auto: true, quit: title }); router.go(screen); return screen.drive; });
+  } catch (e) {
+    showFatal(root, e);
+  }
+}
+
 /** `?demo=deep&floor=N`: a deep floor with a level-10 empty body fighting by itself, for checking how a horde runs on screen. */
 async function deepDemo(): Promise<void> {
   try {
@@ -129,6 +141,7 @@ if (params.get('demo') === 'looks') void looksDemo();
 else if (params.get('demo') === 'chains') void chainsDemo();
 else if (params.get('demo') === 'deep') void deepDemo();
 else if (params.get('demo') === 'brain') void brainDemo();
+else if (params.get('demo') === 'swarm') void swarmDemo();
 else if (params.get('demo') === 'branch') void branchDemo();
 else if (params.get('demo') === 'tune') void Promise.all([import('../ui/demo/tuneDemo'), UalLibrary.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]).then(([{ mountTuneDemo }, lib, weapons]) => { setWeaponKit(weapons); mountTuneDemo(root, lib); }).catch((e) => showFatal(root, e));
 else if (params.get('demo') === 'raid') void raidDemo();
