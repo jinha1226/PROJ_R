@@ -127,8 +127,6 @@ export interface Unit {
   rollReady?: number;
   /** the test page's know-how: when this fight's narrow place was chosen (or last had a foe in reach) */
   chokeAt?: number;
-  /** blows on their own clock (`?demo=swarm`): when the next is due */
-  swingAt?: number;
   /** the cell an archer last shot from and how many shots in a row from it (steady aim) */
   steadyAt?: Cell; steady?: number;
   /** a companion uses its skills by itself (on unless the player turns it off) */

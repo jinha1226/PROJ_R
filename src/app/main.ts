@@ -93,7 +93,7 @@ async function swarmDemo(): Promise<void> {
     const [{ DelveScreen }, { runSwarmDemo }, lib, kit, weapons] = await Promise.all([import('../ui/delve/delveScreen'), import('../ui/demo/swarmDemo'), UalLibrary.load(import.meta.env.BASE_URL), DungeonKit.load(import.meta.env.BASE_URL), WeaponKit.load(import.meta.env.BASE_URL)]);
     setWeaponKit(weapons);
     const cls = (['warrior', 'archer', 'mage', 'cleric', 'rogue', 'necromancer'] as const).find((c) => c === params.get('c')) ?? 'warrior';
-    runSwarmDemo(cls, urlSeed || 3, (party) => { const screen = new DelveScreen(lib, kit, { party, auto: true, quit: title }); router.go(screen); return screen.drive; });
+    runSwarmDemo(cls, urlSeed || 3, (party) => { const screen = new DelveScreen(lib, kit, { party, quit: title }); router.go(screen); return screen.drive; });
   } catch (e) {
     showFatal(root, e);
   }

@@ -1,14 +1,10 @@
-/* `?demo=swarm`: only the walking keys are needed; where the target and attack keys stood, the run's count and the pace */
-.swarm-demo .dp-keys, .swarm-demo .quick-slots, .swarm-demo .card-strip { display: none !important; }
+/* `?demo=swarm`: walking and waiting are all the keys there are; where the target and attack keys stood, the run's count */
+.swarm-demo .dp-keys { display: none !important; }
 .swarm {
-  position: fixed; left: 138px; right: 6px; bottom: calc(env(safe-area-inset-bottom) + 6px); z-index: 30; height: 126px;
-  padding: 6px 8px; box-sizing: border-box; font-family: 'Galmuri', monospace; font-size: 12px; color: #5dff8a;
-  background: #020a08; border: 1px solid #1f6b3c; display: flex; flex-direction: column; gap: 4px; max-width: 300px;
+  position: fixed; left: 138px; right: 6px; bottom: calc(env(safe-area-inset-bottom) + 6px); z-index: 30; height: 50px; max-width: 300px;
+  padding: 4px 6px; box-sizing: border-box; font-family: 'Galmuri', monospace; font-size: 11px; line-height: 1.35; color: #5dff8a;
+  background: #020a08; border: 1px solid #1f6b3c; display: flex; gap: 6px; align-items: center; justify-content: space-between;
 }
 .swarm-now { color: #c8ffd8; }
-.swarm-best { color: #ffd76a; min-height: 1.2em; }
-.swarm-row { display: flex; gap: 4px; align-items: center; }
-.swarm-row span { color: #9fe8b6; }
-.swarm button { flex: 1; min-height: 30px; padding: 0 2px; font: inherit; color: #3f9a5c; background: #04140c; border: 1px solid #1f6b3c; border-radius: 0; }
-.swarm button.on { color: #02140a; background: #5dff8a; border-color: #5dff8a; }
-.swarm-row [data-new] { flex: 0 0 64px; margin-left: auto; }
+.swarm-best { color: #ffd76a; }
+.swarm button { flex: 0 0 52px; min-height: 36px; padding: 0 2px; font: inherit; color: #5dff8a; background: #04140c; border: 1px solid #1f6b3c; border-radius: 0; }

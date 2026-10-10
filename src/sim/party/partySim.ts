@@ -156,8 +156,9 @@ function moment(p: Party, u: Unit, ev: GEvent[]): void {
   // the clone's own turn begins: sustained states (meteors, blizzards, leaping lightning) take their turn
   if (u.side === 'hero' && !u.summoner) action(p, () => emit(p, 'turn', { t: p.time, src: u, ev }));
   if (!alive(p, u)) return;
-  if(u.side==='hero'&&u.id!==p.manual&&knows('item')){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
-  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !p.manualUlts && !u.ultQueued && knows('ult')) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
+  const mine = AUTOHIT.on && u.id === p.leader; // (the swarm page: the led clone's potions and ultimates are the player's to use)
+  if(u.side==='hero'&&u.id!==p.manual&&!mine&&knows('item')){const used=aiItem(p,u);if(used.length){ev.push(...used);return;}}
+  if (u.side === 'hero' && u.id !== p.manual && !u.manualSkills && !p.manualUlts && !u.ultQueued && !mine && knows('ult')) { const pick = aiUltimate(p,u); if(pick) { u.ultQueued=true; u.ultSlot=pick.slot; u.ultCell=pick.cell; } }
   if(u.ultQueued && approachUltimate(p,u,ev)) { p.onMovement?.(ev.slice(start),ev); return; }
   if(u.ultQueued) {
     const cast=useUltimate(p,u.id,u.ultCell,u.ultSlot ?? 0); if(cast.length) { ev.push(...cast); p.onMovement?.(ev.slice(start),ev); return; }
@@ -222,6 +223,8 @@ export function command(p: Party, c: Command): GEvent[] {
   else if (c.kind === 'wait') {
     // a wait with rounds missing is spent loading the gun (it takes an attack's time, as any reload does)
     u.nextAt = p.time + (reload(p, u, p.time, ev) ? Math.max(0.5, stats(u, p.time, p).atk) : 0.5);
+    // (the swarm page: a turn spent standing still has its blow)
+    if (AUTOHIT.on && u.id === p.leader) { u.order = null; u.nextAt = Math.max(u.nextAt, p.time + autoHitTurn(p, u, p.time, ev)); }
     ev.push({ t: p.time, type: 'wait', src: u.id });
     action(p, () => emit(p, 'wait', { t: p.time, src: u, ev }));
   } else {
