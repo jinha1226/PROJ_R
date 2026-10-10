@@ -5,7 +5,8 @@
   --text: #ece6da; --muted: #a39d92; --accent: #e0a64a; --danger: #d0533f; --ally: #4aa3e0;
   font-family: 'Galmuri', monospace;
 }
-* { box-sizing: border-box; }
+/* (no double-tap zoom anywhere: keys tapped fast on a phone must not blow the page up; panning and pinching are as they were, and what sets `none` for itself keeps it) */
+* { box-sizing: border-box; touch-action: manipulation; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
 #app { position: relative; width: 100%; height: 100%; }
 .boot-title { text-align: center; margin-top: 30vh; letter-spacing: 0.3em; }
