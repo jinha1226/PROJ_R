@@ -8,7 +8,7 @@ import type { WeaponLook } from './weaponMeshes';
 import { stanceFor } from './heroLook';
 import { markFigure, RING } from './pixelPass';
 import { IceBlocks } from './iceBlock';
-import { ABSORB_SEC, LEAVE_AT, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, SINK_AT, SINK_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, SPIN_SEC, type View } from './gridActorBits';
+import { ABSORB_SEC, LEAVE_AT, LEAP_HEIGHT, LEAP_SEC, LOOK, LUNGE, LUNGE_SEC, POP_SEC, ring, SHOVE, DUST_AT, DUST_SEC, SOUL_GOLD, BODY_LIFT, DEAD_OUTLINE, SPIN_SEC, type View } from './gridActorBits';
 import { foeLook, speciesOf } from './species';
 import { glide, turnToward } from './chase';
 import { CELL } from './gridTerrain';
@@ -135,6 +135,8 @@ export class GridActors {
     return !!v && !v.dead && v.actor.root.visible;
   }
 
+  /** where a figure's off hand is in the world (for what it carries) */
+  handOf(id: string, out: THREE.Vector3): THREE.Vector3 | undefined { return this.views.get(id)?.actor.offHandAt(out); }
   pos(id: string): THREE.Vector3 | undefined {
     const v = this.views.get(id);
     return v ? new THREE.Vector3(v.x + v.ox, 0, v.z + v.oz) : undefined;
@@ -396,8 +398,8 @@ export class GridActors {
         v.deadFor += step;
         for (const c of v.actor.root.children) if (c.userData.pool) c.scale.setScalar(Math.min(1, 0.01 + v.deadFor / 0.5));
         // a figure that has left the floor (a summon) does not lie about as long as a foe's body
-        const k = Math.min(1, Math.max(0, (v.deadFor - (v.leaving ? LEAVE_AT : SINK_AT)) / SINK_SEC));
-        if (k > 0) v.actor.root.position.y = BODY_LIFT - 0.8 * k;
+        const k = Math.min(1, Math.max(0, (v.deadFor - (v.leaving ? LEAVE_AT : DUST_AT)) / DUST_SEC));
+        if (k > 0) v.actor.crumble(k);
         if (k >= 1) { v.gone = true; v.actor.root.visible = false; if (v.leaving) left.push(vid); }
       }
       v.actor.root.rotation.y = Math.PI / 2 - v.yaw;

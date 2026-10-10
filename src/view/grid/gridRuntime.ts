@@ -10,7 +10,9 @@ import type { MetaState } from '../../sim/grid/meta';
 import { STATIONS } from '../../sim/grid/ship';
 import * as THREE from 'three';
 import { zoneOf } from '../../sim/grid/zones';
-import { applyZoneLook, carry, darken } from './zoneLook';
+import { applyZoneLook, carry, DARK, darken } from './zoneLook';
+import { CarriedTorch } from './carriedTorch';
+import { DUST_AT } from './gridActorBits';
 import type { GridSim } from '../../sim/grid/gridSim';
 import { archerCanShoot } from '../../sim/grid/ai';
 import { activeWeapon } from '../../sim/grid/gear';
@@ -73,6 +75,7 @@ export class GridRuntime {
   /** rough pixel look on/off */
   pixelated = true;
   private playback = new Playback(); private partyPace = false;
+  private carried?: CarriedTorch;
   private readonly hemi = new THREE.HemisphereLight('#aab0c8', '#1a1410', 0.85);
   /** a dim fill round the hero so it never vanishes between torch pools */
   private readonly light = new THREE.PointLight('#ffd8a8', 4, 6, 1.6);
@@ -102,6 +105,7 @@ export class GridRuntime {
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
     if (!theme && !world) darken(this.light, sun, this.h.renderer, el);
+    if (DARK.on && !theme && !world) scene.add((this.carried = new CarriedTorch()).root);
     this.pixel = new PixelPass(this.h.renderer, 2, dotLook());
     if (!theme && !world) kit.tint(look.tint);
     this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world, nature) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);
@@ -325,7 +329,7 @@ export class GridRuntime {
       }
       case 'reload': a.anim(e.src, 'reload'); break;
       case 'pickup': a.anim(e.src, 'pickup'); break;
-      case 'die': { a.die(e.dst, at(e.src)); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); if (!this.calm) this.fx.hitStop(feel().killStop); if (e.dst) this.strikes.kill(e.dst, p); } break; }
+      case 'die': { a.die(e.dst, at(e.src)); const p = at(e.dst); if (p && e.dst !== 'hero') { this.gore(p, 18, at(e.src)); if (!this.calm) this.fx.hitStop(feel().killStop); if (e.dst) this.strikes.kill(e.dst, p); if (!a.isAlly(e.dst)) this.fx.later(DUST_AT, () => this.particles.ash(p)); } break; }
       case 'door': if (e.to) this.terrain.openDoor(idx(this.sim.s.map, e.to)); break;
       case 'open': a.anim('hero', 'interact'); if (e.to) { this.terrain.openChest(idx(this.sim.s.map, e.to)); this.fx.transient.burst(e.to.x * CELL, e.to.y * CELL, '#ffd76a', 0.7, 0.5); } break;
       case 'energy': if (e.to) this.fx.energy(cellVec(e.to), e.amount ?? 0); break;
@@ -379,6 +383,7 @@ export class GridRuntime {
     this.center.x = chase(this.center.x, aim.x, dt, CAM_K);
     this.center.z = chase(this.center.z, aim.z, dt, CAM_K);
     carry(this.light, hero.x, hero.z, this.clock);
+    this.carried?.update(this.light.position, this.clock, this.focusId, this.actors);
     if (this.sim.s.hero.exitTime > 0) this.terrain.pulseExit(this.clock);
     this.placeCamera();
     this.fx.setIcons(this.icons.map((i) => ({ ...i, at: this.actors.pos(i.id) ?? this.stationAt.get(i.id) ?? new THREE.Vector3() })));

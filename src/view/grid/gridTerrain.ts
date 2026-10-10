@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { addShades } from './floorShades';
 import { idx, type GridMap, type GridState } from '../../sim/grid/types';
 import type { DungeonKit, DungeonPiece, Piece } from './dungeonKit';
 import { wallFaces, type WallFace } from './gridLayout';
@@ -166,6 +167,7 @@ export class GridTerrain {
         const ore = m.ore?.some((c) => idx(m, c) === i);
         const col = ore ? oreRock(i) : this.kit.clone('Column2', { height: WALL_H * 1.1 });
         col.position.copy(p);
+        addShades(col);
         this.addProp(i, col);
       }
       if (t === 'door') this.addDoor(i);

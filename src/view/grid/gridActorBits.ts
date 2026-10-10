@@ -63,10 +63,10 @@ export interface View {
   spin?: number;
 }
 
-/** a fallen foe lies this long (the fallen of a fight pile up), then sinks into the floor over this long and is gone (its blood stays) */
-export const SINK_AT = 6;
-export const SINK_SEC = 0.8;
-/** a figure whose entity has left the floor (a fallen or spent summon) lies this long before it sinks */
+/** a fallen foe goes to dust: it starts to fall, then its body thins out in grains over this long and is gone (2026-10-10: bodies lying about in one pose looked cheap) */
+export const DUST_AT = 0.55;
+export const DUST_SEC = 0.75;
+/** a figure whose entity has left the floor (a fallen or spent summon) lies this long before it goes the same way */
 export const LEAVE_AT = 1.4;
 /** how high a fallen body lies above the ground (the floor tiles' tops stand a little above zero) */
 export const BODY_LIFT = 0.12;

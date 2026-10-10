@@ -11,7 +11,7 @@ export interface SceneHandle {
 export function createScene(container: HTMLElement): SceneHandle {
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, stencil: true });
   } catch {
     throw new Error('webgl-unavailable');
   }

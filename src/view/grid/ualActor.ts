@@ -7,6 +7,7 @@ import { tuneHolder } from './figureTune';
 import { buildBlockBody, type BlockLook } from './blockBody';
 import { buildSuitArmor, lightSuit } from './suitArmor';
 import { addOutlines, figureLit, figureMat, type FigureMat } from './toon';
+import { addShades } from './floorShades';
 import { shapeBones, type BodyShape, type Species } from './species';
 import { buildSpeciesParts } from './speciesParts';
 import { OutfitKit, type OutfitLook } from './outfitKit';
@@ -169,6 +170,8 @@ export class UalActor {
   private heldKind: WeaponLook | null = null;
   private lamps: THREE.MeshStandardMaterial[] = [];
   private off: THREE.Object3D | null = null;
+  /** where the off hand is in the world (a thing carried there follows it) */
+  offHandAt(out: THREE.Vector3): THREE.Vector3 | undefined { return this.offHand?.getWorldPosition(out); }
   private offKind: WeaponLook = 'none';
   private shaped: [THREE.Object3D, THREE.Vector3][] = [];
   private hunch: [THREE.Object3D, THREE.Quaternion] | null = null;
@@ -213,6 +216,7 @@ export class UalActor {
     // a dark one-pixel shell keeps the figure apart from the floor once pixelated
     // lit figures carry only a hairline outline (the toon look keeps the heavy one)
     if (!look.block) addOutlines(model, (figureLit() ? 0.012 : 0.03) + (fig?.fat ?? 0));
+    if (!look.block) addShades(model);
     this.hand = bone(model, 'hand_r');
     this.offHand = bone(model, 'hand_l');
     this.setWeapon(look.weapon);
@@ -407,6 +411,13 @@ export class UalActor {
     this.dropUpper(0.05);
     // at the clip's own pace: a heavy fall, not a quick flop
     this.start(CLIP.death, false, 1, 0.05);
+  }
+
+  private dusty = false;
+  /** The body goes to dust (0 → 1): its surface thins out in grains until nothing is left; its outline and shadow go at once. */
+  crumble(k: number): void {
+    if (!this.dusty) { this.dusty = true; for (const m of this.mats) { m.alphaHash = true; m.needsUpdate = true; } this.root.traverse((o) => { if (o.userData.outline) o.visible = false; }); }
+    for (const m of this.mats) m.opacity = 1 - k;
   }
 
   /** Cuts a part off at a bone (it and everything below it shrink away); returns where it was and the body colour, or null. */

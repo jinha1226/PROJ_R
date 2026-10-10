@@ -75,6 +75,15 @@ export class GridParticles {
     }
   }
 
+  /** A body gone to dust: grey grains thrown up off where it lay. */
+  ash(at: THREE.Vector3, n = 18): void {
+    const c = new THREE.Color('#8f8a80');
+    for (let k = 0; k < n && this.sparks.length < SPARKS; k++) {
+      const total = 0.5 + Math.random() * 0.4;
+      this.sparks.push({ p: new THREE.Vector3(at.x + (Math.random() - 0.5) * 0.7, 0.15 + Math.random() * 0.6, at.z + (Math.random() - 0.5) * 0.7), v: new THREE.Vector3((Math.random() - 0.5) * 1.2, 1.2 + Math.random() * 1.8, (Math.random() - 0.5) * 1.2), life: total, total, c });
+    }
+  }
+
   /** Flames licking up a burning body: tongues born over its height that rise, white-hot at first, then yellow, orange and red as they die. */
   embers(at: THREE.Vector3, n = 3): void {
     for (let k = 0; k < n && this.flames.length < FLAMES; k++) {
