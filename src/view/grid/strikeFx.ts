@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BRIGHT } from './zoneLook';
 
 interface Item { obj: THREE.Object3D; mat: THREE.MeshBasicMaterial | THREE.MeshStandardMaterial; life: number; total: number; grow: number; fade: boolean }
 interface Limb { obj: THREE.Mesh; vel: THREE.Vector3; spin: THREE.Vector3; landed: boolean }
@@ -21,7 +22,7 @@ export class StrikeFx {
   }
 
   private glow(color: string, opacity = 0.9): THREE.MeshBasicMaterial {
-    return new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+    return new THREE.MeshBasicMaterial({ color, transparent: true, opacity: BRIGHT.on ? opacity * 0.5 : opacity, depthWrite: false, side: THREE.DoubleSide, blending: BRIGHT.on ? THREE.NormalBlending : THREE.AdditiveBlending });
   }
 
   /** A flat arc at chest height facing `facing` (radians on the ground plane). */

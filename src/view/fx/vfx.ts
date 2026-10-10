@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BRIGHT } from '../grid/zoneLook';
 import {
   BatchedRenderer, Bezier, ConeEmitter, ConstantColor, ConstantValue, Gradient, IntervalValue, ParticleSystem, PiecewiseBezier,
   PointEmitter, RenderMode, ColorOverLife, SizeOverLife, SphereEmitter, ApplyForce, RotationOverLife, Vector3 as QVec3, Vector4,
@@ -109,7 +110,8 @@ export class Vfx {
 
   constructor(atlas: THREE.Texture) {
     this.root.add(this.batch);
-    const glow = new THREE.MeshBasicMaterial({ map: atlas, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+    // (in the bright look a glow is laid on, not added: bursts stay coloured puffs instead of burning out to white)
+    const glow = new THREE.MeshBasicMaterial({ map: atlas, transparent: true, blending: BRIGHT.on ? THREE.NormalBlending : THREE.AdditiveBlending, depthWrite: false });
     const solid = new THREE.MeshBasicMaterial({ map: atlas, transparent: true, blending: THREE.NormalBlending, depthWrite: false });
     this.mats.push(glow, solid);
     for (const kind of Object.keys(PRESETS) as VfxKind[]) {

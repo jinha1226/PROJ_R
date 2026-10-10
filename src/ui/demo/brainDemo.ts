@@ -1,3 +1,4 @@
+import { COMPACT } from '../../sim/delve/delveGen';
 import { canDescend, newDelve, type DelveParty } from '../../sim/delve/delveSim';
 import { BRAIN, KNACKS, KNACK_DESC, KNACK_NAME, type Knack } from '../../sim/party/brain';
 import { entOf } from '../../sim/party/partyCore';
@@ -18,6 +19,8 @@ export function brainParty(seed: number, cls: BaseClass): DelveParty {
 }
 
 const SPEEDS = [1, 2, 4];
+/** between fights the run hurries on by this much more (walking is not what is being watched) */
+const TRAVEL = 3;
 
 /**
  * `?demo=brain` (`&c=<class>`, an archer unless told): a clone goes down the dungeon by itself, run after run, and the
@@ -25,7 +28,7 @@ const SPEEDS = [1, 2, 4];
  * 2026-10-10) shows on screen. It starts a fool: every switch off. `stage` puts a fresh run on screen and hands back its drive.
  */
 export function runBrainDemo(cls: BaseClass, firstSeed: number, stage: (p: DelveParty) => Drive): void {
-  BRAIN.on = true;
+  BRAIN.on = true; COMPACT.on = true;
   document.documentElement.classList.add('brain-demo');
   let seed = firstSeed, run = 0, speed = 2, d!: Drive;
   let before = 0, idle = 0, nudges = 0, downAt = 0, lastText = '';
@@ -52,13 +55,14 @@ export function runBrainDemo(cls: BaseClass, firstSeed: number, stage: (p: Delve
     const b = (e.target as HTMLElement).closest<HTMLElement>('button');
     if (!b) return;
     if (b.dataset.k) { const k = b.dataset.k as Knack; BRAIN.knows[k] = !BRAIN.knows[k]; desc.textContent = `${KNACK_NAME[k]} ${BRAIN.knows[k] ? '배움' : '잊음'} — ${KNACK_DESC[k]}`; }
-    if (b.dataset.v) { speed = Number(b.dataset.v); d.speed(speed); }
+    if (b.dataset.v) speed = Number(b.dataset.v);
     if (b.dataset.new !== undefined) begin();
     paint();
   });
   const fallen = (p: DelveParty): number => p.units.filter((u) => u.side === 'foe' && !entOf(p, u.id)?.alive).length;
   setInterval(() => {
     const p = d.p(), e = entOf(p, p.leader ?? 'hero'), kills = before + fallen(p);
+    d.speed(p.combat ? speed : speed * TRAVEL);
     const text = `${run}판 · 지하 ${p.floor}층 · 처치 ${kills}`;
     if (text !== lastText) { lastText = text; now.textContent = text; }
     if (!e?.alive) {

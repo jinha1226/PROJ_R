@@ -10,7 +10,7 @@ import type { MetaState } from '../../sim/grid/meta';
 import { STATIONS } from '../../sim/grid/ship';
 import * as THREE from 'three';
 import { zoneOf } from '../../sim/grid/zones';
-import { applyZoneLook, carry, darken } from './zoneLook';
+import { applyZoneLook, carry, relight } from './zoneLook';
 import { castFrom } from './floorShades';
 import { DUST_AT } from './gridActorBits';
 import type { GridSim } from '../../sim/grid/gridSim';
@@ -103,7 +103,7 @@ export class GridRuntime {
     const sun = new THREE.DirectionalLight('#8090c0', 0.18);
     sun.position.set(-10, 30, 14);
     scene.add(this.hemi, sun, this.light);
-    if (!theme && !world) darken(this.light, sun, this.h.renderer, el);
+    if (!theme && !world) relight(this.light, sun, this.h.renderer, el);
     this.pixel = new PixelPass(this.h.renderer, 2, dotLook());
     if (!theme && !world) kit.tint(look.tint);
     this.terrain = world ? new WorldTerrain(sim.s.map.w, sim.s.map.h, world, nature) : theme ? new ShipTerrain(sim.s.map, theme.kit, theme.meta) : new GridTerrain(sim.s.map, kit, look.decal);

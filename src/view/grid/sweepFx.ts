@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BRIGHT } from './zoneLook';
 
 /** how long a whirlwind's sweep lasts (seconds) and how many times the blade goes round in it */
 const SWEEP_SEC = 0.5;
@@ -6,7 +7,7 @@ const TURNS = 2;
 
 interface Sweep { group: THREE.Group; blade: THREE.Mesh; wake: THREE.Mesh; ring: THREE.Mesh; life: number }
 
-const glow = (color: string, opacity: number) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+const glow = (color: string, opacity: number) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: BRIGHT.on ? opacity * 0.5 : opacity, depthWrite: false, side: THREE.DoubleSide, blending: BRIGHT.on ? THREE.NormalBlending : THREE.AdditiveBlending });
 
 /**
  * A whirlwind's sweep: a bright blade arc that spins round the warrior twice while it grows out to its reach,

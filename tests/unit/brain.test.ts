@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from 'vitest';
 import { idx, type GEvent } from '../../src/sim/grid/types';
+import { COMPACT, generateFloor } from '../../src/sim/delve/delveGen';
 import { BRAIN, KNACKS, knows } from '../../src/sim/party/brain';
 import { snipe, takeChoke } from '../../src/sim/party/brainMoves';
 import { entOf } from '../../src/sim/party/partyCore';
@@ -59,4 +60,20 @@ it('a narrow place is given up when the foes do not come', () => {
   for (let x = 1; x < 14; x++) if (x !== 4) p.s.map.tiles[idx(p.s.map, { x, y: 2 })] = 'wall';
   takeChoke(p, u, 3, []); expect(u.order).toBeTruthy();
   takeChoke(p, u, 6, []); expect(u.order).toBeNull();
+});
+
+it('floors made for watching: a small map of a few large rooms, no doors, and the usual floor untouched when off', () => {
+  const usual = generateFloor(5, 1);
+  COMPACT.on = true;
+  try {
+    for (const seed of [3, 5, 8]) {
+      const f = generateFloor(seed, 2), m = f.map;
+      expect(m.w).toBe(COMPACT.size); expect(m.rooms.length).toBeGreaterThanOrEqual(7); expect(m.rooms.length).toBeLessThanOrEqual(9);
+      expect(m.tiles.includes('door')).toBe(false);
+      expect(f.rooms.some((r) => ['ore', 'shrine', 'crypt'].includes(r.kind))).toBe(false);
+      expect(m.spawns.length).toBeGreaterThan(10);
+    }
+  } finally { COMPACT.on = false; }
+  expect(generateFloor(5, 1).map.tiles).toEqual(usual.map.tiles);
+  expect(usual.map.tiles.includes('door')).toBe(true);
 });

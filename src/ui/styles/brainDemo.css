@@ -2,7 +2,7 @@
 .brain-demo .tp, .brain-demo .quick-slots, .brain-demo .card-strip { display: none !important; }
 .brain-demo .delve.hud-solo { --log-bottom: 176px; }
 .brain {
-  position: fixed; left: 6px; right: 6px; bottom: calc(env(safe-area-inset-bottom) + 6px); z-index: 30;
+  position: fixed; left: 6px; right: 6px; bottom: calc(env(safe-area-inset-bottom) + 6px); z-index: 30; max-width: 430px;
   padding: 8px; box-sizing: border-box; font-family: 'Galmuri', monospace; font-size: 13px; color: #5dff8a;
   background: rgba(2, 10, 8, 0.92); border: 1px solid #1f6b3c;
 }

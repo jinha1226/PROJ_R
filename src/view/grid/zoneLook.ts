@@ -28,8 +28,21 @@ export const DARK = {
   torch: { color: '#ffa860', intensity: 10, distance: 6.5 }, cast: 2.6, shade: 0.4, sun: 0.08, exposure: 1.0, flash: 0.35, linger: 1.3,
 };
 
-/** The dark look's part outside the zone's own: the clone's warm light, the moon, the exposure and a shadow round the screen's edge. */
-export function darken(lamp: PointLight, sun: DirectionalLight, renderer: WebGLRenderer, el: HTMLElement): void {
+/**
+ * `?bright`: the dungeon in even daylight (2026-10-10: the dim look with its pools of torchlight and its flashes tired the
+ * eye). One high, soft light over everything and a sun for shape; no light is carried, torches barely glow, blows and
+ * blasts light nothing up and the screen shakes less. What is out of sight is still dimmed by the terrain itself.
+ */
+export const BRIGHT = {
+  on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('bright'),
+  ambient: 1.9, sky: '#f6f2ea', ground: '#9a9488', tint: '#ffffff', sun: 1.3, sunColor: '#fff2dc', power: 0.12, glow: 0.25, flash: 0, shake: 0.4, exposure: 0.95,
+};
+/** how much of a flash's light a look lets through */
+export const flashGain = (): number => (DARK.on ? DARK.flash : BRIGHT.on ? BRIGHT.flash : 1);
+
+/** A look's part outside the zone's own. Dark: the clone's warm light, the moon, the exposure and a shadow round the screen's edge. Bright: no carried light, a sun. */
+export function relight(lamp: PointLight, sun: DirectionalLight, renderer: WebGLRenderer, el: HTMLElement): void {
+  if (BRIGHT.on) { lamp.intensity = 0; sun.color.set(BRIGHT.sunColor); sun.intensity = BRIGHT.sun; renderer.toneMappingExposure = BRIGHT.exposure; return; }
   if (!DARK.on) return;
   lamp.color.set(DARK.torch.color); lamp.distance = DARK.torch.distance;
   sun.intensity = DARK.sun;
@@ -49,6 +62,10 @@ export function carry(lamp: PointLight, x: number, z: number, t: number): void {
 /** Apply the zone's ambient light and return its look, torch density and light budget. */
 export function applyZoneLook(hemi: HemisphereLight, floor: number, mobile: boolean): ZoneLook & { lights: number; reach?: number; power?: number } {
   const look = zoneLook(floor);
+  if (BRIGHT.on) {
+    hemi.color.set(BRIGHT.sky); hemi.groundColor.set(BRIGHT.ground); hemi.intensity = BRIGHT.ambient;
+    return { ...look, lights: mobile ? 3 : 6, tint: BRIGHT.tint, power: BRIGHT.power };
+  }
   hemi.color.set(DARK.on ? DARK.sky : look.color);
   // light from below too, so the sides of columns and props never sink to black
   hemi.groundColor.set(DARK.on ? DARK.ground : '#26221e');

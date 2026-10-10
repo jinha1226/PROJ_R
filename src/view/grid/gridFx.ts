@@ -5,7 +5,7 @@ import { DamageNumbers, type NumberKind } from '../overlay/damageNumbers';
 import '../overlay/overlay.css';
 import { CELL } from './gridTerrain';
 import { FlashLights } from './flashLights';
-import { DARK } from './zoneLook';
+import { BRIGHT, DARK, flashGain } from './zoneLook';
 
 const BOLT_SPEED = 4 / 0.08;   // cells per second
 const HITSTOP = 0.06;
@@ -108,6 +108,7 @@ export class GridFx {
   }
 
   shake(sec = 0.12, amp = 0.18): void {
+    if (BRIGHT.on) amp *= BRIGHT.shake;
     // a small shake landing during a big one does not calm it
     this.shakeAmp = this.shakeT > 0 ? Math.max(this.shakeAmp, amp) : amp;
     this.shakeT = Math.max(this.shakeT, sec);
@@ -148,7 +149,7 @@ export class GridFx {
 
   /** A brief light at `at` (muzzle flash, blast, spell). */
   flash(at: THREE.Vector3, color: string, power?: number, sec?: number, range?: number): void {
-    this.flashes.flash(at, color, (power ?? 18) * (DARK.on ? DARK.flash : 1), (sec ?? 0.18) * (DARK.on ? DARK.linger : 1), range);
+    if (flashGain() > 0) this.flashes.flash(at, color, (power ?? 18) * flashGain(), (sec ?? 0.18) * (DARK.on ? DARK.linger : 1), range);
   }
 
   /** things put off a moment (a burst's later rounds), counted in the show's own time */

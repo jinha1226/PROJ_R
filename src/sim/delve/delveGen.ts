@@ -23,16 +23,22 @@ export const DENSITY: { upTo: number; size: number; rooms: [number, number]; ban
   { upTo: Infinity, size: 72, rooms: [16, 20], band: [4, 6], fodder: 0.6, elite: 0.12 },
 ];
 export const densityOf = (floor: number) => DENSITY.find((d) => floor <= d.upTo)!;
-export const delveSize = (floor: number): number => densityOf(floor).size;
+/**
+ * Floors made for watching a run (`?demo=brain`, 2026-10-10: the usual floor is a long walk between small rooms through
+ * many doors): a small map, a few large rooms packed close, no doors, no ore, shrine or crypt — a band in nearly every room.
+ */
+export const COMPACT = { on: false, size: 40, rooms: [7, 8] as [number, number], room: [8, 11] as [number, number] };
+export const delveSize = (floor: number): number => (COMPACT.on ? COMPACT.size : densityOf(floor).size);
 const centre = (r: Room): Cell => ({ x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) });
 const inside = (r: Room, c: Cell): boolean => c.x >= r.x && c.x < r.x + r.w && c.y >= r.y && c.y < r.y + r.h;
 const overlaps = (a: Room, b: Room): boolean => a.x - 2 < b.x + b.w && b.x - 2 < a.x + a.w && a.y - 2 < b.y + b.h && b.y - 2 < a.y + a.h;
 
 function placeRooms(rng: Rng, floor: number): Room[] {
-  const D = densityOf(floor), S = D.size, target = rng.int(D.rooms[0], D.rooms[1]), rooms: Room[] = [];
+  const D = COMPACT.on ? COMPACT : densityOf(floor), S = D.size, target = rng.int(D.rooms[0], D.rooms[1]), rooms: Room[] = [];
+  const [small, large] = COMPACT.on ? COMPACT.room : [5, 11];
   for (let attempt = 0; attempt < 12000 && rooms.length < target; attempt++) {
-    const max = attempt < 1000 ? 11 : 7;
-    const w = rng.int(5, max), h = rng.int(5, max);
+    const max = attempt < 1000 ? large : Math.max(small, large - 4);
+    const w = rng.int(small, max), h = rng.int(small, max);
     const r = { x: rng.int(1, S - w - 1), y: rng.int(1, S - h - 1), w, h };
     if (!rooms.some((o) => overlaps(o, r))) rooms.push(r);
   }
@@ -90,7 +96,7 @@ function layout(rng: Rng, floor: number): { map: GridMap; corridors: Cell[][] } 
   const extras: [number, number][] = [];
   for (let i = 0; i < rooms.length; i++) for (let j = i + 1; j < rooms.length; j++) if (!links.has(`${i}:${j}`)) extras.push([i, j]);
   for (const [i, j] of rng.shuffle(extras).slice(0, rng.int(2, 3))) corridors.push(corridor(map, centre(rooms[i]!), centre(rooms[j]!), rng.chance(0.5)));
-  addDoors(map);
+  if (!COMPACT.on) addDoors(map);
   const reserved = new Set(rooms.map((r) => idx(map, centre(r))));
   // placeParty uses a two-column formation; also keep the lift's immediate approaches open.
   for (let y = -1; y <= 1; y++) for (let x = -1; x <= 2; x++) reserved.add(idx(map, { x: map.start.x + x, y: map.start.y + y }));
@@ -108,6 +114,7 @@ function roles(map: GridMap, rng: Rng, floor: number): DelveRoom[] {
   const pool = rng.shuffle(rooms.filter((r) => r.kind === 'normal'));
   const assign = (kind: RoomKind) => { pool.pop()!.kind = kind; };
   assign('vault'); assign('den');
+  if (COMPACT.on) return rooms;
   for (let n = rng.int(1, 2); n > 0; n--) assign('ore');
   if (rng.chance(0.8)) assign('shrine');
   if (floor >= 2 && rng.chance(0.4)) assign('crypt');
@@ -183,7 +190,7 @@ export function generateFloor(seed: number, floor: number): DelveFloor {
       }
       if (run.length >= 6) eligible.push(run);
     }
-    if (!eligible.length) continue;
+    if (!eligible.length && !COMPACT.on) continue;
     contents(f, floor, loot, spawns);
     const trapped = new Set<number>();
     for (const cells of traps.shuffle(eligible).slice(0, traps.int(1, 2))) {
