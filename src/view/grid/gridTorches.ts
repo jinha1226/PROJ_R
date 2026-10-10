@@ -3,6 +3,7 @@ import { idx, type GridMap, type GridState } from '../../sim/grid/types';
 import type { DungeonKit } from './dungeonKit';
 import { torchSpots, type WallFace } from './gridLayout';
 import { CELL, toWorld, yawFor } from './gridTerrain';
+import { DARK } from './zoneLook';
 
 const TORCH_Y = 1.05;
 const LIGHT_RANGE = 7.5;
@@ -40,6 +41,8 @@ export class GridTorches {
     haloMat.color.set(look.flame);
     const accentHalo = haloMaterial().clone();
     accentHalo.color.set(look.accent ?? look.flame);
+    // in the dark a full glow is a white blot: it is turned down with the lights
+    if (DARK.on) haloMat.opacity = accentHalo.opacity = DARK.glow;
     const flameGeo = new THREE.SphereGeometry(0.07, 8, 6);
     const spots = torchSpots(m);
     spots.filter((_, i) => Math.floor((i + 1) * density) > Math.floor(i * density)).forEach((face, n) => {

@@ -10,9 +10,10 @@ import { packHorde } from './chainArena';
 /**
  * `?demo=branch&b=<branch>`: one body built for a branch — every card of it at its top rank, level 8 — set against a packed
  * horde, to watch the branch's chain run (and plan its effects). A line without branches gets all of its line's cards.
- * `&hand`: the same body as a run would have it a few floors in (level 5, each card once) on an ordinary floor, played by hand.
+ * `&hand`: the same body as a run would have it a few floors in (level 5, each card once) on an ordinary floor, played by hand;
+ * `&hand&horde`: that body by hand against the packed horde (does a branch play differently once there are many?).
  */
-export function branchArena(seed: number, key: string, hand = false): DelveParty {
+export function branchArena(seed: number, key: string, hand = false, horde = !hand): DelveParty {
   const p = newDelve(seed, 3), u = clones(p)[0]!;
   const branch = BRANCHES.find((b) => b.id === key), line = branch?.line ?? key;
   if (line !== 'shell') implant(p, u, line as BaseClass, []);
@@ -21,12 +22,12 @@ export function branchArena(seed: number, key: string, hand = false): DelveParty
   u.traits = Object.fromEntries(cards.map((d) => [d.id, hand ? 1 : d.ranks]));
   u.picks = 0; u.offer = undefined;
   const e = entOf(p, u.id)!; e.hp = e.maxHp;
-  if (!hand) packHorde(p);
+  if (horde) packHorde(p);
   return p;
 }
 
 /** the switches the menu's links carry on (so a hand run keeps its look and its keys) */
-const HAND = typeof location === 'undefined' ? '' : ['hand', 'hd', 'dark', 'dpad'].filter((k) => new URLSearchParams(location.search).has(k)).map((k) => `&${k}`).join('');
+const HAND = typeof location === 'undefined' ? '' : ['hand', 'horde', 'hd', 'dark', 'dpad'].filter((k) => new URLSearchParams(location.search).has(k)).map((k) => `&${k}`).join('');
 /** The branches to choose from, by class: seven lines of three. */
 export function branchMenuHtml(): string {
   const lines = ['shell', 'warrior', 'mage', 'archer', 'cleric', 'rogue', 'necromancer'];

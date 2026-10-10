@@ -12,7 +12,8 @@ const arrow = (deg: number) => `<svg viewBox="0 0 16 16" width="18" height="18" 
 
 /**
  * An upright phone, the dungeon: nine keys bottom left — eight ways and, in the middle, wait. A press is one step (into a foe:
- * a blow); a key held keeps stepping, and a thumb slid onto another key turns that way. A held key lets go by itself the
+ * a blow); a key held keeps stepping, and a thumb slid onto another key turns that way without a pause, as on a joypad (over
+ * the middle or off the pad's edge it goes on). A held key lets go by itself the
  * moment a fight begins, so nobody runs on into danger with a thumb down. Bottom right: the target key, and one key that is
  * explore while nothing is in sight and attack while something is.
  */
@@ -22,6 +23,7 @@ export class DPad {
   private readonly main: HTMLElement;
   private readonly keys: HTMLElement[];
   private held: number | null = null;
+  private pointer = -1;
   private timer = 0;
   private fighting = false;
   private idle = true;
@@ -34,21 +36,29 @@ export class DPad {
     this.zone = this.el.querySelector('.dp-grid')!;
     this.main = this.el.querySelector('[data-a="main"]')!;
     this.keys = [...this.zone.children] as HTMLElement[];
-    const keyAt = (e: PointerEvent): number | null => {
-      const r = this.zone.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) / r.width) * 3), y = Math.floor(((e.clientY - r.top) / r.height) * 3);
-      return x < 0 || x > 2 || y < 0 || y > 2 ? null : y * 3 + x;
+    // the key under a fresh press; a thumb already down is read as a joypad: the middle changes nothing (it never waits
+    // in passing), a gap between keys keeps the way it was going, and past the pad's edge the way is the thumb's bearing
+    const keyAt = (e: PointerEvent, sliding: boolean): number | null => {
+      const r = this.zone.getBoundingClientRect(), fx = ((e.clientX - r.left) / r.width) * 3, fy = ((e.clientY - r.top) / r.height) * 3;
+      const x = Math.floor(fx), y = Math.floor(fy), inside = x >= 0 && x <= 2 && y >= 0 && y <= 2;
+      if (!sliding) return inside ? y * 3 + x : null;
+      if (inside) return y * 3 + x === 4 ? this.held : y * 3 + x;
+      const turn = Math.round(Math.atan2(fy - 1.5, fx - 1.5) / (Math.PI / 4)) * (Math.PI / 4);
+      return (Math.round(Math.sin(turn)) + 1) * 3 + Math.round(Math.cos(turn)) + 1;
     };
-    const press = (i: number | null) => {
+    const press = (i: number | null, sliding = false) => {
       if (i === this.held) return;
       this.light(i);
       this.held = i;
       if (i === null) return;
-      this.timer = FIRST;
+      // a turn under a thumb already running keeps the pace (no fresh pause before the next step)
+      this.timer = sliding ? REPEAT : FIRST;
       this.act(i);
     };
-    this.zone.addEventListener('pointerdown', (e) => { e.preventDefault(); this.zone.setPointerCapture(e.pointerId); press(keyAt(e)); });
-    this.zone.addEventListener('pointermove', (e) => { if (this.held !== null && this.zone.hasPointerCapture(e.pointerId)) press(keyAt(e)); });
-    for (const end of ['pointerup', 'pointercancel'] as const) this.zone.addEventListener(end, () => this.cancel());
+    this.zone.addEventListener('pointerdown', (e) => { e.preventDefault(); this.zone.setPointerCapture(e.pointerId); this.pointer = e.pointerId; this.held = null; press(keyAt(e, false)); });
+    this.zone.addEventListener('pointermove', (e) => { if (this.held !== null && e.pointerId === this.pointer) press(keyAt(e, true), true); });
+    // only the thumb that holds the key lets it go (a second finger lifting does not stop the walk)
+    for (const end of ['pointerup', 'pointercancel'] as const) this.zone.addEventListener(end, (e) => { if (e.pointerId === this.pointer) this.cancel(); });
     this.el.querySelector('.dp-keys')!.addEventListener('click', (e) => {
       const k = (e.target as HTMLElement).closest<HTMLElement>('[data-a]')?.dataset.a;
       if (k === 'next') a.next?.();

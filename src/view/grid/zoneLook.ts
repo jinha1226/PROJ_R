@@ -19,12 +19,13 @@ export const zoneLook = (floor: number): ZoneLook => LOOKS[zoneOf(Math.max(1, fl
 /**
  * `?dark`: the dungeon in the dark, to try beside the usual look (which stays the default). Cold shadow everywhere; the
  * clone's own light is warm, flickering and a few cells wide (no torch is drawn in its hand: 2026-10-10), wall torches are
- * few, and blows and shots light the room for a moment longer. Numbers to tune by eye.
+ * few, and blows and shots light the room for a moment longer. Numbers to tune by eye (2026-10-10: the lights themselves
+ * turned well down — torches, their glow, the clone's own light and the flashes hurt the eye against the dark).
  */
 export const DARK = {
   on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('dark'),
-  ambient: 2.2, sky: '#3558a8', ground: '#0c1220', tint: '#b4bccc', walls: 0.35, reach: 5, power: 1.3,
-  torch: { color: '#ffa860', intensity: 12, distance: 6.5 }, cast: 2.6, shade: 0.4, sun: 0.08, exposure: 1.1, flash: 1.7, linger: 1.5,
+  ambient: 2.5, sky: '#3558a8', ground: '#0c1220', tint: '#b4bccc', walls: 0.35, reach: 5, power: 0.4, glow: 0.4,
+  torch: { color: '#ffa860', intensity: 10, distance: 6.5 }, cast: 2.6, shade: 0.4, sun: 0.08, exposure: 1.0, flash: 0.35, linger: 1.3,
 };
 
 /** The dark look's part outside the zone's own: the clone's warm light, the moon, the exposure and a shadow round the screen's edge. */
