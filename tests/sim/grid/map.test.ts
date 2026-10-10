@@ -75,16 +75,21 @@ describe('grid sight and movement', () => {
     expect(losClear(handMap(['####', '#.##', '##.#', '####']), { x: 1, y: 1 }, { x: 2, y: 2 })).toBe(false);
   });
 
-  it('cannot cut a wall corner diagonally', () => {
+  it('a diagonal rounds a wall corner, but does not slip through a gap where both sides are shut', () => {
     expect(canStep(room, { x: 2, y: 2 }, { x: 1, y: -1 })).toBe(true);
-    expect(canStep(room, { x: 3, y: 2 }, { x: 1, y: -1 })).toBe(false);
+    // round the block at (4,2): one of the two cells beside the way is open
+    expect(canStep(room, { x: 3, y: 2 }, { x: 1, y: -1 })).toBe(true);
     expect(canStep(room, { x: 1, y: 1 }, { x: -1, y: 0 })).toBe(false);
+    const gap = handMap(['#####', '#.#.#', '##..#', '#####']);
+    expect(canStep(gap, { x: 1, y: 1 }, { x: 1, y: 1 })).toBe(false);
   });
 
   it('finds a way around walls and none into a sealed cell', () => {
     const p = findPath(room, { x: 3, y: 2 }, { x: 5, y: 2 })!;
     expect(p[p.length - 1]).toEqual({ x: 5, y: 2 });
-    expect(p.length).toBeGreaterThan(2);
+    // round the block, never through it
+    expect(p.length).toBe(2);
+    expect(p.some((c) => c.x === 4 && c.y === 2)).toBe(false);
     const sealed = handMap(['#####', '#.#.#', '#####']);
     expect(findPath(sealed, { x: 1, y: 1 }, { x: 3, y: 1 })).toBeNull();
   });

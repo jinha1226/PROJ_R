@@ -150,17 +150,17 @@ export class GridElements {
     }
   }
 
-  /** Shows where a click would walk: a dot on every step and a frame on the last cell (null hides it). */
+  /** Shows where a click would walk: a small round dot on every step and a thin ring on the last cell (null hides it). A single step shows nothing: the clone is already on its way there. */
   setPath(cells: { x: number; y: number }[] | null): void {
     const key = cells ? cells.map((c) => `${c.x},${c.y}`).join(';') : '';
     if (key === this.pathKey) return;
     this.pathKey = key;
     for (const o of this.path.children) (o as THREE.Mesh).geometry.dispose();
     this.path.clear();
-    if (!cells?.length) return;
+    if (!cells || cells.length < 2) return;
     cells.forEach((c, i) => {
       const last = i === cells.length - 1;
-      const geo = last ? new THREE.RingGeometry(CELL * 0.3, CELL * 0.42, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2) : new THREE.PlaneGeometry(CELL * 0.14, CELL * 0.14).rotateX(-Math.PI / 2);
+      const geo = last ? new THREE.RingGeometry(CELL * 0.2, CELL * 0.25, 24).rotateX(-Math.PI / 2) : new THREE.CircleGeometry(CELL * 0.045, 10).rotateX(-Math.PI / 2);
       const m = new THREE.Mesh(geo, last ? this.pathEnd : this.pathDot);
       m.position.copy(toWorld(c.x, c.y)).setY(0.06);
       m.renderOrder = 5;

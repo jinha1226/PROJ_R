@@ -1,6 +1,6 @@
 import { DIRS, add, canStep, idx, same, type Cell, type GridMap } from './types';
 
-/** Shortest walk (8-way, no corner cutting) from `from` to `to`; excludes `from`, includes `to`. Blocked cells other than `to` are avoided. */
+/** Shortest walk (8-way; a diagonal may round a corner, not slip between two shut cells) from `from` to `to`; excludes `from`, includes `to`. Blocked cells other than `to` are avoided. */
 export function findPath(m: GridMap, from: Cell, to: Cell, blocked?: (c: Cell) => boolean, maxSteps = 4000): Cell[] | null {
   if (same(from, to)) return [];
   const prev = new Map<number, number>();

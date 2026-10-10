@@ -23,7 +23,7 @@ export const zoneLook = (floor: number): ZoneLook => LOOKS[zoneOf(Math.max(1, fl
  */
 export const DARK = {
   on: typeof location !== 'undefined' && new URLSearchParams(location.search).has('dark'),
-  ambient: 2.2, sky: '#3558a8', ground: '#0c1220', tint: '#b4bccc', walls: 0.7, reach: 5, power: 1.3,
+  ambient: 2.2, sky: '#3558a8', ground: '#0c1220', tint: '#b4bccc', walls: 0.35, reach: 5, power: 1.3,
   torch: { color: '#ffa860', intensity: 12, distance: 6.5 }, cast: 2.6, shade: 0.4, sun: 0.08, exposure: 1.1, flash: 1.7, linger: 1.5,
 };
 

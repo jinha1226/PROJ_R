@@ -4,6 +4,7 @@ import { addShield } from './shield';
 import { applyStatus } from './status';
 import { foesNear, fighting } from './cardFx';
 import { summon } from './kitEffects';
+import { laySnare } from './snares';
 import { alive, damage, posOf, stats, type DamageKind, type Party, type Unit } from './partyCore';
 import type { Cond, Ctx, TriggerDef } from './triggers';
 
@@ -69,6 +70,13 @@ export function raise(p: Party, id: string, slot: Slot): boolean {
 const power = (slot: Slot, s: Skill): number => STEP[s.lv]! * PLACE[slot].mult * (s.el === 'none' ? PLAIN : 1);
 const shots = (s: Skill): number => (s.lv >= 3 ? 2 : 1);
 const cap = (s: Skill): number => (s.lv >= 3 ? 3 : 2);
+/**
+ * What the making school sets down depends on the place (2026-10-10: a helper from every place made six ways to the same
+ * build): the heart and the head a helper that fights, the hand and the foot a snare on the floor, the body and the eye a
+ * decoy that draws the foes' eyes for a moment.
+ */
+const MAKES: Record<Slot, 'helper' | 'snare' | 'decoy'> = { heart: 'helper', head: 'helper', hand: 'snare', foot: 'snare', body: 'decoy', eye: 'decoy' };
+const DECOY = { life: 3, draws: 2, reach: 2 };
 
 /** What a skill does, in a line (the same numbers the effect uses). */
 export function skillLine(slot: Slot, s: Skill, u?: Unit, p?: Party): string {
@@ -76,7 +84,9 @@ export function skillLine(slot: Slot, s: Skill, u?: Unit, p?: Party): string {
   const what = s.school === 'forge' ? `보호막 ${Math.round(5 * k)}`
     : s.school === 'emit' ? `가까운 적 ${shots(s)}명에게 탄${hit ? ` (피해 ${Math.round(hit * 0.7 * k)})` : ''}`
       : s.school === 'bind' ? `가까운 적 ${shots(s)}명을 묶는다`
-        : `하수인을 세운다 (최대 ${cap(s)}, 체력 ${Math.round(12 + 8 * k)})`;
+        : MAKES[slot] === 'helper' ? `하수인을 세운다 (최대 ${cap(s)}, 체력 ${Math.round(12 + 8 * k)})`
+          : MAKES[slot] === 'snare' ? `${slot === 'hand' ? '맞은 적의 발밑에' : '지나는 자리에'} 함정을 놓는다 (밟으면 터진다)`
+            : `미끼를 세운다 (체력 ${Math.round(8 + 6 * k)}, ${DECOY.draws}턴 동안 주변 적의 눈길을 끈다)`;
   const leaves = s.el === 'fire' ? ' · 닿은 적과 그 옆이 불탄다' : s.el === 'water' ? ' · 닿은 적이 느려지고, 느려진 적은 언다' : s.el === 'wood' ? ' · 닿은 적이 중독되고 그 자리에 독이 남는다' : '';
   return `${PLACE[slot].says} ${what}${leaves}`;
 }
@@ -115,7 +125,18 @@ function run(p: Party, c: Ctx, slot: Slot, s: Skill): void {
     }
   }
   if (s.school === 'bind') { touched = pick(3, shots(s)); for (const f of touched) applyStatus(p, c.src, f, 'stun', c.t, c.ev); }
-  if (s.school === 'make') { summon(p, c.src, at, c.t, c.ev, cap(s), { hp: Math.round(12 + 8 * k), here: slot === 'heart' }); touched = pick(1, 1); }
+  if (s.school === 'make') {
+    const made = MAKES[slot];
+    if (made === 'helper') summon(p, c.src, at, c.t, c.ev, cap(s), { hp: Math.round(12 + 8 * k), here: slot === 'heart', count: (x) => !x.decoy && !x.golem && !x.mirror });
+    // a snare under the foe struck, or where the clone stands as it passes (fire with the fire element, lightning otherwise)
+    if (made === 'snare') laySnare(p, c.src, slot === 'hand' ? at : me, s.el === 'fire' ? 'fire' : 'bolt', c.t, c.ev);
+    if (made === 'decoy' && summon(p, c.src, me, c.t, c.ev, 1, { hp: Math.round(8 + 6 * k), life: DECOY.life, count: (x) => !!x.decoy })) {
+      const decoy = p.units[p.units.length - 1]!;
+      decoy.decoy = true;
+      for (const f of awake(p, posOf(p, decoy), DECOY.reach)) { f.tauntBy = decoy.id; f.tauntUntil = c.t + DECOY.draws; }
+    }
+    touched = pick(1, 1);
+  }
   leave(p, c.src, s.el, touched, c.t, c.ev);
 }
 

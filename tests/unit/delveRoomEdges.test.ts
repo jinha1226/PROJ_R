@@ -82,12 +82,12 @@ it('each transit entry in a large tick triggers including enemies and alarms wak
   const moves: GEvent[] = []; stepToward(p, foe, { x: 9, y: 7 }, p.time, moves); p.onMovement!(moves.slice(), moves);
   expect(moves.some((e) => e.type === 'trap')).toBe(true); expect(foe.asleep).toBe(false);
 });
-it('rogues spot before path selection and avoid traps without diagonal corner cutting', () => {
+it('rogues spot before path selection and step round a trap (a diagonal past its corner, never onto it)', () => {
   const p = arena(), u = unitOf(p, 'hero')!; implant(p, u, 'rogue', []);
   p.s.traps = [{ pos: { x: 8, y: 7 }, kind: 'spike', found: false }];
   const ev: GEvent[] = []; stepToward(p, u, { x: 9, y: 7 }, p.time, ev);
   expect(ev[0]!.type).toBe('trapFound'); expect(entOf(p, u.id)!.pos).not.toEqual({ x: 8, y: 7 });
-  expect(entOf(p, u.id)!.pos).not.toEqual({ x: 8, y: 6 }); expect(entOf(p, u.id)!.pos).not.toEqual({ x: 8, y: 8 });
+  expect([6, 8]).toContain(entOf(p, u.id)!.pos.y); expect(entOf(p, u.id)!.pos.x).toBe(8);
 });
 it('mining uses simulation elapsed time and shrine is one shot', () => {
   const p = quiet(), e = entOf(p, 'hero')!; p.oreNodes = [{ pos: { ...e.pos }, left: 3, progress: 0 }];

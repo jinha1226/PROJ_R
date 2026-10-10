@@ -93,6 +93,22 @@ it('the heart raises a helper where a foe fell, up to its cap; wood poisons and 
   expect((p.grounds ?? []).some((g) => g.kind === 'poison')).toBe(true);
 });
 
+it('the making school sets down a different thing by place: a snare from the hand and foot, a decoy from the body and eye', () => {
+  const { p, u, put } = classScene('warrior');
+  u.skills = { hand: { school: 'make', el: 'fire', lv: 1 }, body: { school: 'make', el: 'none', lv: 1 } };
+  const f = put(0, 5, 6, 5000);
+  for (let k = 0; k < 3; k++) strike(p, u, f, 1 + k, []);
+  expect((p.snares ?? []).some((sn) => sn.by === u.id && sn.kind === 'fire' && sn.at.x === 5 && sn.at.y === 6)).toBe(true);
+  expect(p.units.some((x) => x.summoner === u.id)).toBe(false);
+  action(p, () => emit(p, 'struck', { t: 5, src: u, target: f, ev: [] }));
+  const decoy = p.units.find((x) => x.decoy);
+  expect(decoy?.summoner).toBe(u.id);
+  expect(f.tauntBy).toBe(decoy!.id);
+  // one decoy at a time
+  action(p, () => emit(p, 'struck', { t: 7, src: u, target: f, ev: [] }));
+  expect(p.units.filter((x) => x.decoy).length).toBe(1);
+});
+
 it('a skill says what it does in a line, under a name the log and the strip use', () => {
   const s = { school: 'emit', el: 'fire', lv: 3 } as const;
   expect(skillName('eye', s)).toBe('눈 방출·화');

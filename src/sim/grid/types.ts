@@ -58,10 +58,13 @@ export const DIRS: Cell[] = [
   { x: 1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: -1, y: -1 },
 ];
 
-/** One step in direction d: the target must be walkable, and a diagonal may not cut a corner. */
+/**
+ * One step in direction d: the target must be walkable. A diagonal may round a corner (one of the two cells beside the way is
+ * open: 2026-10-10, corners used to stop a diagonal dead) but not slip through a gap where both are shut.
+ */
 export function canStep(m: GridMap, from: Cell, d: Cell): boolean {
   if (!walkable(tileAt(m, add(from, d)))) return false;
-  if (d.x !== 0 && d.y !== 0) return walkable(tileAt(m, { x: from.x + d.x, y: from.y })) && walkable(tileAt(m, { x: from.x, y: from.y + d.y }));
+  if (d.x !== 0 && d.y !== 0) return walkable(tileAt(m, { x: from.x + d.x, y: from.y })) || walkable(tileAt(m, { x: from.x, y: from.y + d.y }));
   return true;
 }
 

@@ -29,8 +29,8 @@
   /* the log gives the keys their room */
   .delve.hud-solo .wh-bl { right: calc(var(--key) * 2 + 18px); }
   /*
-   * ?dpad: nine square keys bottom left in place of the stick. Above them the
-   * clone's lines and, right under those, the log. Beside the pad: the build's strip and the potion, and under them the
+   * ?dpad: nine square keys bottom left in place of the stick. Above them the log;
+   * the clone's lines are at the top left, under the map. Beside the pad: the build's strip and the potion, and under them the
    * target key and one wide key that is explore or attack. The bag is in the menu.
    */
   .pad-keys .delve.hud-solo .dp-grid { display: grid; position: absolute; z-index: 8; left: 6px; bottom: 6px; grid-template-columns: repeat(3, 40px); grid-auto-rows: 40px; gap: 3px; touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -47,7 +47,10 @@
   /* the clone's lines, the log right under them, then the keys */
   .pad-keys .delve.hud-solo { --log-bottom: 138px; }
   .pad-keys .delve.hud-solo .wh-bl { left: 8px; right: 8px; }
-  .pad-keys .delve.hud-solo .wh-party { bottom: calc(var(--log-bottom) + 46px); }
+  /* the map smaller (two dots of the screen to a cell), and under it the clone's lines: they no longer stand over the log */
+  .pad-keys .delve.hud-solo .wh-mini canvas { width: 58px; height: 58px; }
+  .pad-keys .delve.hud-solo .wh-party { top: calc(env(safe-area-inset-top, 0px) + 72px); bottom: auto; left: 8px; right: auto; }
+  .pad-keys .delve.hud-solo .wh-target { left: 8px; top: calc(env(safe-area-inset-top, 0px) + 134px); }
   .pad-keys .delve.hud-solo .quick-slots { left: auto; right: 6px; bottom: calc(var(--row) + 10px); }
   .pad-keys .delve.hud-solo .card-strip { left: 138px; right: 58px; bottom: calc(var(--row) + 10px); }
 }
