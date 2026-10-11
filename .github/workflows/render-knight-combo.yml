@@ -1,0 +1,39 @@
+name: Render SD Knight Combo GIF
+on:
+  push:
+    paths:
+      - 'knight-combo.html'
+      - 'scripts/render-knight-combo.mjs'
+      - '.github/workflows/render-knight-combo.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/vite.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/knight-combo.html > /dev/null && break || sleep 1; done
+          node scripts/render-knight-combo.mjs
+      - run: |
+          ffmpeg -y -framerate 16 -i tmp/knight-combo-frames/frame-%04d.png -vf "fps=16,scale=512:-1:flags=lanczos,palettegen=stats_mode=diff" /tmp/palette.png
+          ffmpeg -y -framerate 16 -i tmp/knight-combo-frames/frame-%04d.png -i /tmp/palette.png -lavfi "fps=16,scale=512:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer" -loop 0 public/assets/models/characters/Knight_SD_combo.gif
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Knight_SD_combo
+          path: public/assets/models/characters/Knight_SD_combo.gif
+      - name: Commit GIF
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/models/characters/Knight_SD_combo.gif
+          git commit -m "Render actual SD knight sword combo GIF" || exit 0
+          git push
